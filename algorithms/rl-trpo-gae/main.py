@@ -13,13 +13,6 @@ from collections import defaultdict  # can be replaced
 
 import tensorflow as tf
 
-'''
-def save_model(session, saver, step):
-    CHECKPOINT_DIR = 'chkpt'
-    if not os.path.exists(CHECKPOINT_DIR):
-        os.mkdir(CHECKPOINT_DIR)
-    saver.save(session, CHECKPOINT_DIR + '/' + 'checkpoint-' + str(step))
-'''
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
