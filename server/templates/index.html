@@ -1,0 +1,216 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<title>Flask-SocketIO Test</title>
+<style>
+.basic-grey {
+/*    
+    margin-left:auto;
+    margin-right:auto;
+*/
+    max-width: 500px;
+    background: #F7F7F7;
+    padding: 25px 15px 25px 10px;
+    font: 14px Georgia, "Times New Roman", Times, serif;
+    color: #888;
+    text-shadow: 1px 1px 1px #FFF;
+    border:1px solid #E4E4E4;
+}
+.basic-grey h1 {
+    font-size: 15px;
+    padding: 0px 0px 10px 20px;
+    display: block;
+    border-bottom:1px solid #E4E4E4;
+    margin: -10px -15px 30px -10px;;
+    color: #888;
+}
+.basic-grey h1>span {
+    display: block;
+    font-size: 11px;
+}
+.basic-grey label {
+    display: block;
+    margin: 0px;
+}
+.basic-grey label>span {
+    float: left;
+    width: 10%;
+    text-align: right;
+    padding-right: 10px;
+    margin-top: 10px;
+    color: #888;
+}
+.basic-grey input[type="text"], .basic-grey input[type="email"], .basic-grey textarea, .basic-grey select {
+    border: 1px solid #DADADA;
+    color: #888;
+    height: 30px;
+    margin-bottom: 16px;
+    margin-right: 6px;
+    margin-top: 2px;
+    outline: 0 none;
+    padding: 3px 3px 3px 5px;
+    width: 70%;
+    font-size: 12px;
+    line-height:15px;
+    box-shadow: inset 0px 1px 4px #ECECEC;
+    -moz-box-shadow: inset 0px 1px 4px #ECECEC;
+    -webkit-box-shadow: inset 0px 1px 4px #ECECEC;
+}
+.basic-grey textarea{
+    padding: 5px 3px 3px 5px;
+}
+.basic-grey select {
+    background: #FFF url('down-arrow.png') no-repeat right;
+    background: #FFF url('down-arrow.png') no-repeat right);
+    appearance:none;
+    -webkit-appearance:none; 
+    -moz-appearance: none;
+    text-indent: 0.01px;
+    text-overflow: '';
+    width: 70%;
+    height: 35px;
+    line-height: 25px;
+}
+.basic-grey textarea{
+    height:100px;
+}
+.basic-grey .button {
+    background: #E27575;
+    border: none;
+    padding: 10px 25px 10px 25px;
+    color: #FFF;
+    box-shadow: 1px 1px 5px #B6B6B6;
+    border-radius: 3px;
+    text-shadow: 1px 1px 1px #9E3F3F;
+    cursor: pointer;
+    margin-bottom: 16px;
+}
+.basic-grey .button:hover {
+    background: #CF7A7A
+}
+</style>
+<script type="text/javascript" src="//code.jquery.com/jquery-1.4.2.min.js"></script>
+<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.5/socket.io.min.js"></script>
+<script type="text/javascript" charset="utf-8">
+  $(document).ready(function() {
+    // Use a "/test" namespace.
+    // An application can open a connection on multiple namespaces, and
+    // Socket.IO will multiplex all those connections on a single
+    // physical channel. If you don't care about multiple channels, you
+    // can set the namespace to an empty string.
+    namespace = '/rlmodels';
+    session_id = ''
+
+    // Connect to the Socket.IO server.
+    // The connection URL has the following format:
+    //     http[s]://<domain>:<port>[/<namespace>]
+    var socket = io.connect('http://' + document.domain + ':' + location.port + namespace);
+
+    // Event handler for new connections.
+    // The callback function is invoked when a connection with the
+    // server is established.
+    socket.on('connect', function() {
+      $('#log').append('<br>' + $('<div/>').text('Connected to the server').html());
+    });
+
+    // Event handler for server sent session id
+    // Server sends session id right after client connects
+    socket.on('session id', function(msg) {
+       session_id = msg.session_id;
+       $('#log').append('<br>' + $('<div/>').text('Received session: ' + session_id).html());       
+       socket.emit('join', {room: session_id});
+    })
+
+    // Event handler for ack of joining the room 
+    // Server acknowleges join request
+    socket.on('join ack', function(msg) {
+        $('#log').append('<br>' + $('<div/>').text('Joined room: ' + msg.room).html());       
+        socket.emit('create model', {model_name: 'some_model'});
+    })
+
+    // Event handler for notification of model availability
+    socket.on('model is ready', function(msg) {
+        $('#log').append('<br>' + $('<div/>').text('Model ' + msg.model_name + ' is ready').html());
+    })
+
+    // Event handler for notification of model availability
+    socket.on('model message', function(msg) {
+        $('#log').append('<br>' + $('<div/>').text('Model message: ' + msg.data).html());
+    })
+
+    // Event handler for notification of model availability
+    socket.on('model is stopped', function(msg) {
+        $('#log').append('<br>' + $('<div/>').text('Model for ' + msg.data + " stopped").html());
+    })
+
+    // Event handler for server sent data.
+    // The callback function is invoked whenever the server emits data
+    // to the client. The data is then displayed in the "Received"
+    // section of the page.
+    socket.on('my response', function(msg) {
+      $('#log').append('<br>' + $('<div/>').text('Received ' + msg.data).html());
+    });
+
+    // Interval function that tests message latency by sending a "ping"
+    // message. The server then responds with a "pong" message and the
+    // round trip time is measured.
+    // var ping_pong_times = [];
+    // var start_time;
+    // window.setInterval(function() {
+    //     start_time = (new Date).getTime();
+    //     socket.emit('my ping');
+    // }, 1000);
+
+    // // Handler for the "pong" message. When the pong is received, the
+    // // time from the ping is stored, and the average of the last 30
+    // // samples is average and displayed.
+    // socket.on('my pong', function() {
+    //     var latency = (new Date).getTime() - start_time;
+    //     ping_pong_times.push(latency);
+    //     ping_pong_times = ping_pong_times.slice(-30); // keep last 30 samples
+    //     var sum = 0;
+    //     for (var i = 0; i < ping_pong_times.length; i++)
+    //         sum += ping_pong_times[i];
+    //     $('#ping-pong').text(Math.round(10 * sum / ping_pong_times.length) / 10);
+    // });
+
+    // Handlers for the different forms in the page.
+    // These accept data from the user and send it to the server
+    $('#send').click(function(event) {
+        socket.emit('my event', {data: $('#emit_data').val()});
+        return false;
+    });
+    // This doesn't work TDB
+    $('#disconnect').submit(function(event) {
+        socket.emit('disconnect request');
+        return false;
+    });
+  });
+</script>
+
+</head>
+<body>
+  <form id="actions" method="POST" action='#' class="basic-grey">
+    <h1>Flask-SocketIO Test</h1>
+    <label>
+      <span>Send:</span>
+      <input type="text" name="emit_data" id="emit_data" placeholder="Message">
+    </lable>
+    <label>
+      <span>&nbsp;</span> 
+      <input id="send" type="button" class="button" value="Send">
+    </label>    
+    <label>
+      <span>&nbsp;</span> 
+      <input id="disconnect" type="button" class="button" value="Disconnect">
+    </label>    
+  </form>
+  <!--p>
+    Average ping/pong latency: <b id="ping-pong">xx</b>ms
+  </p-->
+  <div>
+    <b>Log Messages:</b>
+  </div>
+  <div id="log"></div>
+</body>
+</html>

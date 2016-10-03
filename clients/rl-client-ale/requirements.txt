@@ -1,0 +1,7 @@
+requests==2.10.0
+socketIO-client==0.6.6
+websocket-client==0.37.0
+numpy==1.11.1
+python-nonblock==3.0.1
+pillow==3.3.0
+scipy==0.18.0
