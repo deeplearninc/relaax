@@ -1,9 +1,8 @@
 # DeepLearn Services
 Our architecture is divided by:
 
-* [Server, which manages models and its algorithms](/server)
-* [Clients, which feeds server by its data](/clients)
-
+* [Server](/server) which manages models and its algorithms]
+* [Clients](/clients) which feeds server by its data
 
 We have 2 types of clients at this moment:
 
@@ -16,6 +15,10 @@ emulates all gym's Environments such as:
     * [Atari Games](https://gym.openai.com/envs#atari)
     * [Walkers, Landar & Racing](https://gym.openai.com/envs##box2d)
     * ant others, see the full list [there](https://gym.openai.com/envs)
+    
+To see how ot works you should clone this repo and run separately the 
+server and one of clients or both of them. You should follows by 
+instructions, which you can find in appropriate [readme file](#links-to-readme-files)
 
 ### Links to Readme files
 [Server's readme](/server/README.md)
