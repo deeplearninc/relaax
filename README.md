@@ -4,6 +4,7 @@ Our architecture is divided by:
 * [Server, which manages models and its algorithms](/server)
 * [Clients, which feeds server by its data](/clients)
 
+
 We have 2 types of clients at this moment:
 
 - [ALE Client](/clients/rl-client-ale)
@@ -18,5 +19,7 @@ emulates all gym's Environments such as:
 
 ### Links to Readme files
 [Server's readme](/server/README.md)
+
 [ALE Client's readme](/clients/rl-client-ale/README.md)
+
 [GYM Client's readme](/clients/rl-client-gym/README.md)
