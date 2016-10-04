@@ -1,2 +1,2 @@
 # rl-server
-Server with multi-agent deep (reinforcement) learning algorithms
+Server with multi-agent deep (reinforcement) learning algorithms.
