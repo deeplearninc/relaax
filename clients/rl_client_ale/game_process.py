@@ -1,3 +1,4 @@
+import os
 import sys
 import numpy as np
 from scipy.misc import imresize
@@ -18,7 +19,7 @@ class GameProcess(object):
         if display:
             self._setup_display()
 
-        ROM = 'atari-games/' + game_name + '.bin'
+        ROM = os.path.dirname(__file__) + '/atari-games/' + game_name + '.bin'
         self.ale.loadROM(ROM.encode('ascii'))
 
         # collect minimal action set
