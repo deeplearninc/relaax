@@ -16,8 +16,8 @@ emulates all gym's Environments such as:
     * [Walkers, Landar & Racing](https://gym.openai.com/envs##box2d)
     * ant others, see the full list [there](https://gym.openai.com/envs)
     
-To see how ot works you should clone this repo and run separately the 
-server and one of clients or both of them. You should follows by 
+To see how it works you should clone this repo and run separately the 
+server and one of clients or both of them. You should follows the 
 instructions, which you can find in appropriate [readme file](#links-to-readme-files)
 
 ### Links to Readme files
