@@ -1,0 +1,25 @@
+Every model(algorithm) with their specific parameters
+creates its own folder for checkpoint.
+
+For example:
+boxing_a3c_lstm_8threads
+
++ boxing - rom name of the game
++ a3c - name of algorithm, which used for training
++ lstm - additional modification of algorithm
++ 8threads - number of parallel training agents
+
+You need server only last checkpoint int this folder,
+which consists if 3-files:
+- checkpoint
+- checkpoint-<num_global_steps>
+- checkpoint-<num_global_steps>.meta
+(The more number of steps the more train steps passed)
+
+Be careful at restoring !
+
+Every checkpoint holds tensorflow session, which you used before.
+If you change you code, which uses TF - you can't restore
+and new checkpoint was created.
+Checkpoints are unique for TF session !
+(it also depends on type of algorithm, game env and agents amount)
