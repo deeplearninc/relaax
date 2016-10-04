@@ -12,8 +12,10 @@ import sys
 from time import sleep
 from nonblock import bgread
 
-from game_process import GameProcess as Game
-from params import Params
+from rl_client_ale.game_process import GameProcess as Game
+from rl_client_ale.params import Params
+
+import server_api
 
 
 logging.getLogger('requests').setLevel(logging.WARNING)
@@ -29,7 +31,7 @@ class NDArrayEncoder(json.JSONEncoder):
         return json.JSONEncoder.default(self, obj)
 
 
-class ServerAPI(LoggingNamespace):
+class ServerAPI(LoggingNamespace, server_api.ServerAPI):
     def __init__(self, *args, **kwargs):
         super(ServerAPI, self).__init__(*args, **kwargs)
         self.cfg = Params()         # instantiate the parameters to perform
@@ -39,10 +41,6 @@ class ServerAPI(LoggingNamespace):
 
         self.inputKey = bgread(sys.stdin)   # for Display --> standard console input interception
         self.play_thread = None             # Display thread --> need for further deleting
-
-    def on_session_id(self, *args):
-        print('on_session_response', args)
-        self.emit('join', {'room': args[0]['session_id']})
 
     def on_join_ack(self, *args):
         print('on_join_ack', args)
@@ -158,6 +156,7 @@ class ServerAPI(LoggingNamespace):
         print('on_stop_training_ack', args)
         self.emit('disconnect', {})
 
-socketIO = SocketIO('localhost', 8000)
-rlmodels_namespace = socketIO.define(ServerAPI, '/rlmodels')
-socketIO.wait(seconds=1)
+if __name__ == "__main__":
+    socketIO = SocketIO('localhost', 8000)
+    rlmodels_namespace = socketIO.define(ServerAPI, '/rlmodels')
+    socketIO.wait(seconds=1)
