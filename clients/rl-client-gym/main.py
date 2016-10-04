@@ -7,14 +7,14 @@ import base64
 from socketIO_client import SocketIO, LoggingNamespace
 import logging
 import threading
-
 import sys
+
 from time import sleep
 from nonblock import bgread
 
-from game_env import Env
+from game_env import Env as Game
 from params import Params
-MODEL_NAME = 'ale_model'
+
 
 logging.getLogger('requests').setLevel(logging.WARNING)
 logging.basicConfig(level=logging.INFO)
@@ -29,12 +29,13 @@ class NDArrayEncoder(json.JSONEncoder):
         return json.JSONEncoder.default(self, obj)
 
 
-class RLModelsNamespace(LoggingNamespace):
+class ServerAPI(LoggingNamespace):
     def __init__(self, *args, **kwargs):
-        super(RLModelsNamespace, self).__init__(*args, **kwargs)
+        super(ServerAPI, self).__init__(*args, **kwargs)
+        self.cfg = Params()         # Parameters to setup the environment and training process
+
         self.gameList = []          # List of running games, if no parallel agents -> list holds one element
         self.gamePlayedList = None  # Games played accumulator for current session (can holds all threads)
-        self.params = Params()      # Parameters to setup the environment and training process
 
         self.inputKey = bgread(sys.stdin)   # for Display --> standard console input interception
         self.play_thread = None             # Display thread --> need for further deleting
@@ -45,30 +46,29 @@ class RLModelsNamespace(LoggingNamespace):
 
     def on_join_ack(self, *args):
         print('on_join_ack', args)
-        self.emit('create model', {'model_name': MODEL_NAME})
+        self.emit('create model', {'model_name': self.cfg.args.scope})
 
     def on_model_is_allocated(self, *args):
         print('on_model_is_allocated', args)
-        self.emit('get params', {'algo_name': self.params.algo})
+        self.emit('get params', {'algo_name': self.cfg.args.algo})
 
     def on_init_params(self, *args):
         print('on_init_params', args)
 
         if args[0].__contains__('threads_cnt'):
-            for i in range(self.params.threads_cnt):
-                self.gameList.append(Env(self.params, 113 * i))
+            for i in range(self.cfg.threads_cnt):
+                self.gameList.append(Game(self.cfg, 113 * i))
         else:
-            self.gameList.append(Env(self.params))
-        self.params.action_size = self.gameList[0].getActions()  # Action size for the given game ROM (one game exists)
+            self.gameList.append(Game(self.cfg))
+        self.cfg.action_size = self.gameList[0].getActions()  # Action size for the given game ROM (one game exists)
 
         params = json.loads(args[0])
         for param_name in params:
-            if hasattr(self.params, param_name):
-                params[param_name] = getattr(self.params, param_name)
-                # print param_name, params[param_name]
+            if hasattr(self.cfg, param_name):
+                params[param_name] = getattr(self.cfg, param_name)
 
-        print('Name of the target game:', self.params.game_rom)
-        print('Action size for the target game:', self.params.action_size)
+        print('Name of the target game:', self.cfg.game_rom)
+        print('Action size for the target game:', self.cfg.action_size)
         self.emit('init model', json.dumps(params))
 
     def on_model_is_ready(self, *args):
@@ -126,7 +126,7 @@ class RLModelsNamespace(LoggingNamespace):
                     return None
                 self.gamePlayedList[index] += 1
                 print("Score for thread", index, "at game", self.gamePlayedList[index],
-                      "=", episode_params['score'])
+                      "=", int(episode_params['score']))
 
             self.emit('get action',
                       {'thread_index': index,
@@ -144,7 +144,7 @@ class RLModelsNamespace(LoggingNamespace):
             print(key)
             if key[-2] == "d":
                 print('Playing game for training algorithm at current step...')
-                self.gameList.append(Env(self.params, 0, display=True))
+                self.gameList.append(Game(self.cfg, 0, display=True))
                 self.play_thread = threading.Thread(
                     target=self.emit('get action',
                                      {'thread_index': -1,
@@ -159,5 +159,5 @@ class RLModelsNamespace(LoggingNamespace):
 
 
 socketIO = SocketIO('localhost', 8000)
-rlmodels_namespace = socketIO.define(RLModelsNamespace, '/rlmodels')
+rlmodels_namespace = socketIO.define(ServerAPI, '/rlmodels')
 socketIO.wait(seconds=1)
