@@ -31,11 +31,11 @@ class ServerAPI(socketIO_client.LoggingNamespace):
 
     def on_join_ack(self, *args):
         print('on_join_ack', args)
-        self.emit('create model', {'model_name': self.model_name()})
+        self.emit('create model', {'model_name': self.cfg.args.scope})
 
     def on_model_is_allocated(self, *args):
         print('on_model_is_allocated', args)
-        self.emit('get params', {'algo_name': self.algo_name()})
+        self.emit('get params', {'algo_name': self.cfg.args.algo})
 
     def on_init_params(self, *args):
         print('on_init_params', args)
@@ -144,12 +144,6 @@ class ServerAPI(socketIO_client.LoggingNamespace):
     def on_stop_training_ack(self, *args):
         print('on_stop_training_ack', args)
         self.emit('disconnect', {})
-
-    def model_name(self):
-        raise NotImplementedError()
-
-    def algo_name(self):
-        raise NotImplementedError()
 
     def make_game(self, seed):
         raise NotImplementedError()
