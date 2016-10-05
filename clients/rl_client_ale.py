@@ -16,16 +16,16 @@ class ServerAPI(server_api.ServerAPI):
         server_api.ServerAPI.__init__(self, Params(), *args, **kwargs)
 
     def model_name(self):
-        return self.params.args.scope
+        return self.cfg.args.scope
 
     def algo_name(self):
-        return self.params.args.algo
+        return self.cfg.args.algo
 
     def make_game(self, seed):
-        return Game(seed, self.params.game_rom)
+        return Game(seed, self.cfg.game_rom)
 
     def make_display_game(self, seed):
-        return Game(seed, self.params.game_rom, display=True, no_op_max=0)
+        return Game(seed, self.cfg.game_rom, display=True, no_op_max=0)
 
     def action_size(self):
         return self.gameList[0].real_action_size()  

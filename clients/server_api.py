@@ -7,6 +7,7 @@ import sys
 import threading
 import socketIO_client
 
+
 class NDArrayEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, numpy.ndarray):
@@ -15,14 +16,15 @@ class NDArrayEncoder(json.JSONEncoder):
             return {'b64npz': base64.b64encode(output.getvalue())}
         return json.JSONEncoder.default(self, obj)
 
+
 class ServerAPI(socketIO_client.LoggingNamespace):
-    def __init__(self, params, *args, **kwargs):
+    def __init__(self, cfg, *args, **kwargs):
         socketIO_client.LoggingNamespace.__init__(self, *args, **kwargs)
 
         self.inputKey = nonblock.bgread(sys.stdin)   # for Display --> standard console input interception
         self.play_thread = None     # Display thread --> need for further deleting
         self.gamePlayedList = None  # Games played accumulator for current session (can holds all threads)
-        self.params = params        # Parameters to setup the environment and training process
+        self.cfg = cfg              # Parameters to setup the environment and training process
         self.gameList = []          # List of running games, if no parallel agents -> list holds one element
 
     def on_session_id(self, *args):
@@ -41,19 +43,19 @@ class ServerAPI(socketIO_client.LoggingNamespace):
         print('on_init_params', args)
 
         if args[0].__contains__('threads_cnt'):
-            for i in range(self.params.threads_cnt):
+            for i in range(self.cfg.threads_cnt):
                 self.gameList.append(self.make_game(113 * i))
         else:
             self.gameList.append(self.make_game(0))
-        self.params.action_size = self.action_size()
+        self.cfg.action_size = self.action_size()
 
         params = json.loads(args[0])
         for param_name in params:
-            if hasattr(self.params, param_name):
-                params[param_name] = getattr(self.params, param_name)
+            if hasattr(self.cfg, param_name):
+                params[param_name] = getattr(self.cfg, param_name)
 
-        print('Name of the target game:', self.params.game_rom)
-        print('Action size for the target game:', self.params.action_size)
+        print('Name of the target game:', self.cfg.game_rom)
+        print('Action size for the target game:', self.cfg.action_size)
         self.emit('init model', json.dumps(params))
 
     def on_model_is_ready(self, *args):
@@ -112,7 +114,7 @@ class ServerAPI(socketIO_client.LoggingNamespace):
                     return None
                 self.gamePlayedList[index] += 1
                 print("Score for thread", index, "at game", self.gamePlayedList[index],
-                      "=", episode_params['score'])
+                      "=", int(episode_params['score']))
 
             self.emit('get action', {
                 'thread_index': index,
