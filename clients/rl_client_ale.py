@@ -15,12 +15,6 @@ class ServerAPI(server_api.ServerAPI):
     def __init__(self, *args, **kwargs):
         server_api.ServerAPI.__init__(self, Params(), *args, **kwargs)
 
-    def model_name(self):
-        return self.cfg.args.scope
-
-    def algo_name(self):
-        return self.cfg.args.algo
-
     def make_game(self, seed):
         return Game(seed, self.cfg.game_rom)
 
