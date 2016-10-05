@@ -12,8 +12,8 @@ import sys
 from time import sleep
 from nonblock import bgread
 
-from game_env import Env
-from params import Params
+from rl_client_gym.game_env import Env
+from rl_client_gym.params import Params
 MODEL_NAME = 'ale_model'
 
 logging.getLogger('requests').setLevel(logging.WARNING)
