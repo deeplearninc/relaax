@@ -13,7 +13,7 @@ which can emulates Atari Games
 emulates all gym's Environments such as:
     * [Classic Control](https://gym.openai.com/envs#classic_control)
     * [Atari Games](https://gym.openai.com/envs#atari)
-    * [Walkers, Landar & Racing](https://gym.openai.com/envs##box2d)
+    * [Walkers, Landers & Racing](https://gym.openai.com/envs##box2d)
     * ant others, see the full list [there](https://gym.openai.com/envs)
     
 To see how it works you should clone this repo and run separately the 

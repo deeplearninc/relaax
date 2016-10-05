@@ -1,17 +1,20 @@
 # RL Simple Model Server 
 
-[DataFlow & Class Diagram](https://goo.gl/photos/bzn1wQ28kct8vJgC6)
+Before you start, make sure you have installed on your system:
 
-Befor you start, make sure you have installed on you system:
+- `python 2.7 or 3.5`
 
-- python 2.7
-- pip
-- virtualenvs (http://docs.python-guide.org/en/latest/dev/virtualenvs/#virtualenvironments-ref)
+- [`pip`](https://pip.pypa.io/en/stable/installing/) - just need to install requirements, see command below:
+    > pip install -r requirements.txt
 
 To get started run the following commands:
 
-- mkvirtualenv simple_model_server
-- pip install -r requirements.txt
-- gunicorn -k flask_sockets.worker server:app
-- navigate to localhost:8000 in the browser
+    > gunicorn -k flask_sockets.worker server:app
+
+If installation of tensorflow failed - perhaps you are on `Linux` and have choice.
+Delete tensorflow note from `requirements.txt` and install [Tensorflow manually](https://www.tensorflow.org/versions/r0.11/get_started/os_setup.html).
+
+#### [How to create a virtual environment](/VirtualEnvironments.md)
+
+[DataFlow & Class Diagram](https://goo.gl/photos/bzn1wQ28kct8vJgC6)
 
