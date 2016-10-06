@@ -61,13 +61,15 @@ class Env:
     @staticmethod
     def getStateAtari(screen, reshape=True):
         gray = np.dot(screen[..., :3], [0.299, 0.587, 0.114])
-        gray = gray.astype(np.uint8)
+        # gray = gray.astype(np.uint8)
 
         resized_screen = imresize(gray, (110, 84))
         state = resized_screen[18:102, :]
 
         if reshape:
             state = np.reshape(state, (84, 84, 1))
+        state = state.astype(np.float32)
+        state *= (1.0 / 255.0)
         return state
 
     @staticmethod

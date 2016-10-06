@@ -98,8 +98,8 @@ class Trainer:
     def getAction(self, message):
         thread_index = int(message['thread_index'])
         state = json.loads(message['state'], object_hook=ndarray_decoder)
-        state = state.astype(np.float32)
-        state *= (1.0 / 255.0)
+        # state = state.astype(np.float32)
+        # state *= (1.0 / 255.0)
 
         if thread_index == -1:
             return self.playing(state), -1
