@@ -2,8 +2,6 @@ import gym
 import numpy as np
 from scipy.misc import imresize
 
-from .. import environment
-
 
 AtariList = ['AirRaid-v0', 'Alien-v0', 'Amidar-v0', 'Assault-v0', 'Asterix-v0',
              'Asteroids-v0', 'Atlantis-v0', 'BankHeist-v0', 'BattleZone-v0', 'BeamRider-v0',
@@ -27,7 +25,18 @@ class StateDeterminator(object):
         return self.func(*args, **kwargs)
 
 
-class Env(environment.Environment):
+class EnvFactory(object):
+    def __init__(self, params):
+        self.params = params
+
+    def new_env(self, seed):
+        return Env(self.params, seed)
+
+    def new_display_env(self, seed):
+        return Env(self.params, seed, display=True)
+
+
+class Env(object):
     def __init__(self, params, seed=0, display=False, no_op_max=7):
         self.display = display
         self.gym = gym.make(params.game_rom)

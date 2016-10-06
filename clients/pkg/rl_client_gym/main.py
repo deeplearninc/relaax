@@ -5,7 +5,7 @@ import logging
 
 from time import sleep
 
-from game_env import Env as Game
+import game_env
 from params import Params
 
 from .. import server_api
@@ -22,13 +22,14 @@ def main():
 
 class ServerAPI(server_api.ServerAPI):
     def __init__(self, *args, **kwargs):
-        server_api.ServerAPI.__init__(self, Params(), *args, **kwargs)
-
-    def make_game(self, seed):
-        return Game(self.cfg, seed)
-
-    def make_display_game(self, seed):
-        return Game(self.cfg, seed, display=True)
+        params = Params()
+        server_api.ServerAPI.__init__(
+            self,
+            params,
+            game_env.EnvFactory(params),
+            *args,
+            **kwargs
+        )
 
     def stop_play_thread(self):
         sleep(3)

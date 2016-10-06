@@ -5,10 +5,19 @@ from scipy.misc import imresize
 
 from ale_python_interface import ALEInterface
 
-from .. import environment
+
+class GameProcessFactory(object):
+    def __init__(self, params):
+        self.params = params
+
+    def new_env(self, seed):
+        return GameProcess(seed, self.params.game_rom)
+
+    def new_display_env(self, seed):
+        return GameProcess(seed, self.params.game_rom, display=True, no_op_max=0)
 
 
-class GameProcess(environment.Environment):
+class GameProcess(object):
     def __init__(self, rand_seed, game_name, display=False, frame_skip=4, no_op_max=7):
         self.ale = ALEInterface()
 
