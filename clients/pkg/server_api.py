@@ -49,7 +49,7 @@ class ServerAPI(socketIO_client.LoggingNamespace):
                 self.gameList.append(self.make_game(113 * i))
         else:
             self.gameList.append(self.make_game(0))
-        self.cfg.action_size = self.action_size()
+        self.cfg.action_size = self.gameList[0].action_size()
 
         params = json.loads(args[0])
         for param_name in params:
@@ -89,7 +89,7 @@ class ServerAPI(socketIO_client.LoggingNamespace):
             index = 0
 
         # receive game result
-        reward = self.act(index, action)
+        reward = self.gameList[index].act(action)
         terminal = self.gameList[index].terminal
 
         if terminal and index != -1:
@@ -155,14 +155,9 @@ class ServerAPI(socketIO_client.LoggingNamespace):
     def make_display_game(self, seed):
         raise NotImplementedError()
 
-    def action_size(self):
+    def stop_play_thread(self):
         raise NotImplementedError()
 
-    def game_state(self, i):
-        raise NotImplementedError()
-
-    def act(self, i, action):
-        raise NotImplementedError()
 
     def dump_state(self, i):
-        return json.dumps(self.game_state(i), cls=NDArrayEncoder)
+        return json.dumps(self.gameList[i].state(), cls=NDArrayEncoder)

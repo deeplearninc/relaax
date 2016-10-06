@@ -30,16 +30,6 @@ class ServerAPI(server_api.ServerAPI):
     def make_display_game(self, seed):
         return Game(seed, self.cfg.game_rom, display=True, no_op_max=0)
 
-    def action_size(self):
-        return self.gameList[0].real_action_size()  
-
-    def game_state(self, i):
-        return self.gameList[i].s_t
-
-    def act(self, i, action):
-        self.gameList[i].process(action)
-        return self.gameList[i].reward
-
     def stop_play_thread(self):
         self.play_thread.join()
         sleep(3)

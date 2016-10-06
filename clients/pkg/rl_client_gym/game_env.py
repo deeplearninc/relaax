@@ -2,6 +2,9 @@ import gym
 import numpy as np
 from scipy.misc import imresize
 
+from .. import environment
+
+
 AtariList = ['AirRaid-v0', 'Alien-v0', 'Amidar-v0', 'Assault-v0', 'Asterix-v0',
              'Asteroids-v0', 'Atlantis-v0', 'BankHeist-v0', 'BattleZone-v0', 'BeamRider-v0',
              'Berzerk-v0', 'Bowling-v0', 'Boxing-v0', 'Breakout-v0', 'Carnival-v0',
@@ -24,7 +27,7 @@ class StateDeterminator(object):
         return self.func(*args, **kwargs)
 
 
-class Env:
+class Env(environment.Environment):
     def __init__(self, params, seed=0, display=False, no_op_max=7):
         self.display = display
         self.gym = gym.make(params.game_rom)
@@ -32,7 +35,7 @@ class Env:
         self._no_op_max = no_op_max
 
         self.dims = (params.screen_height, params.screen_width)     # not used yet
-        self.state = None   # np.empty((210, 160, 1), dtype=np.uint8)
+        self.state_ = None   # np.empty((210, 160, 1), dtype=np.uint8)
         self.terminal = None
 
         self.getState = StateDeterminator(self.getStateAll)
@@ -40,8 +43,20 @@ class Env:
             self.getState = StateDeterminator(self.getStateAtari)
         self.reset()
 
-    def getActions(self):
+    def action_size(self):
         return self.gym.action_space.n
+
+    def state(self):
+        return self.state_
+
+    def act(self, action):
+        if self.display:
+            self.gym.render()
+        screen, reward, self.terminal, info = self.gym.step(action)
+        self.state_ = self.getState(screen)
+        if self.terminal:
+            self.gym.reset()
+        return reward
 
     def getActionSpace(self):
         return self.gym.action_space
@@ -55,7 +70,7 @@ class Env:
         for _ in range(no_op):
             self.gym.step(0)
 
-        self.state = self.getState(self.gym.step(0)[0], False)
+        self.state_ = self.getState(self.gym.step(0)[0], False)
         self.terminal = False
 
     @staticmethod
@@ -77,12 +92,3 @@ class Env:
         if reshape:
             state = np.reshape(state, (state.shape[0], state.shape[1], 1))
         return state
-
-    def act(self, action):
-        if self.display:
-            self.gym.render()
-        screen, reward, self.terminal, info = self.gym.step(action)
-        self.state = self.getState(screen)
-        if self.terminal:
-            self.gym.reset()
-        return reward

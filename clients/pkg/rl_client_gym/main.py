@@ -30,15 +30,6 @@ class ServerAPI(server_api.ServerAPI):
     def make_display_game(self, seed):
         return Game(self.cfg, seed, display=True)
 
-    def action_size(self):
-        return self.gameList[0].getActions()  
-
-    def game_state(self, i):
-        return self.gameList[i].state
-
-    def act(self, i, action):
-        return self.gameList[i].act(action)
-
     def stop_play_thread(self):
         sleep(3)
         self.gameList[-1].gym.render(close=True)
