@@ -1,44 +1,31 @@
-from __future__ import print_function
-import numpy as np
-import json
-import io
 import base64
-
-from socketIO_client import SocketIO, LoggingNamespace
-import logging
-import threading
+import io
+import json
+import nonblock
+import numpy
 import sys
-
-from time import sleep
-from nonblock import bgread
-
-from game_env import Env as Game
-from params import Params
-
-
-logging.getLogger('requests').setLevel(logging.WARNING)
-logging.basicConfig(level=logging.INFO)
+import threading
+import socketIO_client
 
 
 class NDArrayEncoder(json.JSONEncoder):
     def default(self, obj):
-        if isinstance(obj, np.ndarray):
+        if isinstance(obj, numpy.ndarray):
             output = io.BytesIO()
-            np.savez_compressed(output, obj=obj)
+            numpy.savez_compressed(output, obj=obj)
             return {'b64npz': base64.b64encode(output.getvalue())}
         return json.JSONEncoder.default(self, obj)
 
 
-class ServerAPI(LoggingNamespace):
-    def __init__(self, *args, **kwargs):
-        super(ServerAPI, self).__init__(*args, **kwargs)
-        self.cfg = Params()         # Parameters to setup the environment and training process
+class ServerAPI(socketIO_client.LoggingNamespace):
+    def __init__(self, cfg, *args, **kwargs):
+        socketIO_client.LoggingNamespace.__init__(self, *args, **kwargs)
 
-        self.gameList = []          # List of running games, if no parallel agents -> list holds one element
+        self.inputKey = nonblock.bgread(sys.stdin)   # for Display --> standard console input interception
+        self.play_thread = None     # Display thread --> need for further deleting
         self.gamePlayedList = None  # Games played accumulator for current session (can holds all threads)
-
-        self.inputKey = bgread(sys.stdin)   # for Display --> standard console input interception
-        self.play_thread = None             # Display thread --> need for further deleting
+        self.cfg = cfg              # Parameters to setup the environment and training process
+        self.gameList = []          # List of running games, if no parallel agents -> list holds one element
 
     def on_session_id(self, *args):
         print('on_session_response', args)
@@ -57,10 +44,10 @@ class ServerAPI(LoggingNamespace):
 
         if args[0].__contains__('threads_cnt'):
             for i in range(self.cfg.threads_cnt):
-                self.gameList.append(Game(self.cfg, 113 * i))
+                self.gameList.append(self.make_game(113 * i))
         else:
-            self.gameList.append(Game(self.cfg))
-        self.cfg.action_size = self.gameList[0].getActions()  # Action size for the given game ROM (one game exists)
+            self.gameList.append(self.make_game(0))
+        self.cfg.action_size = self.action_size()
 
         params = json.loads(args[0])
         for param_name in params:
@@ -75,18 +62,20 @@ class ServerAPI(LoggingNamespace):
         print('on_model_is_ready', args)
 
         if args[0].__contains__('threads_cnt'):
-            self.gamePlayedList = np.zeros(args[0]['threads_cnt'], dtype=int)
+            self.gamePlayedList = numpy.zeros(args[0]['threads_cnt'], dtype=int)
 
             for i in range(args[0]['threads_cnt']):
                 print('Game agent\'s thread is created with index:', i)
-                threading.Thread(target=self.emit('get action',
-                                                  {'thread_index': i,
-                                                   'state': json.dumps(self.gameList[i].state,
-                                                                       cls=NDArrayEncoder)}))
+                threading.Thread(target=self.emit('get action', {
+                    'thread_index': i,
+                    'state': self.dump_state(i)
+                }))
         else:
             self.gamePlayedList = 0
             print('Game is created for the training...')
-            self.emit('get action', {'state': json.dumps(self.gameList[0].state, cls=NDArrayEncoder)})
+            self.emit('get action', {
+                'state': self.dump_state(0)
+            })
 
     def on_get_action_ack(self, *args):
         # if more than one agent trains -> server returns tuple(list) with [action_num, thread_num]
@@ -98,15 +87,17 @@ class ServerAPI(LoggingNamespace):
             index = 0
 
         # receive game result
-        reward = self.gameList[index].act(action)
+        reward = self.act(index, action)
         terminal = self.gameList[index].terminal
 
         if terminal and index != -1:
             self.gameList[index].reset()
 
-        self.emit('episode', {'thread_index': index,
-                              'reward': reward,
-                              'terminal': terminal})
+        self.emit('episode', {
+            'thread_index': index,
+            'reward': reward,
+            'terminal': terminal
+        })
 
     def on_episode_ack(self, *args):
         episode_params = json.loads(args[0])
@@ -119,45 +110,57 @@ class ServerAPI(LoggingNamespace):
 
             if episode_params['terminal']:
                 if index == -1:
-                    sleep(3)
-                    self.gameList[-1].gym.render(close=True)
-                    self.play_thread.join()
-                    self.gameList.pop()
+                    self.stop_play_thread()
                     return None
                 self.gamePlayedList[index] += 1
                 print("Score for thread", index, "at game", self.gamePlayedList[index],
                       "=", int(episode_params['score']))
 
-            self.emit('get action',
-                      {'thread_index': index,
-                       'state': json.dumps(self.gameList[index].state, cls=NDArrayEncoder)})
+            self.emit('get action', {
+                'thread_index': index,
+                'state': self.dump_state(index)
+            })
         else:
             if episode_params['terminal']:
                 self.gamePlayedList += 1
                 print("Score for agent at game", self.gamePlayedList, "=", episode_params['score'])
 
-            self.emit('get action',
-                      {'state': json.dumps(self.gameList[0].state, cls=NDArrayEncoder)})
+            self.emit('get action', {
+                'state': self.dump_state(0)
+            })
 
         key = self.inputKey.data
         if key != '':
             print(key)
             if key[-2] == "d":
                 print('Playing game for training algorithm at current step...')
-                self.gameList.append(Game(self.cfg, 0, display=True))
-                self.play_thread = threading.Thread(
-                    target=self.emit('get action',
-                                     {'thread_index': -1,
-                                      'state': json.dumps(self.gameList[-1].state, cls=NDArrayEncoder)}))
+                self.gameList.append(self.make_display_game(0))
+                self.play_thread = threading.Thread(target=self.emit('get action', {
+                    'thread_index': -1,
+                    'state': self.dump_state(-1)
+                }))
                 self.play_thread.start()
             self.inputKey.isFinished = True
-            self.inputKey = bgread(sys.stdin)
+            self.inputKey = nonblock.bgread(sys.stdin)
 
     def on_stop_training_ack(self, *args):
         print('on_stop_training_ack', args)
         self.emit('disconnect', {})
 
+    def make_game(self, seed):
+        raise NotImplementedError()
 
-socketIO = SocketIO('localhost', 8000)
-rlmodels_namespace = socketIO.define(ServerAPI, '/rlmodels')
-socketIO.wait(seconds=1)
+    def make_display_game(self, seed):
+        raise NotImplementedError()
+
+    def action_size(self):
+        raise NotImplementedError()
+
+    def game_state(self, i):
+        raise NotImplementedError()
+
+    def act(self, i, action):
+        raise NotImplementedError()
+
+    def dump_state(self, i):
+        return json.dumps(self.game_state(i), cls=NDArrayEncoder)
