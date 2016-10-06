@@ -5,10 +5,19 @@ import logging
 
 from time import sleep
 
-from rl_client_ale.game_process import GameProcess as Game
-from rl_client_ale.params import Params
+from game_process import GameProcess as Game
+from params import Params
 
-import server_api
+from .. import server_api
+
+
+def main():
+    logging.getLogger('requests').setLevel(logging.WARNING)
+    logging.basicConfig(level=logging.INFO)
+
+    socketIO = SocketIO('localhost', 8000)
+    rlmodels_namespace = socketIO.define(ServerAPI, '/rlmodels')
+    socketIO.wait(seconds=1)
 
 
 class ServerAPI(server_api.ServerAPI):
@@ -38,9 +47,4 @@ class ServerAPI(server_api.ServerAPI):
 
 
 if __name__ == "__main__":
-    logging.getLogger('requests').setLevel(logging.WARNING)
-    logging.basicConfig(level=logging.INFO)
-
-    socketIO = SocketIO('localhost', 8000)
-    rlmodels_namespace = socketIO.define(ServerAPI, '/rlmodels')
-    socketIO.wait(seconds=1)
+    main()

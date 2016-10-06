@@ -5,6 +5,8 @@ from scipy.misc import imresize
 
 from ale_python_interface import ALEInterface
 
+from .. import server_api
+
 
 class GameProcess(object):
     def __init__(self, rand_seed, game_name, display=False, frame_skip=4, no_op_max=7):
