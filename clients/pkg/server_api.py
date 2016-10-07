@@ -20,13 +20,14 @@ class NDArrayEncoder(json.JSONEncoder):
 
 
 class ServerAPI(socketIO_client.LoggingNamespace):
-    def __init__(self, cfg, *args, **kwargs):
+    def __init__(self, cfg, factory, *args, **kwargs):
         socketIO_client.LoggingNamespace.__init__(self, *args, **kwargs)
 
         self.inputKey = nonblock.bgread(sys.stdin)   # for Display --> standard console input interception
         self.play_thread = None     # Display thread --> need for further deleting
         self.gamePlayedList = None  # Games played accumulator for current session (can holds all threads)
         self.cfg = cfg              # Parameters to setup the environment and training process
+        self.factory = factory
         self.gameList = []          # List of running games, if no parallel agents -> list holds one element
 
     def on_session_id(self, *args):
@@ -46,10 +47,10 @@ class ServerAPI(socketIO_client.LoggingNamespace):
 
         if args[0].__contains__('threads_cnt'):
             for i in range(self.cfg.threads_cnt):
-                self.gameList.append(self.make_game(113 * i))
+                self.gameList.append(self.factory.new_env(113 * i))
         else:
-            self.gameList.append(self.make_game(0))
-        self.cfg.action_size = self.action_size()
+            self.gameList.append(self.factory.new_env(0))
+        self.cfg.action_size = self.gameList[0].action_size()
 
         params = json.loads(args[0])
         for param_name in params:
@@ -89,7 +90,7 @@ class ServerAPI(socketIO_client.LoggingNamespace):
             index = 0
 
         # receive game result
-        reward = self.act(index, action)
+        reward = self.gameList[index].act(action)
         terminal = self.gameList[index].terminal
 
         if terminal and index != -1:
@@ -136,7 +137,7 @@ class ServerAPI(socketIO_client.LoggingNamespace):
             print(key)
             if key[-2] == "d":
                 print('Playing game for training algorithm at current step...')
-                self.gameList.append(self.make_display_game(0))
+                self.gameList.append(self.factory.new_display_env(0))
                 self.play_thread = threading.Thread(target=self.emit('get action', {
                     'thread_index': -1,
                     'state': self.dump_state(-1)
@@ -149,20 +150,9 @@ class ServerAPI(socketIO_client.LoggingNamespace):
         print('on_stop_training_ack', args)
         self.emit('disconnect', {})
 
-    def make_game(self, seed):
+    def stop_play_thread(self):
         raise NotImplementedError()
 
-    def make_display_game(self, seed):
-        raise NotImplementedError()
-
-    def action_size(self):
-        raise NotImplementedError()
-
-    def game_state(self, i):
-        raise NotImplementedError()
-
-    def act(self, i, action):
-        raise NotImplementedError()
 
     def dump_state(self, i):
-        return json.dumps(self.game_state(i), cls=NDArrayEncoder)
+        return json.dumps(self.gameList[i].state(), cls=NDArrayEncoder)

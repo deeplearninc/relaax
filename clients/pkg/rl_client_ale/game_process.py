@@ -5,7 +5,16 @@ from scipy.misc import imresize
 
 from ale_python_interface import ALEInterface
 
-from .. import server_api
+
+class GameProcessFactory(object):
+    def __init__(self, params):
+        self.params = params
+
+    def new_env(self, seed):
+        return GameProcess(seed, self.params.game_rom)
+
+    def new_display_env(self, seed):
+        return GameProcess(seed, self.params.game_rom, display=True, no_op_max=0)
 
 
 class GameProcess(object):
@@ -31,6 +40,22 @@ class GameProcess(object):
         self._screen = np.empty((210, 160, 1), dtype=np.uint8)
 
         self.reset()
+
+    def action_size(self):
+        return len(self.ale.getMinimalActionSet())
+
+    def state(self):
+        return self.s_t
+
+    def act(self, action):
+        # convert original 18 action index to minimal action set index
+        real_action = self.real_actions[action]
+
+        r, t, self.s_t = self._process_frame(real_action, True)
+
+        self.reward = r
+        self.terminal = t
+        return self.reward
 
     def _process_frame(self, action, reshape):
         reward = self.ale.act(action)
@@ -74,15 +99,3 @@ class GameProcess(object):
 
         self.reward = 0
         self.terminal = False
-
-    def process(self, action):
-        # convert original 18 action index to minimal action set index
-        real_action = self.real_actions[action]
-
-        r, t, self.s_t = self._process_frame(real_action, True)
-
-        self.reward = r
-        self.terminal = t
-
-    def real_action_size(self):
-        return len(self.ale.getMinimalActionSet())

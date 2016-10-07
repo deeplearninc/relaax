@@ -5,7 +5,7 @@ import logging
 
 from time import sleep
 
-from game_process import GameProcess as Game
+import game_process
 from params import Params
 
 from .. import server_api
@@ -22,23 +22,14 @@ def main():
 
 class ServerAPI(server_api.ServerAPI):
     def __init__(self, *args, **kwargs):
-        server_api.ServerAPI.__init__(self, Params(), *args, **kwargs)
-
-    def make_game(self, seed):
-        return Game(seed, self.cfg.game_rom)
-
-    def make_display_game(self, seed):
-        return Game(seed, self.cfg.game_rom, display=True, no_op_max=0)
-
-    def action_size(self):
-        return self.gameList[0].real_action_size()  
-
-    def game_state(self, i):
-        return self.gameList[i].s_t
-
-    def act(self, i, action):
-        self.gameList[i].process(action)
-        return self.gameList[i].reward
+        params = Params()
+        server_api.ServerAPI.__init__(
+            self,
+            params,
+            game_process.GameProcessFactory(params),
+            *args,
+            **kwargs
+        )
 
     def stop_play_thread(self):
         self.play_thread.join()
