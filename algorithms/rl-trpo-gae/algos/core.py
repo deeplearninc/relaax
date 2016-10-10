@@ -133,19 +133,11 @@ def rollout(env, agent, timestep_limit):
     ob = env.reset()
     terminated = False
 
-    # qob = np.empty((24, 4))   # 25 need for value time-step
-    inst = agent.obfilt(ob)
-    qob = np.stack((inst, inst, inst, inst), axis=1)
-
     data = defaultdict(list)
     for _ in xrange(timestep_limit):    # FIX later for compatibility
         ob = agent.obfilt(ob)
-
-        ob = np.reshape(ob, (24, 1))                # new --> temp hook
-        qob = np.append(qob[:, 1:], ob, axis=1)     # new --> stack states
-
-        data["observation"].append(qob)             # ob --> qob need fix value net
-        action, agentinfo = agent.act(qob)          # ob --> need policy net reconstruct for sequence
+        data["observation"].append(ob)             # ob --> qob need fix value net
+        action, agentinfo = agent.act(ob)          # ob --> need policy net reconstruct for sequence
         # print(action, agentinfo)
         data["action"].append(action)
         for (k, v) in agentinfo.iteritems():
@@ -547,15 +539,7 @@ class NnVf(object):
         return self.reg.fit(ob_no, vtarg_n1)
 
     def preproc(self, ob_no):
-        # np.reshape(buf, (-1, 4))
-        '''
-        print(ob_no.shape)
-        buf = concat([ob_no, np.arange(len(ob_no)).reshape(-1, 1) / float(self.timestep_limit)], axis=1)
-        print(buf.shape)  # (78, 25) .. (2000, 25)
-        return buf
-        '''
-        return ob_no
-        # return concat([ob_no, np.arange(len(ob_no)).reshape(-1, 1) / float(self.timestep_limit)], axis=1)
+        return concat([ob_no, np.arange(len(ob_no)).reshape(-1, 1) / float(self.timestep_limit)], axis=1)
 
 
 # ================================================================

@@ -5,10 +5,7 @@ from gym.spaces import Box, Discrete
 
 # NEED Session THERE !!!
 from keras.models import Sequential
-from keras.layers.core import Dense, Lambda, TimeDistributedDense
-
-from keras.layers.recurrent import LSTM
-# from keras.layers.wrappers import TimeDistributed
+from keras.layers.core import Dense, Lambda
 
 from keras import backend as K
 import os
@@ -32,16 +29,10 @@ def make_mlps(ob_space, ac_space, cfg, session):
         probtype = Categorical(outdim)
 
     net = Sequential()
-    '''
     for (i, layeroutsize) in enumerate(hid_sizes):
         inshp = dict(input_shape=ob_space.shape) if i == 0 else {}
         net.add(Dense(layeroutsize, activation=cfg["activation"], **inshp))
-    '''
-    net.add(TimeDistributedDense(64, input_shape=(ob_space.shape[0], 4), activation=cfg["activation"]))
-    net.add(TimeDistributedDense(64, activation=cfg["activation"]))     # input_shape=(4, ob_space.shape[0])
-    # '''
     if isinstance(ac_space, Box):
-        net.add(LSTM(64, unroll=True))     # new --> add LSTM     return_sequences=True
         net.add(Dense(outdim))
         net.add(Lambda(lambda x: x * 0.1))
         # Wlast = net.layers[-1].W
@@ -54,15 +45,9 @@ def make_mlps(ob_space, ac_space, cfg, session):
         # Wlast.set_value(Wlast.get_value(borrow=True)*0.1)
     policy = StochPolicyKeras(net, probtype, session)   # SESSION !!! --> need ADD
     vfnet = Sequential()
-    '''
     for (i, layeroutsize) in enumerate(hid_sizes):
         inshp = dict(input_shape=(ob_space.shape[0]+1,)) if i == 0 else {}  # add one extra feature for timestep
         vfnet.add(Dense(layeroutsize, activation=cfg["activation"], **inshp))
-    '''
-    vfnet.add(TimeDistributedDense(64, activation=cfg["activation"], input_shape=(ob_space.shape[0], 4)))   # +1
-    vfnet.add(TimeDistributedDense(64, activation=cfg["activation"]))
-    vfnet.add(LSTM(64, unroll=True))     # new --> add LSTM     return_sequences=True
-    # '''
     vfnet.add(Dense(1))
     baseline = NnVf(vfnet, session, cfg["timestep_limit"], dict(mixfrac=0.1))   # SESSION !!! --> need ADD
     return policy, baseline, net, vfnet     # add return for Keras nets for saving
@@ -114,7 +99,7 @@ class TrpoAgent(AgentWithPolicy):
 
     def __init__(self, ob_space, ac_space, usercfg, session):   # SESSION !!! --> need ADD
         algo_name = '_trpo_'
-        misc = 'lstm'
+        misc = 'orig'
         self.CHECKPOINT_DIR = 'checkpoints/' + usercfg["env"] + algo_name + misc
 
         cfg = update_default_config(self.options, usercfg)
