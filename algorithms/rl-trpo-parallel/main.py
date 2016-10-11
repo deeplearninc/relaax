@@ -6,12 +6,12 @@ import json
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--task", type=str, default='BipedalWalkerHardcore-v2')     # Reacher-v1
-parser.add_argument("--timesteps_per_batch", type=int, default=50000)   # 10000
+parser.add_argument("--task", type=str, default='BipedalWalker-v2')     # Hardcore
+parser.add_argument("--timesteps_per_batch", type=int, default=20000)   # 50000
 parser.add_argument("--timestep_increase", type=int, default=0)         # 600
 parser.add_argument("--timestep_decrease", type=int, default=0)         # 600
 parser.add_argument("--max_pathlength", type=int, default=2000)         # 1000
-parser.add_argument("--n_iter", type=int, default=2000)                 # takes 6 hours with 7 threads
+parser.add_argument("--n_iter", type=int, default=10)                 # 2k*50k takes 6 hours with 7 threads
 parser.add_argument("--gamma", type=float, default=.995)                # .99
 parser.add_argument("--max_kl", type=float, default=.01)                # .001
 parser.add_argument("--kl_increase", type=float, default=0.000)         # 0.0005
