@@ -1,14 +1,6 @@
-import numpy as np
-import tensorflow as tf
-import gym
-from utils import *
-from rollouts import *
 from value_function import *
-import time
-import os
-import logging
-import random
 import multiprocessing
+
 
 class TRPO(multiprocessing.Process):
     def __init__(self, args, observation_space, action_space, task_q, result_q):
@@ -123,7 +115,6 @@ class TRPO(multiprocessing.Process):
         return
 
     def learn(self, paths):
-
         # is it possible to replace A(s,a) with Q(s,a)?
         for path in paths:
             path["returns"] = discount(path["rewards"], self.args.gamma)

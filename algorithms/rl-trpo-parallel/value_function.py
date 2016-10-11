@@ -1,7 +1,5 @@
-import tensorflow as tf
-import numpy as np
 from utils import *
-# from lstm import CustomBasicLSTMCell
+
 
 class VF(object):
     coeffs = None

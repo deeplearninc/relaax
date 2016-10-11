@@ -15,15 +15,15 @@ class Actor(multiprocessing.Process):
 
     def act(self, obs):
         obs = np.expand_dims(obs, 0)
-        action_dist_mu, action_dist_logstd = self.session.run([self.action_dist_mu, self.action_dist_logstd], feed_dict={self.obs: obs})
+        action_dist_mu, action_dist_logstd = self.session.run([self.action_dist_mu, self.action_dist_logstd],
+                                                              feed_dict={self.obs: obs})
         # samples the gaussian distribution
-        act = action_dist_mu + np.exp(action_dist_logstd)*np.random.randn(*action_dist_logstd.shape)
+        act = action_dist_mu + np.exp(action_dist_logstd) * np.random.randn(*action_dist_logstd.shape)
         return act.ravel(), action_dist_mu, action_dist_logstd
 
     def run(self):
-
         self.env = gym.make(self.args.task)
-        self.env.seed(randint(0,999999))
+        self.env.seed(randint(0, 999999))
         if self.monitor:
             self.env.monitor.start('monitor/', force=True)
 
@@ -35,19 +35,20 @@ class Actor(multiprocessing.Process):
         bias_init = tf.constant_initializer(0)
         # tensorflow model of the policy
         self.obs = tf.placeholder(tf.float32, [None, self.observation_size])
-        self.debug = tf.constant([2,2])
+        self.debug = tf.constant([2, 2])
         with tf.variable_scope("policy-a"):
             h1 = fully_connected(self.obs, self.observation_size, self.hidden_size, weight_init, bias_init, "policy_h1")
             h1 = tf.nn.relu(h1)
             h2 = fully_connected(h1, self.hidden_size, self.hidden_size, weight_init, bias_init, "policy_h2")
             h2 = tf.nn.relu(h2)
             h3 = fully_connected(h2, self.hidden_size, self.action_size, weight_init, bias_init, "policy_h3")
-            action_dist_logstd_param = tf.Variable((.01*np.random.randn(1, self.action_size)).astype(np.float32), name="policy_logstd")
+            action_dist_logstd_param = tf.Variable((.01 * np.random.randn(1, self.action_size)).astype(np.float32),
+                                                   name="policy_logstd")
         self.action_dist_mu = h3
         self.action_dist_logstd = tf.tile(action_dist_logstd_param, tf.pack((tf.shape(self.action_dist_mu)[0], 1)))
 
         config = tf.ConfigProto(
-            device_count = {'GPU': 0}
+            device_count={'GPU': 0}
         )
         self.session = tf.Session(config=config)
         self.session.run(tf.initialize_all_variables())
@@ -92,17 +93,17 @@ class Actor(multiprocessing.Process):
             rewards.append((res[1]))
             if res[2] or i == self.args.max_pathlength - 2:
                 path = {"obs": np.concatenate(np.expand_dims(obs, 0)),
-                             "action_dists_mu": np.concatenate(action_dists_mu),
-                             "action_dists_logstd": np.concatenate(action_dists_logstd),
-                             "rewards": np.array(rewards),
-                             "actions":  np.array(actions)}
-                path["terminated"] = False
+                        "action_dists_mu": np.concatenate(action_dists_mu),
+                        "action_dists_logstd": np.concatenate(action_dists_logstd),
+                        "rewards": np.array(rewards),
+                        "actions": np.array(actions),
+                        "terminated": False}
                 if res[2]:
                     path["terminated"] = True
                 return path
 
 
-class ParallelRollout():
+class ParallelRollout:
     def __init__(self, args):
         self.args = args
 
@@ -112,18 +113,16 @@ class ParallelRollout():
         self.actors = []
         self.actors.append(Actor(self.args, self.tasks, self.results, 9999, args.monitor))
 
-        for i in range(self.args.num_threads-1):
-            self.actors.append(Actor(self.args, self.tasks, self.results, 37*(i+3), False))
+        for i in range(self.args.num_threads - 1):
+            self.actors.append(Actor(self.args, self.tasks, self.results, 37 * (i + 3), False))
 
         for a in self.actors:
             a.start()
 
         # we will start by running 20,000 / 1000 = 20 episodes for the first ieration
-
         self.average_timesteps_in_episode = 1000
 
     def rollout(self):
-
         # keep 20,000 timesteps per update
         num_rollouts = self.args.timesteps_per_batch / self.average_timesteps_in_episode
 
