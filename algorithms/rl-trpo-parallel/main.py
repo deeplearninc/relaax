@@ -1,15 +1,11 @@
-import numpy as np
-import tensorflow as tf
-import gym
-from utils import *
+from __future__ import print_function
 from model import *
 import argparse
 from rollouts import *
 import json
 
 
-
-parser = argparse.ArgumentParser(description='Test the new good lib.')
+parser = argparse.ArgumentParser()
 parser.add_argument("--task", type=str, default='BipedalWalkerHardcore-v2')     # Reacher-v1
 parser.add_argument("--timesteps_per_batch", type=int, default=50000)   # 10000
 parser.add_argument("--timestep_increase", type=int, default=0)         # 600
@@ -40,17 +36,13 @@ starting_weights = learner_results.get()
 rollouts.set_policy_weights(starting_weights)
 
 start_time = time.time()
-history = {}
-history["rollout_time"] = []
-history["learn_time"] = []
-history["mean_reward"] = []
-history["timesteps"] = []
+history = {"rollout_time": [], "learn_time": [], "mean_reward": [], "timesteps": []}
 
 # start it off with a big negative number
 last_reward = -1000000
 recent_total_reward = 0
 
-for iteration in xrange(args.n_iter):
+for iteration in range(args.n_iter):
 
     # runs a bunch of async processes that collect rollouts
     rollout_start = time.time()
@@ -63,13 +55,13 @@ for iteration in xrange(args.n_iter):
     # To solve this, we just make the learner's tf.Session in its own async process,
     # and wait until the learner's done before continuing the main thread.
     learn_start = time.time()
-    learner_tasks.put((2,args.max_kl))
+    learner_tasks.put((2, args.max_kl))
     learner_tasks.put(paths)
     learner_tasks.join()
     new_policy_weights, mean_reward = learner_results.get()
     learn_time = (time.time() - learn_start) / 60.0
-    print "-------- Iteration %d ----------" % iteration
-    print "Total time: %.2f mins" % ((time.time() - start_time) / 60.0)
+    print("-------- Iteration %d ----------" % iteration)
+    print("Total time: %.2f mins" % ((time.time() - start_time) / 60.0))
 
     history["rollout_time"].append(rollout_time)
     history["learn_time"].append(learn_time)
@@ -80,24 +72,24 @@ for iteration in xrange(args.n_iter):
 
     if iteration % 10 == 0:
         if recent_total_reward < last_reward:
-            print "Policy is not improving. Decrease KL and increase steps."
+            print("Policy is not improving. Decrease KL and increase steps.")
             if args.timesteps_per_batch < 20000:
                 args.timesteps_per_batch += args.timestep_increase
             if args.max_kl > 0.001:
                 args.max_kl -= args.kl_decrease
         else:
-            print "Policy is improving. Increase KL and decrease steps."
+            print("Policy is improving. Increase KL and decrease steps.")
             if args.timesteps_per_batch > 1200:
                 args.timesteps_per_batch -= args.timestep_decrease
             if args.max_kl < 0.01:
                 args.max_kl += args.kl_increase
         last_reward = recent_total_reward
         recent_total_reward = 0
-        print "Current steps is " + str(args.timesteps_per_batch)
+        print("Current steps is " + str(args.timesteps_per_batch))
 
     if iteration % 100 == 0:
         with open(args.task + "-" + str(args.num_threads), "w") as outfile:
-            json.dump(history,outfile)
+            json.dump(history, outfile)
 
     rollouts.set_policy_weights(new_policy_weights)
 
