@@ -37,7 +37,8 @@ class TRPO(multiprocessing.Process):
             h2 = tf.tanh(h2)     # tf.nn.relu(h2)
             h3 = fully_connected(h2, self.hidden_size, self.action_size, weight_init, bias_init, "policy_h3")
             h3 = tf.matmul(h3, 0.1)     # jsh-pnt
-            action_dist_logstd_param = tf.Variable((.01*np.random.randn(1, self.action_size)).astype(np.float32), name="policy_logstd")
+            action_dist_logstd_param = tf.Variable((.01*np.random.randn(1, self.action_size)).astype(np.float32),
+                                                   name="policy_logstd")
         # means for each action
         self.action_dist_mu = h3
         # log standard deviations for each actions

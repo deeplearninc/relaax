@@ -38,10 +38,11 @@ class Actor(multiprocessing.Process):
         self.debug = tf.constant([2, 2])
         with tf.variable_scope("policy-a"):
             h1 = fully_connected(self.obs, self.observation_size, self.hidden_size, weight_init, bias_init, "policy_h1")
-            h1 = tf.nn.relu(h1)
+            h1 = tf.tanh(h1)     # tf.nn.relu(h1)
             h2 = fully_connected(h1, self.hidden_size, self.hidden_size, weight_init, bias_init, "policy_h2")
-            h2 = tf.nn.relu(h2)
+            h2 = tf.tanh(h2)     # tf.nn.relu(h2)
             h3 = fully_connected(h2, self.hidden_size, self.action_size, weight_init, bias_init, "policy_h3")
+            h3 = tf.matmul(h3, 0.1)  # jsh-pnt
             action_dist_logstd_param = tf.Variable((.01 * np.random.randn(1, self.action_size)).astype(np.float32),
                                                    name="policy_logstd")
         self.action_dist_mu = h3
@@ -119,11 +120,11 @@ class ParallelRollout:
         for a in self.actors:
             a.start()
 
-        # we will start by running 20,000 / 1000 = 20 episodes for the first ieration
-        self.average_timesteps_in_episode = 1000
+        # we will start by running 50,000 / 2000 = 25 episodes for the first iteration
+        self.average_timesteps_in_episode = 2000
 
     def rollout(self):
-        # keep 20,000 timesteps per update
+        # keep 50,000 timesteps per update
         num_rollouts = self.args.timesteps_per_batch / self.average_timesteps_in_episode
 
         for i in range(num_rollouts):
