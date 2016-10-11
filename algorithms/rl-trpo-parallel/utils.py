@@ -13,7 +13,7 @@ def gauss_selfKL_firstfixed(mu, logstd):
 def gauss_log_prob(mu, logstd, x):
     var = tf.exp(2*logstd)
     gp = -tf.square(x - mu)/(2*var) - .5*tf.log(tf.constant(2*np.pi)) - logstd
-    return  tf.reduce_sum(gp, [1])
+    return tf.reduce_sum(gp, [1])
 
 # KL divergence between two paramaterized guassian distributions
 def gauss_KL(mu1, logstd1, mu2, logstd2):
@@ -184,4 +184,4 @@ def fully_connected(input_layer, input_size, output_size, weight_init, bias_init
         w = tf.get_variable("w", [input_size, output_size], initializer=weight_init)
         # w = tf.Variable(xavier_initializer([input_size, output_size]), name="w")
         b = tf.get_variable("b", [output_size], initializer=bias_init)
-    return tf.matmul(input_layer,w) + b
+    return tf.matmul(input_layer, w) + b
