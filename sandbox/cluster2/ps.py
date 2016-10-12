@@ -23,9 +23,13 @@ def main():
 
     with tf.Session('grpc://localhost:2222') as sess:
         sess.run(init)
+        v = None
         while True:
             time.sleep(1)
-            print sess.run(sum)
+            vv = sess.run(sum)
+            if vv != v:
+                v = vv
+                print v
 
 if __name__ == '__main__':
     main()
