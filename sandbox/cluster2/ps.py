@@ -3,31 +3,33 @@ import signal
 import sys
 import tensorflow as tf
 
-import params
+import shared
+
 
 def signal_handler(signal, frame):
     sys.exit(0)
 
+
 def main():
-    server = tf.train.Server(
-        tf.train.ClusterSpec({'ps': ['localhost:2222']}),
-        job_name='ps',
-        task_index=0
-    )
+
+    server = shared.ps()
 
     signal.signal(signal.SIGINT, signal_handler)
 
-    sum = params.params()
+    sum = shared.params()
 
     init = tf.initialize_all_variables()
 
-    with tf.Session('grpc://localhost:2222') as sess:
+    with tf.Session(server.target) as sess:
         sess.run(init)
+        v = None
         while True:
             time.sleep(1)
-            print sess.run(sum)
+            vv = sess.run(sum)
+            if vv != v:
+                v = vv
+                print v
+
 
 if __name__ == '__main__':
     main()
-
-

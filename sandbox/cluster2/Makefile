@@ -2,7 +2,7 @@ p:
 	python ps.py
 
 w1:
-	python worker.py 1 10 2
+	python worker.py 0 1
 
 w2:
-	python worker.py 1000 100 0.1
+	python worker.py 1 1000
