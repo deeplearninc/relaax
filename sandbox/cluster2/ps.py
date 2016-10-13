@@ -5,10 +5,13 @@ import tensorflow as tf
 
 import shared
 
+
 def signal_handler(signal, frame):
     sys.exit(0)
 
+
 def main():
+
     server = tf.train.Server(shared.cluster(), job_name='ps', task_index=0)
 
     signal.signal(signal.SIGINT, signal_handler)
@@ -27,7 +30,6 @@ def main():
                 v = vv
                 print v
 
+
 if __name__ == '__main__':
     main()
-
-

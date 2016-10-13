@@ -16,11 +16,11 @@ def parse_args():
 def main():
     args = parse_args()
 
-    server = tf.train.Server(shared.cluster(), job_name='ps', task_index=args.task)
+    server = tf.train.Server(shared.cluster(args.task), job_name='worker', task_index=args.task)
 
     sum = shared.params()
 
-    with tf.device('/job:ps/task:%d' % args.task):
+    with tf.device('/job:worker/task:%d' % args.task):
         increment = sum.assign(sum + args.increment)
 
         x_data = np.random.rand(10000000).astype(np.float32)
@@ -39,7 +39,7 @@ def main():
         tf.scalar_summary("loss", loss)
         summary = tf.merge_all_summaries()
 
-    sw = tf.train.SummaryWriter('logs', graph=tf.get_default_graph())
+    sw = tf.train.SummaryWriter('logs/%d' % args.task, graph=tf.get_default_graph())
 
     with tf.Session(server.target) as sess:
         for var in vars:
@@ -47,9 +47,9 @@ def main():
                 sess.run(var[1])
 
         while True:
-            sw.add_summary(sess.run(summary))
 
-            sess.run(train)
+            for _ in xrange(10):
+                sess.run(train)
             sess.run(increment)
             print sess.run(loss)
 
