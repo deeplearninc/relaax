@@ -12,7 +12,7 @@ def signal_handler(signal, frame):
 
 def main():
 
-    server = tf.train.Server(shared.cluster(), job_name='ps', task_index=0)
+    server = shared.ps()
 
     signal.signal(signal.SIGINT, signal_handler)
 

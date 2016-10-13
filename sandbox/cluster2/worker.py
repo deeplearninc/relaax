@@ -1,5 +1,4 @@
 import argparse
-import numpy as np
 import tensorflow as tf
 import time
 
@@ -16,30 +15,13 @@ def parse_args():
 def main():
     args = parse_args()
 
-    server = tf.train.Server(shared.cluster(args.task), job_name='worker', task_index=args.task)
+    server = shared.worker(args.task)
 
     sum = shared.params()
 
-    with tf.device('/job:worker/task:%d' % args.task):
-        increment = sum.assign(sum + args.increment)
+    vars, loss, train, increment = shared.computation(args.task, sum, args.increment)
 
-        x_data = np.random.rand(10000000).astype(np.float32)
-        y_data = x_data * .1 + .3 * np.random.normal(scale=.1, size=len(x_data))
-
-        W = tf.Variable(tf.random_uniform([1], .0, 1.))
-        b = tf.Variable(tf.zeros([1]))
-        y = W * x_data + b
-
-        loss = tf.reduce_mean(tf.square(y - y_data))
-
-        train = tf.train.AdagradOptimizer(0.01).minimize(loss)
-
-        vars = [(tf.is_variable_initialized(var), tf.initialize_variables([var])) for var in tf.all_variables()]
-
-        tf.scalar_summary("loss", loss)
-        summary = tf.merge_all_summaries()
-
-    sw = tf.train.SummaryWriter('logs/%d' % args.task, graph=tf.get_default_graph())
+    tf.train.SummaryWriter('logs/%d' % args.task, graph=tf.get_default_graph())
 
     with tf.Session(server.target) as sess:
         for var in vars:
@@ -47,7 +29,6 @@ def main():
                 sess.run(var[1])
 
         while True:
-
             for _ in xrange(10):
                 sess.run(train)
             sess.run(increment)
