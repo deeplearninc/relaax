@@ -42,7 +42,7 @@ class GameProcess(object):
         self.reset()
 
     def action_size(self):
-        return len(self.ale.getMinimalActionSet())
+        return len(self.ale.getMinimalActionSet()), True
 
     def state(self):
         return self.s_t

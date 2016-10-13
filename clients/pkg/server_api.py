@@ -122,7 +122,7 @@ class ServerAPI(socketIO_client.LoggingNamespace):
         else:
             if episode_params['terminal']:
                 self.gamePlayedList += 1
-                print("Score for agent at game", self.gamePlayedList, "=", episode_params['score'])
+                print("Score for agent at game", self.gamePlayedList, "=", int(episode_params['score']))
 
             self.emit('get action', {
                 'state': self.dump_state(0)
