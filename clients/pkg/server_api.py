@@ -81,13 +81,9 @@ class ServerAPI(socketIO_client.LoggingNamespace):
             })
 
     def on_get_action_ack(self, *args):
-        # if more than one agent trains -> server returns tuple(list) with [action_num, thread_num]
-        if hasattr(args[0]['action'], '__getitem__'):
-            action = args[0]['action'][0]
-            index = args[0]['action'][1]
-        else:
-            action = args[0]['action']
-            index = 0
+        # server always returns tuple(list) with [action_num, thread_num]
+        action = args[0]['action'][0]
+        index = args[0]['action'][1]
 
         # receive game result
         reward = self.gameList[index].act(action)
