@@ -1,6 +1,7 @@
 import gym
 import numpy as np
 from scipy.misc import imresize
+from gym.spaces import Box
 
 
 AtariList = ['AirRaid-v0', 'Alien-v0', 'Amidar-v0', 'Assault-v0', 'Asterix-v0',
@@ -53,7 +54,10 @@ class Env(object):
         self.reset()
 
     def action_size(self):
-        return self.gym.action_space.n
+        space = self.getActionSpace()
+        if isinstance(space, Box):
+            return space.shape[0], False
+        return self.gym.action_space.n, True
 
     def state(self):
         return self.state_

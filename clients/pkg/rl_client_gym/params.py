@@ -17,6 +17,7 @@ class Params(object):
         self.game_rom = self.args.env           # Name of the Atari game ROM
         self.threads_cnt = self.args.agents     # Number of parallel training agents
 
+        self.action_type = True        # Type of returning action (True == Discrete, False == float Box)
         self.action_size = None         # Assign later at Game(s) launching
         self.screen_width = 84          # Screen width
         self.screen_height = 84         # Screen height

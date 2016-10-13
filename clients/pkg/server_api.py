@@ -50,7 +50,7 @@ class ServerAPI(socketIO_client.LoggingNamespace):
                 self.gameList.append(self.factory.new_env(113 * i))
         else:
             self.gameList.append(self.factory.new_env(0))
-        self.cfg.action_size = self.gameList[0].action_size()
+        self.cfg.action_size, self.cfg.action_type = self.gameList[0].action_size()
 
         params = json.loads(args[0])
         for param_name in params:
