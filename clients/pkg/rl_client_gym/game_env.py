@@ -57,7 +57,7 @@ class Env(object):
         space = self.getActionSpace()
         if isinstance(space, Box):
             return space.shape[0], False
-        return self.gym.action_space.n, True
+        return space.n, True
 
     def state(self):
         return self.state_

@@ -2,6 +2,10 @@ import tensorflow as tf
 import numpy as np
 from lstm import CustomBasicLSTMCell
 
+from keras.models import Model
+from keras.layers import Input, Convolution2D, Reshape, Flatten, Dense, Merge, merge
+from keras.initializations import normal
+
 
 # Actor-Critic Network Base Class
 # (Policy network and Value network)
@@ -123,18 +127,29 @@ class GameACFFNetwork(GameACNetwork):
 
             # state (input)
             self.s = tf.placeholder("float", [None, 84, 84, 4])
+            ## S = Input(shape=(84, 84, 4), dtype="float")
 
             h_conv1 = tf.nn.relu(self._conv2d(self.s, self.W_conv1, 4) + self.b_conv1)
+            ## h_conv1 = Convolution2D(16, 8, 8, subsample=(4, 4), border_mode='valid',
+            ##                         activation='relu', dim_ordering='tf')(S)
             h_conv2 = tf.nn.relu(self._conv2d(h_conv1, self.W_conv2, 2) + self.b_conv2)
+            ## h_conv2 = Convolution2D(32, 4, 4, subsample=(2, 2), border_mode='valid',
+            ##                         activation='relu', dim_ordering='tf')(h_conv1)
 
             h_conv2_flat = tf.reshape(h_conv2, [-1, 2592])
+            ## h_conv2_flat = Flatten()(h_conv2)
             h_fc1 = tf.nn.relu(tf.matmul(h_conv2_flat, self.W_fc1) + self.b_fc1)
+            ## h_fc1 = Dense(256, activation='relu')(h_conv2_flat)
 
             # policy (output)
             self.pi = tf.nn.softmax(tf.matmul(h_fc1, self.W_fc2) + self.b_fc2)
+            ## self.pi = Dense(action_size, activation='softmax')(h_fc1)
             # value (output)
             v_ = tf.matmul(h_fc1, self.W_fc3) + self.b_fc3
+            ## v_ = Dense(1)(h_fc1)
             self.v = tf.reshape(v_, [-1])
+
+            ## self.model = Model(input=S, output=[self.pi, self.v])
 
     def run_policy_and_value(self, sess, s_t):
         pi_out, v_out = sess.run([self.pi, self.v], feed_dict={self.s: [s_t]})
