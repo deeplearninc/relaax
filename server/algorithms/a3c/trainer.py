@@ -63,7 +63,7 @@ class Trainer:
                                                 self.initial_learning_rate,
                                                 learning_rate_input,
                                                 grad_applier, self.params.max_global_step,
-                                                device=self.device)
+                                                self.device)
             self.training_threads.append(training_thread)
 
         # prepare session
@@ -110,7 +110,7 @@ class Trainer:
         state = training_thread.frameQueue
 
         if training_thread.episode_t == self.params.episode_len:
-            self.update_global(training_thread.terminal_end, thread_index, state)
+            self._update_global(training_thread.terminal_end, thread_index, state)
 
             if training_thread.terminal_end:
                 training_thread.terminal_end = False
@@ -144,7 +144,7 @@ class Trainer:
 
         return action, thread_index
 
-    def update_global(self, terminal, thread_index, state):
+    def _update_global(self, terminal, thread_index, state):
         training_thread = self.training_threads[thread_index]
         R = 0.0
         if not terminal:

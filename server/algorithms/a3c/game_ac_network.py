@@ -6,9 +6,7 @@ from lstm import CustomBasicLSTMCell
 # Actor-Critic Network Base Class
 # (Policy network and Value network)
 class GameACNetwork(object):
-    def __init__(self,
-                 action_size,
-                 device="/cpu:0"):
+    def __init__(self, action_size, device):
         self._device = device
         self._action_size = action_size
 
@@ -98,9 +96,7 @@ class GameACNetwork(object):
 
 # Actor-Critic FF Network
 class GameACFFNetwork(GameACNetwork):
-    def __init__(self,
-                 action_size,
-                 device="/cpu:0"):
+    def __init__(self, action_size, device):
         GameACNetwork.__init__(self, action_size, device)
 
         with tf.device(self._device):
@@ -158,10 +154,7 @@ class GameACFFNetwork(GameACNetwork):
 
 # Actor-Critic LSTM Network
 class GameACLSTMNetwork(GameACNetwork):
-    def __init__(self,
-                 action_size,
-                 thread_index,  # -1 for global
-                 device="/cpu:0"):
+    def __init__(self, action_size, thread_index, device):
         GameACNetwork.__init__(self, action_size, device)
 
         with tf.device(self._device):
