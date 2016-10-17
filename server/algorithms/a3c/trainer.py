@@ -25,7 +25,7 @@ class Trainer:
         self.training_threads = []          # Agent's Threads --> it's defined and assigned in initialize
 
         self.CHECKPOINT_DIR = None
-        self.sess, self.saver = self.initialize()
+        self.sess, self.saver = self._initialize()
 
         self.frameDisplayQueue = None  # frame accumulator for state, cuz state = 4 consecutive frames
         self.display = False           # Becomes True when the Client initiates display session
@@ -38,7 +38,7 @@ class Trainer:
         v = log_lo * (1 - rate) + log_hi * rate
         return math.exp(v)
 
-    def initialize(self):
+    def _initialize(self):
         self.initial_learning_rate = self.log_uniform(self.params.INITIAL_ALPHA_LOW,
                                                       self.params.INITIAL_ALPHA_HIGH,
                                                       self.params.INITIAL_ALPHA_LOG_RATE)
