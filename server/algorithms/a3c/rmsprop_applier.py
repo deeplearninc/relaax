@@ -31,10 +31,11 @@ class RMSPropApplier(object):
 
     def _create_slots(self, var_list):
         for v in var_list:
-            # 'val' is Variable's intial value tensor
-            val = tf.constant(1.0, dtype=v.dtype, shape=v.get_shape())
-            self._get_or_make_slot(v, val, "rms", self._name)
-            self._zeros_slot(v, "momentum", self._name)
+            with tf.device(v.device):
+                # 'val' is Variable's intial value tensor
+                val = tf.constant(1.0, dtype=v.dtype, shape=v.get_shape())
+                self._get_or_make_slot(v, val, "rms", self._name)
+                self._zeros_slot(v, "momentum", self._name)
 
     def _prepare(self):
         self._learning_rate_tensor = tf.convert_to_tensor(self._learning_rate,
@@ -90,10 +91,10 @@ class RMSPropApplier(object):
     def apply_gradients(self, var_list, accum_grad_list, name=None):
         update_ops = []
 
-        with tf.device(self._device):
-            with tf.control_dependencies(None):
-                self._create_slots(var_list)
+        with tf.control_dependencies(None):
+            self._create_slots(var_list)
 
+        with tf.device(self._device):
             with tf.op_scope([], name, self._name) as name:
                 self._prepare()
                 for var, accum_grad in zip(var_list, accum_grad_list):

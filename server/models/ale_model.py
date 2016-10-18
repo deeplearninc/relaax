@@ -18,7 +18,7 @@ class AleModel(BaseModel):
         self.sio.emit('init params', json.dumps(self.params.default_params),
                       room=self.session, namespace=self.namespace)
 
-    def init_model(self, message):  # init model's algorithm with the given parameters
+    def init_model(self, message, target='', global_device='', local_device=''):  # init model's algorithm with the given parameters
         print(message)
         params = json.loads(message)
 
@@ -28,7 +28,7 @@ class AleModel(BaseModel):
 
         module = importlib.import_module("algorithms." + self.algo_name + ".trainer")
         clazz = getattr(module, 'Trainer')
-        self.algo = clazz(self.params)
+        self.algo = clazz(self.params, target=target, global_device=global_device, local_device=local_device)
 
         if message.__contains__('threads_cnt'):
             self.sio.emit('model is ready', {'threads_cnt': self.params.threads_cnt},

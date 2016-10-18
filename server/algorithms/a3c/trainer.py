@@ -13,12 +13,17 @@ import io
 
 
 class Trainer:
-    def __init__(self, params):
+    def __init__(self, params, target='', global_device='', local_device=''):
         self.params = params
 
-        self.device = "/cpu:0"
+        self._target = target
+
+        kernel = "/cpu:0"
         if params.use_GPU:
-            self.device = "/gpu:0"
+            kernel = "/gpu:0"
+
+        self._global_device = global_device + kernel
+        self._local_device = local_device + kernel
 
         self.initial_learning_rate = None   # assign by static method log_uniform in initialize method
         self.global_t = 0                   # initial global steps count --> can be init via checkpoint
@@ -43,11 +48,11 @@ class Trainer:
                                                       self.params.INITIAL_ALPHA_HIGH,
                                                       self.params.INITIAL_ALPHA_LOG_RATE)
         if self.params.use_LSTM:
-            self.global_network = GameACLSTMNetwork(self.params.action_size, -1, self.device)
-            self.display_network = GameACLSTMNetwork(self.params.action_size, -2, self.device)
+            self.global_network = GameACLSTMNetwork(self.params.action_size, -1, self._global_device)
+            self.display_network = GameACLSTMNetwork(self.params.action_size, -2, self._global_device)
         else:
-            self.global_network = GameACFFNetwork(self.params.action_size, self.device)
-            self.display_network = GameACFFNetwork(self.params.action_size, self.device)
+            self.global_network = GameACFFNetwork(self.params.action_size, self._global_device)
+            self.display_network = GameACFFNetwork(self.params.action_size, self._global_device)
 
         learning_rate_input = tf.placeholder("float")
 
@@ -56,19 +61,21 @@ class Trainer:
                                       momentum=0.0,
                                       epsilon=self.params.RMSP_EPSILON,
                                       clip_norm=self.params.GRAD_NORM_CLIP,
-                                      device=self.device)
+                                      device=self._local_device)
 
         for i in range(self.params.threads_cnt):
             training_thread = A3CTrainingThread(self.params, i, self.global_network,
                                                 self.initial_learning_rate,
                                                 learning_rate_input,
                                                 grad_applier, self.params.max_global_step,
-                                                self.device)
+                                                self._local_device)
             self.training_threads.append(training_thread)
 
         # prepare session
-        sess = tf.Session(config=tf.ConfigProto(log_device_placement=False,
-                                                allow_soft_placement=True))
+        sess = tf.Session(
+            target=self._target,
+            config=tf.ConfigProto(log_device_placement=False, allow_soft_placement=True)
+        )
 
         init = tf.initialize_all_variables()
         sess.run(init)
