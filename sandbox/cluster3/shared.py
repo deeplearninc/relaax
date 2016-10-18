@@ -21,26 +21,9 @@ def worker(n_worker):
     return tf.train.Server(cluster(n_worker), job_name='worker', task_index=n_worker)
 
 
-def params():
-    with tf.device('/job:ps/task:0'):
-        return tf.Variable(0., name='sum')
+def ps_device():
+    return '/job:ps/task:0'
 
 
-def computation(n_worker, sum, inc):
-    with tf.device('/job:worker/task:%d' % n_worker):
-        increment = sum.assign(sum + inc)
-
-        x_data = np.random.rand(10000000).astype(np.float32)
-        y_data = x_data * .1 + .3 * np.random.normal(scale=.1, size=len(x_data))
-
-        W = tf.Variable(tf.random_uniform([1], .0, 1.))
-        b = tf.Variable(tf.zeros([1]))
-        y = W * x_data + b
-
-        loss = tf.reduce_mean(tf.square(y - y_data))
-
-        train = tf.train.AdagradOptimizer(0.01).minimize(loss)
-
-        vars = [(tf.is_variable_initialized(var), tf.initialize_variables([var])) for var in tf.all_variables()]
-
-    return vars, loss, train, increment
+def worker_device(n_worker):
+    return '/job:worker/task:%d' % n_worker

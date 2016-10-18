@@ -16,19 +16,9 @@ def main():
 
     signal.signal(signal.SIGINT, signal_handler)
 
-    sum = shared.params()
-
-    init = tf.initialize_all_variables()
-
-    with tf.Session(server.target) as sess:
-        sess.run(init)
-        v = None
-        while True:
-            time.sleep(1)
-            vv = sess.run(sum)
-            if vv != v:
-                v = vv
-                print v
+    while True:
+        time.sleep(1)
+        print 'UGU'
 
 
 if __name__ == '__main__':
