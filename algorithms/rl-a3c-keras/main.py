@@ -10,6 +10,7 @@ from a3c.a3c_training_thread import A3CTrainingThread
 from a3c.rmsprop_applier import RMSPropApplier
 
 from a3c.params import *
+from keras.optimizers import RMSprop
 
 
 class Trainer:
@@ -30,7 +31,7 @@ class Trainer:
         v = log_lo * (1 - rate) + log_hi * rate
         return math.exp(v)
 
-    def train_function(self, parallel_index, sess, summary_writer, summary_op, score_input):
+    def train_function(self, parallel_index, sess):
 
         training_thread = self.training_threads[parallel_index]
 
@@ -40,8 +41,7 @@ class Trainer:
             if self.global_t > MAX_TIME_STEP:
                 break
 
-            diff_global_t = training_thread.process(sess, self.global_t, summary_writer,
-                                                    summary_op, score_input)
+            diff_global_t = training_thread.process(sess, self.global_t)
             self.global_t += diff_global_t
 
     def signal_handler(self):
@@ -66,6 +66,11 @@ class Trainer:
                                       epsilon=RMSP_EPSILON,
                                       clip_norm=GRAD_NORM_CLIP,
                                       device=self.device)
+        '''
+        grad_applier = RMSprop(lr=learning_rate_input,  # should be init before pass
+                               rho=RMSP_ALPHA,          # 0.9 --> 0.99
+                               epsilon=RMSP_EPSILON,    # 1e-8 --> 0.1
+                               decay=0.0)'''
 
         for i in range(PARALLEL_SIZE):
             training_thread = A3CTrainingThread(i, global_network, self.initial_learning_rate,
@@ -80,13 +85,6 @@ class Trainer:
 
         init = tf.initialize_all_variables()
         sess.run(init)
-
-        # summary for tensorboard
-        score_input = tf.placeholder(tf.int32)
-        tf.scalar_summary("score", score_input)
-
-        summary_op = tf.merge_all_summaries()
-        summary_writer = tf.train.SummaryWriter(LOG_FILE, sess.graph)
 
         # init or load checkpoint with saver
         saver = tf.train.Saver()
@@ -104,7 +102,7 @@ class Trainer:
         train_threads = []
         for i in range(PARALLEL_SIZE):
             train_threads.append(threading.Thread(target=self.train_function,
-                                                  args=(i, sess, summary_writer, summary_op, score_input)))
+                                                  args=(i, sess)))
 
         signal.signal(signal.SIGINT, self.signal_handler)
 
