@@ -2,15 +2,8 @@ import argparse
 
 
 class Params(object):
-    def __init__(self):
-        parser = argparse.ArgumentParser()
-        parser.add_argument("--scope", type=str, default="ale_model", help="Name of model scope")
-        parser.add_argument("--algo", type=str, default="a3c", help="Name of the RL algorithm to perform")
-        parser.add_argument("--game", type=str, default="boxing", help="Name of the Atari game ROM")
-        parser.add_argument("--agents", type=int, default=8, help="Number of parallel training Agents")
-        parser.add_argument("--lstm", type=bool, default=True, help="Adds LSTM layer before net output")
-
-        self.args = parser.parse_args()
+    def __init__(self, args):
+        self.args = args
         if self.args.algo != "a3c":
             self.args.agents = 1
 
