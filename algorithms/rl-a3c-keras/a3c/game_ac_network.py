@@ -2,6 +2,10 @@ import tensorflow as tf
 import numpy as np
 from lstm import CustomBasicLSTMCell
 
+from keras.models import Model
+from keras.layers import Input, Convolution2D, Reshape, Dense, Merge, merge, Flatten
+from keras.initializations import normal
+
 
 # Actor-Critic Network Base Class
 # (Policy network and Value network)
@@ -20,16 +24,14 @@ class GameACNetwork(object):
             # temporary difference (R-V) (input for policy)
             self.td = tf.placeholder("float", [None])
 
-            # avoid NaN with clipping when value in pi becomes zero
-            log_pi = tf.log(tf.clip_by_value(self.pi, 1e-20, 1.0))
-
             # policy entropy
-            entropy = -tf.reduce_sum(self.pi * log_pi, reduction_indices=1)
+            entropy = -tf.reduce_sum(self.pi * tf.log(self.pi), reduction_indices=1)
 
-            # policy loss (output)  (Adding minus, because the original paper's
-            # objective function is for gradient ascent, but we use gradient descent optimizer)
+            # policy loss (output)
+            # Adding minus, because the original paper's objective function is for gradient ascent,
+            # but we use gradient descent optimizer
             policy_loss = - tf.reduce_sum(
-                tf.reduce_sum(tf.mul(log_pi, self.a), reduction_indices=1) * self.td + entropy * entropy_beta)
+                tf.reduce_sum(tf.mul(tf.log(self.pi), self.a), reduction_indices=1) * self.td + entropy * entropy_beta)
 
             # R (input for value)
             self.r = tf.placeholder("float", [None])
@@ -123,22 +125,34 @@ class GameACFFNetwork(GameACNetwork):
 
             # state (input)
             self.s = tf.placeholder("float", [None, 84, 84, 4])
+            S = Input(shape=(84, 84, 4), dtype="float")    # [..]  tf.float32  K.placeholder
 
-            h_conv1 = tf.nn.relu(self._conv2d(self.s, self.W_conv1, 4) + self.b_conv1)
-            h_conv2 = tf.nn.relu(self._conv2d(h_conv1, self.W_conv2, 2) + self.b_conv2)
+            # h_conv1 = tf.nn.relu(self._conv2d(self.s, self.W_conv1, 4) + self.b_conv1)
+            h_conv1 = Convolution2D(16, 8, 8, subsample=(4, 4), border_mode='valid',
+                                    activation='relu', dim_ordering='tf')(S)
+            # h_conv2 = tf.nn.relu(self._conv2d(h_conv1, self.W_conv2, 2) + self.b_conv2)
+            h_conv2 = Convolution2D(32, 4, 4, subsample=(2, 2), border_mode='valid',
+                                    activation='relu', dim_ordering='tf')(h_conv1)
 
-            h_conv2_flat = tf.reshape(h_conv2, [-1, 2592])
-            h_fc1 = tf.nn.relu(tf.matmul(h_conv2_flat, self.W_fc1) + self.b_fc1)
+            # h_conv2_flat = tf.reshape(h_conv2, [-1, 2592])
+            h_conv2_flat = Flatten()(h_conv2)
+            # h_fc1 = tf.nn.relu(tf.matmul(h_conv2_flat, self.W_fc1) + self.b_fc1)
+            h_fc1 = Dense(256, activation='relu')(h_conv2_flat)
 
             # policy (output)
-            self.pi = tf.nn.softmax(tf.matmul(h_fc1, self.W_fc2) + self.b_fc2)
+            # self.pi = tf.nn.softmax(tf.matmul(h_fc1, self.W_fc2) + self.b_fc2)
+            self.pi = Dense(action_size, activation='softmax')(h_fc1)
             # value (output)
-            v_ = tf.matmul(h_fc1, self.W_fc3) + self.b_fc3
-            self.v = tf.reshape(v_, [-1])
+            # v_ = tf.matmul(h_fc1, self.W_fc3) + self.b_fc3
+            self.v = Dense(1)(h_fc1)    # v_
+            # self.v = tf.reshape(v_, [-1])
+
+            # out = merge([self.pi, self.v], mode='concat')
+            self.policy = Model(input=S, output=[self.pi, self.v])
 
     def run_policy_and_value(self, sess, s_t):
         pi_out, v_out = sess.run([self.pi, self.v], feed_dict={self.s: [s_t]})
-        return pi_out[0], v_out[0]
+        return (pi_out[0], v_out[0])
 
     def run_policy(self, sess, s_t):
         pi_out = sess.run(self.pi, feed_dict={self.s: [s_t]})
@@ -149,6 +163,7 @@ class GameACFFNetwork(GameACNetwork):
         return v_out[0]
 
     def get_vars(self):
+        return self.policy.get_weights()
         return [self.W_conv1, self.b_conv1,
                 self.W_conv2, self.b_conv2,
                 self.W_fc1, self.b_fc1,
@@ -205,7 +220,7 @@ class GameACLSTMNetwork(GameACNetwork):
 
             scope = "net_" + str(thread_index)
 
-            # Unrolling LSTM up to EPISODE_LEN time steps. (=5 time steps)
+            # Unrolling LSTM up to LOCAL_T_MAX time steps. (=5 time steps)
             # When episode terminates unrolling time steps becomes less than LOCAL_TIME_STEP.
             # Unrolling step size is applied via self.step_size placeholder.
             # When forward propagating, step_size is 1.
@@ -254,7 +269,7 @@ class GameACLSTMNetwork(GameACNetwork):
 
     def run_value(self, sess, s_t):
         # This run_value() is used for calculating V for bootstrapping at the
-        # end of EPISODE_LEN time step sequence.
+        # end of LOCAL_T_MAX time step sequence.
         # When next sequent starts, V will be calculated again with the same state using updated network weights,
         # so we don't update LSTM state here.
         prev_lstm_state_out = self.lstm_state_out
