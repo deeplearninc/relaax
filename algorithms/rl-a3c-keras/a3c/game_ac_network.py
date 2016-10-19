@@ -5,24 +5,28 @@ from lstm import CustomBasicLSTMCell
 from keras.models import Model
 from keras.layers import Input, Convolution2D, Reshape, Dense, Merge, merge, Flatten
 from keras.initializations import normal
+from keras import backend as K
 
 
 # Actor-Critic Network Base Class
 # (Policy network and Value network)
 class GameACNetwork(object):
     def __init__(self,
-                 action_size,
+                 action_size, session,
                  device="/cpu:0"):
         self._device = device
         self._action_size = action_size
+        K.set_session(session)
 
     def prepare_loss(self, entropy_beta):
         with tf.device(self._device):
             # taken action (input for policy)
-            self.a = tf.placeholder("float", [None, self._action_size])
+            self.a = K.placeholder(shape=(None, self._action_size), dtype="float")
+            # self.a = tf.placeholder("float", [None, self._action_size])
 
             # temporary difference (R-V) (input for policy)
-            self.td = tf.placeholder("float", [None])
+            self.td = K.placeholder(shape=None, dtype="float")
+            # self.td = tf.placeholder("float", [None])
 
             # policy entropy
             entropy = -tf.reduce_sum(self.pi * tf.log(self.pi), reduction_indices=1)
@@ -34,7 +38,8 @@ class GameACNetwork(object):
                 tf.reduce_sum(tf.mul(tf.log(self.pi), self.a), reduction_indices=1) * self.td + entropy * entropy_beta)
 
             # R (input for value)
-            self.r = tf.placeholder("float", [None])
+            self.r = K.placeholder(shape=None, dtype="float")
+            # self.r = tf.placeholder("float", [None])
 
             # value loss (output)
             # (Learning rate for Critic is half of Actor's, so multiply by 0.5)
@@ -42,6 +47,7 @@ class GameACNetwork(object):
 
             # gradient of policy and value are summed up
             self.total_loss = policy_loss + value_loss
+            return self.total_loss
 
     def run_policy_and_value(self, sess, s_t):
         raise NotImplementedError()
@@ -57,74 +63,19 @@ class GameACNetwork(object):
 
     def sync_from(self, src_netowrk, name=None):
         src_vars = src_netowrk.get_vars()
-        dst_vars = self.get_vars()
-
-        sync_ops = []
-
-        with tf.device(self._device):
-            with tf.op_scope([], name, "GameACNetwork") as name:
-                for (src_var, dst_var) in zip(src_vars, dst_vars):
-                    sync_op = tf.assign(dst_var, src_var)
-                    sync_ops.append(sync_op)
-
-                return tf.group(*sync_ops, name=name)
-
-    # weight initialization
-    def _fc_weight_variable(self, shape):
-        input_channels = shape[0]
-        d = 1.0 / np.sqrt(input_channels)
-        initial = tf.random_uniform(shape, minval=-d, maxval=d)
-        return tf.Variable(initial)
-
-    def _fc_bias_variable(self, shape, input_channels):
-        d = 1.0 / np.sqrt(input_channels)
-        initial = tf.random_uniform(shape, minval=-d, maxval=d)
-        return tf.Variable(initial)
-
-    def _conv_weight_variable(self, shape):
-        w = shape[0]
-        h = shape[1]
-        input_channels = shape[2]
-        d = 1.0 / np.sqrt(input_channels * w * h)
-        initial = tf.random_uniform(shape, minval=-d, maxval=d)
-        return tf.Variable(initial)
-
-    def _conv_bias_variable(self, shape, w, h, input_channels):
-        d = 1.0 / np.sqrt(input_channels * w * h)
-        initial = tf.random_uniform(shape, minval=-d, maxval=d)
-        return tf.Variable(initial)
-
-    def _conv2d(self, x, W, stride):
-        return tf.nn.conv2d(x, W, strides=[1, stride, stride, 1], padding="VALID")
+        self.net.set_weights(src_vars)
 
 
 # Actor-Critic FF Network
 class GameACFFNetwork(GameACNetwork):
     def __init__(self,
-                 action_size,
+                 action_size, session,
                  device="/cpu:0"):
-        GameACNetwork.__init__(self, action_size, device)
+        GameACNetwork.__init__(self, action_size, session, device)
 
         with tf.device(self._device):
-            self.W_conv1 = self._conv_weight_variable([8, 8, 4, 16])  # stride=4
-            self.b_conv1 = self._conv_bias_variable([16], 8, 8, 4)
-
-            self.W_conv2 = self._conv_weight_variable([4, 4, 16, 32])  # stride=2
-            self.b_conv2 = self._conv_bias_variable([32], 4, 4, 16)
-
-            self.W_fc1 = self._fc_weight_variable([2592, 256])
-            self.b_fc1 = self._fc_bias_variable([256], 2592)
-
-            # weight for policy output layer
-            self.W_fc2 = self._fc_weight_variable([256, action_size])
-            self.b_fc2 = self._fc_bias_variable([action_size], 256)
-
-            # weight for value output layer
-            self.W_fc3 = self._fc_weight_variable([256, 1])
-            self.b_fc3 = self._fc_bias_variable([1], 256)
-
             # state (input)
-            self.s = tf.placeholder("float", [None, 84, 84, 4])
+            self.s = K.placeholder(shape=(None, 84, 84, 4), dtype="float")
             S = Input(shape=(84, 84, 4), dtype="float")    # [..]  tf.float32  K.placeholder
 
             # h_conv1 = tf.nn.relu(self._conv2d(self.s, self.W_conv1, 4) + self.b_conv1)
@@ -148,7 +99,7 @@ class GameACFFNetwork(GameACNetwork):
             # self.v = tf.reshape(v_, [-1])
 
             # out = merge([self.pi, self.v], mode='concat')
-            self.policy = Model(input=S, output=[self.pi, self.v])
+            self.net = Model(input=S, output=[self.pi, self.v])
 
     def run_policy_and_value(self, sess, s_t):
         pi_out, v_out = sess.run([self.pi, self.v], feed_dict={self.s: [s_t]})
@@ -163,21 +114,16 @@ class GameACFFNetwork(GameACNetwork):
         return v_out[0]
 
     def get_vars(self):
-        return self.policy.get_weights()
-        return [self.W_conv1, self.b_conv1,
-                self.W_conv2, self.b_conv2,
-                self.W_fc1, self.b_fc1,
-                self.W_fc2, self.b_fc2,
-                self.W_fc3, self.b_fc3]
+        return self.net.get_weights()
 
 
 # Actor-Critic LSTM Network
 class GameACLSTMNetwork(GameACNetwork):
     def __init__(self,
-                 action_size,
+                 action_size, session,
                  thread_index,  # -1 for global
                  device="/cpu:0"):
-        GameACNetwork.__init__(self, action_size, device)
+        GameACNetwork.__init__(self, action_size, session, device)
 
         with tf.device(self._device):
             self.W_conv1 = self._conv_weight_variable([8, 8, 4, 16])  # stride=4

@@ -12,8 +12,9 @@ class AccumTrainer(object):
         """
         Create Variable where to accumulate gradients.
         """
-        # zero = tf.zeros(var.get_shape().as_list(), dtype=var.dtype)
-        zero = tf.zeros(list(var.shape), dtype="float")
+        var = tf.convert_to_tensor(var)
+        zero = tf.zeros(var.get_shape().as_list(), dtype=var.dtype)
+        # zero = tf.zeros(list(var.shape), dtype="float")   # remove after convert
         name = var.name.replace(":", "_") + "_accum_grad"
         accum_grad = tf.Variable(zero, name=name, trainable=False)
         return accum_grad

@@ -52,11 +52,13 @@ class Trainer:
         self.initial_learning_rate = self.log_uniform(INITIAL_ALPHA_LOW,
                                                       INITIAL_ALPHA_HIGH,
                                                       INITIAL_ALPHA_LOG_RATE)
-
+        # prepare session
+        sess = tf.Session(config=tf.ConfigProto(log_device_placement=False,
+                                                allow_soft_placement=True))
         if USE_LSTM:
-            global_network = GameACLSTMNetwork(ACTION_SIZE, -1, self.device)
+            global_network = GameACLSTMNetwork(ACTION_SIZE, sess, -1, self.device)
         else:
-            global_network = GameACFFNetwork(ACTION_SIZE, self.device)
+            global_network = GameACFFNetwork(ACTION_SIZE, sess, self.device)
 
         learning_rate_input = tf.placeholder("float")
 
@@ -66,22 +68,14 @@ class Trainer:
                                       epsilon=RMSP_EPSILON,
                                       clip_norm=GRAD_NORM_CLIP,
                                       device=self.device)
-        '''
-        grad_applier = RMSprop(lr=learning_rate_input,  # should be init before pass
-                               rho=RMSP_ALPHA,          # 0.9 --> 0.99
-                               epsilon=RMSP_EPSILON,    # 1e-8 --> 0.1
-                               decay=0.0)'''
 
         for i in range(PARALLEL_SIZE):
-            training_thread = A3CTrainingThread(i, global_network, self.initial_learning_rate,
+            training_thread = A3CTrainingThread(i, sess, global_network,
+                                                self.initial_learning_rate,
                                                 learning_rate_input,
                                                 grad_applier, MAX_TIME_STEP,
                                                 device=self.device)
             self.training_threads.append(training_thread)
-
-        # prepare session
-        sess = tf.Session(config=tf.ConfigProto(log_device_placement=False,
-                                                allow_soft_placement=True))
 
         init = tf.initialize_all_variables()
         sess.run(init)

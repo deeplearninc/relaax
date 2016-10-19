@@ -6,11 +6,12 @@ from game_state import GameState
 from game_ac_network import GameACFFNetwork, GameACLSTMNetwork
 
 from params import *
+from keras.optimizers import RMSprop
 
 
 class A3CTrainingThread(object):
     def __init__(self,
-                 thread_index,
+                 thread_index, session,
                  global_network,
                  initial_learning_rate,
                  learning_rate_input,
@@ -23,13 +24,20 @@ class A3CTrainingThread(object):
         self.max_global_time_step = max_global_time_step
 
         if USE_LSTM:
-            self.local_network = GameACLSTMNetwork(ACTION_SIZE, thread_index, device)
+            self.local_network = GameACLSTMNetwork(ACTION_SIZE, session, thread_index, device)
         else:
-            self.local_network = GameACFFNetwork(ACTION_SIZE, device)
+            self.local_network = GameACFFNetwork(ACTION_SIZE, session, device)
 
-        self.local_network.prepare_loss(ENTROPY_BETA)
+        loss = self.local_network.prepare_loss(ENTROPY_BETA)
+        optimizer = RMSprop(lr=initial_learning_rate,   # should be init before pass
+                            rho=RMSP_ALPHA,             # 0.9 --> 0.99
+                            epsilon=RMSP_EPSILON,       # 1e-8 --> 0.1
+                            # decay=0.0,                # old keras ver doesn't support this
+                            clipnorm=GRAD_NORM_CLIP)    # 40.0
+        self.local_network.net.compile(loss=loss, optimizer=optimizer)
 
         # TODO: don't need accum trainer anymore with batch
+        '''
         self.trainer = AccumTrainer(device)
         self.trainer.prepare_minimize(self.local_network.total_loss,
                                       self.local_network.get_vars())
@@ -40,6 +48,7 @@ class A3CTrainingThread(object):
         self.apply_gradients = grad_applier.apply_gradients(
             global_network.get_vars(),
             self.trainer.get_accum_grad_list())
+        '''
 
         self.sync = self.local_network.sync_from(global_network)
 
@@ -80,7 +89,8 @@ class A3CTrainingThread(object):
         terminal_end = False
 
         # reset accumulated gradients
-        sess.run(self.reset_gradients)
+        # sess.run(self.reset_gradients)
+        self.local_network.net.optimizer.weights = []
 
         # copy weights from shared to local
         sess.run(self.sync)
