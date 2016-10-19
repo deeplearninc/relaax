@@ -63,7 +63,18 @@ class GameACNetwork(object):
 
     def sync_from(self, src_netowrk, name=None):
         src_vars = src_netowrk.get_vars()
-        self.net.set_weights(src_vars)
+        # self.net.set_weights(src_vars)
+        dst_vars = self.get_vars()
+
+        sync_ops = []
+
+        with tf.device(self._device):
+            with tf.op_scope([], name, "GameACNetwork") as name:
+                for (src_var, dst_var) in zip(src_vars, dst_vars):
+                    sync_op = tf.assign(dst_var, src_var)
+                    sync_ops.append(sync_op)
+
+                return tf.group(*sync_ops, name=name)
 
 
 # Actor-Critic FF Network
@@ -75,31 +86,36 @@ class GameACFFNetwork(GameACNetwork):
 
         with tf.device(self._device):
             # state (input)
-            self.s = K.placeholder(shape=(None, 84, 84, 4), dtype="float")
-            S = Input(shape=(84, 84, 4), dtype="float")    # [..]  tf.float32  K.placeholder
+            # self.s = K.placeholder(shape=(None, 84, 84, 4), dtype="float")
+            self.s = Input(shape=(84, 84, 4), dtype="float")    # [..]  tf.float32  K.placeholder  S
 
             # h_conv1 = tf.nn.relu(self._conv2d(self.s, self.W_conv1, 4) + self.b_conv1)
-            h_conv1 = Convolution2D(16, 8, 8, subsample=(4, 4), border_mode='valid',
-                                    activation='relu', dim_ordering='tf')(S)
+            self.h_conv1 = Convolution2D(16, 8, 8, subsample=(4, 4), border_mode='valid',
+                                    activation='relu', dim_ordering='tf')(self.s)   # S
             # h_conv2 = tf.nn.relu(self._conv2d(h_conv1, self.W_conv2, 2) + self.b_conv2)
-            h_conv2 = Convolution2D(32, 4, 4, subsample=(2, 2), border_mode='valid',
-                                    activation='relu', dim_ordering='tf')(h_conv1)
+            self.h_conv2 = Convolution2D(32, 4, 4, subsample=(2, 2), border_mode='valid',
+                                    activation='relu', dim_ordering='tf', name='my')(self.h_conv1)
 
             # h_conv2_flat = tf.reshape(h_conv2, [-1, 2592])
-            h_conv2_flat = Flatten()(h_conv2)
+            h_conv2_flat = Flatten()(self.h_conv2)
             # h_fc1 = tf.nn.relu(tf.matmul(h_conv2_flat, self.W_fc1) + self.b_fc1)
-            h_fc1 = Dense(256, activation='relu')(h_conv2_flat)
+            self.h_fc1 = Dense(256, activation='relu')(h_conv2_flat)
 
             # policy (output)
             # self.pi = tf.nn.softmax(tf.matmul(h_fc1, self.W_fc2) + self.b_fc2)
-            self.pi = Dense(action_size, activation='softmax')(h_fc1)
+            self.pi = Dense(action_size, activation='softmax')(self.h_fc1)
             # value (output)
             # v_ = tf.matmul(h_fc1, self.W_fc3) + self.b_fc3
-            self.v = Dense(1)(h_fc1)    # v_
+            self.v = Dense(1)(self.h_fc1)    # v_
             # self.v = tf.reshape(v_, [-1])
 
             # out = merge([self.pi, self.v], mode='concat')
-            self.net = Model(input=S, output=[self.pi, self.v])
+            self.net = Model(input=self.s, output=[self.pi, self.v])
+            buf = self.net.get_weights()
+            bbuf = self.net.trainable_weights
+            bout = self.net.output
+            blay = self.net.get_layer(name='my')
+            a = 1
 
     def run_policy_and_value(self, sess, s_t):
         pi_out, v_out = sess.run([self.pi, self.v], feed_dict={self.s: [s_t]})
@@ -114,6 +130,12 @@ class GameACFFNetwork(GameACNetwork):
         return v_out[0]
 
     def get_vars(self):
+        return self.net.trainable_weights
+        return [self.h_conv1,
+                self.h_conv2,
+                self.h_fc1,
+                self.pi,
+                self.v]
         return self.net.get_weights()
 
 

@@ -88,8 +88,8 @@ class A3CTrainingThread(object):
         terminal_end = False
 
         # reset accumulated gradients
-        # sess.run(self.reset_gradients)
-        self.local_network.net.optimizer.weights = []
+        sess.run(self.reset_gradients)
+        # self.local_network.net.optimizer.weights = []
 
         # copy weights from shared to local
         sess.run(self.sync)

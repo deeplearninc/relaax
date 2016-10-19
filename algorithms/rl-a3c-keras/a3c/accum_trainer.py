@@ -12,7 +12,7 @@ class AccumTrainer(object):
         """
         Create Variable where to accumulate gradients.
         """
-        var = tf.convert_to_tensor(var)
+        # var = tf.convert_to_tensor(var)
         zero = tf.zeros(var.get_shape().as_list(), dtype=var.dtype)
         # zero = tf.zeros(list(var.shape), dtype="float")   # remove after convert
         name = var.name.replace(":", "_") + "_accum_grad"
@@ -21,15 +21,16 @@ class AccumTrainer(object):
 
     def prepare_minimize(self, loss, var_list):
         with tf.device(self._device):
-            var_refs = [tf.convert_to_tensor(v) for v in var_list]
+            # var_refs = [v.ref() for v in var_list]
+            # var_refs = [tf.convert_to_tensor(v) for v in var_list]
             # var_refs = [v for v in var_list]
             grads = tf.gradients(
-                loss, var_refs,
+                loss, var_list,     # var_refs
                 gate_gradients=False,
                 aggregation_method=None,
                 colocate_gradients_with_ops=False)
 
-            self._var_list = var_refs   # var_list
+            self._var_list = var_list   # var_list  var_refs
             self._grad_list = grads
             self._accum_grad_list = []
 
