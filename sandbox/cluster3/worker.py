@@ -4,7 +4,9 @@ sys.path.append('../../server')
 from uuid import uuid4
 from flask import Flask, render_template, session  # request
 from flask_socketio import SocketIO, emit, join_room, leave_room, close_room  # rooms, disconnect
+
 import shared
+import models.ale_model
 
 
 app = Flask(__name__)
@@ -30,7 +32,6 @@ class ModelRunner(object):
     def startModel(self, name, sio, session, namespace='/rlmodels'):
         self.stopModel(session)  # remove old instance of this model
         print("Loading model: " + name)
-        import models.ale_model
         self.models[session] = models.ale_model.AleModel(sio, session, namespace)
         self.models[session].start()
 
@@ -89,7 +90,12 @@ def on_init_model(message):
     print("Initialize model algorithm with received parameters")
     model = modelRunner.getModel(session['id'])
     if model is not None:
-        model.init_model(message, target=server.target, global_device=shared.ps_device(), local_device=shared.worker_device(n_worker))
+        model.init_model(
+            message,
+            target=server.target,
+            global_device=shared.ps_device(),
+            local_device=shared.worker_device(n_worker)
+        )
     else:
         print('Error in on_get_params')
         emit('stop training ack', {}, room=session['id'])
