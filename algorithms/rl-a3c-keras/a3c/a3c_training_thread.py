@@ -28,16 +28,16 @@ class A3CTrainingThread(object):
         else:
             self.local_network = GameACFFNetwork(ACTION_SIZE, session, device)
 
-        loss = self.local_network.prepare_loss(ENTROPY_BETA)
+        self.local_network.prepare_loss(ENTROPY_BETA)
+        '''
         optimizer = RMSprop(lr=initial_learning_rate,   # should be init before pass
                             rho=RMSP_ALPHA,             # 0.9 --> 0.99
                             epsilon=RMSP_EPSILON,       # 1e-8 --> 0.1
                             # decay=0.0,                # old keras ver doesn't support this
                             clipnorm=GRAD_NORM_CLIP)    # 40.0
-        self.local_network.net.compile(loss=loss, optimizer=optimizer)
+        self.local_network.net.compile(loss=loss, optimizer=optimizer)'''
 
         # TODO: don't need accum trainer anymore with batch
-        '''
         self.trainer = AccumTrainer(device)
         self.trainer.prepare_minimize(self.local_network.total_loss,
                                       self.local_network.get_vars())
@@ -48,7 +48,6 @@ class A3CTrainingThread(object):
         self.apply_gradients = grad_applier.apply_gradients(
             global_network.get_vars(),
             self.trainer.get_accum_grad_list())
-        '''
 
         self.sync = self.local_network.sync_from(global_network)
 

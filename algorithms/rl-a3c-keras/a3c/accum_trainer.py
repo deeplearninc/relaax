@@ -21,15 +21,15 @@ class AccumTrainer(object):
 
     def prepare_minimize(self, loss, var_list):
         with tf.device(self._device):
-            # var_refs = [v.ref() for v in var_list]
-            var_refs = [v for v in var_list]
+            var_refs = [tf.convert_to_tensor(v) for v in var_list]
+            # var_refs = [v for v in var_list]
             grads = tf.gradients(
                 loss, var_refs,
                 gate_gradients=False,
                 aggregation_method=None,
                 colocate_gradients_with_ops=False)
 
-            self._var_list = var_list
+            self._var_list = var_refs   # var_list
             self._grad_list = grads
             self._accum_grad_list = []
 

@@ -21,12 +21,12 @@ class GameACNetwork(object):
     def prepare_loss(self, entropy_beta):
         with tf.device(self._device):
             # taken action (input for policy)
-            self.a = K.placeholder(shape=(None, self._action_size), dtype="float")
-            # self.a = tf.placeholder("float", [None, self._action_size])
+            # self.a = K.placeholder(shape=(None, self._action_size), dtype="float")
+            self.a = tf.placeholder("float", [None, self._action_size])
 
             # temporary difference (R-V) (input for policy)
-            self.td = K.placeholder(shape=None, dtype="float")
-            # self.td = tf.placeholder("float", [None])
+            # self.td = K.placeholder(shape=None, dtype="float")
+            self.td = tf.placeholder("float", [None])
 
             # policy entropy
             entropy = -tf.reduce_sum(self.pi * tf.log(self.pi), reduction_indices=1)
@@ -38,8 +38,8 @@ class GameACNetwork(object):
                 tf.reduce_sum(tf.mul(tf.log(self.pi), self.a), reduction_indices=1) * self.td + entropy * entropy_beta)
 
             # R (input for value)
-            self.r = K.placeholder(shape=None, dtype="float")
-            # self.r = tf.placeholder("float", [None])
+            # self.r = K.placeholder(shape=None, dtype="float")
+            self.r = tf.placeholder("float", [None])
 
             # value loss (output)
             # (Learning rate for Critic is half of Actor's, so multiply by 0.5)
@@ -47,7 +47,7 @@ class GameACNetwork(object):
 
             # gradient of policy and value are summed up
             self.total_loss = policy_loss + value_loss
-            return self.total_loss
+            # return self.total_loss
 
     def run_policy_and_value(self, sess, s_t):
         raise NotImplementedError()
