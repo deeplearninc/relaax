@@ -6,15 +6,11 @@ import tensorflow as tf
 import shared
 
 
-def signal_handler(signal, frame):
-    sys.exit(0)
-
-
 def main():
 
     server = shared.ps()
 
-    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGINT, lambda _1, _2: sys.exit(0))
 
     while True:
         time.sleep(1)
