@@ -39,7 +39,7 @@ class GameACNetwork(object):
 
             # R (input for value)
             # self.r = K.placeholder(shape=None, dtype="float")
-            self.r = tf.placeholder("float", [None])
+            self.r = tf.placeholder("float", [None])    # [None]
 
             # value loss (output)
             # (Learning rate for Critic is half of Actor's, so multiply by 0.5)
@@ -90,32 +90,28 @@ class GameACFFNetwork(GameACNetwork):
             self.s = Input(shape=(84, 84, 4), dtype="float")    # [..]  tf.float32  K.placeholder  S
 
             # h_conv1 = tf.nn.relu(self._conv2d(self.s, self.W_conv1, 4) + self.b_conv1)
-            self.h_conv1 = Convolution2D(16, 8, 8, subsample=(4, 4), border_mode='valid',
+            h_conv1 = Convolution2D(16, 8, 8, subsample=(4, 4), border_mode='valid',
                                     activation='relu', dim_ordering='tf')(self.s)   # S
             # h_conv2 = tf.nn.relu(self._conv2d(h_conv1, self.W_conv2, 2) + self.b_conv2)
-            self.h_conv2 = Convolution2D(32, 4, 4, subsample=(2, 2), border_mode='valid',
-                                    activation='relu', dim_ordering='tf', name='my')(self.h_conv1)
+            h_conv2 = Convolution2D(32, 4, 4, subsample=(2, 2), border_mode='valid',
+                                    activation='relu', dim_ordering='tf')(h_conv1)
 
             # h_conv2_flat = tf.reshape(h_conv2, [-1, 2592])
-            h_conv2_flat = Flatten()(self.h_conv2)
+            h_conv2_flat = Flatten()(h_conv2)
             # h_fc1 = tf.nn.relu(tf.matmul(h_conv2_flat, self.W_fc1) + self.b_fc1)
-            self.h_fc1 = Dense(256, activation='relu')(h_conv2_flat)
+            h_fc1 = Dense(256, activation='relu')(h_conv2_flat)
 
             # policy (output)
             # self.pi = tf.nn.softmax(tf.matmul(h_fc1, self.W_fc2) + self.b_fc2)
-            self.pi = Dense(action_size, activation='softmax')(self.h_fc1)
+            self.pi = Dense(action_size, activation='softmax')(h_fc1)
             # value (output)
             # v_ = tf.matmul(h_fc1, self.W_fc3) + self.b_fc3
-            self.v = Dense(1)(self.h_fc1)    # v_
-            # self.v = tf.reshape(v_, [-1])
+            v_ = Dense(1)(h_fc1)    # v_
+            # self.v = Reshape((1, ))(v_)   # need reverse shape
+            self.v = tf.reshape(v_, [-1])
 
             # out = merge([self.pi, self.v], mode='concat')
-            self.net = Model(input=self.s, output=[self.pi, self.v])
-            buf = self.net.get_weights()
-            bbuf = self.net.trainable_weights
-            bout = self.net.output
-            blay = self.net.get_layer(name='my')
-            a = 1
+            self.net = Model(input=self.s, output=[self.pi, v_])
 
     def run_policy_and_value(self, sess, s_t):
         pi_out, v_out = sess.run([self.pi, self.v], feed_dict={self.s: [s_t]})
