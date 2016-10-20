@@ -21,12 +21,9 @@ class A3CTrainingThread(object):
         self.max_global_time_step = max_global_time_step
 
         with tf.device(device):
-            if params.use_LSTM:
-                self.local_network = GameACLSTMNetwork(params.action_size, thread_index)
-            else:
-                self.local_network = GameACFFNetwork(params.action_size)
-
-            self.local_network.prepare_loss(params.action_size, params.ENTROPY_BETA)
+            self.local_network = game_ac_network \
+                .make_full_network(params, thread_index) \
+                .prepare_loss(params)
 
         # TODO: don't need accum trainer anymore with batch
         trainer = AccumTrainer(device)

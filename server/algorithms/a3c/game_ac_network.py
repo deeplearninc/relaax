@@ -3,13 +3,25 @@ import numpy as np
 from lstm import CustomBasicLSTMCell
 
 
+def make_shared_network(params, thread_index):
+    if params.use_LSTM:
+        return GameACLSTMNetworkShared(params.action_size, thread_index)
+    return GameACFFNetworkShared(params.action_size)
+
+
+def make_full_network(params, thread_index):
+    if params.use_LSTM:
+        return GameACLSTMNetwork(params.action_size, thread_index)
+    return GameACFFNetwork(params.action_size)
+
+
 # Actor-Critic Network Base Class
 # (Policy network and Value network)
 class _GameACNetwork(object):
 
-    def prepare_loss(self, action_size, entropy_beta):
+    def prepare_loss(self, params):
         # taken action (input for policy)
-        self.a = tf.placeholder("float", [None, action_size])
+        self.a = tf.placeholder("float", [None, params.action_size])
 
         # temporary difference (R-V) (input for policy)
         self.td = tf.placeholder("float", [None])
@@ -23,7 +35,7 @@ class _GameACNetwork(object):
         # policy loss (output)  (Adding minus, because the original paper's
         # objective function is for gradient ascent, but we use gradient descent optimizer)
         policy_loss = - tf.reduce_sum(
-            tf.reduce_sum(tf.mul(log_pi, self.a), reduction_indices=1) * self.td + entropy * entropy_beta)
+            tf.reduce_sum(tf.mul(log_pi, self.a), reduction_indices=1) * self.td + entropy * params.ENTROPY_BETA)
 
         # R (input for value)
         self.r = tf.placeholder("float", [None])
@@ -34,6 +46,8 @@ class _GameACNetwork(object):
 
         # gradient of policy and value are summed up
         self.total_loss = policy_loss + value_loss
+
+        return self
 
 
 class GameACFFNetworkShared(_GameACNetwork):
@@ -102,7 +116,7 @@ class GameACFFNetwork(GameACFFNetworkShared):
 
 class GameACLSTMNetworkShared(_GameACNetwork):
 
-    def __init__(self, action_size):
+    def __init__(self, action_size, thread_index):
         self.W_conv1 = _conv_weight_variable([8, 8, 4, 16])  # stride=4
         self.b_conv1 = _conv_bias_variable([16], 8, 8, 4)
 
@@ -122,23 +136,6 @@ class GameACLSTMNetworkShared(_GameACNetwork):
         # weight for value output layer
         self.W_fc3 = _fc_weight_variable([256, 1])
         self.b_fc3 = _fc_bias_variable([1], 256)
-
-    def get_vars(self):
-        return [
-            self.W_conv1    , self.b_conv1  ,
-            self.W_conv2    , self.b_conv2  ,
-            self.W_fc1      , self.b_fc1    ,
-            self.lstm.matrix, self.lstm.bias,
-            self.W_fc2      , self.b_fc2    ,
-            self.W_fc3      , self.b_fc3
-        ]
-
-
-# Actor-Critic LSTM Network
-class GameACLSTMNetwork(GameACLSTMNetworkShared):
-
-    def __init__(self, action_size, thread_index):
-        GameACLSTMNetworkShared.__init__(self, action_size)
 
         # state (input)
         self.s = tf.placeholder("float", [None, 84, 84, 4])
@@ -163,7 +160,7 @@ class GameACLSTMNetwork(GameACLSTMNetworkShared):
         # Unrolling step size is applied via self.step_size placeholder.
         # When forward propagating, step_size is 1.
         # (time_major = False, so output shape is [batch_size, max_time, cell.output_size])
-        lstm_outputs, self.lstm_state = tf.nn.dynamic_rnn(
+        self.lstm_outputs, self.lstm_state = tf.nn.dynamic_rnn(
             self.lstm,
             h_fc1_reshaped,
             initial_state=self.initial_lstm_state,
@@ -172,9 +169,26 @@ class GameACLSTMNetwork(GameACLSTMNetworkShared):
             scope="net_%d" % thread_index
         )
 
+    def get_vars(self):
+        return [
+            self.W_conv1    , self.b_conv1  ,
+            self.W_conv2    , self.b_conv2  ,
+            self.W_fc1      , self.b_fc1    ,
+            self.lstm.matrix, self.lstm.bias,
+            self.W_fc2      , self.b_fc2    ,
+            self.W_fc3      , self.b_fc3
+        ]
+
+
+# Actor-Critic LSTM Network
+class GameACLSTMNetwork(GameACLSTMNetworkShared):
+
+    def __init__(self, action_size, thread_index):
+        GameACLSTMNetworkShared.__init__(self, action_size, thread_index)
+
         # lstm_outputs: (1,5,256) for back prop, (1,1,256) for forward prop.
 
-        lstm_outputs = tf.reshape(lstm_outputs, [-1, 256])
+        lstm_outputs = tf.reshape(self.lstm_outputs, [-1, 256])
 
         # policy (output)
         self.pi = tf.nn.softmax(tf.matmul(lstm_outputs, self.W_fc2) + self.b_fc2)

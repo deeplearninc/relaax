@@ -51,12 +51,8 @@ class Trainer:
             self.params.INITIAL_ALPHA_LOG_RATE
         )
         with tf.device(self._global_device):
-            if self.params.use_LSTM:
-                self.global_network = GameACLSTMNetwork(self.params.action_size, -1)
-                self.display_network = GameACLSTMNetwork(self.params.action_size, -2)
-            else:
-                self.global_network = GameACFFNetwork(self.params.action_size)
-                self.display_network = GameACFFNetwork(self.params.action_size)
+            self.global_network = game_ac_network.make_shared_network(self.params, -1)
+            self.display_network = game_ac_network.make_full_network(self.params, -2)
 
         self._sync_display_network = game_ac_network.assign_vars(self.display_network, self.global_network)
 
