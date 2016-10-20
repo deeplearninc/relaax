@@ -95,9 +95,9 @@ class A3CTrainingThread(object):
         sess.run(self.sync)
 
         start_local_t = self.local_t
-
+        '''
         if USE_LSTM:
-            start_lstm_state = self.local_network.lstm_state_out
+            start_lstm_state = self.local_network.lstm_state_out'''
 
         # t_max times loop
         for i in range(LOCAL_T_MAX):
@@ -135,8 +135,9 @@ class A3CTrainingThread(object):
 
                 self.episode_reward = 0
                 self.game_state.reset()
+                '''
                 if USE_LSTM:
-                    self.local_network.reset_state()
+                    self.local_network.reset_state()'''
                 break
 
         R = 0.0
@@ -176,9 +177,9 @@ class A3CTrainingThread(object):
                          self.local_network.s: batch_si,
                          self.local_network.a: batch_a,
                          self.local_network.td: batch_td,
-                         self.local_network.r: batch_R,
-                         self.local_network.initial_lstm_state: start_lstm_state,
-                         self.local_network.step_size: [len(batch_a)]})
+                         self.local_network.r: batch_R})
+                         # self.local_network.initial_lstm_state: start_lstm_state,
+                         # self.local_network.step_size: [len(batch_a)]})
         else:
             sess.run(self.accum_gradients,
                      feed_dict={

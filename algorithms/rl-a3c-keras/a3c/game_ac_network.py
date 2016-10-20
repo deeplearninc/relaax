@@ -3,7 +3,8 @@ import numpy as np
 from lstm import CustomBasicLSTMCell
 
 from keras.models import Model
-from keras.layers import Input, Convolution2D, Reshape, Dense, Merge, merge, Flatten
+from keras.layers import Input, Convolution2D, Reshape, Dense, \
+    Merge, merge, Flatten, LSTM, Lambda, TimeDistributed, RepeatVector
 from keras.initializations import normal
 from keras import backend as K
 from keras.models import model_from_json
@@ -160,6 +161,7 @@ class GameACLSTMNetwork(GameACNetwork):
             # state (input)
             # self.s = tf.placeholder("float", [None, 84, 84, 4])
             self.s = Input(shape=(84, 84, 4), dtype="float")
+            # Lambda(lambda x: tf.transpose(self.s, [2, 0, 1]))
 
             # h_conv1 = tf.nn.relu(self._conv2d(self.s, self.W_conv1, 4) + self.b_conv1)
             h_conv1 = Convolution2D(16, 8, 8, subsample=(4, 4), border_mode='valid',
@@ -174,10 +176,12 @@ class GameACLSTMNetwork(GameACNetwork):
             h_fc1 = Dense(256, activation='relu')(h_conv2_flat)
             # h_fc1 shape = (5,256)
 
-            h_fc1_reshaped = tf.reshape(h_fc1, [1, -1, 256])
-            # h_fc1_reshaped = Reshape((1, 5, 256))(h_fc1)
+            # h_fc1_reshaped = tf.reshape(h_fc1, [1, -1, 256])
+            h_fc1_reshaped = RepeatVector(1)(h_fc1)
             # h_fc1_reshaped shape = (1,5,256)
 
+            lstm_outputs = LSTM(256)(h_fc1_reshaped)
+            '''
             # place holder for LSTM unrolling time step size.
             self.step_size = tf.placeholder(tf.float32, [1])
 
@@ -199,16 +203,18 @@ class GameACLSTMNetwork(GameACNetwork):
 
             # lstm_outputs: (1,5,256) for back prop, (1,1,256) for forward prop.
 
-            lstm_outputs = tf.reshape(lstm_outputs, [-1, 256])
-
+            lstm_outputs = tf.reshape(lstm_outputs, [-1, 256])'''
             # policy (output)
-            self.pi = tf.nn.softmax(tf.matmul(lstm_outputs, self.W_fc2) + self.b_fc2)
+            # self.pi = tf.nn.softmax(tf.matmul(lstm_outputs, self.W_fc2) + self.b_fc2)
+            self.pi = Dense(action_size, activation='softmax')(lstm_outputs)
 
             # value (output)
-            v_ = tf.matmul(lstm_outputs, self.W_fc3) + self.b_fc3
+            # v_ = tf.matmul(lstm_outputs, self.W_fc3) + self.b_fc3
+            v_ = Dense(1)(h_fc1)
             self.v = tf.reshape(v_, [-1])
 
-            self.reset_state()
+            self.net = Model(input=self.s, output=[self.pi, v_])
+            # self.reset_state()
 
     def reset_state(self):
         self.lstm_state_out = np.zeros([1, self.lstm.state_size])
@@ -216,20 +222,23 @@ class GameACLSTMNetwork(GameACNetwork):
     def run_policy_and_value(self, sess, s_t):
         # This run_policy_and_value() is used when forward propagating.
         # so the step size is 1.
+        '''
         pi_out, v_out, self.lstm_state_out = sess.run([self.pi, self.v, self.lstm_state],
                                                       feed_dict={self.s: [s_t],
                                                                  self.initial_lstm_state: self.lstm_state_out,
-                                                                 self.step_size: [1]})
+                                                                 self.step_size: [1]})'''
+        pi_out, v_out = sess.run([self.pi, self.v], feed_dict={self.s: [s_t]})
         # pi_out: (1,3), v_out: (1)
         return (pi_out[0], v_out[0])
 
     def run_policy(self, sess, s_t):
         # This run_policy() is used for displaying the result with display tool.
+        '''
         pi_out, self.lstm_state_out = sess.run([self.pi, self.lstm_state],
                                                feed_dict={self.s: [s_t],
                                                           self.initial_lstm_state: self.lstm_state_out,
-                                                          self.step_size: [1]})
-
+                                                          self.step_size: [1]})'''
+        pi_out = sess.run(self.pi, feed_dict={self.s: [s_t]})
         return pi_out[0]
 
     def run_value(self, sess, s_t):
@@ -237,6 +246,7 @@ class GameACLSTMNetwork(GameACNetwork):
         # end of LOCAL_T_MAX time step sequence.
         # When next sequent starts, V will be calculated again with the same state using updated network weights,
         # so we don't update LSTM state here.
+        '''
         prev_lstm_state_out = self.lstm_state_out
         v_out, _ = sess.run([self.v, self.lstm_state],
                             feed_dict={self.s: [s_t],
@@ -244,10 +254,12 @@ class GameACLSTMNetwork(GameACNetwork):
                                        self.step_size: [1]})
 
         # roll back lstm state
-        self.lstm_state_out = prev_lstm_state_out
+        self.lstm_state_out = prev_lstm_state_out'''
+        v_out = sess.run(self.v, feed_dict={self.s: [s_t]})
         return v_out[0]
 
     def get_vars(self):
+        return self.net.trainable_weights
         return [self.W_conv1, self.b_conv1,
                 self.W_conv2, self.b_conv2,
                 self.W_fc1, self.b_fc1,
