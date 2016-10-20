@@ -1,6 +1,3 @@
-import argparse
-
-
 class Params(object):
     def __init__(self, args):
         self.args = args
