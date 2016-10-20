@@ -6,6 +6,7 @@ from keras.models import Model
 from keras.layers import Input, Convolution2D, Reshape, Dense, Merge, merge, Flatten
 from keras.initializations import normal
 from keras import backend as K
+from keras.models import model_from_json
 
 
 # Actor-Critic Network Base Class
@@ -85,6 +86,7 @@ class GameACFFNetwork(GameACNetwork):
         GameACNetwork.__init__(self, action_size, session, device)
 
         with tf.device(self._device):
+            '''
             # state (input)
             # self.s = K.placeholder(shape=(None, 84, 84, 4), dtype="float")
             self.s = Input(shape=(84, 84, 4), dtype="float")    # [..]  tf.float32  K.placeholder  S
@@ -112,6 +114,20 @@ class GameACFFNetwork(GameACNetwork):
 
             # out = merge([self.pi, self.v], mode='concat')
             self.net = Model(input=self.s, output=[self.pi, v_])
+            model_json = self.net.to_json()
+            with open("model.json", "w") as json_file:
+                json_file.write(model_json)
+            '''
+            # load json and create model
+            json_file = open('model.json', 'r')
+            loaded_model_json = json_file.read()
+            json_file.close()
+            self.net = model_from_json(loaded_model_json)
+
+            self.s = self.net.input
+            self.pi = self.net.output[0]
+            v_ = self.net.output[1]
+            self.v = tf.reshape(v_, [-1])
 
     def run_policy_and_value(self, sess, s_t):
         pi_out, v_out = sess.run([self.pi, self.v], feed_dict={self.s: [s_t]})
@@ -127,12 +143,6 @@ class GameACFFNetwork(GameACNetwork):
 
     def get_vars(self):
         return self.net.trainable_weights
-        return [self.h_conv1,
-                self.h_conv2,
-                self.h_fc1,
-                self.pi,
-                self.v]
-        return self.net.get_weights()
 
 
 # Actor-Critic LSTM Network
@@ -144,38 +154,29 @@ class GameACLSTMNetwork(GameACNetwork):
         GameACNetwork.__init__(self, action_size, session, device)
 
         with tf.device(self._device):
-            self.W_conv1 = self._conv_weight_variable([8, 8, 4, 16])  # stride=4
-            self.b_conv1 = self._conv_bias_variable([16], 8, 8, 4)
-
-            self.W_conv2 = self._conv_weight_variable([4, 4, 16, 32])  # stride=2
-            self.b_conv2 = self._conv_bias_variable([32], 4, 4, 16)
-
-            self.W_fc1 = self._fc_weight_variable([2592, 256])
-            self.b_fc1 = self._fc_bias_variable([256], 2592)
-
             # lstm
             self.lstm = CustomBasicLSTMCell(256)
 
-            # weight for policy output layer
-            self.W_fc2 = self._fc_weight_variable([256, action_size])
-            self.b_fc2 = self._fc_bias_variable([action_size], 256)
-
-            # weight for value output layer
-            self.W_fc3 = self._fc_weight_variable([256, 1])
-            self.b_fc3 = self._fc_bias_variable([1], 256)
-
             # state (input)
-            self.s = tf.placeholder("float", [None, 84, 84, 4])
+            # self.s = tf.placeholder("float", [None, 84, 84, 4])
+            self.s = Input(shape=(84, 84, 4), dtype="float")
 
-            h_conv1 = tf.nn.relu(self._conv2d(self.s, self.W_conv1, 4) + self.b_conv1)
-            h_conv2 = tf.nn.relu(self._conv2d(h_conv1, self.W_conv2, 2) + self.b_conv2)
+            # h_conv1 = tf.nn.relu(self._conv2d(self.s, self.W_conv1, 4) + self.b_conv1)
+            h_conv1 = Convolution2D(16, 8, 8, subsample=(4, 4), border_mode='valid',
+                                    activation='relu', dim_ordering='tf')(self.s)
+            # h_conv2 = tf.nn.relu(self._conv2d(h_conv1, self.W_conv2, 2) + self.b_conv2)
+            h_conv2 = Convolution2D(32, 4, 4, subsample=(2, 2), border_mode='valid',
+                                    activation='relu', dim_ordering='tf')(h_conv1)
 
-            h_conv2_flat = tf.reshape(h_conv2, [-1, 2592])
-            h_fc1 = tf.nn.relu(tf.matmul(h_conv2_flat, self.W_fc1) + self.b_fc1)
-            # h_fc1 shape=(5,256)
+            # h_conv2_flat = tf.reshape(h_conv2, [-1, 2592])
+            h_conv2_flat = Flatten()(h_conv2)
+            # h_fc1 = tf.nn.relu(tf.matmul(h_conv2_flat, self.W_fc1) + self.b_fc1)
+            h_fc1 = Dense(256, activation='relu')(h_conv2_flat)
+            # h_fc1 shape = (5,256)
 
             h_fc1_reshaped = tf.reshape(h_fc1, [1, -1, 256])
-            # h_fc_reshaped = (1,5,256)
+            # h_fc1_reshaped = Reshape((1, 5, 256))(h_fc1)
+            # h_fc1_reshaped shape = (1,5,256)
 
             # place holder for LSTM unrolling time step size.
             self.step_size = tf.placeholder(tf.float32, [1])
