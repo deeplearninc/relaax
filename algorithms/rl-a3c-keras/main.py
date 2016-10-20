@@ -31,7 +31,7 @@ class Trainer:
         v = log_lo * (1 - rate) + log_hi * rate
         return math.exp(v)
 
-    def train_function(self, parallel_index, sess):
+    def train_function(self, parallel_index, sess, summary_writer, summary_op, score_input):
 
         training_thread = self.training_threads[parallel_index]
 
@@ -41,7 +41,8 @@ class Trainer:
             if self.global_t > MAX_TIME_STEP:
                 break
 
-            diff_global_t = training_thread.process(sess, self.global_t)
+            diff_global_t = training_thread.process(sess, self.global_t, summary_writer,
+                                                    summary_op, score_input)
             self.global_t += diff_global_t
 
     def signal_handler(self):
@@ -80,6 +81,13 @@ class Trainer:
         init = tf.initialize_all_variables()
         sess.run(init)
 
+        # summary for tensorboard
+        score_input = tf.placeholder(tf.int32)
+        tf.scalar_summary("score", score_input)
+
+        summary_op = tf.merge_all_summaries()
+        summary_writer = tf.train.SummaryWriter(LOG_FILE, sess.graph)
+
         # init or load checkpoint with saver
         saver = tf.train.Saver()
         checkpoint = tf.train.get_checkpoint_state(CHECKPOINT_DIR)
@@ -96,7 +104,7 @@ class Trainer:
         train_threads = []
         for i in range(PARALLEL_SIZE):
             train_threads.append(threading.Thread(target=self.train_function,
-                                                  args=(i, sess)))
+                                                  args=(i, sess, summary_writer, summary_op, score_input)))
 
         signal.signal(signal.SIGINT, self.signal_handler)
 

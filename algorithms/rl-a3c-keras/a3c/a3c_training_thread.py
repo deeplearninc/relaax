@@ -79,7 +79,12 @@ class A3CTrainingThread(object):
         # fail safe
         return len(values) - 1
 
-    def process(self, sess, global_t):
+    @staticmethod
+    def _record_score(sess, summary_writer, summary_op, score_input, score, global_t):
+        summary_str = sess.run(summary_op, feed_dict={score_input: score})
+        summary_writer.add_summary(summary_str, global_t)
+
+    def process(self, sess, global_t, summary_writer, summary_op, score_input):
         states = []
         actions = []
         rewards = []
@@ -132,6 +137,9 @@ class A3CTrainingThread(object):
             if terminal:
                 terminal_end = True
                 print("score=", self.episode_reward)
+
+                self._record_score(sess, summary_writer, summary_op, score_input,
+                                   self.episode_reward, global_t)
 
                 self.episode_reward = 0
                 self.game_state.reset()
