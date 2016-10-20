@@ -3,6 +3,7 @@ import numpy as np
 import math
 import os
 
+import game_ac_network
 from game_ac_network import GameACFFNetwork, GameACLSTMNetwork
 from a3c_training_thread import A3CTrainingThread
 from rmsprop_applier import RMSPropApplier
@@ -25,7 +26,7 @@ class Trainer:
         self._global_device = global_device + kernel
         self._local_device = local_device + kernel
 
-        self.initial_learning_rate = None   # assign by static method log_uniform in initialize method
+        self._initial_learning_rate = None  # assign by static method log_uniform in initialize method
         self.global_t = 0                   # initial global steps count --> can be init via checkpoint
         self.training_threads = []          # Agent's Threads --> it's defined and assigned in initialize
 
@@ -37,22 +38,27 @@ class Trainer:
         # Thread index for display == -1, but in initialize == -2 (for LSTM only)
 
     @staticmethod
-    def log_uniform(lo, hi, rate):
+    def _log_uniform(lo, hi, rate):
         log_lo = math.log(lo)
         log_hi = math.log(hi)
         v = log_lo * (1 - rate) + log_hi * rate
         return math.exp(v)
 
     def _initialize(self):
-        self.initial_learning_rate = self.log_uniform(self.params.INITIAL_ALPHA_LOW,
-                                                      self.params.INITIAL_ALPHA_HIGH,
-                                                      self.params.INITIAL_ALPHA_LOG_RATE)
-        if self.params.use_LSTM:
-            self.global_network = GameACLSTMNetwork(self.params.action_size, -1, self._global_device)
-            self.display_network = GameACLSTMNetwork(self.params.action_size, -2, self._global_device)
-        else:
-            self.global_network = GameACFFNetwork(self.params.action_size, self._global_device)
-            self.display_network = GameACFFNetwork(self.params.action_size, self._global_device)
+        self._initial_learning_rate = self._log_uniform(
+            self.params.INITIAL_ALPHA_LOW,
+            self.params.INITIAL_ALPHA_HIGH,
+            self.params.INITIAL_ALPHA_LOG_RATE
+        )
+        with tf.device(self._global_device):
+            if self.params.use_LSTM:
+                self.global_network = GameACLSTMNetwork(self.params.action_size, -1)
+                self.display_network = GameACLSTMNetwork(self.params.action_size, -2)
+            else:
+                self.global_network = GameACFFNetwork(self.params.action_size)
+                self.display_network = GameACFFNetwork(self.params.action_size)
+
+        self._sync_display_network = game_ac_network.assign_vars(self.display_network, self.global_network)
 
         learning_rate_input = tf.placeholder("float")
 
@@ -65,7 +71,7 @@ class Trainer:
 
         for i in range(self.params.threads_cnt):
             training_thread = A3CTrainingThread(self.params, i, self.global_network,
-                                                self.initial_learning_rate,
+                                                self._initial_learning_rate,
                                                 learning_rate_input,
                                                 grad_applier, self.params.max_global_step,
                                                 self._local_device)
@@ -271,7 +277,7 @@ class Trainer:
 
     def playing(self, frame):
         if not self.display:
-            self._sync_display_network()
+            self.sess.run(self._sync_display_network)
 
         self.update_play_state(frame)
         state = self.frameDisplayQueue
@@ -279,13 +285,6 @@ class Trainer:
         pi_values = self.display_network.run_policy(self.sess, state)
         action = self.training_threads[0].choose_action(pi_values)
         return action
-
-    def _sync_display_network(self):
-        src_vars = self.global_network.get_vars()
-        dst_vars = self.display_network.get_vars()
-
-        for (src_var, dst_var) in zip(src_vars, dst_vars):
-            self.sess.run(tf.assign(dst_var, src_var))
 
     def update_play_state(self, frame):
         if self.display:

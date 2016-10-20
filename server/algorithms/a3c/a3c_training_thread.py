@@ -1,5 +1,7 @@
+import tensorflow as tf
 import random
 from accum_trainer import AccumTrainer
+import game_ac_network
 from game_ac_network import GameACFFNetwork, GameACLSTMNetwork
 import numpy as np
 
@@ -18,12 +20,13 @@ class A3CTrainingThread(object):
         self.learning_rate_input = learning_rate_input
         self.max_global_time_step = max_global_time_step
 
-        if params.use_LSTM:
-            self.local_network = GameACLSTMNetwork(params.action_size, thread_index, device)
-        else:
-            self.local_network = GameACFFNetwork(params.action_size, device)
+        with tf.device(device):
+            if params.use_LSTM:
+                self.local_network = GameACLSTMNetwork(params.action_size, thread_index)
+            else:
+                self.local_network = GameACFFNetwork(params.action_size)
 
-        self.local_network.prepare_loss(params.ENTROPY_BETA)
+            self.local_network.prepare_loss(params.action_size, params.ENTROPY_BETA)
 
         # TODO: don't need accum trainer anymore with batch
         trainer = AccumTrainer(device)
@@ -40,9 +43,9 @@ class A3CTrainingThread(object):
             trainer.get_accum_grad_list()
         )
 
-        self.sync = self.local_network.sync_from(global_network)
+        self.sync = game_ac_network.assign_vars(self.local_network, global_network)
 
-        self.initial_learning_rate = initial_learning_rate
+        self._initial_learning_rate = initial_learning_rate
 
         self.local_t = 0            # steps count for current agent's thread
         self.episode_reward = 0     # score accumulator for current game
@@ -58,7 +61,7 @@ class A3CTrainingThread(object):
         self.frameQueue = None      # frame accumulator for state, cuz state = 4 consecutive frames
 
     def anneal_learning_rate(self, global_time_step):
-        learning_rate = self.initial_learning_rate * \
+        learning_rate = self._initial_learning_rate * \
                         (self.max_global_time_step - global_time_step) / self.max_global_time_step
         if learning_rate < 0.0:
             learning_rate = 0.0
