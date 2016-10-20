@@ -65,33 +65,9 @@ class GameACNetwork(object):
 
                 return tf.group(*sync_ops, name=name)
 
-    # weight initialization
-    def _fc_weight_variable(self, shape):
-        input_channels = shape[0]
-        d = 1.0 / np.sqrt(input_channels)
-        initial = tf.random_uniform(shape, minval=-d, maxval=d)
-        return tf.Variable(initial)
 
-    def _fc_bias_variable(self, shape, input_channels):
-        d = 1.0 / np.sqrt(input_channels)
-        initial = tf.random_uniform(shape, minval=-d, maxval=d)
-        return tf.Variable(initial)
-
-    def _conv_weight_variable(self, shape):
-        w = shape[0]
-        h = shape[1]
-        input_channels = shape[2]
-        d = 1.0 / np.sqrt(input_channels * w * h)
-        initial = tf.random_uniform(shape, minval=-d, maxval=d)
-        return tf.Variable(initial)
-
-    def _conv_bias_variable(self, shape, w, h, input_channels):
-        d = 1.0 / np.sqrt(input_channels * w * h)
-        initial = tf.random_uniform(shape, minval=-d, maxval=d)
-        return tf.Variable(initial)
-
-    def _conv2d(self, x, W, stride):
-        return tf.nn.conv2d(x, W, strides=[1, stride, stride, 1], padding="VALID")
+class GameACFFNetworkShared(object):
+    pass
 
 
 # Actor-Critic FF Network
@@ -100,28 +76,28 @@ class GameACFFNetwork(GameACNetwork):
         GameACNetwork.__init__(self, action_size, device)
 
         with tf.device(self._device):
-            self.W_conv1 = self._conv_weight_variable([8, 8, 4, 16])  # stride=4
-            self.b_conv1 = self._conv_bias_variable([16], 8, 8, 4)
+            self.W_conv1 = _conv_weight_variable([8, 8, 4, 16])  # stride=4
+            self.b_conv1 = _conv_bias_variable([16], 8, 8, 4)
 
-            self.W_conv2 = self._conv_weight_variable([4, 4, 16, 32])  # stride=2
-            self.b_conv2 = self._conv_bias_variable([32], 4, 4, 16)
+            self.W_conv2 = _conv_weight_variable([4, 4, 16, 32])  # stride=2
+            self.b_conv2 = _conv_bias_variable([32], 4, 4, 16)
 
-            self.W_fc1 = self._fc_weight_variable([2592, 256])
-            self.b_fc1 = self._fc_bias_variable([256], 2592)
+            self.W_fc1 = _fc_weight_variable([2592, 256])
+            self.b_fc1 = _fc_bias_variable([256], 2592)
 
             # weight for policy output layer
-            self.W_fc2 = self._fc_weight_variable([256, action_size])
-            self.b_fc2 = self._fc_bias_variable([action_size], 256)
+            self.W_fc2 = _fc_weight_variable([256, action_size])
+            self.b_fc2 = _fc_bias_variable([action_size], 256)
 
             # weight for value output layer
-            self.W_fc3 = self._fc_weight_variable([256, 1])
-            self.b_fc3 = self._fc_bias_variable([1], 256)
+            self.W_fc3 = _fc_weight_variable([256, 1])
+            self.b_fc3 = _fc_bias_variable([1], 256)
 
             # state (input)
             self.s = tf.placeholder("float", [None, 84, 84, 4])
 
-            h_conv1 = tf.nn.relu(self._conv2d(self.s, self.W_conv1, 4) + self.b_conv1)
-            h_conv2 = tf.nn.relu(self._conv2d(h_conv1, self.W_conv2, 2) + self.b_conv2)
+            h_conv1 = tf.nn.relu(_conv2d(self.s, self.W_conv1, 4) + self.b_conv1)
+            h_conv2 = tf.nn.relu(_conv2d(h_conv1, self.W_conv2, 2) + self.b_conv2)
 
             h_conv2_flat = tf.reshape(h_conv2, [-1, 2592])
             h_fc1 = tf.nn.relu(tf.matmul(h_conv2_flat, self.W_fc1) + self.b_fc1)
@@ -158,31 +134,31 @@ class GameACLSTMNetwork(GameACNetwork):
         GameACNetwork.__init__(self, action_size, device)
 
         with tf.device(self._device):
-            self.W_conv1 = self._conv_weight_variable([8, 8, 4, 16])  # stride=4
-            self.b_conv1 = self._conv_bias_variable([16], 8, 8, 4)
+            self.W_conv1 = _conv_weight_variable([8, 8, 4, 16])  # stride=4
+            self.b_conv1 = _conv_bias_variable([16], 8, 8, 4)
 
-            self.W_conv2 = self._conv_weight_variable([4, 4, 16, 32])  # stride=2
-            self.b_conv2 = self._conv_bias_variable([32], 4, 4, 16)
+            self.W_conv2 = _conv_weight_variable([4, 4, 16, 32])  # stride=2
+            self.b_conv2 = _conv_bias_variable([32], 4, 4, 16)
 
-            self.W_fc1 = self._fc_weight_variable([2592, 256])
-            self.b_fc1 = self._fc_bias_variable([256], 2592)
+            self.W_fc1 = _fc_weight_variable([2592, 256])
+            self.b_fc1 = _fc_bias_variable([256], 2592)
 
             # lstm
             self.lstm = CustomBasicLSTMCell(256)
 
             # weight for policy output layer
-            self.W_fc2 = self._fc_weight_variable([256, action_size])
-            self.b_fc2 = self._fc_bias_variable([action_size], 256)
+            self.W_fc2 = _fc_weight_variable([256, action_size])
+            self.b_fc2 = _fc_bias_variable([action_size], 256)
 
             # weight for value output layer
-            self.W_fc3 = self._fc_weight_variable([256, 1])
-            self.b_fc3 = self._fc_bias_variable([1], 256)
+            self.W_fc3 = _fc_weight_variable([256, 1])
+            self.b_fc3 = _fc_bias_variable([1], 256)
 
             # state (input)
             self.s = tf.placeholder("float", [None, 84, 84, 4])
 
-            h_conv1 = tf.nn.relu(self._conv2d(self.s, self.W_conv1, 4) + self.b_conv1)
-            h_conv2 = tf.nn.relu(self._conv2d(h_conv1, self.W_conv2, 2) + self.b_conv2)
+            h_conv1 = tf.nn.relu(_conv2d(self.s, self.W_conv1, 4) + self.b_conv1)
+            h_conv2 = tf.nn.relu(_conv2d(h_conv1, self.W_conv2, 2) + self.b_conv2)
 
             h_conv2_flat = tf.reshape(h_conv2, [-1, 2592])
             h_fc1 = tf.nn.relu(tf.matmul(h_conv2_flat, self.W_fc1) + self.b_fc1)
@@ -267,3 +243,36 @@ class GameACLSTMNetwork(GameACNetwork):
                 self.lstm.matrix, self.lstm.bias,
                 self.W_fc2, self.b_fc2,
                 self.W_fc3, self.b_fc3]
+
+
+def _conv_weight_variable(self, shape):
+    w = shape[0]
+    h = shape[1]
+    input_channels = shape[2]
+    d = 1.0 / np.sqrt(input_channels * w * h)
+    initial = tf.random_uniform(shape, minval=-d, maxval=d)
+    return tf.Variable(initial)
+
+
+def _conv_bias_variable(self, shape, w, h, input_channels):
+    d = 1.0 / np.sqrt(input_channels * w * h)
+    initial = tf.random_uniform(shape, minval=-d, maxval=d)
+    return tf.Variable(initial)
+
+
+# weight initialization
+def _fc_weight_variable(self, shape):
+    input_channels = shape[0]
+    d = 1.0 / np.sqrt(input_channels)
+    initial = tf.random_uniform(shape, minval=-d, maxval=d)
+    return tf.Variable(initial)
+
+
+def _fc_bias_variable(self, shape, input_channels):
+    d = 1.0 / np.sqrt(input_channels)
+    initial = tf.random_uniform(shape, minval=-d, maxval=d)
+    return tf.Variable(initial)
+
+
+def _conv2d(self, x, W, stride):
+    return tf.nn.conv2d(x, W, strides=[1, stride, stride, 1], padding="VALID")
