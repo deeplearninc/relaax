@@ -271,7 +271,7 @@ class Trainer:
 
     def playing(self, frame):
         if not self.display:
-            self.sync_display_network()
+            self._sync_display_network()
 
         self.update_play_state(frame)
         state = self.frameDisplayQueue
@@ -280,7 +280,7 @@ class Trainer:
         action = self.training_threads[0].choose_action(pi_values)
         return action
 
-    def sync_display_network(self):
+    def _sync_display_network(self):
         src_vars = self.global_network.get_vars()
         dst_vars = self.display_network.get_vars()
 
