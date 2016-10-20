@@ -51,8 +51,8 @@ class GameACNetwork(object):
     def get_vars(self):
         raise NotImplementedError()
 
-    def sync_from(self, src_netowrk, name=None):
-        src_vars = src_netowrk.get_vars()
+    def sync_from(self, src_network, name=None):
+        src_vars = src_network.get_vars()
         dst_vars = self.get_vars()
 
         sync_ops = []
