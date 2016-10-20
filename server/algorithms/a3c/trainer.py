@@ -73,14 +73,17 @@ class Trainer:
                                                 self._local_device)
             self.training_threads.append(training_thread)
 
+        variables = [(tf.is_variable_initialized(v), tf.initialize_variables([v])) for v in tf.all_variables()]
+
         # prepare session
         sess = tf.Session(
             target=self._target,
             config=tf.ConfigProto(log_device_placement=False, allow_soft_placement=True)
         )
 
-        init = tf.initialize_all_variables()
-        sess.run(init)
+        for initialized, initialize in variables:
+            if not sess.run(initialized):
+                sess.run(initialize)
 
         lstm_str = ''
         if self.params.use_LSTM:
