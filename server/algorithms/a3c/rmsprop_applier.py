@@ -14,7 +14,7 @@ class _Slots(object):
     def create_rms(self, var):
         self._make_slot(
             var,
-            RMS,
+            self.RMS,
             lambda: slot_creator.create_slot(
                 var,
                 tf.constant(1.0, dtype=var.dtype, shape=var.get_shape()),
@@ -25,15 +25,15 @@ class _Slots(object):
     def create_momentum(self, var):
         self._make_slot(
             var,
-            MOMENTUM,
+            self.MOMENTUM,
             lambda: slot_creator.create_zeros_slot(var, self._name)
         )
 
     def get_rms(self, var):
-        return self._get_slot(var, RMS):
+        return self._get_slot(var, self.RMS)
 
     def get_momentum(self, var):
-        return self._get_slot(var, MOMENTUM):
+        return self._get_slot(var, self.MOMENTUM)
 
     def _make_slot(self, var, slot_name, factory):
         key = (var, slot_name)
@@ -72,7 +72,7 @@ class RMSPropApplier(object):
                 self._slots.create_rms(var)
                 self._slots.create_momentum(var)
 
-            with tf.name_scope(name, self._name, []) as name:
+            with tf.name_scope(None, self._name, []) as name:
                 # Tensors for learning rate and momentum.
                 learning_rate = tf.convert_to_tensor(self._learning_rate, name="learning_rate")
                 decay         = tf.convert_to_tensor(self._decay        , name="decay"        )
