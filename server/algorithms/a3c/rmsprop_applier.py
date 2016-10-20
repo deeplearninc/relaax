@@ -3,6 +3,48 @@ from tensorflow.python.training import training_ops
 from tensorflow.python.training import slot_creator
 
 
+class _Slots(object):
+    RMS = 'rms'
+    MOMENTUM = 'momentum'
+
+    def __init__(self, name):
+        self._name = name
+        self._slots = {}
+
+    def create_rms(self, var):
+        self._make_slot(
+            var,
+            RMS,
+            lambda: slot_creator.create_slot(
+                var,
+                tf.constant(1.0, dtype=var.dtype, shape=var.get_shape()),
+                self._name
+            )
+        )
+
+    def create_momentum(self, var):
+        self._make_slot(
+            var,
+            MOMENTUM,
+            lambda: slot_creator.create_zeros_slot(var, self._name)
+        )
+
+    def get_rms(self, var):
+        return self._get_slot(var, RMS):
+
+    def get_momentum(self, var):
+        return self._get_slot(var, MOMENTUM):
+
+    def _make_slot(self, var, slot_name, factory):
+        key = (var, slot_name)
+        if key in self._slots:
+            return
+        self._slots[key] = factory()
+
+    def _get_slot(self, var, slot_name):
+        return self._slots.get((var, slot_name))
+
+
 class RMSPropApplier(object):
     def __init__(self,
                  learning_rate,
@@ -21,84 +63,42 @@ class RMSPropApplier(object):
         self._clip_norm = clip_norm
         self._device = device
 
-        # Tensors for learning rate and momentum.  Created in _prepare.
-        self._learning_rate_tensor = None
-        self._decay_tensor = None
-        self._momentum_tensor = None
-        self._epsilon_tensor = None
-
-        self._slots = {}
-
-    def _create_slots(self, var_list):
-        for v in var_list:
-            with tf.device(v.device):
-                # 'val' is Variable's intial value tensor
-                val = tf.constant(1.0, dtype=v.dtype, shape=v.get_shape())
-                self._get_or_make_slot(v, val, "rms", self._name)
-                self._zeros_slot(v, "momentum", self._name)
-
-    def _prepare(self):
-        self._learning_rate_tensor = tf.convert_to_tensor(self._learning_rate,
-                                                          name="learning_rate")
-        self._decay_tensor = tf.convert_to_tensor(self._decay, name="decay")
-        self._momentum_tensor = tf.convert_to_tensor(self._momentum,
-                                                     name="momentum")
-        self._epsilon_tensor = tf.convert_to_tensor(self._epsilon,
-                                                    name="epsilon")
-
-    def _slot_dict(self, slot_name):
-        named_slots = self._slots.get(slot_name, None)
-        if named_slots is None:
-            named_slots = {}
-            self._slots[slot_name] = named_slots
-        return named_slots
-
-    def _get_or_make_slot(self, var, val, slot_name, op_name):
-        named_slots = self._slot_dict(slot_name)
-        if var not in named_slots:
-            named_slots[var] = slot_creator.create_slot(var, val, op_name)
-        return named_slots[var]
-
-    def _get_slot(self, var, name):
-        named_slots = self._slots.get(name, None)
-        if not named_slots:
-            return None
-        return named_slots.get(var, None)
-
-    def _zeros_slot(self, var, slot_name, op_name):
-        named_slots = self._slot_dict(slot_name)
-        if var not in named_slots:
-            named_slots[var] = slot_creator.create_zeros_slot(var, op_name)
-        return named_slots[var]
-
-    # TODO: in RMSProp native code, memcpy() (for CPU) and
-    # cudaMemcpyAsync() (for GPU) are used when updating values,
-    # and values might tend to be overwritten with results from other threads.
-    # (Need to check the learning performance with replacing it)
-    def _apply_dense(self, grad, var):
-        rms = self._get_slot(var, "rms")
-        mom = self._get_slot(var, "momentum")
-        return training_ops.apply_rms_prop(
-            var, rms, mom,
-            self._learning_rate_tensor,
-            self._decay_tensor,
-            self._momentum_tensor,
-            self._epsilon_tensor,
-            grad,
-            use_locking=False).op
+        self._slots = _Slots(name)
 
     # Apply accumulated gradients to var.
-    def apply_gradients(self, var_list, accum_grad_list, name=None):
-        update_ops = []
-
-        with tf.control_dependencies(None):
-            self._create_slots(var_list)
-
+    def __call__(self, var_list, accum_grad_list):
         with tf.device(self._device):
-            with tf.op_scope([], name, self._name) as name:
-                self._prepare()
+            for var in var_list:
+                self._slots.create_rms(var)
+                self._slots.create_momentum(var)
+
+            with tf.name_scope(name, self._name, []) as name:
+                # Tensors for learning rate and momentum.
+                learning_rate = tf.convert_to_tensor(self._learning_rate, name="learning_rate")
+                decay         = tf.convert_to_tensor(self._decay        , name="decay"        )
+                momentum      = tf.convert_to_tensor(self._momentum     , name="momentum"     )
+                epsilon       = tf.convert_to_tensor(self._epsilon      , name="epsilon"      )
+
+                update_ops = []
+
                 for var, accum_grad in zip(var_list, accum_grad_list):
                     with tf.name_scope("update_" + var.op.name), tf.device(var.device):
-                        clipped_accum_grad = tf.clip_by_norm(accum_grad, self._clip_norm)
-                        update_ops.append(self._apply_dense(clipped_accum_grad, var))
+                        update_ops.append(
+                            # TODO: in RMSProp native code, memcpy() (for CPU) and
+                            # cudaMemcpyAsync() (for GPU) are used when updating values,
+                            # and values might tend to be overwritten with results from other threads.
+                            # (Need to check the learning performance with replacing it)
+                            training_ops.apply_rms_prop(
+                                var,
+                                self._slots.get_rms(var),
+                                self._slots.get_momentum(var),
+                                learning_rate,
+                                decay,
+                                momentum,
+                                epsilon,
+                                tf.clip_by_norm(accum_grad, self._clip_norm),
+                                use_locking=False
+                            ).op
+                        )
+
                 return tf.group(*update_ops, name=name)
