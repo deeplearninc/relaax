@@ -14,6 +14,7 @@ from .. import server_api
 
 
 def parse_args():
+    
     parser = argparse.ArgumentParser()
     parser.add_argument('--host', default='localhost')
     parser.add_argument('--port', type=int, default=8000)
@@ -21,7 +22,12 @@ def parse_args():
     parser.add_argument("--algo", type=str, default="a3c", help="Name of the RL algorithm to perform")
     parser.add_argument("--game", type=str, default="boxing", help="Name of the Atari game ROM")
     parser.add_argument("--agents", type=int, default=8, help="Number of parallel training Agents")
-    parser.add_argument("--lstm", type=bool, default=True, help="Adds LSTM layer before net output")
+    parser.add_argument(
+        "--lstm",
+        type=lambda s: s.lower() not in ('no', 'n', 'false', 'f', '0', ''),
+        default=True,
+        help="Adds LSTM layer before net output"
+    )
     return parser.parse_args()
 
 
