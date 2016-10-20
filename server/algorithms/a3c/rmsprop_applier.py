@@ -59,7 +59,7 @@ class RMSPropApplier(object):
             named_slots[var] = slot_creator.create_slot(var, val, op_name)
         return named_slots[var]
 
-    def get_slot(self, var, name):
+    def _get_slot(self, var, name):
         named_slots = self._slots.get(name, None)
         if not named_slots:
             return None
@@ -76,8 +76,8 @@ class RMSPropApplier(object):
     # and values might tend to be overwritten with results from other threads.
     # (Need to check the learning performance with replacing it)
     def _apply_dense(self, grad, var):
-        rms = self.get_slot(var, "rms")
-        mom = self.get_slot(var, "momentum")
+        rms = self._get_slot(var, "rms")
+        mom = self._get_slot(var, "momentum")
         return training_ops.apply_rms_prop(
             var, rms, mom,
             self._learning_rate_tensor,
