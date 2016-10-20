@@ -155,9 +155,7 @@ class GameACLSTMNetwork(GameACNetwork):
         GameACNetwork.__init__(self, action_size, session, device)
 
         with tf.device(self._device):
-            # lstm
-            self.lstm = CustomBasicLSTMCell(256)
-
+            '''
             # state (input)
             # self.s = tf.placeholder("float", [None, 84, 84, 4])
             self.s = Input(shape=(84, 84, 4), dtype="float")
@@ -181,29 +179,7 @@ class GameACLSTMNetwork(GameACNetwork):
             # h_fc1_reshaped shape = (1,5,256)
 
             lstm_outputs = LSTM(256)(h_fc1_reshaped)
-            '''
-            # place holder for LSTM unrolling time step size.
-            self.step_size = tf.placeholder(tf.float32, [1])
 
-            self.initial_lstm_state = tf.placeholder(tf.float32, [1, self.lstm.state_size])
-
-            scope = "net_" + str(thread_index)
-
-            # Unrolling LSTM up to LOCAL_T_MAX time steps. (=5 time steps)
-            # When episode terminates unrolling time steps becomes less than LOCAL_TIME_STEP.
-            # Unrolling step size is applied via self.step_size placeholder.
-            # When forward propagating, step_size is 1.
-            # (time_major = False, so output shape is [batch_size, max_time, cell.output_size])
-            lstm_outputs, self.lstm_state = tf.nn.dynamic_rnn(self.lstm,
-                                                              h_fc1_reshaped,
-                                                              initial_state=self.initial_lstm_state,
-                                                              sequence_length=self.step_size,
-                                                              time_major=False,
-                                                              scope=scope)
-
-            # lstm_outputs: (1,5,256) for back prop, (1,1,256) for forward prop.
-
-            lstm_outputs = tf.reshape(lstm_outputs, [-1, 256])'''
             # policy (output)
             # self.pi = tf.nn.softmax(tf.matmul(lstm_outputs, self.W_fc2) + self.b_fc2)
             self.pi = Dense(action_size, activation='softmax')(lstm_outputs)
@@ -215,6 +191,20 @@ class GameACLSTMNetwork(GameACNetwork):
 
             self.net = Model(input=self.s, output=[self.pi, v_])
             # self.reset_state()
+            model_json = self.net.to_json()
+            with open("model-lstm.json", "w") as json_file:
+                json_file.write(model_json)
+            '''
+            # load json and create model
+            json_file = open('model-lstm.json', 'r')
+            loaded_model_json = json_file.read()
+            json_file.close()
+            self.net = model_from_json(loaded_model_json)
+
+            self.s = self.net.input
+            self.pi = self.net.output[0]
+            v_ = self.net.output[1]
+            self.v = tf.reshape(v_, [-1])
 
     def reset_state(self):
         self.lstm_state_out = np.zeros([1, self.lstm.state_size])
