@@ -88,6 +88,9 @@ class Trainer:
         summary_op = tf.merge_all_summaries()
         summary_writer = tf.train.SummaryWriter(LOG_FILE, sess.graph)
 
+        # restore for keras
+        self.global_t = global_network.restore(CHECKPOINT_DIR + '/' + 'checkpoint')
+
         # init or load checkpoint with saver
         saver = tf.train.Saver()
         checkpoint = tf.train.get_checkpoint_state(CHECKPOINT_DIR)
@@ -123,7 +126,7 @@ class Trainer:
             os.mkdir(CHECKPOINT_DIR)
 
         saver.save(sess, CHECKPOINT_DIR + '/' + 'checkpoint', global_step=self.global_t)
-
+        global_network.save(self.global_t, CHECKPOINT_DIR + '/' + 'checkpoint')
 
 if __name__ == "__main__":
     model = Trainer()

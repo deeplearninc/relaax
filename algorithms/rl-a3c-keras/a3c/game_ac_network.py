@@ -8,6 +8,7 @@ from keras.layers import Input, Convolution2D, Reshape, Dense, \
 from keras.initializations import normal
 from keras import backend as K
 from keras.models import model_from_json
+import os
 
 
 # Actor-Critic Network Base Class
@@ -250,9 +251,17 @@ class GameACLSTMNetwork(GameACNetwork):
 
     def get_vars(self):
         return self.net.trainable_weights
-        return [self.W_conv1, self.b_conv1,
-                self.W_conv2, self.b_conv2,
-                self.W_fc1, self.b_fc1,
-                self.lstm.matrix, self.lstm.bias,
-                self.W_fc2, self.b_fc2,
-                self.W_fc3, self.b_fc3]
+
+    def save(self, n_iter, chk_dir):
+        if not os.path.exists(chk_dir):
+            os.makedirs(chk_dir)
+        self.net.save_weights(chk_dir+"/net--"+str(n_iter)+".h5")
+
+    def restore(self, chk_dir):
+        n_iter = 0
+        if os.path.exists(chk_dir):
+            filename = os.listdir(chk_dir)[-1]
+            tokens = filename.split("--")
+            n_iter = int(tokens[1].split(".")[0])
+            self.net.load_weights(chk_dir+"/net--"+str(n_iter)+".h5")
+        return n_iter
