@@ -71,15 +71,15 @@ def join(message):
 @socketio.on('create model', namespace='/rlmodels')
 def on_create_model(message):
     print("Creating model for: " + session['id'])
-    modelRunner.startModel(message['model_name'], socketio, session['id'])
+    modelRunner.startModel('ale_model', socketio, session['id'])
 
 
 @socketio.on('get params', namespace='/rlmodels')
 def on_get_params(message):
-    print("Retrieve parameters for algorithm: " + message['algo_name'])
+    print("Retrieve parameters for algorithm: " + 'UGU')
     model = modelRunner.getModel(session['id'])
     if model is not None:
-        model.init_params(message['algo_name'])
+        model.init_params('a3c')
     else:
         print('Error in on_get_params')
         emit('stop training ack', {}, room=session['id'])

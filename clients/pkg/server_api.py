@@ -36,11 +36,11 @@ class ServerAPI(socketIO_client.LoggingNamespace):
 
     def on_join_ack(self, *args):
         print('on_join_ack', args)
-        self.emit('create model', {'model_name': self.cfg.args.scope})
+        self.emit('create model', {})
 
     def on_model_is_allocated(self, *args):
         print('on_model_is_allocated', args)
-        self.emit('get params', {'algo_name': self.cfg.args.algo})
+        self.emit('get params', {})
 
     def on_init_params(self, *args):
         print('on_init_params', args)
@@ -50,16 +50,10 @@ class ServerAPI(socketIO_client.LoggingNamespace):
                 self.gameList.append(self.factory.new_env(113 * i))
         else:
             self.gameList.append(self.factory.new_env(0))
-        self.cfg.action_size = self.gameList[0].action_size()
-
-        params = json.loads(args[0])
-        for param_name in params:
-            if hasattr(self.cfg, param_name):
-                params[param_name] = getattr(self.cfg, param_name)
 
         print('Name of the target game:', self.cfg.game_rom)
-        print('Action size for the target game:', self.cfg.action_size)
-        self.emit('init model', json.dumps(params))
+        print('Action size for the target game:', self.gameList[0].action_size())
+        self.emit('init model', json.dumps({}))
 
     def on_model_is_ready(self, *args):
         print('on_model_is_ready', args)

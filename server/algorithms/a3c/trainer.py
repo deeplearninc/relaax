@@ -88,8 +88,7 @@ class Trainer:
         lstm_str = ''
         if self.params.use_LSTM:
             lstm_str = 'lstm_'
-        game_name = self.params.game_rom.split("-")
-        self.CHECKPOINT_DIR = 'checkpoints/' + game_name[0] + '_a3c_' + \
+        self.CHECKPOINT_DIR = 'checkpoints/' + 'UGU' + '_a3c_' + \
                               lstm_str + str(self.params.threads_cnt) + 'threads'
 
         # init or load checkpoint with saver

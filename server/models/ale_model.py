@@ -15,26 +15,22 @@ class AleModel(BaseModel):
         clazz = getattr(module, 'Params')
         self.params = clazz()  # get the instance of Params Class to perform
         self.algo_name = algo_name
-        self.sio.emit('init params', json.dumps(self.params.default_params),
+        self.sio.emit('init params', json.dumps({'threads_cnt': self.params.threads_cnt}),
                       room=self.session, namespace=self.namespace)
 
     def init_model(self, message, target='', global_device='', local_device=''):  # init model's algorithm with the given parameters
         print(message)
-        params = json.loads(message)
-
-        for param_name in params:
-            if hasattr(self.params, param_name):
-                setattr(self.params, param_name, params[param_name])
 
         module = importlib.import_module("algorithms." + self.algo_name + ".trainer")
         clazz = getattr(module, 'Trainer')
         self.algo = clazz(self.params, target=target, global_device=global_device, local_device=local_device)
 
-        if message.__contains__('threads_cnt'):
-            self.sio.emit('model is ready', {'threads_cnt': self.params.threads_cnt},
-                          room=self.session, namespace=self.namespace)
-        else:
-            self.sio.emit('model is ready', {}, room=self.session, namespace=self.namespace)
+        self.sio.emit(
+            'model is ready',
+            {'threads_cnt': self.params.threads_cnt},
+            room=self.session,
+            namespace=self.namespace
+        )
 
     def getAction(self, message):
         return self.algo.getAction(message)

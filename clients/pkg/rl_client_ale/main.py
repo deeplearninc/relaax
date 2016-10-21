@@ -18,8 +18,6 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--host', default='localhost')
     parser.add_argument('--port', type=int, default=8000)
-    parser.add_argument("--scope", type=str, default="ale_model", help="Name of model scope")
-    parser.add_argument("--algo", type=str, default="a3c", help="Name of the RL algorithm to perform")
     parser.add_argument("--game", type=str, default="boxing", help="Name of the Atari game ROM")
     parser.add_argument("--agents", type=int, default=8, help="Number of parallel training Agents")
     parser.add_argument(
