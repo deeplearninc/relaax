@@ -46,8 +46,10 @@ class Trainer:
             self.global_t += diff_global_t
 
     def signal_handler(self):
-        print('You pressed Ctrl+C!')
-        self.stop_requested = True
+        def handler(signal, frame):
+            print('You pressed Ctrl+C!')
+            self.stop_requested = True
+        return handler
 
     def run(self):
         self.initial_learning_rate = self.log_uniform(INITIAL_ALPHA_LOW,
@@ -89,7 +91,8 @@ class Trainer:
         summary_writer = tf.train.SummaryWriter(LOG_FILE, sess.graph)
 
         # restore for keras
-        self.global_t = global_network.restore(CHECKPOINT_DIR + '/' + 'checkpoint')
+        self.global_t = global_network.restore(CHECKPOINT_DIR)
+        print(self.global_t)
 
         # init or load checkpoint with saver
         saver = tf.train.Saver()
@@ -109,7 +112,7 @@ class Trainer:
             train_threads.append(threading.Thread(target=self.train_function,
                                                   args=(i, sess, summary_writer, summary_op, score_input)))
 
-        signal.signal(signal.SIGINT, self.signal_handler)
+        signal.signal(signal.SIGINT, self.signal_handler())
 
         for t in train_threads:
             t.start()
@@ -126,7 +129,7 @@ class Trainer:
             os.mkdir(CHECKPOINT_DIR)
 
         saver.save(sess, CHECKPOINT_DIR + '/' + 'checkpoint', global_step=self.global_t)
-        global_network.save(self.global_t, CHECKPOINT_DIR + '/' + 'checkpoint')
+        global_network.save(self.global_t, CHECKPOINT_DIR)
 
 if __name__ == "__main__":
     model = Trainer()

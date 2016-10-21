@@ -260,8 +260,8 @@ class GameACLSTMNetwork(GameACNetwork):
     def restore(self, chk_dir):
         n_iter = 0
         if os.path.exists(chk_dir):
-            filename = os.listdir(chk_dir)[-1]
-            tokens = filename.split("--")
+            file_names = [fn for fn in os.listdir(chk_dir) if fn.endswith('.h5')]
+            tokens = file_names[-1].split("--")
             n_iter = int(tokens[1].split(".")[0])
             self.net.load_weights(chk_dir+"/net--"+str(n_iter)+".h5")
         return n_iter
