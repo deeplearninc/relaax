@@ -79,6 +79,19 @@ class GameACNetwork(object):
 
                 return tf.group(*sync_ops, name=name)
 
+    def save(self, n_iter, chk_dir):
+        if not os.path.exists(chk_dir):
+            os.makedirs(chk_dir)
+        self.net.save_weights(chk_dir + "/net--" + str(n_iter) + ".h5")
+
+    def restore(self, chk_dir):
+        n_iter = 0
+        if os.path.exists(chk_dir):
+            file_names = [fn for fn in os.listdir(chk_dir) if fn.endswith('.h5')]
+            tokens = file_names[-1].split("--")
+            n_iter = int(tokens[1].split(".")[0])
+            self.net.load_weights(chk_dir + "/net--" + str(n_iter) + ".h5")
+        return n_iter
 
 # Actor-Critic FF Network
 class GameACFFNetwork(GameACNetwork):
@@ -251,17 +264,3 @@ class GameACLSTMNetwork(GameACNetwork):
 
     def get_vars(self):
         return self.net.trainable_weights
-
-    def save(self, n_iter, chk_dir):
-        if not os.path.exists(chk_dir):
-            os.makedirs(chk_dir)
-        self.net.save_weights(chk_dir+"/net--"+str(n_iter)+".h5")
-
-    def restore(self, chk_dir):
-        n_iter = 0
-        if os.path.exists(chk_dir):
-            file_names = [fn for fn in os.listdir(chk_dir) if fn.endswith('.h5')]
-            tokens = file_names[-1].split("--")
-            n_iter = int(tokens[1].split(".")[0])
-            self.net.load_weights(chk_dir+"/net--"+str(n_iter)+".h5")
-        return n_iter
