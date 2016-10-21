@@ -92,7 +92,6 @@ class Trainer:
 
         # restore for keras
         self.global_t = global_network.restore(CHECKPOINT_DIR)
-        print(self.global_t)
 
         # init or load checkpoint with saver
         saver = tf.train.Saver()
