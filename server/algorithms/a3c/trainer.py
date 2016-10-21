@@ -31,7 +31,7 @@ class Trainer:
         self.training_threads = []          # Agent's Threads --> it's defined and assigned in initialize
 
         self.CHECKPOINT_DIR = None
-        self.sess, self.saver = self._initialize()
+        self.sess = self._initialize()
 
         self.frameDisplayQueue = None  # frame accumulator for state, cuz state = 4 consecutive frames
         self.display = False           # Becomes True when the Client initiates display session
@@ -85,26 +85,7 @@ class Trainer:
             if not sess.run(initialized):
                 sess.run(initialize)
 
-        lstm_str = ''
-        if self.params.use_LSTM:
-            lstm_str = 'lstm_'
-        self.CHECKPOINT_DIR = 'checkpoints/' + 'UGU' + '_a3c_' + \
-                              lstm_str + str(self.params.threads_cnt) + 'threads'
-
-        # init or load checkpoint with saver
-        saver = tf.train.Saver()
-        checkpoint = tf.train.get_checkpoint_state(self.CHECKPOINT_DIR)
-        if checkpoint and checkpoint.model_checkpoint_path:
-            saver.restore(sess, checkpoint.model_checkpoint_path)
-            print("checkpoint loaded:", checkpoint.model_checkpoint_path)
-            tokens = checkpoint.model_checkpoint_path.split("-")
-            # set global step
-            self.global_t = int(tokens[1])
-            print(">>> global step set: ", self.global_t)
-        else:
-            print("Could not find old checkpoint")
-
-        return sess, saver
+        return sess
 
     def getAction(self, message):
         thread_index = int(message['thread_index'])
@@ -242,9 +223,6 @@ class Trainer:
         training_thread.episode_t += 1
         self.global_t += 1
 
-        if self.global_t % 2000000 == 0:
-            self.saveModel()
-
         if self.global_t > self.params.max_global_step:
             # self.sio.emit('stop training', {}, room=self.session, namespace=self.namespace)
             return_json['stop_training'] = True
@@ -263,15 +241,6 @@ class Trainer:
             training_thread.episode_t = self.params.episode_len
 
         return return_json
-
-    def saveModel(self, disconnect=False):
-        if not os.path.exists(self.CHECKPOINT_DIR):
-            # os.mkdir(self.CHECKPOINT_DIR)
-            os.makedirs(self.CHECKPOINT_DIR)
-
-        self.saver.save(self.sess, self.CHECKPOINT_DIR + '/' + 'checkpoint', global_step=self.global_t)
-        if disconnect:
-            self.sess.close()
 
     def playing(self, frame):
         if not self.display:

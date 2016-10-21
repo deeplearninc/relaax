@@ -38,6 +38,3 @@ class AleModel(BaseModel):
     def addEpisode(self, message):
         self.sio.emit('episode ack', json.dumps(self.algo.addEpisode(message)),
                       room=self.session, namespace=self.namespace)
-
-    def saveModel(self, disconnect=False):
-        self.algo.saveModel(disconnect)
