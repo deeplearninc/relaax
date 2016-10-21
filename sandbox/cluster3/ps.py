@@ -38,7 +38,7 @@ def main():
     lstm_str = ''
     if params.use_LSTM:
         lstm_str = 'lstm_'
-    checkpoint_dir = 'checkpoints/' + 'ale' + '_a3c_' + \
+    checkpoint_dir = 'checkpoints/' + 'boxing' + '_a3c_' + \
                           lstm_str + str(params.threads_cnt) + 'threads'
 
     # init or load checkpoint with saver
