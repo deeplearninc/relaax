@@ -136,10 +136,6 @@ def on_stop_training():
 @socketio.on('disconnect', namespace='/rlmodels')
 def on_disconnect():
     if 'id' in session:
-        model = modelRunner.getModel(session['id'])
-        if hasattr(model.__class__, 'saveModel') and callable(getattr(model.__class__, 'saveModel')):
-            print('Saving model for the room: ' + session['id'])
-            model.saveModel(disconnect=True)
         print('Removing client from the room: ' + session['id'])
         leave_room(session['id'])
         close_room(session['id'])
