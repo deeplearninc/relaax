@@ -31,14 +31,17 @@ class GameACNetwork(object):
             # self.td = K.placeholder(shape=None, dtype="float")
             self.td = tf.placeholder("float", [None])
 
+            # avoid NaN with clipping when value in pi becomes zero
+            log_pi = tf.log(tf.clip_by_value(self.pi, 1e-20, 1.0))
+
             # policy entropy
-            entropy = -tf.reduce_sum(self.pi * tf.log(self.pi), reduction_indices=1)
+            entropy = -tf.reduce_sum(self.pi * log_pi, reduction_indices=1)
 
             # policy loss (output)
             # Adding minus, because the original paper's objective function is for gradient ascent,
             # but we use gradient descent optimizer
             policy_loss = - tf.reduce_sum(
-                tf.reduce_sum(tf.mul(tf.log(self.pi), self.a), reduction_indices=1) * self.td + entropy * entropy_beta)
+                tf.reduce_sum(tf.mul(log_pi, self.a), reduction_indices=1) * self.td + entropy * entropy_beta)
 
             # R (input for value)
             # self.r = K.placeholder(shape=None, dtype="float")
