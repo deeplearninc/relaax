@@ -93,7 +93,12 @@ class GameACNetwork(object):
             file_names = [fn for fn in os.listdir(chk_dir) if fn.endswith('.h5')]
             tokens = file_names[-1].split("--")
             n_iter = int(tokens[1].split(".")[0])
-            self.net.load_weights(chk_dir + "/net--" + str(n_iter) + ".h5")
+            fname = "/net--" + str(n_iter) + ".h5"
+            self.net.load_weights(chk_dir + fname)
+            print("checkpoint loaded:", fname)
+            print(">>> global step set: ", n_iter)
+        else:
+            print("Could not find old checkpoint")
         return n_iter
 
 # Actor-Critic FF Network

@@ -93,19 +93,6 @@ class Trainer:
         # restore for keras
         self.global_t = global_network.restore(CHECKPOINT_DIR)
 
-        # init or load checkpoint with saver
-        saver = tf.train.Saver()
-        checkpoint = tf.train.get_checkpoint_state(CHECKPOINT_DIR)
-        if checkpoint and checkpoint.model_checkpoint_path:
-            saver.restore(sess, checkpoint.model_checkpoint_path)
-            print("checkpoint loaded:", checkpoint.model_checkpoint_path)
-            tokens = checkpoint.model_checkpoint_path.split("-")
-            # set global step
-            self.global_t = int(tokens[1])
-            print(">>> global step set: ", self.global_t)
-        else:
-            print("Could not find old checkpoint")
-
         train_threads = []
         for i in range(PARALLEL_SIZE):
             train_threads.append(threading.Thread(target=self.train_function,
@@ -127,7 +114,6 @@ class Trainer:
         if not os.path.exists(CHECKPOINT_DIR):
             os.mkdir(CHECKPOINT_DIR)
 
-        saver.save(sess, CHECKPOINT_DIR + '/' + 'checkpoint', global_step=self.global_t)
         global_network.save(self.global_t, CHECKPOINT_DIR)
 
 if __name__ == "__main__":
