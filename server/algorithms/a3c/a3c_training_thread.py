@@ -2,7 +2,6 @@ import tensorflow as tf
 import random
 from accum_trainer import AccumTrainer
 import game_ac_network
-from game_ac_network import GameACFFNetwork, GameACLSTMNetwork
 import numpy as np
 
 

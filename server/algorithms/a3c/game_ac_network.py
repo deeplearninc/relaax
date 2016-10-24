@@ -5,19 +5,23 @@ from lstm import CustomBasicLSTMCell
 
 def make_shared_network(params, thread_index):
     if params.use_LSTM:
-        return GameACLSTMNetworkShared(params.action_size, thread_index)
-    return GameACFFNetworkShared(params.action_size)
+        return _GameACLSTMNetworkShared(params.action_size, thread_index)
+    return _GameACFFNetworkShared(params.action_size)
 
 
 def make_full_network(params, thread_index):
     if params.use_LSTM:
-        return GameACLSTMNetwork(params.action_size, thread_index)
-    return GameACFFNetwork(params.action_size)
+        return _GameACLSTMNetwork(params.action_size, thread_index)
+    return _GameACFFNetwork(params.action_size)
 
 
 # Actor-Critic Network Base Class
 # (Policy network and Value network)
 class _GameACNetwork(object):
+
+    def __init__(self):
+        self.global_t = tf.Variable(0, tf.int64)
+        self.increment_global_t = tf.assign_add(self.global_t, 1)
 
     def prepare_loss(self, params):
         # taken action (input for policy)
@@ -50,9 +54,11 @@ class _GameACNetwork(object):
         return self
 
 
-class GameACFFNetworkShared(_GameACNetwork):
+class _GameACFFNetworkShared(_GameACNetwork):
 
     def __init__(self, action_size):
+        super(_GameACFFNetworkShared, self).__init__()
+
         self.W_conv1 = _conv_weight_variable([8, 8, 4, 16])  # stride=4
         self.b_conv1 = _conv_bias_variable([16], 8, 8, 4)
 
@@ -81,10 +87,10 @@ class GameACFFNetworkShared(_GameACNetwork):
 
 
 # Actor-Critic FF Network
-class GameACFFNetwork(GameACFFNetworkShared):
+class _GameACFFNetwork(_GameACFFNetworkShared):
 
     def __init__(self, action_size):
-        GameACFFNetworkShared.__init__(self, action_size)
+        super(_GameACFFNetwork, self).__init__(action_size)
 
         # state (input)
         self.s = tf.placeholder("float", [None, 84, 84, 4])
@@ -114,9 +120,11 @@ class GameACFFNetwork(GameACFFNetworkShared):
         return v_out[0]
 
 
-class GameACLSTMNetworkShared(_GameACNetwork):
+class _GameACLSTMNetworkShared(_GameACNetwork):
 
     def __init__(self, action_size, thread_index):
+        super(_GameACLSTMNetworkShared, self).__init__()
+
         self.W_conv1 = _conv_weight_variable([8, 8, 4, 16])  # stride=4
         self.b_conv1 = _conv_bias_variable([16], 8, 8, 4)
 
@@ -181,10 +189,10 @@ class GameACLSTMNetworkShared(_GameACNetwork):
 
 
 # Actor-Critic LSTM Network
-class GameACLSTMNetwork(GameACLSTMNetworkShared):
+class _GameACLSTMNetwork(_GameACLSTMNetworkShared):
 
     def __init__(self, action_size, thread_index):
-        GameACLSTMNetworkShared.__init__(self, action_size, thread_index)
+        super(_GameACLSTMNetwork, self).__init__(action_size, thread_index)
 
         # lstm_outputs: (1,5,256) for back prop, (1,1,256) for forward prop.
 

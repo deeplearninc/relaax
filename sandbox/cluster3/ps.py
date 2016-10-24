@@ -65,10 +65,13 @@ def main():
 
     signal.signal(signal.SIGINT, stop_server)
 
+    last_global_t = None
     while True:
         time.sleep(1)
-        print 'UGU'
-
+        global_t = sess.run(global_network.global_t)
+        if global_t != last_global_t:
+            last_global_t = global_t
+            print("global_t is %d" % global_t)
 
 
 if __name__ == '__main__':

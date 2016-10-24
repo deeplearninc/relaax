@@ -4,7 +4,6 @@ import math
 import os
 
 import game_ac_network
-from game_ac_network import GameACFFNetwork, GameACLSTMNetwork
 from a3c_training_thread import A3CTrainingThread
 from rmsprop_applier import RMSPropApplier
 
@@ -27,7 +26,6 @@ class Trainer:
         self._local_device = local_device + kernel
 
         self._initial_learning_rate = None  # assign by static method log_uniform in initialize method
-        self.global_t = 0                   # initial global steps count --> can be init via checkpoint
         self.training_threads = []          # Agent's Threads --> it's defined and assigned in initialize
 
         self.CHECKPOINT_DIR = None
@@ -190,7 +188,9 @@ class Trainer:
                               training_thread.local_network.td: batch_td,
                               training_thread.local_network.r: batch_R})
 
-        cur_learning_rate = training_thread.anneal_learning_rate(self.global_t)
+        cur_learning_rate = training_thread.anneal_learning_rate(
+            self.sess.run(self.global_network.global_t)
+        )
 
         self.sess.run(training_thread.apply_gradients,
                       feed_dict={training_thread.learning_rate_input: cur_learning_rate})
@@ -221,9 +221,9 @@ class Trainer:
 
         training_thread.local_t += 1
         training_thread.episode_t += 1
-        self.global_t += 1
+        global_t = self.sess.run(self.global_network.increment_global_t)
 
-        if self.global_t > self.params.max_global_step:
+        if global_t > self.params.max_global_step:
             # self.sio.emit('stop training', {}, room=self.session, namespace=self.namespace)
             return_json['stop_training'] = True
             return return_json
