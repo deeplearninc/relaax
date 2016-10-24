@@ -132,7 +132,10 @@ class Trainer:
                 training_thread.start_lstm_state = training_thread.local_network.lstm_state_out
 
         pi_, value_ = training_thread.local_network.run_policy_and_value(self.sess, state)
-        action = training_thread.choose_action(pi_)
+        if self.params.action_type:
+            action = training_thread.choose_action(pi_)
+        else:
+            action = pi_
 
         training_thread.states.append(state)
         training_thread.actions.append(action)

@@ -17,6 +17,7 @@ class Params(object):
         self.game_rom = self.args.game
         self.threads_cnt = self.args.agents
 
+        self.action_type = True     # It's always True for ALE --> add for compatibility with srv api
         self.action_size = None     # Assign later at Game(s) launching
         self.screen_width = 84      # Screen width
         self.screen_height = 84     # Screen height

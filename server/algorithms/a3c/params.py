@@ -1,6 +1,7 @@
 class Params(object):
     def __init__(self):
         self.default_params = {'game_rom': None,
+                               'action_type': True,
                                'action_size': None,
                                'threads_cnt': 8,
                                'episode_len': 5,
@@ -8,6 +9,7 @@ class Params(object):
                                'use_LSTM': True,
                                'max_global_step': 10 * 10 ** 7}
         self.game_rom = None     # name of the given game rom
+        self.action_type = None  # Type of returning action (Discrete for default)
         self.action_size = None  # action size for given game rom
         self.threads_cnt = None  # number of parallel training agents
         self.episode_len = None  # local loop size for one episode

@@ -50,7 +50,7 @@ class ServerAPI(socketIO_client.LoggingNamespace):
                 self.gameList.append(self.factory.new_env(113 * i))
         else:
             self.gameList.append(self.factory.new_env(0))
-        self.cfg.action_size = self.gameList[0].action_size()
+        self.cfg.action_size, self.cfg.action_type = self.gameList[0].action_size()
 
         params = json.loads(args[0])
         for param_name in params:
@@ -81,13 +81,9 @@ class ServerAPI(socketIO_client.LoggingNamespace):
             })
 
     def on_get_action_ack(self, *args):
-        # if more than one agent trains -> server returns tuple(list) with [action_num, thread_num]
-        if hasattr(args[0]['action'], '__getitem__'):
-            action = args[0]['action'][0]
-            index = args[0]['action'][1]
-        else:
-            action = args[0]['action']
-            index = 0
+        # server always returns tuple(list) with [action_num, thread_num]
+        action = args[0]['action'][0]
+        index = args[0]['action'][1]
 
         # receive game result
         reward = self.gameList[index].act(action)
@@ -126,7 +122,7 @@ class ServerAPI(socketIO_client.LoggingNamespace):
         else:
             if episode_params['terminal']:
                 self.gamePlayedList += 1
-                print("Score for agent at game", self.gamePlayedList, "=", episode_params['score'])
+                print("Score for agent at game", self.gamePlayedList, "=", int(episode_params['score']))
 
             self.emit('get action', {
                 'state': self.dump_state(0)

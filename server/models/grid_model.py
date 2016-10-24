@@ -59,7 +59,7 @@ class GridModel(BaseModel):
         else:  # choose best action from Q(s,a) values
             action = (np.argmax(qval))
 
-        return action
+        return action, 0
 
     def _trainModel(self):
         if len(self.episodeQueue) < self.episodeQueue.maxlen:
