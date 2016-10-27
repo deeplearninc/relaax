@@ -1,7 +1,5 @@
-import tensorflow as tf
-import numpy as np
 from utils import *
-# from lstm import CustomBasicLSTMCell
+
 
 class VF(object):
     coeffs = None
@@ -11,7 +9,7 @@ class VF(object):
         self.session = session
 
     def create_net(self, shape):
-        hidden_size = 64
+        hidden_size = 64    # NEED additional timestep feature --> 65
         print(shape)
         self.x = tf.placeholder(tf.float32, shape=[None, shape], name="x")
         self.y = tf.placeholder(tf.float32, shape=[None], name="y")
@@ -20,8 +18,10 @@ class VF(object):
         bias_init = tf.constant_initializer(0)
 
         with tf.variable_scope("VF"):
-            h1 = tf.nn.relu(fully_connected(self.x, shape, hidden_size, weight_init, bias_init, "h1"))
-            h2 = tf.nn.relu(fully_connected(h1, hidden_size, hidden_size, weight_init, bias_init, "h2"))
+            h1 = fully_connected(self.x, shape, hidden_size, weight_init, bias_init, "h1")
+            h1 = tf.tanh(h1)     # tf.nn.relu(h1)
+            h2 = fully_connected(h1, hidden_size, hidden_size, weight_init, bias_init, "h2")
+            h2 = tf.tanh(h2)     # tf.nn.relu(h2)
             '''
             self.lstm = CustomBasicLSTMCell(64)
             self.initial_lstm_state = tf.placeholder(tf.float32, [1, self.lstm.state_size])

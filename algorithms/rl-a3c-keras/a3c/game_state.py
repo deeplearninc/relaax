@@ -1,37 +1,21 @@
-import os
 import sys
 import numpy as np
 from scipy.misc import imresize
-
 from ale_python_interface import ALEInterface
 
-
-class GameProcessFactory(object):
-    def __init__(self, params):
-        self.params = params
-
-    def new_env(self, seed):
-        return GameProcess(seed, self.params.game_rom)
-
-    def new_display_env(self, seed):
-        return GameProcess(seed, self.params.game_rom, display=True, no_op_max=0)
+from params import ROM
 
 
-class GameProcess(object):
-    def __init__(self, rand_seed, game_name, display=False, frame_skip=4, no_op_max=7):
+class GameState(object):
+    def __init__(self, rand_seed, display=False, no_op_max=7):
         self.ale = ALEInterface()
-
-        self.ale.setInt(b'random_seed', rand_seed)
-        self.ale.setFloat(b'repeat_action_probability', 0.0)
-        self.ale.setBool(b'color_averaging', True)
-        self.ale.setInt(b'frame_skip', frame_skip)
-
+        self.ale.setInt('random_seed', rand_seed)
         self._no_op_max = no_op_max
+
         if display:
             self._setup_display()
 
-        ROM = os.path.dirname(__file__) + '/atari-games/' + game_name + '.bin'
-        self.ale.loadROM(ROM.encode('ascii'))
+        self.ale.loadROM(ROM)
 
         # collect minimal action set
         self.real_actions = self.ale.getMinimalActionSet()
@@ -40,22 +24,6 @@ class GameProcess(object):
         self._screen = np.empty((210, 160, 1), dtype=np.uint8)
 
         self.reset()
-
-    def action_size(self):
-        return len(self.ale.getMinimalActionSet()), True
-
-    def state(self):
-        return self.s_t
-
-    def act(self, action):
-        # convert original 18 action index to minimal action set index
-        real_action = self.real_actions[action]
-
-        r, t, self.s_t = self._process_frame(real_action, True)
-
-        self.reward = r
-        self.terminal = t
-        return self.reward
 
     def _process_frame(self, action, reshape):
         reward = self.ale.act(action)
@@ -95,7 +63,21 @@ class GameProcess(object):
             for _ in range(no_op):
                 self.ale.act(0)
 
-        _, _, self.s_t = self._process_frame(0, False)
+        _, _, x_t = self._process_frame(0, False)
 
         self.reward = 0
         self.terminal = False
+        self.s_t = np.stack((x_t, x_t, x_t, x_t), axis=2)
+
+    def process(self, action):
+        # convert original 18 action index to minimal action set index
+        real_action = self.real_actions[action]
+
+        r, t, x_t1 = self._process_frame(real_action, True)
+
+        self.reward = r
+        self.terminal = t
+        self.s_t1 = np.append(self.s_t[:, :, 1:], x_t1, axis=2)
+
+    def update(self):
+        self.s_t = self.s_t1

@@ -45,8 +45,8 @@ class Trainer:
 
     def getAction(self, message):
         state = json.loads(message['state'], object_hook=ndarray_decoder)
-        state = state.astype(np.float32)
-        state *= (1.0 / 255.0)
+        # state = state.astype(np.float32)
+        # state *= (1.0 / 255.0)
 
         if 'thread_index' in message.keys() and message['thread_index'] == -1:
             self.agent.game_buffer.add(state)
@@ -62,7 +62,7 @@ class Trainer:
             old_state = self.agent.buffer.getState()
             self.agent.buffer.add(state)
             self.agent.memory.add(old_state, action, self.reward, self.agent.buffer.getState(), self.terminal)
-            return a
+            return a, 0
 
         if self.replayStart != 0:
             if self.replayStart == self.agent.replay_start_size:
@@ -76,14 +76,14 @@ class Trainer:
                 old_state = self.agent.buffer.getState()
                 self.agent.buffer.add(state)
                 self.agent.memory.add(old_state, action, self.reward, self.agent.buffer.getState(), self.terminal)
-            return a
+            return a, 0
 
         self.agent.buffer.add(state)
         self.randomRestart += 1
         if self.randomRestart == self.agent.random_starts:
             self.replayStart += 1
             print "starting %d random plays to populate replay memory" % self.agent.replay_start_size
-        return random.randrange(self.agent.num_actions)
+        return random.randrange(self.agent.num_actions), 0
 
     def addEpisode(self, message):
         reward = message['reward']
