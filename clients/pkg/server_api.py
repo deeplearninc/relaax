@@ -10,7 +10,7 @@ import threading
 import socketIO_client
 
 
-class NDArrayEncoder(json.JSONEncoder):
+class _NDArrayEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, numpy.ndarray):
             output = io.BytesIO()
@@ -30,49 +30,17 @@ class ServerAPI(socketIO_client.LoggingNamespace):
         self.factory = factory
         self.gameList = []          # List of running games, if no parallel agents -> list holds one element
 
-    def on_session_id(self, *args):
-        print('on_session_response', args)
-        self.emit('join', {'room': args[0]['session_id']})
-
-    def on_join_ack(self, *args):
-        print('on_join_ack', args)
-        self.emit('create model', {})
-
-    def on_model_is_allocated(self, *args):
-        print('on_model_is_allocated', args)
-        self.emit('get params', {})
-
-    def on_init_params(self, *args):
-        print('on_init_params', args)
-
-        if args[0].__contains__('threads_cnt'):
-            for i in range(self.cfg.threads_cnt):
-                self.gameList.append(self.factory.new_env(113 * i))
-        else:
-            self.gameList.append(self.factory.new_env(0))
-
-        print('Name of the target game:', self.cfg.game_rom)
-        print('Action size for the target game:', self.gameList[0].action_size())
-        self.emit('init model', json.dumps({}))
-
     def on_model_is_ready(self, *args):
         print('on_model_is_ready', args)
 
-        if args[0].__contains__('threads_cnt'):
-            self.gamePlayedList = numpy.zeros(args[0]['threads_cnt'], dtype=int)
+        for i in xrange(self.cfg.threads_cnt):
+            self.gameList.append(self.factory.new_env(113 * i))
 
-            for i in range(args[0]['threads_cnt']):
-                print('Game agent\'s thread is created with index:', i)
-                threading.Thread(target=self.emit('get action', {
-                    'thread_index': i,
-                    'state': self.dump_state(i)
-                }))
-        else:
-            self.gamePlayedList = 0
-            print('Game is created for the training...')
-            self.emit('get action', {
-                'state': self.dump_state(0)
-            })
+        self.gamePlayedList = numpy.zeros(self.cfg.threads_cnt, dtype=int)
+
+        for i in xrange(self.cfg.threads_cnt):
+            print('Agent\'s game is created with index:', i)
+            self.emit('get action', {'thread_index': i, 'state': self.dump_state(i)})
 
     def on_get_action_ack(self, *args):
         # if more than one agent trains -> server returns tuple(list) with [action_num, thread_num]
@@ -149,4 +117,6 @@ class ServerAPI(socketIO_client.LoggingNamespace):
 
 
     def dump_state(self, i):
-        return json.dumps(self.gameList[i].state(), cls=NDArrayEncoder)
+        state = self.gameList[i].state()
+        # print('-' * 20, repr(state))
+        return json.dumps(state, cls=_NDArrayEncoder)

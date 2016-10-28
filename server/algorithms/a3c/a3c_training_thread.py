@@ -25,18 +25,18 @@ class A3CTrainingThread(object):
                 .prepare_loss(params)
 
         # TODO: don't need accum trainer anymore with batch
-        trainer = AccumTrainer(device)
-        trainer.prepare_minimize(
+        self.trainer = AccumTrainer(device)
+        self.trainer.prepare_minimize(
             self.local_network.total_loss,
             self.local_network.get_vars()
         )
 
-        self.accum_gradients = trainer.accumulate_gradients()
-        self.reset_gradients = trainer.reset_gradients()
+        self.accum_gradients = self.trainer.accumulate_gradients()
+        self.reset_gradients = self.trainer.reset_gradients()
 
         self.apply_gradients = grad_applier(
             global_network.get_vars(),
-            trainer.get_accum_grad_list()
+            self.trainer.get_accum_grad_list()
         )
 
         self.sync = game_ac_network.assign_vars(self.local_network, global_network)

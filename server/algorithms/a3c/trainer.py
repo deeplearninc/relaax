@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import tensorflow as tf
 import numpy as np
 import math
@@ -88,6 +90,7 @@ class Trainer:
     def getAction(self, message):
         thread_index = int(message['thread_index'])
         state = json.loads(message['state'], object_hook=ndarray_decoder)
+        # print('-' * 20, repr(state))
         # state = state.astype(np.float32)
         # state *= (1.0 / 255.0)
 
@@ -108,10 +111,17 @@ class Trainer:
             training_thread.episode_t = 0
 
         if training_thread.episode_t == 0:
+
+            self.sess.run(training_thread.local_network.copy_W_fc3)
+            # print('W_fc3 before sync', self.sess.run(training_thread.local_network.W_fc3_copy))
+
             # reset accumulated gradients
             self.sess.run(training_thread.reset_gradients)
+            # nprint('accum_grad_list zeros', self.sess.run(training_thread.trainer.get_accum_grad_list()))
             # copy weights from shared to local
             self.sess.run(training_thread.sync)
+
+            # print('W_fc3 diff after sync', self.sess.run(training_thread.local_network.diff))
 
             training_thread.states = []
             training_thread.actions = []
@@ -188,12 +198,27 @@ class Trainer:
                               training_thread.local_network.td: batch_td,
                               training_thread.local_network.r: batch_R})
 
+        if False:
+            print(
+                'UGU',
+                self.sess.run(training_thread.local_network.value_loss, feed_dict={
+                    training_thread.local_network.s: batch_si,
+                    training_thread.local_network.r: batch_R,
+                    training_thread.local_network.initial_lstm_state: training_thread.start_lstm_state,
+                    training_thread.local_network.step_size: [len(batch_a)]
+                })
+            )
+
         cur_learning_rate = training_thread.anneal_learning_rate(
             self.sess.run(self.global_network.global_t)
         )
 
+        # print('accum_grad_list', self.sess.run(training_thread.trainer.get_accum_grad_list()))
+
+        self.sess.run(self.global_network.copy_W_fc3)
         self.sess.run(training_thread.apply_gradients,
                       feed_dict={training_thread.learning_rate_input: cur_learning_rate})
+        # print('global W_fc3 diff after sync', self.sess.run(self.global_network.diff))
 
         if (thread_index == 0) and (training_thread.local_t % 100) == 0:
             print("TIMESTEP", training_thread.local_t)

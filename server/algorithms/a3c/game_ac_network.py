@@ -76,6 +76,17 @@ class _GameACFFNetworkShared(_GameACNetwork):
         self.W_fc3 = _fc_weight_variable([256, 1])
         self.b_fc3 = _fc_bias_variable([1], 256)
 
+        self.W_fc3_copy = tf.Variable(self.W_fc3.initialized_value())
+        self.diff = tf.reduce_sum(self.W_fc3 - self.W_fc3_copy)
+        self.copy_W_fc3 = tf.assign(self.W_fc3_copy, self.W_fc3)
+
+#        self.copies = []
+#        self.diffs = []
+#        for var in get_vars():
+#            duplicate = tf.Variable(var.initialized_value())
+#            diff = tf.reduce_sum(var - duplicate)
+#            copy = tf.assign(duplicate, var)
+
     def get_vars(self):
         return [
             self.W_conv1, self.b_conv1,

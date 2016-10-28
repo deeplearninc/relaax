@@ -1,17 +1,21 @@
 import sys
 sys.path.append('../../server')
 
-from uuid import uuid4
-from flask import Flask, render_template, session  # request
-from flask_socketio import SocketIO, emit, join_room, leave_room, close_room  # rooms, disconnect
+import json
+import flask
+import flask_socketio
+from flask_socketio import emit # rooms, disconnect
 
 import shared
 import models.ale_model
 
+import algorithms.a3c.params
+import algorithms.a3c.trainer
 
-app = Flask(__name__)
+
+app = flask.Flask(__name__)
 app.config['SECRET_KEY'] = 'TotalRecall'
-socketio = SocketIO(app)
+socketio = flask_socketio.SocketIO(app)
 n_worker = None
 server = None
 
@@ -24,123 +28,87 @@ def main(n_worker_):
     return app
 
 
-class ModelRunner(object):
-
+class _ModelSet(object):
     def __init__(self):
-        self.models = {}
+        self._params = algorithms.a3c.params.Params()
+        self._models = {}
 
-    def startModel(self, name, sio, session, namespace='/rlmodels'):
-        self.stopModel(session)  # remove old instance of this model
-        print("Loading model: " + name)
-        self.models[session] = models.ale_model.AleModel(sio, session, namespace)
-        self.models[session].start()
+    def createCurrent(self):
+        self._models[flask.request.sid] = models.ale_model.AleModel(
+            self._params,
+            algorithms.a3c.trainer.Trainer
+        )
+        return self._models[flask.request.sid]
 
-    def stopModel(self, session):
-        if session in self.models:
-            print("Removing model for: " + session)
-            model = self.models.pop(session)
-            print("Stopping model for: " + session)
-            model.stop()
+    def removeCurrent(self):
+        if flask.request.sid in self._models:
+            del self._models[flask.request.sid]
 
-    def getModel(self, session):
-        return self.models[session]
+    def getCurrent(self):
+        if flask.request.sid in self._models:
+            return self._models[flask.request.sid]
+        return None
 
 
-modelRunner = ModelRunner()
+modelSet = _ModelSet()
 
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return flask.render_template('index.html')
 
 
 @socketio.on('connect', namespace='/rlmodels')
 def on_connect():
-    session['id'] = str(uuid4())
-    print('Client connected: ' + session['id'])
-    emit('session id', {'session_id': session['id']})
-
-
-@socketio.on('join', namespace='/rlmodels')
-def join(message):
-    join_room(message['room'])
-    print('Client joined room: ' + message['room'])
-    emit('join ack', {'room': message['room']}, room=session['id'])
-
-
-@socketio.on('create model', namespace='/rlmodels')
-def on_create_model(message):
-    print("Creating model for: " + session['id'])
-    modelRunner.startModel('ale_model', socketio, session['id'])
-
-
-@socketio.on('get params', namespace='/rlmodels')
-def on_get_params(message):
-    print("Retrieve parameters for algorithm: " + 'UGU')
-    model = modelRunner.getModel(session['id'])
-    if model is not None:
-        model.init_params('a3c')
-    else:
-        print('Error in on_get_params')
-        emit('stop training ack', {}, room=session['id'])
-
-
-@socketio.on('init model', namespace='/rlmodels')
-def on_init_model(message):
-    print("Initialize model algorithm with received parameters")
-    model = modelRunner.getModel(session['id'])
-    if model is not None:
-        model.init_model(
-            message,
-            target=server.target,
-            global_device=shared.ps_device(),
-            local_device=shared.worker_device(n_worker)
-        )
-    else:
-        print('Error in on_get_params')
-        emit('stop training ack', {}, room=session['id'])
+    print('on connect: ' + flask.request.sid)
+    flask.session['id'] = flask.request.sid
+    model = modelSet.createCurrent()
+    model.init_model(
+        target=server.target,
+        global_device=shared.ps_device(),
+        local_device=shared.worker_device(n_worker)
+    )
+    emit('model is ready', {'threads_cnt': model.threads_cnt()}, room=flask.session['id'])
 
 
 @socketio.on('get action', namespace='/rlmodels')
 def on_get_action(message):
-    # print("Get action for: " + session['id'])
-    model = modelRunner.getModel(session['id'])
+    # print("Get action for: " + flask.session['id'])
+    model = modelSet.getCurrent()
     if model is not None:
-        emit('get action ack', {'action': model.getAction(message)}, room=session['id'])
+        emit('get action ack', {'action': model.getAction(message)}, room=flask.session['id'])
     else:
-        emit('get action error', {'data': 'no model found'}, room=session['id'])
+        emit('get action error', {'data': 'no model found'}, room=flask.session['id'])
 
 
 @socketio.on('episode', namespace='/rlmodels')
 def on_episode(message):
-    # print("Episode for: " + session['id'])
-    model = modelRunner.getModel(session['id'])
+    # print("Episode for: " + flask.session['id'])
+    model = modelSet.getCurrent()
     if model is not None:
-        model.addEpisode(message)
-        # emit('episode ack', {}, room=session['id'])
+        data = model.addEpisode(message)
+        emit('episode ack', json.dumps(data), room=flask.session['id'])
     else:
-        emit('get action error', {'data': 'no model found'}, room=session['id'])
+        emit('get action error', {'data': 'no model found'}, room=flask.session['id'])
 
 
 @socketio.on('stop training', namespace='/rlmodels')
 def on_stop_training():
-    print("Stop training for: " + session['id'])
-    model = modelRunner.getModel(session['id'])
+    print("Stop training for: " + flask.session['id'])
+    model = modelSet.getCurrent()
     if model is not None:
-        model.stop()
-        emit('stop training ack', {}, room=session['id'])
+        modelSet.removeCurrent()
+        emit('stop training ack', {}, room=flask.session['id'])
     else:
-        emit('get action error', {'data': 'no model found'}, room=session['id'])
+        emit('get action error', {'data': 'no model found'}, room=flask.session['id'])
 
 
 @socketio.on('disconnect', namespace='/rlmodels')
 def on_disconnect():
-    if 'id' in session:
-        print('Removing client from the room: ' + session['id'])
-        leave_room(session['id'])
-        close_room(session['id'])
-        modelRunner.stopModel(session['id'])
-    print('Client disconnected: ' + session['id'])
+    if 'id' in flask.session:
+        print('Removing client from the room: ' + flask.session['id'])
+        modelSet.removeCurrent()
+    print('Client disconnected: ' + flask.session['id'])
 
 
 if __name__ == '__main__':
