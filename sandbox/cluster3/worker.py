@@ -33,24 +33,24 @@ class _ModelSet(object):
         self._params = algorithms.a3c.params.Params()
         self._models = {}
 
-    def createCurrent(self):
+    def create_current(self):
         self._models[flask.request.sid] = models.ale_model.AleModel(
             self._params,
             algorithms.a3c.trainer.Trainer
         )
         return self._models[flask.request.sid]
 
-    def removeCurrent(self):
+    def remove_current(self):
         if flask.request.sid in self._models:
             del self._models[flask.request.sid]
 
-    def getCurrent(self):
+    def get_current(self):
         if flask.request.sid in self._models:
             return self._models[flask.request.sid]
         return None
 
 
-modelSet = _ModelSet()
+model_set = _ModelSet()
 
 
 @app.route('/')
@@ -62,7 +62,7 @@ def index():
 def on_connect():
     print('on connect: ' + flask.request.sid)
     flask.session['id'] = flask.request.sid
-    model = modelSet.createCurrent()
+    model = model_set.create_current()
     model.init_model(
         target=server.target,
         global_device=shared.ps_device(),
@@ -74,7 +74,7 @@ def on_connect():
 @socketio.on('get action', namespace='/rlmodels')
 def on_get_action(message):
     # print("Get action for: " + flask.session['id'])
-    model = modelSet.getCurrent()
+    model = model_set.get_current()
     if model is not None:
         emit('get action ack', {'action': model.getAction(message)}, room=flask.session['id'])
     else:
@@ -84,7 +84,7 @@ def on_get_action(message):
 @socketio.on('episode', namespace='/rlmodels')
 def on_episode(message):
     # print("Episode for: " + flask.session['id'])
-    model = modelSet.getCurrent()
+    model = model_set.get_current()
     if model is not None:
         data = model.addEpisode(message)
         emit('episode ack', json.dumps(data), room=flask.session['id'])
@@ -95,9 +95,9 @@ def on_episode(message):
 @socketio.on('stop training', namespace='/rlmodels')
 def on_stop_training():
     print("Stop training for: " + flask.session['id'])
-    model = modelSet.getCurrent()
+    model = model_set.get_current()
     if model is not None:
-        modelSet.removeCurrent()
+        model_set.remove_current()
         emit('stop training ack', {}, room=flask.session['id'])
     else:
         emit('get action error', {'data': 'no model found'}, room=flask.session['id'])
@@ -107,7 +107,7 @@ def on_stop_training():
 def on_disconnect():
     if 'id' in flask.session:
         print('Removing client from the room: ' + flask.session['id'])
-        modelSet.removeCurrent()
+        model_set.remove_current()
     print('Client disconnected: ' + flask.session['id'])
 
 
