@@ -2,9 +2,10 @@ import importlib
 
 
 class AleModel(object):
-    def __init__(self, params, Trainer):
+    def __init__(self, params, Trainer, log_dir):
         self._params = params
         self._Trainer = Trainer
+        self._log_dir = log_dir
         self._trainer = None        # assign via init_model event in init_model method
 
     def threads_cnt(self):
@@ -15,7 +16,8 @@ class AleModel(object):
             self._params,
             target=target,
             global_device=global_device,
-            local_device=local_device
+            local_device=local_device,
+            log_dir=self._log_dir
         )
 
     def getAction(self, message):

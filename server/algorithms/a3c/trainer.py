@@ -15,7 +15,7 @@ import io
 
 
 class Trainer:
-    def __init__(self, params, target='', global_device='', local_device=''):
+    def __init__(self, params, target='', global_device='', local_device='', log_dir='.'):
         self.params = params
 
         self._target = target
@@ -30,12 +30,12 @@ class Trainer:
         self._initial_learning_rate = None  # assign by static method log_uniform in initialize method
         self.training_threads = []          # Agent's Threads --> it's defined and assigned in initialize
 
-        self.CHECKPOINT_DIR = None
+        self._log_dir = log_dir
+
         self.sess = self._initialize()
 
         self.frameDisplayQueue = None  # frame accumulator for state, cuz state = 4 consecutive frames
         self.display = False           # Becomes True when the Client initiates display session
-        # Thread index for display == -1, but in initialize == -2 (for LSTM only)
 
     @staticmethod
     def _log_uniform(lo, hi, rate):
@@ -73,6 +73,11 @@ class Trainer:
                                                 self._local_device)
             self.training_threads.append(training_thread)
 
+        self._episode_score = tf.placeholder(tf.int32)
+        tf.scalar_summary('episode score', self._episode_score)
+
+        self._summary = tf.merge_all_summaries()
+
         variables = [(tf.is_variable_initialized(v), tf.initialize_variables([v])) for v in tf.all_variables()]
 
         # prepare session
@@ -80,6 +85,8 @@ class Trainer:
             target=self._target,
             config=tf.ConfigProto(log_device_placement=False, allow_soft_placement=True)
         )
+
+        self._summary_writer = tf.train.SummaryWriter(self._log_dir, sess.graph)
 
         for initialized, initialize in variables:
             if not sess.run(initialized):
@@ -258,6 +265,14 @@ class Trainer:
             print("score=", training_thread.episode_reward)
 
             return_json['score'] = training_thread.episode_reward
+
+            self._summary_writer.add_summary(
+                self.sess.run(self._summary, feed_dict={
+                    self._episode_score: training_thread.episode_reward
+                }),
+                global_t
+            )
+
             training_thread.episode_reward = 0
 
             if self.params.use_LSTM:

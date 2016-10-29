@@ -18,13 +18,23 @@ app.config['SECRET_KEY'] = 'TotalRecall'
 socketio = flask_socketio.SocketIO(app)
 n_worker = None
 server = None
+log_dir = None
 
 
 def main(n_worker_):
     global n_worker
     global server
+    global log_dir
+
+    params = algorithms.a3c.params.Params()
     n_worker = n_worker_
     server = shared.worker(n_worker_)
+
+    lstm_str = ''
+    if params.use_LSTM:
+        lstm_str = 'lstm_'
+    log_dir = 'logs/boxing_a3c_%s%dthreads/worker_%d' % (lstm_str, params.threads_cnt, n_worker_)
+
     return app
 
 
@@ -36,7 +46,8 @@ class _ModelSet(object):
     def create_current(self):
         self._models[flask.request.sid] = models.ale_model.AleModel(
             self._params,
-            algorithms.a3c.trainer.Trainer
+            algorithms.a3c.trainer.Trainer,
+            log_dir
         )
         return self._models[flask.request.sid]
 
