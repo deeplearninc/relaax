@@ -33,7 +33,7 @@ def trainer():
         observation = env.reset()
         reward_per_episode = 0
         for t in range(steps):
-            # rendering environmet (optional)
+            # rendering environment (optional)
             # env.render()
             x = observation
             action = agent.evaluate_actor(np.reshape(x, [1, num_states]))
