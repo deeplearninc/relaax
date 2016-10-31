@@ -28,5 +28,39 @@ def trainer():
     # saving reward:
     reward_st = np.array([0])
 
+    for i in range(episodes):
+        print("==== Starting episode no:", i, "====", "\n")
+        observation = env.reset()
+        reward_per_episode = 0
+        for t in range(steps):
+            # rendering environmet (optional)
+            # env.render()
+            x = observation
+            action = agent.evaluate_actor(np.reshape(x, [1, num_states]))
+            noise = exploration_noise.noise()
+            action = action[0] + noise  # Select action according to current policy and exploration noise
+            print("Action at step", t, " :", action, "\n")
+
+            observation, reward, done, info = env.step(action)
+
+            # add s_t,s_t+1,action,reward to experience memory
+            agent.add_experience(x, observation, action, reward, done)
+            # train critic and actor network
+            if counter > 64:
+                agent.train()
+            reward_per_episode += reward
+            counter += 1
+            # check if episode ends:
+            if done or (t == steps - 1):
+                print('EPISODE: ', i, ' Steps: ', t, ' Total Reward: ', reward_per_episode)
+                print("Printing reward to file")
+                exploration_noise.reset()  # reinitializing random noise for action exploration
+                reward_st = np.append(reward_st, reward_per_episode)
+                np.savetxt('episode_reward.txt', reward_st, newline="\n")
+                print('\n\n')
+                break
+    total_reward += reward_per_episode
+    print("Average reward per episode {}".format(total_reward / episodes))
+
 if __name__ == '__main__':
     trainer()
