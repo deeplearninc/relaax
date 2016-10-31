@@ -256,10 +256,10 @@ class _GameACLSTMNetwork(_GameACLSTMNetworkShared):
         return v_out[0]
 
 
-def assign_vars(dst_network, src_network):
+def assign_vars(dst_vars, src_vars):
     with tf.name_scope(None, "GameACNetwork", []) as name:
         sync_ops = []
-        for src_var, dst_var in zip(src_network.get_vars(), dst_network.get_vars()):
+        for dst_var, src_var in zip(dst_vars, src_vars):
             with tf.device(dst_var.device):
                 sync_ops.append(tf.assign(dst_var, src_var))
         return tf.group(*sync_ops, name=name)

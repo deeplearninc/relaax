@@ -1,48 +1,5 @@
 import tensorflow as tf
 from tensorflow.python.training import training_ops
-from tensorflow.python.training import slot_creator
-
-
-class _Slots(object):
-    RMS = 'rms'
-    MOMENTUM = 'momentum'
-
-    def __init__(self, name):
-        self._name = name
-        self._slots = {}
-
-    def create_rms(self, var):
-        self._make_slot(
-            var,
-            self.RMS,
-            lambda: slot_creator.create_slot(
-                var,
-                tf.constant(1.0, dtype=var.dtype, shape=var.get_shape()),
-                self._name
-            )
-        )
-
-    def create_momentum(self, var):
-        self._make_slot(
-            var,
-            self.MOMENTUM,
-            lambda: slot_creator.create_zeros_slot(var, self._name)
-        )
-
-    def get_rms(self, var):
-        return self._get_slot(var, self.RMS)
-
-    def get_momentum(self, var):
-        return self._get_slot(var, self.MOMENTUM)
-
-    def _make_slot(self, var, slot_name, factory):
-        key = (var, slot_name)
-        if key in self._slots:
-            return
-        self._slots[key] = factory()
-
-    def _get_slot(self, var, slot_name):
-        return self._slots.get((var, slot_name))
 
 
 class RMSPropApplier(object):
@@ -53,7 +10,9 @@ class RMSPropApplier(object):
                  epsilon=1e-10,
                  clip_norm=40.0,
                  device="/cpu:0",
-                 name="RMSPropApplier"):
+                 name="RMSPropApplier",
+                 slots=None,
+                 global_vars=None):
 
         self._name = name
         self._learning_rate = learning_rate
@@ -62,15 +21,12 @@ class RMSPropApplier(object):
         self._epsilon = epsilon
         self._clip_norm = clip_norm
         self._device = device
-
-        self._slots = _Slots(name)
+        self._slots = slots
+        self._global_vars = global_vars
 
     # Apply accumulated gradients to var.
-    def __call__(self, var_list, accum_grad_list):
+    def __call__(self, accum_grad_list):
         with tf.device(self._device):
-            for var in var_list:
-                self._slots.create_rms(var)
-                self._slots.create_momentum(var)
 
             with tf.name_scope(None, self._name, []) as name:
                 # Tensors for learning rate and momentum.
@@ -81,7 +37,7 @@ class RMSPropApplier(object):
 
                 update_ops = []
 
-                for var, accum_grad in zip(var_list, accum_grad_list):
+                for var, accum_grad in zip(self._global_vars, accum_grad_list):
                     with tf.name_scope("update_" + var.op.name), tf.device(var.device):
                         update_ops.append(
                             # TODO: in RMSProp native code, memcpy() (for CPU) and
