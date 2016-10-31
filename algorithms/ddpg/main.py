@@ -1,14 +1,11 @@
 # DDPG implementation for test
 from __future__ import print_function
 
-from ddpg import DDPG
-from params import *
-import numpy as np
+from ddpg import *
+from noise import OUNoise
 
 import gym
 from gym.spaces import Box
-
-from ou_noise import OUNoise
 
 
 def trainer():
@@ -17,7 +14,7 @@ def trainer():
     assert isinstance(env.observation_space, Box), "observation space must be continuous"
     assert isinstance(env.action_space, Box), "action space must be continuous"
 
-    # Randomly initialize critic,actor,target critic, target actor network  and replay buffer
+    # Randomly initialize critic, actor, target critic, target actor network and replay buffer
     agent = DDPG(env, is_batch_norm)
     exploration_noise = OUNoise(env.action_space.shape[0])
     counter = 0
