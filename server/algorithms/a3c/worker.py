@@ -1,8 +1,9 @@
-import tensorflow as tf
+import math
 import random
+import tensorflow as tf
+import numpy as np
 from accum_trainer import AccumTrainer
 import game_ac_network
-import numpy as np
 
 
 class Worker(object):
