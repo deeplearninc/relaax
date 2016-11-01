@@ -3,8 +3,8 @@ is_batch_norm = True                # Batch normalization is ON while True (Fals
 experiment = 'BipedalWalker-v2'     # Name of the Environment to use in train process
 
 # ddpg
-REPLAY_MEMORY_SIZE = 10000          # experience replay memory buffer size
-BATCH_SIZE = 64                     # mini-batch szie
+REPLAY_MEMORY_SIZE = 5000          # experience replay memory buffer size [10000]
+BATCH_SIZE = 64                     # mini-batch size
 GAMMA = 0.99                        # discount factor
 is_grad_inverter = True             # grad descent / ascent switcher
 
