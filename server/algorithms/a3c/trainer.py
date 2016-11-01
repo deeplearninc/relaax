@@ -6,7 +6,7 @@ import math
 import os
 
 import game_ac_network
-from a3c_training_thread import A3CTrainingThread
+import worker
 from rmsprop_applier import RMSPropApplier
 
 import base64
@@ -16,23 +16,18 @@ import io
 
 class Trainer:
     def __init__(self, params, target='', global_device='', local_device='', log_dir='.'):
-        self.params = params
-
         self._target = target
 
         kernel = "/cpu:0"
         if params.use_GPU:
             kernel = "/gpu:0"
 
-        self._global_device = global_device + kernel
-        self._local_device = local_device + kernel
-
         self._initial_learning_rate = None  # assign by static method log_uniform in initialize method
-        self.training_threads = []          # Agent's Threads --> it's defined and assigned in initialize
+        self._workers = []          # Agent's Threads --> it's defined and assigned in initialize
 
         self._log_dir = log_dir
 
-        self.sess = self._initialize()
+        self.sess = self._initialize(params, global_device + kernel, local_device + kernel)
 
         self.frameDisplayQueue = None  # frame accumulator for state, cuz state = 4 consecutive frames
         self.display = False           # Becomes True when the Client initiates display session
@@ -44,34 +39,38 @@ class Trainer:
         v = log_lo * (1 - rate) + log_hi * rate
         return math.exp(v)
 
-    def _initialize(self):
+    def _initialize(self, params, global_device, local_device):
         self._initial_learning_rate = self._log_uniform(
-            self.params.INITIAL_ALPHA_LOW,
-            self.params.INITIAL_ALPHA_HIGH,
-            self.params.INITIAL_ALPHA_LOG_RATE
+            params.INITIAL_ALPHA_LOW,
+            params.INITIAL_ALPHA_HIGH,
+            params.INITIAL_ALPHA_LOG_RATE
         )
-        with tf.device(self._global_device):
-            self.global_network = game_ac_network.make_shared_network(self.params, -1)
-            self.display_network = game_ac_network.make_full_network(self.params, -2)
+        with tf.device(global_device):
+            self.global_network = game_ac_network.make_shared_network(params, -1)
+            self.display_network = game_ac_network.make_full_network(params, -2)
 
         self._sync_display_network = game_ac_network.assign_vars(self.display_network, self.global_network)
 
         learning_rate_input = tf.placeholder("float")
 
         grad_applier = RMSPropApplier(learning_rate=learning_rate_input,
-                                      decay=self.params.RMSP_ALPHA,
+                                      decay=params.RMSP_ALPHA,
                                       momentum=0.0,
-                                      epsilon=self.params.RMSP_EPSILON,
-                                      clip_norm=self.params.GRAD_NORM_CLIP,
-                                      device=self._local_device)
+                                      epsilon=params.RMSP_EPSILON,
+                                      clip_norm=params.GRAD_NORM_CLIP,
+                                      device=local_device)
 
-        for i in range(self.params.threads_cnt):
-            training_thread = A3CTrainingThread(self.params, i, self.global_network,
-                                                self._initial_learning_rate,
-                                                learning_rate_input,
-                                                grad_applier, self.params.max_global_step,
-                                                self._local_device)
-            self.training_threads.append(training_thread)
+        for i in range(params.threads_cnt):
+            self._workers.append(worker.Worker(
+                params,
+                i,
+                self.global_network,
+                self._initial_learning_rate,
+                learning_rate_input,
+                grad_applier,
+                params.max_global_step,
+                local_device
+            ))
 
         self._episode_score = tf.placeholder(tf.int32)
         tf.scalar_summary('episode score', self._episode_score)
@@ -104,183 +103,31 @@ class Trainer:
         if thread_index == -1:
             return self.playing(state), -1
 
-        training_thread = self.training_threads[thread_index]
-
-        training_thread.update_state(state)
-        state = training_thread.frameQueue
-
-        if training_thread.episode_t == self.params.episode_len:
-            self._update_global(training_thread.terminal_end, thread_index, state)
-
-            if training_thread.terminal_end:
-                training_thread.terminal_end = False
-
-            training_thread.episode_t = 0
-
-        if training_thread.episode_t == 0:
-
-            self.sess.run(training_thread.local_network.copy_W_fc3)
-            # print('W_fc3 before sync', self.sess.run(training_thread.local_network.W_fc3_copy))
-
-            # reset accumulated gradients
-            self.sess.run(training_thread.reset_gradients)
-            # nprint('accum_grad_list zeros', self.sess.run(training_thread.trainer.get_accum_grad_list()))
-            # copy weights from shared to local
-            self.sess.run(training_thread.sync)
-
-            # print('W_fc3 diff after sync', self.sess.run(training_thread.local_network.diff))
-
-            training_thread.states = []
-            training_thread.actions = []
-            training_thread.rewards = []
-            training_thread.values = []
-
-            if self.params.use_LSTM:
-                training_thread.start_lstm_state = training_thread.local_network.lstm_state_out
-
-        pi_, value_ = training_thread.local_network.run_policy_and_value(self.sess, state)
-        action = training_thread.choose_action(pi_)
-
-        training_thread.states.append(state)
-        training_thread.actions.append(action)
-        training_thread.values.append(value_)
-
-        if (thread_index == 0) and (training_thread.local_t % 100) == 0:
-            print("pi=", pi_)
-            print(" V=", value_)
-
-        return action, thread_index
-
-    def _update_global(self, terminal, thread_index, state):
-        training_thread = self.training_threads[thread_index]
-        R = 0.0
-        if not terminal:
-            R = training_thread.local_network.run_value(self.sess, state)
-
-        training_thread.actions.reverse()
-        training_thread.states.reverse()
-        training_thread.rewards.reverse()
-        training_thread.values.reverse()
-
-        batch_si = []
-        batch_a = []
-        batch_td = []
-        batch_R = []
-
-        # compute and accumulate gradients
-        for (ai, ri, si, Vi) in zip(training_thread.actions,
-                                    training_thread.rewards,
-                                    training_thread.states,
-                                    training_thread.values):
-            R = ri + self.params.GAMMA * R
-            td = R - Vi
-            a = np.zeros([self.params.action_size])
-            a[ai] = 1
-
-            batch_si.append(si)
-            batch_a.append(a)
-            batch_td.append(td)
-            batch_R.append(R)
-
-        if self.params.use_LSTM:
-            batch_si.reverse()
-            batch_a.reverse()
-            batch_td.reverse()
-            batch_R.reverse()
-
-            self.sess.run(training_thread.accum_gradients,
-                          feed_dict={
-                              training_thread.local_network.s: batch_si,
-                              training_thread.local_network.a: batch_a,
-                              training_thread.local_network.td: batch_td,
-                              training_thread.local_network.r: batch_R,
-                              training_thread.local_network.initial_lstm_state:
-                                  training_thread.start_lstm_state,
-                              training_thread.local_network.step_size: [len(batch_a)]})
-        else:
-            self.sess.run(training_thread.accum_gradients,
-                          feed_dict={
-                              training_thread.local_network.s: batch_si,
-                              training_thread.local_network.a: batch_a,
-                              training_thread.local_network.td: batch_td,
-                              training_thread.local_network.r: batch_R})
-
-        if False:
-            print(
-                'UGU',
-                self.sess.run(training_thread.local_network.value_loss, feed_dict={
-                    training_thread.local_network.s: batch_si,
-                    training_thread.local_network.r: batch_R,
-                    training_thread.local_network.initial_lstm_state: training_thread.start_lstm_state,
-                    training_thread.local_network.step_size: [len(batch_a)]
-                })
-            )
-
-        cur_learning_rate = training_thread.anneal_learning_rate(
-            self.sess.run(self.global_network.global_t)
-        )
-
-        # print('accum_grad_list', self.sess.run(training_thread.trainer.get_accum_grad_list()))
-
-        self.sess.run(self.global_network.copy_W_fc3)
-        self.sess.run(training_thread.apply_gradients,
-                      feed_dict={training_thread.learning_rate_input: cur_learning_rate})
-        # print('global W_fc3 diff after sync', self.sess.run(self.global_network.diff))
-
-        if (thread_index == 0) and (training_thread.local_t % 100) == 0:
-            print("TIMESTEP", training_thread.local_t)
+        return self._workers[thread_index].act(self, state), thread_index
 
     def addEpisode(self, message):
         thread_index = int(message['thread_index'])
         reward = message['reward']
         terminal = bool(message['terminal'])
 
-        return_json = {'thread_index': thread_index,
-                       'terminal': terminal,
-                       'score': 0,
-                       'stop_training': False}
-
         if thread_index == -1:
             if terminal:
                 self.display = False
-            return return_json
+            return {
+                'thread_index': thread_index,
+                'terminal': terminal,
+                'score': 0,
+                'stop_training': False
+            }
 
-        training_thread = self.training_threads[thread_index]
-        training_thread.episode_reward += reward
+        score, stop_training = self._workers[thread_index].on_episode(self, reward, terminal)
 
-        # clip reward
-        training_thread.rewards.append(np.clip(reward, -1, 1))
-
-        training_thread.local_t += 1
-        training_thread.episode_t += 1
-        global_t = self.sess.run(self.global_network.increment_global_t)
-
-        if global_t > self.params.max_global_step:
-            # self.sio.emit('stop training', {}, room=self.session, namespace=self.namespace)
-            return_json['stop_training'] = True
-            return return_json
-
-        if terminal:
-            training_thread.terminal_end = True
-            print("score=", training_thread.episode_reward)
-
-            return_json['score'] = training_thread.episode_reward
-
-            self._summary_writer.add_summary(
-                self.sess.run(self._summary, feed_dict={
-                    self._episode_score: training_thread.episode_reward
-                }),
-                global_t
-            )
-
-            training_thread.episode_reward = 0
-
-            if self.params.use_LSTM:
-                training_thread.local_network.reset_state()
-
-            training_thread.episode_t = self.params.episode_len
-
-        return return_json
+        return {
+            'thread_index': thread_index,
+            'terminal': terminal,
+            'score': score,
+            'stop_training': stop_training
+        }
 
     def playing(self, frame):
         if not self.display:
@@ -290,8 +137,7 @@ class Trainer:
         state = self.frameDisplayQueue
 
         pi_values = self.display_network.run_policy(self.sess, state)
-        action = self.training_threads[0].choose_action(pi_values)
-        return action
+        return self._workers[0].choose_action(pi_values)
 
     def update_play_state(self, frame):
         if self.display:
