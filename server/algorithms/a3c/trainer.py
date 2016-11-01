@@ -23,14 +23,12 @@ class Trainer:
 
         self._workers = []          # Agent's Threads --> it's defined and assigned in initialize
 
-        self._log_dir = log_dir
-
-        self.sess = self._initialize(params, global_device + kernel, local_device + kernel)
+        self.sess = self._initialize(params, global_device + kernel, local_device + kernel, log_dir)
 
         self.frameDisplayQueue = None  # frame accumulator for state, cuz state = 4 consecutive frames
         self.display = False           # Becomes True when the Client initiates display session
 
-    def _initialize(self, params, global_device, local_device):
+    def _initialize(self, params, global_device, local_device, log_dir):
         with tf.device(global_device):
             self.global_network = game_ac_network.make_shared_network(params, -1)
             self.display_network = game_ac_network.make_full_network(params, -2)
@@ -70,7 +68,7 @@ class Trainer:
             config=tf.ConfigProto(log_device_placement=False, allow_soft_placement=True)
         )
 
-        self._summary_writer = tf.train.SummaryWriter(self._log_dir, sess.graph)
+        self._summary_writer = tf.train.SummaryWriter(log_dir, sess.graph)
 
         for initialized, initialize in variables:
             if not sess.run(initialized):
@@ -119,10 +117,10 @@ class Trainer:
             self.sess.run(self._sync_display_network)
 
         self.update_play_state(frame)
-        state = self.frameDisplayQueue
 
-        pi_values = self.display_network.run_policy(self.sess, state)
-        return self._workers[0].choose_action(pi_values)
+        return self._workers[0].choose_action(
+            self.display_network.run_policy(self.sess, self.frameDisplayQueue)
+        )
 
     def update_play_state(self, frame):
         if self.display:
