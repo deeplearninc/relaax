@@ -9,7 +9,6 @@ class Worker(object):
     def __init__(self, params,
                  thread_index,
                  global_network,
-                 initial_learning_rate,
                  learning_rate_input,
                  grad_applier,
                  max_global_time_step,
@@ -42,7 +41,12 @@ class Worker(object):
 
         self.sync = game_ac_network.assign_vars(self.local_network, global_network)
 
-        self._initial_learning_rate = initial_learning_rate
+        self._initial_learning_rate = _log_uniform(
+            params.INITIAL_ALPHA_LOW,
+            params.INITIAL_ALPHA_HIGH,
+            params.INITIAL_ALPHA_LOG_RATE
+        )
+
 
         self.local_t = 0            # steps count for current agent's thread
         self.episode_reward = 0     # score accumulator for current game
@@ -242,4 +246,11 @@ class Worker(object):
 
         if (self.thread_index == 0) and (worker.local_t % 100) == 0:
             print("TIMESTEP", worker.local_t)
+
+
+def _log_uniform(lo, hi, rate):
+    log_lo = math.log(lo)
+    log_hi = math.log(hi)
+    v = log_lo * (1 - rate) + log_hi * rate
+    return math.exp(v)
 

@@ -3,7 +3,6 @@ from __future__ import print_function
 import tensorflow as tf
 import numpy as np
 import math
-import os
 
 import game_ac_network
 import worker
@@ -22,7 +21,6 @@ class Trainer:
         if params.use_GPU:
             kernel = "/gpu:0"
 
-        self._initial_learning_rate = None  # assign by static method log_uniform in initialize method
         self._workers = []          # Agent's Threads --> it's defined and assigned in initialize
 
         self._log_dir = log_dir
@@ -32,19 +30,7 @@ class Trainer:
         self.frameDisplayQueue = None  # frame accumulator for state, cuz state = 4 consecutive frames
         self.display = False           # Becomes True when the Client initiates display session
 
-    @staticmethod
-    def _log_uniform(lo, hi, rate):
-        log_lo = math.log(lo)
-        log_hi = math.log(hi)
-        v = log_lo * (1 - rate) + log_hi * rate
-        return math.exp(v)
-
     def _initialize(self, params, global_device, local_device):
-        self._initial_learning_rate = self._log_uniform(
-            params.INITIAL_ALPHA_LOW,
-            params.INITIAL_ALPHA_HIGH,
-            params.INITIAL_ALPHA_LOG_RATE
-        )
         with tf.device(global_device):
             self.global_network = game_ac_network.make_shared_network(params, -1)
             self.display_network = game_ac_network.make_full_network(params, -2)
@@ -65,7 +51,6 @@ class Trainer:
                 params,
                 i,
                 self.global_network,
-                self._initial_learning_rate,
                 learning_rate_input,
                 grad_applier,
                 params.max_global_step,
@@ -95,7 +80,7 @@ class Trainer:
 
     def getAction(self, message):
         thread_index = int(message['thread_index'])
-        state = json.loads(message['state'], object_hook=ndarray_decoder)
+        state = json.loads(message['state'], object_hook=_ndarray_decoder)
         # print('-' * 20, repr(state))
         # state = state.astype(np.float32)
         # state *= (1.0 / 255.0)
@@ -147,7 +132,7 @@ class Trainer:
             self.display = True
 
 
-def ndarray_decoder(dct):
+def _ndarray_decoder(dct):
     """Decoder from base64 to np.ndarray for big arrays(states)"""
     if isinstance(dct, dict) and 'b64npz' in dct:
         output = io.BytesIO(base64.b64decode(dct['b64npz']))
