@@ -19,16 +19,12 @@ class Trainer:
         kernel = "/cpu:0"
         if params.use_GPU:
             kernel = "/gpu:0"
+        global_device_ = global_device + kernel
+        local_device_ = local_device + kernel
 
         self._workers = []          # Agent's Threads --> it's defined and assigned in initialize
 
-        self.sess = self._initialize(params, global_device + kernel, local_device + kernel, log_dir)
-
-        self.frameDisplayQueue = None  # frame accumulator for state, cuz state = 4 consecutive frames
-        self.display = False           # Becomes True when the Client initiates display session
-
-    def _initialize(self, params, global_device, local_device, log_dir):
-        with tf.device(global_device):
+        with tf.device(global_device_):
             self.global_network = game_ac_network.make_shared_network(params, -1)
             self.display_network = game_ac_network.make_full_network(params, -2)
 
@@ -36,12 +32,17 @@ class Trainer:
 
         learning_rate_input = tf.placeholder("float")
 
+        self._episode_score = tf.placeholder(tf.int32)
+        tf.scalar_summary('episode score', self._episode_score)
+
+        self._summary = tf.merge_all_summaries()
+
         grad_applier = RMSPropApplier(learning_rate=learning_rate_input,
                                       decay=params.RMSP_ALPHA,
                                       momentum=0.0,
                                       epsilon=params.RMSP_EPSILON,
                                       clip_norm=params.GRAD_NORM_CLIP,
-                                      device=local_device)
+                                      device=local_device_)
 
         for i in range(params.threads_cnt):
             self._workers.append(worker.Worker(
@@ -51,29 +52,32 @@ class Trainer:
                 learning_rate_input,
                 grad_applier,
                 params.max_global_step,
-                local_device
+                local_device_,
+                lambda: self.sess,
+                lambda reward, step: self._summary_writer.add_summary(
+                    self.sess.run(self._summary, feed_dict={
+                        self._episode_score: reward
+                    }),
+                    step
+                )
             ))
-
-        self._episode_score = tf.placeholder(tf.int32)
-        tf.scalar_summary('episode score', self._episode_score)
-
-        self._summary = tf.merge_all_summaries()
 
         variables = [(tf.is_variable_initialized(v), tf.initialize_variables([v])) for v in tf.all_variables()]
 
         # prepare session
-        sess = tf.Session(
+        self.sess = tf.Session(
             target=self._target,
             config=tf.ConfigProto(log_device_placement=False, allow_soft_placement=True)
         )
 
-        self._summary_writer = tf.train.SummaryWriter(log_dir, sess.graph)
+        self._summary_writer = tf.train.SummaryWriter(log_dir, self.sess.graph)
 
         for initialized, initialize in variables:
-            if not sess.run(initialized):
-                sess.run(initialize)
+            if not self.sess.run(initialized):
+                self.sess.run(initialize)
 
-        return sess
+        self.frameDisplayQueue = None  # frame accumulator for state, cuz state = 4 consecutive frames
+        self.display = False           # Becomes True when the Client initiates display session
 
     def getAction(self, message):
         thread_index = int(message['thread_index'])
@@ -85,7 +89,7 @@ class Trainer:
         if thread_index == -1:
             return self.playing(state), -1
 
-        return self._workers[thread_index].act(self, state), thread_index
+        return self._workers[thread_index].act(state), thread_index
 
     def addEpisode(self, message):
         thread_index = int(message['thread_index'])
@@ -102,7 +106,7 @@ class Trainer:
                 'stop_training': False
             }
 
-        score, stop_training = self._workers[thread_index].on_episode(self, reward, terminal)
+        score, stop_training = self._workers[thread_index].on_episode(reward, terminal)
 
         return {
             'thread_index': thread_index,
