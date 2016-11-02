@@ -28,13 +28,15 @@ class Trainer:
         episode_score = tf.placeholder(tf.int32)
         tf.scalar_summary('episode score', episode_score)
 
+        summaries = tf.merge_all_summaries()
+
         new_worker = worker.Factory(
             params=params,
             global_network=self.global_network,
             local_device=local_device + kernel,
             get_session=lambda: self.sess,
             log_reward=lambda reward, step: self._summary_writer.add_summary(
-                self.sess.run(tf.merge_all_summaries(), feed_dict={
+                self.sess.run(summaries, feed_dict={
                     episode_score: reward
                 }),
                 step
