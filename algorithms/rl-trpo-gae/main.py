@@ -2,7 +2,7 @@ import argparse
 # from algos.misc_utils import update_argument_parser, GENERAL_OPTIONS
 from algos import *     # update_argument_parser(misc_utils), GENERAL_OPTIONS(misc_utils)
 import sys
-from gym.envs import make
+# from gym.envs import make
 import os
 import shutil
 # from algos import core
@@ -22,7 +22,7 @@ if __name__ == "__main__":
     parser.add_argument("--plot", action="store_true")
     args, _ = parser.parse_known_args([arg for arg in sys.argv[1:] if arg not in ('-h', '--help')])
 
-    env = make(args.env)
+    env = gym.make(args.env)
     env_spec = env.spec
     mondir = args.outfile + ".dir"
     if os.path.exists(mondir):
