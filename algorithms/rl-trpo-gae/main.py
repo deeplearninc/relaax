@@ -2,7 +2,6 @@ import argparse
 # from algos.misc_utils import update_argument_parser, GENERAL_OPTIONS
 from algos import *     # update_argument_parser(misc_utils), GENERAL_OPTIONS(misc_utils)
 import sys
-# from gym.envs import make
 import os
 import shutil
 # from algos import core
