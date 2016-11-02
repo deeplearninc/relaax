@@ -5,7 +5,6 @@ import numpy as np
 
 import game_ac_network
 import worker
-from rmsprop_applier import RMSPropApplier
 
 import base64
 import json
@@ -19,48 +18,32 @@ class Trainer:
         kernel = "/cpu:0"
         if params.use_GPU:
             kernel = "/gpu:0"
-        global_device_ = global_device + kernel
-        local_device_ = local_device + kernel
 
         self._workers = []          # Agent's Threads --> it's defined and assigned in initialize
 
-        with tf.device(global_device_):
+        with tf.device(global_device + kernel):
             self.global_network = game_ac_network.make_shared_network(params, -1)
             self.display_network = game_ac_network.make_full_network(params, -2)
 
+        episode_score = tf.placeholder(tf.int32)
+        tf.scalar_summary('episode score', episode_score)
+
+        new_worker = worker.Factory(
+            params=params,
+            global_network=self.global_network,
+            local_device=local_device + kernel,
+            get_session=lambda: self.sess,
+            log_reward=lambda reward, step: self._summary_writer.add_summary(
+                self.sess.run(tf.merge_all_summaries(), feed_dict={
+                    episode_score: reward
+                }),
+                step
+            )
+        )
+
         self._sync_display_network = game_ac_network.assign_vars(self.display_network, self.global_network)
 
-        learning_rate_input = tf.placeholder("float")
-
-        self._episode_score = tf.placeholder(tf.int32)
-        tf.scalar_summary('episode score', self._episode_score)
-
-        self._summary = tf.merge_all_summaries()
-
-        grad_applier = RMSPropApplier(learning_rate=learning_rate_input,
-                                      decay=params.RMSP_ALPHA,
-                                      momentum=0.0,
-                                      epsilon=params.RMSP_EPSILON,
-                                      clip_norm=params.GRAD_NORM_CLIP,
-                                      device=local_device_)
-
-        for i in range(params.threads_cnt):
-            self._workers.append(worker.Worker(
-                params,
-                i,
-                self.global_network,
-                learning_rate_input,
-                grad_applier,
-                params.max_global_step,
-                local_device_,
-                lambda: self.sess,
-                lambda reward, step: self._summary_writer.add_summary(
-                    self.sess.run(self._summary, feed_dict={
-                        self._episode_score: reward
-                    }),
-                    step
-                )
-            ))
+        self._workers = [new_worker() for _ in xrange(params.threads_cnt)]
 
         variables = [(tf.is_variable_initialized(v), tf.initialize_variables([v])) for v in tf.all_variables()]
 

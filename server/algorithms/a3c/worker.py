@@ -2,39 +2,76 @@ import math
 import random
 import tensorflow as tf
 import numpy as np
-from accum_trainer import AccumTrainer
+import rmsprop_applier
+import accum_trainer
 import game_ac_network
 
 
-class Worker(object):
+class Factory(object):
     def __init__(
         self,
         params,
-        thread_index,
         global_network,
-        learning_rate_input,
-        grad_applier,
-        max_global_time_step,
+        local_device,
+        get_session,
+        log_reward
+    ):
+        learning_rate_input = tf.placeholder("float")
+
+        apply_gradient = rmsprop_applier.RMSPropApplier(
+            learning_rate=learning_rate_input,
+            decay=params.RMSP_ALPHA,
+            momentum=0.0,
+            epsilon=params.RMSP_EPSILON,
+            clip_norm=params.GRAD_NORM_CLIP,
+            device=local_device
+        )
+
+        self._n_workers = 0
+        self._factory = lambda ident: _Worker(
+            ident=ident,
+            params=params,
+            global_network=global_network,
+            device=local_device,
+            learning_rate_input=learning_rate_input,
+            apply_gradient=apply_gradient,
+            get_session=get_session,
+            log_reward=log_reward
+        )
+
+    def __call__(self):
+        worker = self._factory(self._n_workers)
+        self._n_workers += 1
+        return worker
+
+
+class _Worker(object):
+    def __init__(
+        self,
+        ident,
+        params,
+        global_network,
         device,
+        learning_rate_input,
+        apply_gradient,
         get_session,
         log_reward
     ):
 
+        self._ident = ident
         self._params = params
-        self._thread_index = thread_index
         self._global_network = global_network 
         self._get_session = get_session
         self._log_reward = log_reward
-        self.learning_rate_input = learning_rate_input
-        self.max_global_time_step = max_global_time_step
+        self._learning_rate_input = learning_rate_input
 
         with tf.device(device):
             self.local_network = game_ac_network \
-                .make_full_network(params, thread_index) \
+                .make_full_network(params, ident) \
                 .prepare_loss(params)
 
         # TODO: don't need accum trainer anymore with batch
-        trainer = AccumTrainer(device)
+        trainer = accum_trainer.AccumTrainer(device)
         trainer.prepare_minimize(
             self.local_network.total_loss,
             self.local_network.get_vars()
@@ -43,7 +80,7 @@ class Worker(object):
         self.accum_gradients = trainer.accumulate_gradients()
         self.reset_gradients = trainer.reset_gradients()
 
-        self.apply_gradients = grad_applier(
+        self.apply_gradients = apply_gradient(
             global_network.get_vars(),
             trainer.get_accum_grad_list()
         )
@@ -106,7 +143,7 @@ class Worker(object):
         self.actions.append(action)
         self.values.append(value_)
 
-        if (self._thread_index == 0) and (self.local_t % 100) == 0:
+        if (self._ident == 0) and (self.local_t % 100) == 0:
             print("pi=", pi_)
             print(" V=", value_)
 
@@ -148,7 +185,7 @@ class Worker(object):
 
     def anneal_learning_rate(self, global_time_step):
         learning_rate = self._initial_learning_rate * \
-                        (self.max_global_time_step - global_time_step) / self.max_global_time_step
+                        (self._params.max_global_step - global_time_step) / self._params.max_global_step 
         if learning_rate < 0.0:
             learning_rate = 0.0
         return learning_rate
@@ -239,13 +276,12 @@ class Worker(object):
             sess.run(self._global_network.global_t)
         )
 
-        sess.run(self._global_network.copy_W_fc3)
         sess.run(
             self.apply_gradients,
-            feed_dict={self.learning_rate_input: cur_learning_rate}
+            feed_dict={self._learning_rate_input: cur_learning_rate}
         )
 
-        if (self._thread_index == 0) and (self.local_t % 100) == 0:
+        if (self._ident == 0) and (self.local_t % 100) == 0:
             print("TIMESTEP", self.local_t)
 
 
