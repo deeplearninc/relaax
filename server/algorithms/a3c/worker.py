@@ -24,6 +24,7 @@ class Factory(object):
             momentum=0.0,
             epsilon=params.RMSP_EPSILON,
             clip_norm=params.GRAD_NORM_CLIP,
+            global_vars=global_network.get_vars(),
             device=local_device
         )
 
@@ -72,26 +73,23 @@ class _Worker(object):
         self._learning_rate_input = learning_rate_input
 
         with tf.device(device):
-            self.local_network = game_ac_network \
+            self._local_network = game_ac_network \
                 .make_full_network(params, ident) \
                 .prepare_loss(params)
 
         # TODO: don't need accum trainer anymore with batch
         trainer = accum_trainer.AccumTrainer(device)
         trainer.prepare_minimize(
-            self.local_network.total_loss,
-            self.local_network.get_vars()
+            self._local_network.total_loss,
+            self._local_network.get_vars()
         )
 
         self.accum_gradients = trainer.accumulate_gradients()
         self.reset_gradients = trainer.reset_gradients()
 
-        self.apply_gradients = apply_gradient(
-            global_network.get_vars(),
-            trainer.get_accum_grad_list()
-        )
+        self.apply_gradients = apply_gradient(trainer.get_accum_grad_list())
 
-        self.sync = game_ac_network.assign_vars(self.local_network, global_network)
+        self.sync = game_ac_network.assign_vars(self._local_network, global_network)
 
         self._initial_learning_rate = _log_uniform(
             params.INITIAL_ALPHA_LOW,
@@ -127,8 +125,6 @@ class _Worker(object):
             self.episode_t = 0
 
         if self.episode_t == 0:
-            sess.run(self.local_network.copy_W_fc3)
-
             # reset accumulated gradients
             sess.run(self.reset_gradients)
             # copy weights from shared to local
@@ -140,9 +136,9 @@ class _Worker(object):
             self.values = []
 
             if self._params.use_LSTM:
-                self.start_lstm_state = self.local_network.lstm_state_out
+                self.start_lstm_state = self._local_network.lstm_state_out
 
-        pi_, value_ = self.local_network.run_policy_and_value(sess, self.frameQueue)
+        pi_, value_ = self._local_network.run_policy_and_value(sess, self.frameQueue)
         action = self.choose_action(pi_)
 
         self.states.append(self.frameQueue)
@@ -183,7 +179,7 @@ class _Worker(object):
             self.episode_reward = 0
 
             if self._params.use_LSTM:
-                self.local_network.reset_state()
+                self._local_network.reset_state()
 
             self.episode_t = self._params.episode_len
 
@@ -223,7 +219,7 @@ class _Worker(object):
 
         R = 0.0
         if not self.terminal_end:
-            R = self.local_network.run_value(sess, self.frameQueue)
+            R = self._local_network.run_value(sess, self.frameQueue)
 
         self.actions.reverse()
         self.states.reverse()
@@ -259,22 +255,22 @@ class _Worker(object):
             sess.run(
                 self.accum_gradients,
                 feed_dict={
-                    self.local_network.s: batch_si,
-                    self.local_network.a: batch_a,
-                    self.local_network.td: batch_td,
-                    self.local_network.r: batch_R,
-                    self.local_network.initial_lstm_state: self.start_lstm_state,
-                    self.local_network.step_size: [len(batch_a)]
+                    self._local_network.s: batch_si,
+                    self._local_network.a: batch_a,
+                    self._local_network.td: batch_td,
+                    self._local_network.r: batch_R,
+                    self._local_network.initial_lstm_state: self.start_lstm_state,
+                    self._local_network.step_size: [len(batch_a)]
                 }
             )
         else:
             sess.run(
                 self.accum_gradients,
                 feed_dict={
-                    self.local_network.s: batch_si,
-                    self.local_network.a: batch_a,
-                    self.local_network.td: batch_td,
-                    self.local_network.r: batch_R
+                    self._local_network.s: batch_si,
+                    self._local_network.a: batch_a,
+                    self._local_network.td: batch_td,
+                    self._local_network.r: batch_R
                 }
             )
 
