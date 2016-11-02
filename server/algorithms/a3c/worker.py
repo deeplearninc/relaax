@@ -14,7 +14,7 @@ class Factory(object):
         global_network,
         local_device,
         get_session,
-        log_reward
+        add_summary
     ):
         learning_rate_input = tf.placeholder("float")
 
@@ -27,6 +27,9 @@ class Factory(object):
             device=local_device
         )
 
+        episode_score = tf.placeholder(tf.int32)
+        summary = tf.scalar_summary('episode score', episode_score)
+
         self._n_workers = 0
         self._factory = lambda ident: _Worker(
             ident=ident,
@@ -36,7 +39,10 @@ class Factory(object):
             learning_rate_input=learning_rate_input,
             apply_gradient=apply_gradient,
             get_session=get_session,
-            log_reward=log_reward
+            log_reward=lambda reward, step: add_summary(
+                get_session().run(summary, feed_dict={episode_score: reward}),
+                step
+            )
         )
 
     def __call__(self):
