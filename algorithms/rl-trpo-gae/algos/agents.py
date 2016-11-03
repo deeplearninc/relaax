@@ -69,11 +69,15 @@ def make_filters(cfg, ob_space):
 
 
 class AgentWithPolicy(object):
-    def __init__(self, policy, obfilter, rewfilter):
+    def __init__(self, policy, obfilter, rewfilter, pnet, vfnet, chk_dir):
         self.policy = policy
         self.obfilter = obfilter
         self.rewfilter = rewfilter
         self.stochastic = True
+        # addition for child classes
+        self.pnet = pnet
+        self.vfnet = vfnet
+        self.chk_dir = chk_dir
 
     def set_stochastic(self, stochastic):
         self.stochastic = stochastic
@@ -93,6 +97,24 @@ class AgentWithPolicy(object):
     def rewfilt(self, rew):
         return self.rewfilter(rew)
 
+    def save(self, n_iter):
+        if not os.path.exists(self.chk_dir):
+            os.makedirs(self.chk_dir)
+        self.pnet.save_weights(self.chk_dir+"/pnet--"+str(n_iter)+".h5")
+        self.vfnet.save_weights(self.chk_dir+"/vfnet--"+str(n_iter)+".h5")
+
+    def restore(self):
+        n_iter = 0
+        if os.path.exists(self.chk_dir):
+            for filename in os.listdir(self.chk_dir):
+                tokens = filename.split("--")
+                n_iter = int(tokens[1].split(".")[0])
+                if tokens[0] == 'pnet':
+                    self.pnet.load_weights(self.chk_dir+"/pnet--"+str(n_iter)+".h5")
+                else:
+                    self.vfnet.load_weights(self.chk_dir+"/vfnet--"+str(n_iter)+".h5")
+        return n_iter
+
 
 class TrpoAgent(AgentWithPolicy):
     options = MLP_OPTIONS + PG_OPTIONS + TrpoUpdater.options + FILTER_OPTIONS
@@ -100,31 +122,13 @@ class TrpoAgent(AgentWithPolicy):
     def __init__(self, ob_space, ac_space, usercfg, session):   # SESSION !!! --> need ADD
         algo_name = '_trpo_'
         misc = 'orig'
-        self.CHECKPOINT_DIR = 'checkpoints/' + usercfg["env"] + algo_name + misc
+        chk_dir = 'checkpoints/' + usercfg["env"] + algo_name + misc
 
         cfg = update_default_config(self.options, usercfg)
-        policy, self.baseline, self.pnet, self.vfnet \
+        policy, self.baseline, pnet, vfnet \
             = make_mlps(ob_space, ac_space, cfg, session)   # SESSION !!! --> need ADD
         obfilter, rewfilter = make_filters(cfg, ob_space)
         self.updater = TrpoUpdater(policy, cfg, session)    # SESSION !!! --> need ADD
-        AgentWithPolicy.__init__(self, policy, obfilter, rewfilter)
+        AgentWithPolicy.__init__(self, policy, obfilter, rewfilter, pnet, vfnet, chk_dir)
 
         session.run(tf.initialize_all_variables())
-
-    def save(self, n_iter):
-        if not os.path.exists(self.CHECKPOINT_DIR):
-            os.makedirs(self.CHECKPOINT_DIR)
-        self.pnet.save_weights(self.CHECKPOINT_DIR+"/pnet--"+str(n_iter)+".h5")
-        self.vfnet.save_weights(self.CHECKPOINT_DIR+"/vfnet--"+str(n_iter)+".h5")
-
-    def restore(self):
-        n_iter = 0
-        if os.path.exists(self.CHECKPOINT_DIR):
-            for filename in os.listdir(self.CHECKPOINT_DIR):
-                tokens = filename.split("--")
-                n_iter = int(tokens[1].split(".")[0])
-                if tokens[0] == 'pnet':
-                    self.pnet.load_weights(self.CHECKPOINT_DIR+"/pnet--"+str(n_iter)+".h5")
-                else:
-                    self.vfnet.load_weights(self.CHECKPOINT_DIR+"/vfnet--"+str(n_iter)+".h5")
-        return n_iter
