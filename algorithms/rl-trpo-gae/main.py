@@ -71,7 +71,10 @@ if __name__ == "__main__":
             agent.save(COUNTER)
             # save_model(session, saver, COUNTER)
 
-    run_policy_gradient_algorithm(env, agent, callback=callback, usercfg=cfg)
+    if args.agent.split('.')[2] != 'DeterministicAgent':
+        run_policy_gradient_algorithm(env, agent, callback=callback, usercfg=cfg)
+    else:
+        run_cem_algorithm(env, agent, callback=callback, usercfg=cfg)
 
     env.monitor.close()
     # save_model(session, saver, args.n_iter)
