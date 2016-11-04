@@ -1,6 +1,7 @@
 # from misc_utils import comma_sep_ints
 from algos import *     # comma_sep_ints(misc_utils), PG_OPTIONS(core)
 from algos.trpo import TrpoUpdater
+from algos.ppo import PpoLbfgsUpdater, PpoSgdUpdater
 from gym.spaces import Box, Discrete
 
 # NEED Session THERE !!!
@@ -146,7 +147,7 @@ class PpoLbfgsAgent(AgentWithPolicy):
         policy, self.baseline, pnet, vfnet \
             = make_mlps(ob_space, ac_space, cfg, session)
         obfilter, rewfilter = make_filters(cfg, ob_space)
-        self.updater = PpoLbfgsUpdater(policy, cfg)
+        self.updater = PpoLbfgsUpdater(policy, cfg, session)
 
         AgentWithPolicy.__init__(self, policy, obfilter, rewfilter, pnet, vfnet, chk_dir)
         session.run(tf.initialize_all_variables())
@@ -162,7 +163,7 @@ class PpoSgdAgent(AgentWithPolicy):
 
         policy, self.baseline, pnet, vfnet \
             = make_mlps(ob_space, ac_space, cfg, session)
-        obfilter, rewfilter = make_filters(cfg, ob_space)
+        obfilter, rewfilter = make_filters(cfg, ob_space, session)
         self.updater = PpoSgdUpdater(policy, cfg)
 
         AgentWithPolicy.__init__(self, policy, obfilter, rewfilter, pnet, vfnet, chk_dir)
