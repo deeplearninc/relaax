@@ -121,14 +121,49 @@ class TrpoAgent(AgentWithPolicy):
 
     def __init__(self, ob_space, ac_space, usercfg, session):   # SESSION !!! --> need ADD
         algo_name = '_trpo_'
-        misc = 'orig'
+        misc = 'gae'
         chk_dir = 'checkpoints/' + usercfg["env"] + algo_name + misc
-
         cfg = update_default_config(self.options, usercfg)
+
         policy, self.baseline, pnet, vfnet \
             = make_mlps(ob_space, ac_space, cfg, session)   # SESSION !!! --> need ADD
         obfilter, rewfilter = make_filters(cfg, ob_space)
         self.updater = TrpoUpdater(policy, cfg, session)    # SESSION !!! --> need ADD
-        AgentWithPolicy.__init__(self, policy, obfilter, rewfilter, pnet, vfnet, chk_dir)
 
+        AgentWithPolicy.__init__(self, policy, obfilter, rewfilter, pnet, vfnet, chk_dir)
+        session.run(tf.initialize_all_variables())
+
+
+class PpoLbfgsAgent(AgentWithPolicy):
+    options = MLP_OPTIONS + PG_OPTIONS + PpoLbfgsUpdater.options + FILTER_OPTIONS
+
+    def __init__(self, ob_space, ac_space, usercfg, session):
+        algo_name = '_ppo_'
+        misc = 'l-bfgs'
+        chk_dir = 'checkpoints/' + usercfg["env"] + algo_name + misc
+        cfg = update_default_config(self.options, usercfg)
+
+        policy, self.baseline, pnet, vfnet \
+            = make_mlps(ob_space, ac_space, cfg, session)
+        obfilter, rewfilter = make_filters(cfg, ob_space)
+        self.updater = PpoLbfgsUpdater(policy, cfg)
+
+        AgentWithPolicy.__init__(self, policy, obfilter, rewfilter, pnet, vfnet, chk_dir)
+        session.run(tf.initialize_all_variables())
+
+class PpoSgdAgent(AgentWithPolicy):
+    options = MLP_OPTIONS + PG_OPTIONS + PpoSgdUpdater.options + FILTER_OPTIONS
+
+    def __init__(self, ob_space, ac_space, usercfg, session):
+        algo_name = '_ppo_'
+        misc = 'sgd'
+        chk_dir = 'checkpoints/' + usercfg["env"] + algo_name + misc
+        cfg = update_default_config(self.options, usercfg)
+
+        policy, self.baseline, pnet, vfnet \
+            = make_mlps(ob_space, ac_space, cfg, session)
+        obfilter, rewfilter = make_filters(cfg, ob_space)
+        self.updater = PpoSgdUpdater(policy, cfg)
+
+        AgentWithPolicy.__init__(self, policy, obfilter, rewfilter, pnet, vfnet, chk_dir)
         session.run(tf.initialize_all_variables())
