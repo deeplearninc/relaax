@@ -18,34 +18,16 @@ dtype = tf.float32
 
 
 class TensorFlowTheanoFunction(object):
-    def __init__(self, inputs, outputs, session, updates=()):
+    def __init__(self, inputs, outputs, session):
         self._inputs = inputs
         self._outputs = outputs
-        self._updates = updates
         self.session = session
 
     def __call__(self, *args, **kwargs):
         feeds = {}
         for (argpos, arg) in enumerate(args):
             feeds[self._inputs[argpos]] = arg
-
-        try:
-            outputs_identity = [tf.identity(output) for output in self._outputs]
-            output_is_list = True
-        except TypeError:
-            outputs_identity = [tf.identity(self._outputs)]
-            output_is_list = False
-
-        with tf.control_dependencies(outputs_identity):
-            assign_ops = [tf.assign(variable, replacement) for variable, replacement in self._updates]
-
-        outputs_list = self.session.run(outputs_identity + assign_ops, feeds)[:len(outputs_identity)]
-
-        if output_is_list:
-            return outputs_list
-        else:
-            assert len(outputs_list) == 1
-        return outputs_list[0]
+        return self.session.run(self._outputs, feeds)
 
 
 # ================================================================
