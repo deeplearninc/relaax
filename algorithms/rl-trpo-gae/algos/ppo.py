@@ -87,7 +87,7 @@ class PpoLbfgsUpdater(EzFlat, EzPickle):
         train_sli = slice(0, train_stop)
         test_sli = slice(train_stop, None)
 
-        train_args = (ob_no[train_sli], action_na[train_sli], advantage_n[train_sli], prob_np[train_sli])
+        train_args = (ob_no[train_sli], action_na[train_sli], advantage_n[train_sli], prob_np[train_sli])   # Err
 
         thprev = self.get_params_flat()
 

@@ -195,17 +195,17 @@ class PpoSgdAgent(AgentWithPolicy):
 
 
 class DeterministicAgent(AgentWithPolicy):
-    options = MLP_OPTIONS + FILTER_OPTIONS
+    options = MLP_OPTIONS + FILTER_OPTIONS + CEM_OPTIONS
 
     def __init__(self, ob_space, ac_space, usercfg, session):
         algo_name = '_cem'
-        self.chk_dir = 'checkpoints/' + usercfg["env"] + algo_name
+        chk_dir = 'checkpoints/' + usercfg["env"] + algo_name
         cfg = update_default_config(self.options, usercfg)
 
-        policy, self.pnet = make_deterministic_mlp(ob_space, ac_space, cfg, session)
+        policy, pnet = make_deterministic_mlp(ob_space, ac_space, cfg, session)
         obfilter, rewfilter = make_filters(cfg, ob_space)
 
-        AgentWithPolicy.__init__(self, policy, obfilter, rewfilter)
+        AgentWithPolicy.__init__(self, policy, obfilter, rewfilter, pnet=pnet, chk_dir=chk_dir)
         self.set_stochastic(False)
         session.run(tf.initialize_all_variables())
 
