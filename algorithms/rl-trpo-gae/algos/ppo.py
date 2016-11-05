@@ -14,6 +14,7 @@ class PpoLbfgsUpdater(EzFlat, EzPickle):
     ]
 
     def __init__(self, stochpol, usercfg, session):
+        self.sess = session      # for slicing eval
         EzPickle.__init__(self, stochpol, usercfg)
         cfg = update_default_config(self.options, usercfg)
         print("PPOUpdater", cfg)
@@ -84,10 +85,10 @@ class PpoLbfgsUpdater(EzFlat, EzPickle):
         N_float = tf.cast(N, tf.float32)
 
         train_stop = int(0.75 * N_float) if cfg["do_split"] else N_float
-        train_sli = slice(0, train_stop)
-        test_sli = slice(train_stop, None)
+        train_sli = slice(0, self.sess.run(train_stop))
+        test_sli = slice(self.sess.run(train_stop), None)
 
-        train_args = (ob_no[train_sli], action_na[train_sli], advantage_n[train_sli], prob_np[train_sli])   # Err
+        train_args = (ob_no[train_sli], action_na[train_sli], advantage_n[train_sli], prob_np[train_sli])   # Fixed
 
         thprev = self.get_params_flat()
 
