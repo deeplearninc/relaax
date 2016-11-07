@@ -159,19 +159,19 @@ class PpoSgdUpdater(EzPickle):
 
         probtype = stochpol.probtype
         params = stochpol.trainable_variables
-        old_params = [v.get_value() for v in stochpol.trainable_variables]  # ?!
+        old_params = [v.ref() for v in stochpol.trainable_variables]  # ?!
         # old_params = [theano.shared(v.get_value()) for v in stochpol.trainable_variables]
 
         ob_no = stochpol.input
         act_na = probtype.sampled_variable()
         adv_n = tf.placeholder(dtype, name='adv_n')
         kl_coeff = tf.placeholder(dtype, name='kl_coeff')
-        #  = T.scalar("kl_coeff")
+        # kl_coeff = T.scalar("kl_coeff")
 
         # Probability distribution:
         self.loss_names = ["surr", "kl", "ent"]
         prob_np = stochpol.get_output()
-        oldprob_np = tf.assign(stochpol.get_output(), replace=dict(zipsame(params, old_params)))
+        oldprob_np = stochpol.get_output()  # need revision
         # oldprob_np = theano.clone(stochpol.get_output(), replace=dict(zipsame(params, old_params)))
 
         p_n = probtype.likelihood(act_na, prob_np)
@@ -190,14 +190,51 @@ class PpoSgdUpdater(EzPickle):
         # training
         args = [ob_no, act_na, adv_n]
         surr, kl = train_losses[:2]
-        pensurr = surr + kl_coeff * kl + cfg["kl_cutoff_coeff"] * (kl > kl_cutoff) * tf.square(kl - kl_cutoff)
+        pensurr = tf.select(tf.greater(kl, kl_cutoff),
+                            surr + kl_coeff * kl + cfg["kl_cutoff_coeff"] * tf.square(kl - kl_cutoff),
+                            surr + kl_coeff * kl)
+        # pensurr = surr + kl_coeff * kl + cfg["kl_cutoff_coeff"] * (kl > kl_cutoff) * tf.square(kl - kl_cutoff)
 
-        # troubles below
+        # TROUBLES below
+        self.train = TensorFlowTheanoFunctionU([kl_coeff] + args, train_losses, session,
+                                               updates=stochpol.get_updates()
+                                               + adam_updates(pensurr, params, learning_rate=cfg.stepsize).items())
+        '''
         self.train = theano.function([kl_coeff] + args, train_losses,
                                      updates=stochpol.get_updates()
                                      + adam_updates(pensurr, params, learning_rate=cfg.stepsize).items(),
-                                     **FNOPTS)
+                                     **FNOPTS)'''
 
         self.test = TensorFlowTheanoFunction(args, train_losses, session)  # XXX
-        self.update_old_net = 0
+
+        self.update_old_net = TensorFlowTheanoFunctionU([], [], session, updates=zip(old_params, params))
         # self.update_old_net = theano.function([], [], updates=zip(old_params, params))
+
+
+def adam_updates(loss, params, learning_rate=0.001, beta1=0.9, beta2=0.999, epsilon=1e-8):
+    all_grads = tf.gradients(loss, params)
+    t_prev = tf.Variable(np.array(0, dtype='float32'))
+    # t_prev = theano.shared(np.array(0, dtype=floatX))
+    updates = OrderedDict()
+
+    t = t_prev + 1
+    a_t = learning_rate * tf.sqrt(1-beta2**t) / (1-beta1**t)
+
+    for param, g_t in zip(params, all_grads):
+        value = param.ref()
+        # value = param.get_value(borrow=True)
+        m_prev = tf.Variable(np.zeros(value.get_shape(), dtype='float32'))
+        # m_prev = theano.shared(np.zeros(value.shape, dtype=value.dtype), broadcastable=param.broadcastable)
+        v_prev = tf.Variable(np.zeros(value.get_shape(), dtype='float32'))
+        # v_prev = theano.shared(np.zeros(value.shape, dtype=value.dtype), broadcastable=param.broadcastable)
+
+        m_t = beta1 * m_prev + (1-beta1) * g_t
+        v_t = beta2 * v_prev + (1-beta2) * g_t**2
+        step = a_t * m_t / (tf.sqrt(v_t) + epsilon)
+
+        updates[m_prev] = m_t
+        updates[v_prev] = v_t
+        updates[param] = param - step
+
+    updates[t_prev] = t
+    return updates
