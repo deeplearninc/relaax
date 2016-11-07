@@ -3,7 +3,7 @@ import tensorflow as tf
 
 
 def cluster(n_worker=None):
-    all_workers = ['localhost:2223', 'localhost:2224']
+    all_workers = ['localhost:%d' % (2223 + i) for i in xrange(2)]
     workers = all_workers
     if n_worker is not None:
         workers = {n_worker: all_workers[n_worker]}
