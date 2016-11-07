@@ -19,8 +19,6 @@ class Trainer:
         if params.use_GPU:
             kernel = "/gpu:0"
 
-        self._workers = []          # Agent's Threads --> it's defined and assigned in initialize
-
         with tf.device(global_device + kernel):
             self.global_network = game_ac_network.make_shared_network(params, -1)
             self.display_network = game_ac_network.make_full_network(params, -2)
