@@ -1,4 +1,5 @@
 import math
+import time
 import random
 import tensorflow as tf
 import numpy as np
@@ -18,7 +19,7 @@ class Factory(object):
     ):
         learning_rate_input = tf.placeholder("float")
 
-        apply_gradient = rmsprop_applier.RMSPropApplier(
+        apply_gradients = rmsprop_applier.RMSPropApplier(
             learning_rate=learning_rate_input,
             decay=params.RMSP_ALPHA,
             momentum=0.0,
@@ -38,7 +39,7 @@ class Factory(object):
             global_network=global_network,
             device=local_device,
             learning_rate_input=learning_rate_input,
-            apply_gradient=apply_gradient,
+            apply_gradients=apply_gradients,
             get_session=get_session,
             log_reward=lambda reward, step: add_summary(
                 get_session().run(summary, feed_dict={episode_score: reward}),
@@ -60,7 +61,7 @@ class _Worker(object):
         global_network,
         device,
         learning_rate_input,
-        apply_gradient,
+        apply_gradients,
         get_session,
         log_reward
     ):
@@ -71,6 +72,7 @@ class _Worker(object):
         self._get_session = get_session
         self._log_reward = log_reward
         self._learning_rate_input = learning_rate_input
+        self._last_time = 0
 
         with tf.device(device):
             self._local_network = game_ac_network \
@@ -87,7 +89,7 @@ class _Worker(object):
         self.accum_gradients = trainer.accumulate_gradients()
         self.reset_gradients = trainer.reset_gradients()
 
-        self.apply_gradients = apply_gradient(trainer.get_accum_grad_list())
+        self.apply_gradients = apply_gradients(trainer.get_accum_grad_list())
 
         self.sync = game_ac_network.assign_vars(self._local_network, global_network)
 
@@ -274,6 +276,7 @@ class _Worker(object):
                 }
             )
 
+        start_time = time.time()
         cur_learning_rate = self.anneal_learning_rate(
             sess.run(self._global_network.global_t)
         )
@@ -282,9 +285,13 @@ class _Worker(object):
             self.apply_gradients,
             feed_dict={self._learning_rate_input: cur_learning_rate}
         )
+        elapsed = time.time() - start_time
+        interval = time.time() - self._last_time
+        self._last_time = time.time()
 
         if (self._ident == 0) and (self.local_t % 100) == 0:
             print("TIMESTEP", self.local_t)
+            print("ELAPSED", elapsed, interval, elapsed / interval)
 
 
 def _log_uniform(lo, hi, rate):
