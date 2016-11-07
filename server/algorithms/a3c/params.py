@@ -7,7 +7,7 @@ class Params(object):
                                'episode_len': 5,
                                'use_GPU': False,
                                'use_LSTM': True,
-                               'max_global_step': 10 * 10 ** 7}
+                               'max_global_step': 8 * 10 ** 7}
         self.game_rom = None     # name of the given game rom
         self.action_type = None  # Type of returning action (Discrete for default)
         self.action_size = None  # action size for given game rom
