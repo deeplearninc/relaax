@@ -588,20 +588,8 @@ def VIDEO_NEVER(_):
 def VIDEO_ALWAYS(_):
     return True
 
-'''
-class TensorFlowTheanoFunction(object):
-    def __init__(self, inputs, outputs, session):
-        self._inputs = inputs
-        self._outputs = outputs
-        self.session = session
 
-    def __call__(self, *args, **kwargs):
-        feeds = {}
-        for (argpos, arg) in enumerate(args):
-            feeds[self._inputs[argpos]] = arg
-        return self.session.run(self._outputs, feeds)
-
-class TensorFlowTheanoFunction(object):
+class TensorFlowTheanoFunctionU(object):
     def __init__(self, inputs, outputs, session, updates=()):
         self._inputs = inputs
         self._outputs = outputs
@@ -630,4 +618,3 @@ class TensorFlowTheanoFunction(object):
         else:
             assert len(outputs_list) == 1
         return outputs_list[0]
-'''
