@@ -22,6 +22,7 @@ class GameACNetwork(object):
 
             # avoid NaN with clipping when value in pi becomes zero
             log_pi = tf.log(tf.clip_by_value(self.pi, 1e-20, 1.0))
+            # entropy = -tf.reduce_sum(self.pi * tf.log(self.pi), reduction_indices=1)
 
             # policy entropy
             entropy = -tf.reduce_sum(self.pi * log_pi, reduction_indices=1)
