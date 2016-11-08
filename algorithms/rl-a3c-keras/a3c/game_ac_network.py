@@ -32,7 +32,8 @@ class GameACNetwork(object):
             self.td = tf.placeholder("float", [None])
 
             # avoid NaN with clipping when value in pi becomes zero
-            log_pi = tf.log(tf.clip_by_value(self.pi, 1e-20, 1.0))
+            # log_pi = tf.log(tf.clip_by_value(self.pi, 1e-20, 1.0))  # last ground truth
+            log_pi = tf.log(tf.select(tf.greater(self.pi, 1e-20), self.pi, tf.clip_by_value(self.pi, 1e-20, 1.0)))
             # entropy = -tf.reduce_sum(self.pi * tf.log(self.pi), reduction_indices=1)
 
             # policy entropy
@@ -90,14 +91,18 @@ class GameACNetwork(object):
 
     def restore(self, chk_dir):
         n_iter = 0
+        # just for tests
         if os.path.exists(chk_dir):
             file_names = [fn for fn in os.listdir(chk_dir) if fn.endswith('.h5')]
-            tokens = file_names[-1].split("--")
-            n_iter = int(tokens[1].split(".")[0])
-            fname = "/net--" + str(n_iter) + ".h5"
-            self.net.load_weights(chk_dir + fname)
-            print("checkpoint loaded:", fname)
-            print(">>> global step set: ", n_iter)
+            if len(file_names) > 0:
+                tokens = file_names[-1].split("--")
+                n_iter = int(tokens[1].split(".")[0])
+                fname = "/net--" + str(n_iter) + ".h5"
+                self.net.load_weights(chk_dir + fname)
+                print("checkpoint loaded:", fname)
+                print(">>> global step set: ", n_iter)
+            else:
+                print("Could not find old checkpoint")
         else:
             print("Could not find old checkpoint")
         return n_iter
