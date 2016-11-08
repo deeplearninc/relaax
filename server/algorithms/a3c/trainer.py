@@ -39,6 +39,7 @@ class Trainer:
         return math.exp(v)
 
     def initialize(self):
+        # lr = 7 * 10 ^ -4  the best learning rate from DeepMind
         self.initial_learning_rate = self.log_uniform(self.params.INITIAL_ALPHA_LOW,
                                                       self.params.INITIAL_ALPHA_HIGH,
                                                       self.params.INITIAL_ALPHA_LOG_RATE)
