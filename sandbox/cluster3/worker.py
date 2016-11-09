@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import sys
 sys.path.append('../../server')
 
@@ -6,29 +8,25 @@ import flask
 import flask_socketio
 from flask_socketio import emit # rooms, disconnect
 
+import grpc
 import shared
+import ps_pb2
 import models.ale_model
 
 import algorithms.a3c.params
 import algorithms.a3c.trainer
 
-
 app = flask.Flask(__name__)
 app.config['SECRET_KEY'] = 'TotalRecall'
 socketio = flask_socketio.SocketIO(app)
-n_worker = None
-server = None
 log_dir = None
+ps_stub = ps_pb2.PsStub(grpc.insecure_channel('localhost:50051'))
 
 
 def main(n_worker_):
-    global n_worker
-    global server
     global log_dir
 
     params = algorithms.a3c.params.Params()
-    n_worker = n_worker_
-    server = shared.worker(n_worker_)
 
     lstm_str = ''
     if params.use_LSTM:
@@ -74,11 +72,7 @@ def on_connect():
     print('on connect: ' + flask.request.sid)
     flask.session['id'] = flask.request.sid
     model = model_set.create_current()
-    model.init_model(
-        target=server.target,
-        global_device=shared.ps_device(),
-        local_device=shared.worker_device(n_worker)
-    )
+    model.init_model(ps_stub=ps_stub)
     emit('model is ready', {'threads_cnt': model.threads_cnt()}, room=flask.session['id'])
 
 

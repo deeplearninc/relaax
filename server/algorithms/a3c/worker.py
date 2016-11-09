@@ -1,34 +1,22 @@
-import math
 import time
 import random
 import tensorflow as tf
+import io
 import numpy as np
-import rmsprop_applier
 import accum_trainer
 import game_ac_network
+import ps_pb2
 
 
 class Factory(object):
     def __init__(
         self,
         params,
-        global_network,
+        ps_stub,
         local_device,
         get_session,
         add_summary
     ):
-        learning_rate_input = tf.placeholder("float")
-
-        apply_gradients = rmsprop_applier.RMSPropApplier(
-            learning_rate=learning_rate_input,
-            decay=params.RMSP_ALPHA,
-            momentum=0.0,
-            epsilon=params.RMSP_EPSILON,
-            clip_norm=params.GRAD_NORM_CLIP,
-            global_vars=global_network.get_vars(),
-            device=local_device
-        )
-
         episode_score = tf.placeholder(tf.int32)
         summary = tf.scalar_summary('episode score', episode_score)
 
@@ -36,10 +24,8 @@ class Factory(object):
         self._factory = lambda ident: _Worker(
             ident=ident,
             params=params,
-            global_network=global_network,
+            ps_stub=ps_stub,
             device=local_device,
-            learning_rate_input=learning_rate_input,
-            apply_gradients=apply_gradients,
             get_session=get_session,
             log_reward=lambda reward, step: add_summary(
                 get_session().run(summary, feed_dict={episode_score: reward}),
@@ -58,20 +44,17 @@ class _Worker(object):
         self,
         ident,
         params,
-        global_network,
+        ps_stub,
         device,
-        learning_rate_input,
-        apply_gradients,
         get_session,
         log_reward
     ):
 
         self._ident = ident
         self._params = params
-        self._global_network = global_network 
+        self._ps_stub = ps_stub 
         self._get_session = get_session
         self._log_reward = log_reward
-        self._learning_rate_input = learning_rate_input
         self._last_time = 0
 
         with tf.device(device):
@@ -89,16 +72,7 @@ class _Worker(object):
         self.accum_gradients = trainer.accumulate_gradients()
         self.reset_gradients = trainer.reset_gradients()
 
-        self.apply_gradients = apply_gradients(trainer.get_accum_grad_list())
-
-        self.sync = game_ac_network.assign_vars(self._local_network, global_network)
-
-        self._initial_learning_rate = _log_uniform(
-            params.INITIAL_ALPHA_LOW,
-            params.INITIAL_ALPHA_HIGH,
-            params.INITIAL_ALPHA_LOG_RATE
-        )
-
+        self._accum_grad_list = trainer.get_accum_grad_list()
 
         self.local_t = 0            # steps count for current agent's thread
         self.episode_reward = 0     # score accumulator for current game
@@ -130,7 +104,11 @@ class _Worker(object):
             # reset accumulated gradients
             sess.run(self.reset_gradients)
             # copy weights from shared to local
-            sess.run(self.sync)
+
+            grads = np.load(io.BytesIO(self._ps_stub.GetValues(ps_pb2.NullMessage()).numpy_bytes))['']
+
+            for var, grad in zip(self._local_network.get_vars(), grads):
+                tf.assign(var, grad)
 
             self.states = []
             self.actions = []
@@ -165,7 +143,7 @@ class _Worker(object):
 
         self.local_t += 1
         self.episode_t += 1
-        global_t = sess.run(self._global_network.increment_global_t)
+        global_t = self._ps_stub.IncrementGlobalT(ps_pb2.NullMessage()).n
 
         if global_t > self._params.max_global_step:
             return 0, True
@@ -186,13 +164,6 @@ class _Worker(object):
             self.episode_t = self._params.episode_len
 
         return score, False
-
-    def anneal_learning_rate(self, global_time_step):
-        learning_rate = self._initial_learning_rate * \
-                        (self._params.max_global_step - global_time_step) / self._params.max_global_step 
-        if learning_rate < 0.0:
-            learning_rate = 0.0
-        return learning_rate
 
     @staticmethod
     def choose_action(pi_values):
@@ -277,14 +248,13 @@ class _Worker(object):
             )
 
         start_time = time.time()
-        cur_learning_rate = self.anneal_learning_rate(
-            sess.run(self._global_network.global_t)
-        )
 
-        sess.run(
-            self.apply_gradients,
-            feed_dict={self._learning_rate_input: cur_learning_rate}
-        )
+        grads = sess.run(self._accum_grad_list)
+
+        output = io.BytesIO()
+        np.savez_compressed(output, **{'': grads})
+        self._ps_stub.ApplyGradients(ps_pb2.NumpyList(numpy_bytes=output.getvalue()))
+
         elapsed = time.time() - start_time
         interval = time.time() - self._last_time
         self._last_time = time.time()
@@ -292,11 +262,4 @@ class _Worker(object):
         if (self._ident == 0) and (self.local_t % 100) == 0:
             print("TIMESTEP", self.local_t)
             print("ELAPSED", elapsed, interval, elapsed / interval)
-
-
-def _log_uniform(lo, hi, rate):
-    log_lo = math.log(lo)
-    log_hi = math.log(hi)
-    v = log_lo * (1 - rate) + log_hi * rate
-    return math.exp(v)
 

@@ -1,18 +1,19 @@
 import tensorflow as tf
 import numpy as np
 from lstm import CustomBasicLSTMCell
+import rmsprop_applier
 
 
 def make_shared_network(params, thread_index):
     if params.use_LSTM:
         return _GameACLSTMNetworkShared(params.action_size, thread_index)
-    return _GameACFFNetworkShared(params.action_size)
+    return _GameACFFNetworkShared(params)
 
 
 def make_full_network(params, thread_index):
     if params.use_LSTM:
         return _GameACLSTMNetwork(params.action_size, thread_index)
-    return _GameACFFNetwork(params.action_size)
+    return _GameACFFNetwork(params)
 
 
 # Actor-Critic Network Base Class
@@ -56,7 +57,7 @@ class _GameACNetwork(object):
 
 class _GameACFFNetworkShared(_GameACNetwork):
 
-    def __init__(self, action_size):
+    def __init__(self, params):
         super(_GameACFFNetworkShared, self).__init__()
 
         self.W_conv1 = _conv_weight_variable([8, 8, 4, 16])  # stride=4
@@ -69,8 +70,8 @@ class _GameACFFNetworkShared(_GameACNetwork):
         self.b_fc1 = _fc_bias_variable([256], 2592)
 
         # weight for policy output layer
-        self.W_fc2 = _fc_weight_variable([256, action_size])
-        self.b_fc2 = _fc_bias_variable([action_size], 256)
+        self.W_fc2 = _fc_weight_variable([256, params.action_size])
+        self.b_fc2 = _fc_bias_variable([params.action_size], 256)
 
         # weight for value output layer
         self.W_fc3 = _fc_weight_variable([256, 1])
@@ -80,28 +81,41 @@ class _GameACFFNetworkShared(_GameACNetwork):
         self.diff = tf.reduce_sum(self.W_fc3 - self.W_fc3_copy)
         self.copy_W_fc3 = tf.assign(self.W_fc3_copy, self.W_fc3)
 
-#        self.copies = []
-#        self.diffs = []
-#        for var in get_vars():
-#            duplicate = tf.Variable(var.initialized_value())
-#            diff = tf.reduce_sum(var - duplicate)
-#            copy = tf.assign(duplicate, var)
+        self.values = [
+            self.W_conv1,
+            self.b_conv1,
+            self.W_conv2,
+            self.b_conv2,
+            self.W_fc1  ,
+            self.b_fc1  ,
+            self.W_fc2  ,
+            self.b_fc2  ,
+            self.W_fc3  ,
+            self.b_fc3
+        ]
+        self.gradients = [tf.placeholder(tf.float32, v.get_shape()) for v in self.values]
+
+        self.learning_rate_input = tf.placeholder(tf.float32)
+
+        applier = rmsprop_applier.RMSPropApplier(
+            learning_rate=self.learning_rate_input,
+            decay=params.RMSP_ALPHA,
+            momentum=0.0,
+            epsilon=params.RMSP_EPSILON,
+            clip_norm=params.GRAD_NORM_CLIP,
+            global_vars=self.values
+        )
+        self.apply_gradients = applier(self.gradients)
 
     def get_vars(self):
-        return [
-            self.W_conv1, self.b_conv1,
-            self.W_conv2, self.b_conv2,
-            self.W_fc1  , self.b_fc1  ,
-            self.W_fc2  , self.b_fc2  ,
-            self.W_fc3  , self.b_fc3
-        ]
+        return self.values
 
 
 # Actor-Critic FF Network
 class _GameACFFNetwork(_GameACFFNetworkShared):
 
-    def __init__(self, action_size):
-        super(_GameACFFNetwork, self).__init__(action_size)
+    def __init__(self, params):
+        super(_GameACFFNetwork, self).__init__(params)
 
         # state (input)
         self.s = tf.placeholder("float", [None, 84, 84, 4])

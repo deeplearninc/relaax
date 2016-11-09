@@ -11,12 +11,10 @@ class AleModel(object):
     def threads_cnt(self):
         return self._params.threads_cnt
 
-    def init_model(self, target='', global_device='', local_device=''):  # init model's algorithm with the given parameters
+    def init_model(self, ps_stub):  # init model's algorithm with the given parameters
         self._trainer = self._Trainer(
             self._params,
-            target=target,
-            global_device=global_device,
-            local_device=local_device,
+            ps_stub=ps_stub,
             log_dir=self._log_dir
         )
 

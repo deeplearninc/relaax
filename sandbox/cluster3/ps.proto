@@ -1,0 +1,18 @@
+
+syntax = "proto3";
+
+service Ps {
+  rpc IncrementGlobalT(NullMessage) returns (Step) {}
+  rpc ApplyGradients(NumpyList) returns (NullMessage) {}
+  rpc GetValues(NullMessage) returns (NumpyList) {}
+}
+
+message NullMessage {}
+
+message Step {
+  fixed64 n = 1;
+}
+
+message NumpyList {
+  bytes numpy_bytes = 1;
+}
