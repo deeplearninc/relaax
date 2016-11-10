@@ -1,43 +1,36 @@
+N=16
+PIDS=()
+
+echo ps
 source activate server&&exec python ps.py &>out/ps &
-PS_PID=$!
-
+PIDS+=($!)
 sleep 1
 
-source activate server&&exec /home/sv/anaconda2/envs/server/bin/gunicorn -k flask_sockets.worker -b localhost:8000 "worker:main(0)" &>out/worker_0 &
-WORKER_0_PID=$!
+for i in `seq 0 $((N - 1))`;
+do
+    echo worker $i
+    source activate server&&exec gunicorn -k flask_sockets.worker -b localhost:$((8000 + i)) "worker:main($i)" &>out/worker_$i &
+    PIDS+=($!)
+    sleep 1
+done
 
-sleep 1
-
-source activate server&&exec /home/sv/anaconda2/envs/server/bin/gunicorn -k flask_sockets.worker -b localhost:8001 "worker:main(1)" &>out/worker_1 &
-WORKER_1_PID=$!
-
-sleep 1
-
-source activate client&&exec python ../../clients/rl_client_ale.py --host localhost --port 8000 --agents 8 &>out/client_0 &
-CLIENT_0_PID=$!
-
-sleep 1
-
-source activate client&&exec python ../../clients/rl_client_ale.py --host localhost --port 8001 --agents 8 &>out/client_1 &
-CLIENT_1_PID=$!
-
+for i in `seq 0 $((N - 1))`;
+do
+    echo client $i
+    source activate client&&exec python ../../clients/rl_client_ale.py --host localhost --port $((8000 + i)) --agents 1 &>out/client_$i &
+    PIDS+=($!)
+    sleep 1
+done
 
 read -p "Press [Enter] key to stop cluster..."
 
-kill -SIGINT $CLIENT_1_PID
+for i in `seq $((${#PIDS[@]} - 1)) -1 0`;
+do
+    echo stop $((PIDS[i]))
+    kill -SIGINT $((PIDS[i]))
+    sleep 1
+done
 
-sleep 1
-kill -SIGINT $CLIENT_0_PID
-
-sleep 1
-kill -SIGINT $WORKER_1_PID
-
-sleep 1
-kill -SIGINT $WORKER_0_PID
-
-sleep 1
-kill -SIGINT $PS_PID
-
-sleep 3
+sleep 2
 
 ps ax | grep python
