@@ -93,7 +93,13 @@ class _GameACFFNetworkShared(_GameACNetwork):
             self.W_fc3  ,
             self.b_fc3
         ]
-        self.gradients = [tf.placeholder(tf.float32, v.get_shape()) for v in self.values]
+
+        self._placeholders = [tf.placeholder(v.dtype, v.get_shape()) for v in self.values]
+        self._assign_values = tf.group(*[
+            tf.assign(v, p) for v, p in zip(self.values, self._placeholders)
+        ])
+
+        self.gradients = [tf.placeholder(v.dtype, v.get_shape()) for v in self.values]
 
         self.learning_rate_input = tf.placeholder(tf.float32)
 
@@ -106,6 +112,11 @@ class _GameACFFNetworkShared(_GameACNetwork):
             global_vars=self.values
         )
         self.apply_gradients = applier(self.gradients)
+
+    def assign_values(self, session, values):
+        session.run(self._assign_values, feed_dict={
+            p: v for p, v in zip(self._placeholders, values)
+        })
 
     def get_vars(self):
         return self.values

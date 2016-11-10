@@ -106,9 +106,7 @@ class _Worker(object):
             # copy weights from shared to local
 
             grads = np.load(io.BytesIO(self._ps_stub.GetValues(ps_pb2.NullMessage()).numpy_bytes))['']
-
-            for var, grad in zip(self._local_network.get_vars(), grads):
-                tf.assign(var, grad)
+            self._local_network.assign_values(sess, grads)
 
             self.states = []
             self.actions = []
