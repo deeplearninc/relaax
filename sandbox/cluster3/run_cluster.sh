@@ -1,4 +1,4 @@
-N=16
+N=$1
 PIDS=()
 
 echo ps
