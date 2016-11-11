@@ -9,18 +9,17 @@ import flask_socketio
 from flask_socketio import emit # rooms, disconnect
 
 import grpc
-import shared
-import ps_pb2
 import models.ale_model
 
 import algorithms.a3c.params
+import algorithms.a3c.master
 import algorithms.a3c.trainer
 
 app = flask.Flask(__name__)
 app.config['SECRET_KEY'] = 'TotalRecall'
 socketio = flask_socketio.SocketIO(app)
 log_dir = None
-ps_stub = ps_pb2.PsStub(grpc.insecure_channel('localhost:50051'))
+master = algorithms.a3c.master.Stub(grpc.insecure_channel('localhost:50051'))
 
 
 def main(n_worker_):
@@ -44,6 +43,7 @@ class _ModelSet(object):
     def create_current(self):
         self._models[flask.request.sid] = models.ale_model.AleModel(
             self._params,
+            master,
             algorithms.a3c.trainer.Trainer,
             log_dir
         )
@@ -72,7 +72,7 @@ def on_connect():
     print('on connect: ' + flask.request.sid)
     flask.session['id'] = flask.request.sid
     model = model_set.create_current()
-    model.init_model(ps_stub=ps_stub)
+    model.init_model()
     emit('model is ready', {'threads_cnt': model.threads_cnt()}, room=flask.session['id'])
 
 

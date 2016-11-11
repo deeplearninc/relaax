@@ -12,7 +12,7 @@ import io
 
 
 class Trainer:
-    def __init__(self, params, ps_stub=None, log_dir='.'):
+    def __init__(self, params, master, log_dir='.'):
         kernel = "/cpu:0"
         if params.use_GPU:
             kernel = "/gpu:0"
@@ -22,7 +22,7 @@ class Trainer:
 
         new_worker = worker.Factory(
             params=params,
-            ps_stub=ps_stub,
+            master=master,
             local_device=kernel,
             get_session=lambda: self.sess,
             add_summary=lambda summary, step:

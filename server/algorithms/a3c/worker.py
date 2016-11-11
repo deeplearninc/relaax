@@ -5,14 +5,13 @@ import io
 import numpy as np
 import accum_trainer
 import game_ac_network
-import ps_pb2
 
 
 class Factory(object):
     def __init__(
         self,
         params,
-        ps_stub,
+        master,
         local_device,
         get_session,
         add_summary
@@ -24,7 +23,7 @@ class Factory(object):
         self._factory = lambda ident: _Worker(
             ident=ident,
             params=params,
-            ps_stub=ps_stub,
+            master=master,
             device=local_device,
             get_session=get_session,
             log_reward=lambda reward, step: add_summary(
@@ -44,7 +43,7 @@ class _Worker(object):
         self,
         ident,
         params,
-        ps_stub,
+        master,
         device,
         get_session,
         log_reward
@@ -52,7 +51,7 @@ class _Worker(object):
 
         self._ident = ident
         self._params = params
-        self._ps_stub = ps_stub 
+        self._master = master
         self._get_session = get_session
         self._log_reward = log_reward
         self._last_time = 0
@@ -104,16 +103,7 @@ class _Worker(object):
             # reset accumulated gradients
             sess.run(self.reset_gradients)
             # copy weights from shared to local
-
-            grads = [
-                np.ndarray(
-                    shape=a.shape,
-                    dtype=np.dtype(a.dtype),
-                    buffer=a.data
-                )
-                for a in self._ps_stub.GetValues(ps_pb2.NullMessage()).arrays
-            ]
-            self._local_network.assign_values(sess, grads)
+            self._local_network.assign_values(sess, self._master.get_values())
 
             self.states = []
             self.actions = []
@@ -148,7 +138,7 @@ class _Worker(object):
 
         self.local_t += 1
         self.episode_t += 1
-        global_t = self._ps_stub.IncrementGlobalT(ps_pb2.NullMessage()).n
+        global_t = self._master.increment_global_t()
 
         if global_t > self._params.max_global_step:
             return 0, True
@@ -254,16 +244,7 @@ class _Worker(object):
 
         start_time = time.time()
 
-        grads = sess.run(self._accum_grad_list)
-
-        self._ps_stub.ApplyGradients(ps_pb2.NdArrayList(arrays=[
-            ps_pb2.NdArrayList.NdArray(
-                dtype=str(a.dtype),
-                shape=a.shape,
-                data=a.tobytes()
-            )
-            for a in grads
-        ]))
+        self._master.apply_gradients(sess.run(self._accum_grad_list))
 
         elapsed = time.time() - start_time
         interval = time.time() - self._last_time
