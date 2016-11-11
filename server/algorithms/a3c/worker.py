@@ -105,7 +105,14 @@ class _Worker(object):
             sess.run(self.reset_gradients)
             # copy weights from shared to local
 
-            grads = np.load(io.BytesIO(self._ps_stub.GetValues(ps_pb2.NullMessage()).numpy_bytes))['']
+            grads = [
+                np.ndarray(
+                    shape=a.shape,
+                    dtype=np.dtype(a.dtype),
+                    buffer=a.data
+                )
+                for a in self._ps_stub.GetValues(ps_pb2.NullMessage()).arrays
+            ]
             self._local_network.assign_values(sess, grads)
 
             self.states = []
@@ -249,9 +256,14 @@ class _Worker(object):
 
         grads = sess.run(self._accum_grad_list)
 
-        output = io.BytesIO()
-        np.savez_compressed(output, **{'': grads})
-        self._ps_stub.ApplyGradients(ps_pb2.NumpyList(numpy_bytes=output.getvalue()))
+        self._ps_stub.ApplyGradients(ps_pb2.NdArrayList(arrays=[
+            ps_pb2.NdArrayList.NdArray(
+                dtype=str(a.dtype),
+                shape=a.shape,
+                data=a.tobytes()
+            )
+            for a in grads
+        ]))
 
         elapsed = time.time() - start_time
         interval = time.time() - self._last_time
@@ -260,4 +272,3 @@ class _Worker(object):
         if (self._ident == 0) and (self.local_t % 100) == 0:
             print("TIMESTEP", self.local_t)
             print("ELAPSED", elapsed, interval, elapsed / interval)
-

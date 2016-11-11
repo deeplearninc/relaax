@@ -19,6 +19,16 @@ import shared
 import ps_pb2
 
 
+class Elapsed(object):
+    def __init__(self):
+        self._start = time.time()
+
+    def __call__(self, message):
+        end = time.time()
+        # print(message, end - self._start)
+        self._start = end
+
+
 class _Ps(ps_pb2.PsServicer):
     def __init__(self, params, network, session):
         self._params = params
@@ -29,13 +39,22 @@ class _Ps(ps_pb2.PsServicer):
             params.INITIAL_ALPHA_HIGH,
             params.INITIAL_ALPHA_LOG_RATE
         )
+        self._e = Elapsed()
 
     def IncrementGlobalT(self, request, context):
         return ps_pb2.Step(n=long(self._session.run(self._network.increment_global_t)))
 
     def ApplyGradients(self, request, context):
-        # print('received', len(request.numpy_bytes))
-        grads = numpy.load(io.BytesIO(request.numpy_bytes))['']
+        self._e('ApplyGradients')
+        grads = [
+            numpy.ndarray(
+                shape=a.shape,
+                dtype=numpy.dtype(a.dtype),
+                buffer=a.data
+            )
+            for a in request.arrays
+        ]
+        self._e('numpy.load')
 
         cur_learning_rate = self._anneal_learning_rate(
             self._session.run(self._network.global_t)
@@ -45,14 +64,23 @@ class _Ps(ps_pb2.PsServicer):
         feed_dict[self._network.learning_rate_input] = cur_learning_rate
 
         self._session.run(self._network.apply_gradients, feed_dict=feed_dict)
+        self._e('apply_gradients')
         return ps_pb2.NullMessage()
 
     def GetValues(self, request, context):
-        output = io.BytesIO()
-        numpy.savez_compressed(output, **{'': self._session.run(self._network.values)})
-        numpy_bytes=output.getvalue()
-        # print('sent', len(numpy_bytes))
-        return ps_pb2.NumpyList(numpy_bytes=numpy_bytes)
+        self._e('GetValues')
+        values = self._session.run(self._network.values)
+        self._e('values')
+        response = ps_pb2.NdArrayList(arrays=[
+            ps_pb2.NdArrayList.NdArray(
+                dtype=str(a.dtype),
+                shape=a.shape,
+                data=a.tobytes()
+            )
+            for a in values
+        ])
+        self._e('numpy.save')
+        return response
 
     def _anneal_learning_rate(self, global_time_step):
         learning_rate = self._initial_learning_rate * \
@@ -108,7 +136,7 @@ def main():
 
     signal.signal(signal.SIGINT, stop_server)
 
-    server = grpc.server(concurrent.futures.ThreadPoolExecutor(max_workers=10))
+    server = grpc.server(concurrent.futures.ThreadPoolExecutor(max_workers=1))
     ps_pb2.add_PsServicer_to_server(_Ps(params, global_network, sess), server)
 
     server.add_insecure_port('[::]:50051')

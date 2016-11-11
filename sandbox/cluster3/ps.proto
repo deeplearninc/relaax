@@ -2,17 +2,22 @@
 syntax = "proto3";
 
 service Ps {
-  rpc IncrementGlobalT(NullMessage) returns (Step) {}
-  rpc ApplyGradients(NumpyList) returns (NullMessage) {}
-  rpc GetValues(NullMessage) returns (NumpyList) {}
+    rpc IncrementGlobalT(NullMessage) returns (Step) {}
+    rpc ApplyGradients(NdArrayList) returns (NullMessage) {}
+    rpc GetValues(NullMessage) returns (NdArrayList) {}
 }
 
 message NullMessage {}
 
 message Step {
-  fixed64 n = 1;
+    fixed64 n = 1;
 }
 
-message NumpyList {
-  bytes numpy_bytes = 1;
+message NdArrayList {
+    message NdArray {
+        string dtype = 1;
+        repeated int32 shape = 2;
+        bytes data = 3;
+    }
+    repeated NdArray arrays = 1;
 }
