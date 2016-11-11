@@ -1,25 +1,22 @@
 from __future__ import print_function
 
 import argparse
-
-from socketIO_client import SocketIO
+import socketIO_client
 import logging
-
-from time import sleep
+import time
+import random
 
 import game_process
-from params import Params
-
+import params
 from .. import server_api
 
 
 def parse_args():
-    
     parser = argparse.ArgumentParser()
     parser.add_argument('--host', default='localhost')
     parser.add_argument('--port', type=int, default=8000)
     parser.add_argument("--game", type=str, default="boxing", help="Name of the Atari game ROM")
-    parser.add_argument("--agents", type=int, default=8, help="Number of parallel training Agents")
+    parser.add_argument("--seed", type=int, default=None, help="Seed for random generator")
     parser.add_argument(
         "--lstm",
         type=lambda s: s.lower() not in ('no', 'n', 'false', 'f', '0', ''),
@@ -35,27 +32,32 @@ def main():
     logging.getLogger('requests').setLevel(logging.WARNING)
     logging.basicConfig(level=logging.INFO)
 
-    socketIO = SocketIO(args.host, args.port)
-    rlmodels_namespace = socketIO.define(ServerAPI, '/rlmodels')
+    socketIO = socketIO_client.SocketIO(args.host, args.port)
+    rlmodels_namespace = socketIO.define(_ServerAPI, '/rlmodels')
     socketIO.wait(seconds=1)
 
 
-class ServerAPI(server_api.ServerAPI):
+class _ServerAPI(server_api.ServerAPI):
     def __init__(self, *args, **kwargs):
-        params = Params(parse_args())
+        args_ = parse_args()
         server_api.ServerAPI.__init__(
             self,
-            params,
-            game_process.GameProcessFactory(params),
+            _seed(args_.seed),
+            game_process.GameProcessFactory(args_.game),
             *args,
             **kwargs
         )
 
     def stop_play_thread(self):
         self.play_thread.join()
-        sleep(3)
+        time.sleep(3)
         self.gameList.pop()
 
+
+def _seed(value):
+    if value is None:
+        return random.randrange(1000000)
+    return int(value)
 
 if __name__ == "__main__":
     main()

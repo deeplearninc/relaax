@@ -7,14 +7,15 @@ from ale_python_interface import ALEInterface
 
 
 class GameProcessFactory(object):
-    def __init__(self, params):
-        self.params = params
+    def __init__(self, game_rom):
+        self._game_rom = game_rom
 
     def new_env(self, seed):
-        return GameProcess(seed, self.params.game_rom)
+        print('seed', seed, type(seed))
+        return GameProcess(seed, self._game_rom)
 
     def new_display_env(self, seed):
-        return GameProcess(seed, self.params.game_rom, display=True, no_op_max=0)
+        return GameProcess(seed, self._game_rom, display=True, no_op_max=0)
 
 
 class GameProcess(object):

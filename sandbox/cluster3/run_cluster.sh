@@ -1,8 +1,8 @@
 N=$1
 PIDS=()
 
-echo ps
-source activate server&&exec python ps.py &>out/ps &
+echo master
+source activate server&&exec python master.py &>out/master &
 PIDS+=($!)
 sleep 1
 
@@ -17,7 +17,7 @@ done
 for i in `seq 0 $((N - 1))`;
 do
     echo client $i
-    source activate client&&exec python ../../clients/rl_client_ale.py --host localhost --port $((8000 + i)) --agents 1 &>out/client_$i &
+    source activate client&&exec python ../../clients/rl_client_ale.py --host localhost --port $((8000 + i)) --seed $i &>out/client_$i &
     PIDS+=($!)
     sleep 1
 done

@@ -20,27 +20,25 @@ class _NDArrayEncoder(json.JSONEncoder):
 
 
 class ServerAPI(socketIO_client.LoggingNamespace):
-    def __init__(self, cfg, factory, *args, **kwargs):
+    def __init__(self, seed, factory, *args, **kwargs):
         socketIO_client.LoggingNamespace.__init__(self, *args, **kwargs)
 
         self.inputKey = nonblock.bgread(sys.stdin)   # for Display --> standard console input interception
         self.play_thread = None     # Display thread --> need for further deleting
         self.gamePlayedList = None  # Games played accumulator for current session (can holds all threads)
-        self.cfg = cfg              # Parameters to setup the environment and training process
+        self._seed = seed
         self.factory = factory
         self.gameList = []          # List of running games, if no parallel agents -> list holds one element
 
     def on_model_is_ready(self, *args):
-        print('on_model_is_ready', args)
+        print('on_model_is_ready')
 
-        for i in xrange(self.cfg.threads_cnt):
-            self.gameList.append(self.factory.new_env(113 * i))
+        self.gameList.append(self.factory.new_env(self._seed))
 
-        self.gamePlayedList = numpy.zeros(self.cfg.threads_cnt, dtype=int)
+        self.gamePlayedList = numpy.zeros(1, dtype=int)
 
-        for i in xrange(self.cfg.threads_cnt):
-            print('Agent\'s game is created with index:', i)
-            self.emit('get action', {'thread_index': i, 'state': self.dump_state(i)})
+        print('Agent\'s game is created')
+        self.emit('get action', {'thread_index': 0, 'state': self.dump_state(0)})
 
     def on_get_action_ack(self, *args):
         # if more than one agent trains -> server returns tuple(list) with [action_num, thread_num]
