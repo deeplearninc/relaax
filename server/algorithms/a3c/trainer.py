@@ -20,16 +20,14 @@ class Trainer:
         with tf.device(kernel):
             self.display_network = game_ac_network.make_full_network(params, -2)
 
-        new_worker = worker.Factory(
+        self._worker = worker.Factory(
             params=params,
             master=master,
             local_device=kernel,
             get_session=lambda: self.sess,
             add_summary=lambda summary, step:
                 self._summary_writer.add_summary(summary, step)
-        )
-
-        self._worker = new_worker()
+        )()
 
         variables = [(tf.is_variable_initialized(v), tf.initialize_variables([v])) for v in tf.all_variables()]
 
@@ -44,7 +42,7 @@ class Trainer:
 
     def getAction(self, message):
         state = json.loads(message['state'], object_hook=_ndarray_decoder)
-        return self._worker.act(state)
+        return self._worker.act(state), 0
 
     def addEpisode(self, message):
         reward = message['reward']
