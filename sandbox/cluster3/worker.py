@@ -6,7 +6,6 @@ sys.path.append('../../server')
 import json
 import flask
 import flask_socketio
-from flask_socketio import emit # rooms, disconnect
 
 import grpc
 import models.ale_model
@@ -73,7 +72,7 @@ def on_connect():
     flask.session['id'] = flask.request.sid
     model = _model_set.create_current()
     model.init_model()
-    emit('connected', {}, room=flask.session['id'])
+    _emit('connected', {})
 
 
 @socketio.on('get action', namespace='/rlmodels')
@@ -81,9 +80,9 @@ def on_get_action(message):
     # print("Get action for: " + flask.session['id'])
     model = _model_set.get_current()
     if model is not None:
-        emit('get action ack', {'action': model.getAction(message)}, room=flask.session['id'])
+        _emit('get action ack', {'action': model.getAction(message)})
     else:
-        emit('get action error', {'data': 'no model found'}, room=flask.session['id'])
+        _emit('get action error', {'data': 'no model found'})
 
 
 @socketio.on('episode', namespace='/rlmodels')
@@ -92,9 +91,9 @@ def on_episode(message):
     model = _model_set.get_current()
     if model is not None:
         data = model.addEpisode(message)
-        emit('episode ack', json.dumps(data), room=flask.session['id'])
+        _emit('episode ack', json.dumps(data))
     else:
-        emit('get action error', {'data': 'no model found'}, room=flask.session['id'])
+        _emit('get action error', {'data': 'no model found'})
 
 
 @socketio.on('stop training', namespace='/rlmodels')
@@ -103,9 +102,9 @@ def on_stop_training():
     model = _model_set.get_current()
     if model is not None:
         _model_set.remove_current()
-        emit('stop training ack', {}, room=flask.session['id'])
+        _emit('stop training ack', {})
     else:
-        emit('get action error', {'data': 'no model found'}, room=flask.session['id'])
+        _emit('get action error', {'data': 'no model found'})
 
 
 @socketio.on('disconnect', namespace='/rlmodels')
@@ -114,6 +113,10 @@ def on_disconnect():
         print('Removing client from the room: ' + flask.session['id'])
         _model_set.remove_current()
     print('Client disconnected: ' + flask.session['id'])
+
+
+def _emit(verb, json):
+    flask_socketio.emit(verb, json, room=flask.session['id'])
 
 
 if __name__ == '__main__':
