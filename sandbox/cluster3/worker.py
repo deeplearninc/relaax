@@ -34,31 +34,30 @@ def main(n_worker_):
     return app
 
 
-class _ModelSet(object):
+class _Trainers(object):
     def __init__(self):
         self._params = algorithms.a3c.params.Params()
-        self._models = {}
+        self._trainers = {}
 
     def create_current(self):
-        self._models[flask.request.sid] = models.ale_model.AleModel(
-            self._params,
-            master,
-            algorithms.a3c.trainer.Trainer,
-            log_dir
+        self._trainers[flask.request.sid] = algorithms.a3c.trainer.Trainer(
+            params=self._params,
+            master=master,
+            log_dir=log_dir
         )
-        return self._models[flask.request.sid]
+        return self._trainers[flask.request.sid]
 
     def remove_current(self):
-        if flask.request.sid in self._models:
-            del self._models[flask.request.sid]
+        if flask.request.sid in self._trainers:
+            del self._trainers[flask.request.sid]
 
     def get_current(self):
-        if flask.request.sid in self._models:
-            return self._models[flask.request.sid]
+        if flask.request.sid in self._trainers:
+            return self._trainers[flask.request.sid]
         return None
 
 
-_model_set = _ModelSet()
+_trainers = _Trainers()
 
 
 @app.route('/')
@@ -69,54 +68,48 @@ def index():
 @socketio.on('connect', namespace='/rlmodels')
 def on_connect():
     print('on connect: ' + flask.request.sid)
-    flask.session['id'] = flask.request.sid
-    model = _model_set.create_current()
-    model.init_model()
+    trainer = _trainers.create_current()
     _emit('connected', {})
 
 
 @socketio.on('get action', namespace='/rlmodels')
 def on_get_action(message):
-    # print("Get action for: " + flask.session['id'])
-    model = _model_set.get_current()
-    if model is not None:
-        _emit('get action ack', {'action': model.getAction(message)})
+    trainer = _trainers.get_current()
+    if trainer is not None:
+        _emit('get action ack', {'action': trainer.getAction(message)})
     else:
-        _emit('get action error', {'data': 'no model found'})
+        _emit('get action error', {'data': 'no trainer found'})
 
 
 @socketio.on('episode', namespace='/rlmodels')
 def on_episode(message):
-    # print("Episode for: " + flask.session['id'])
-    model = _model_set.get_current()
-    if model is not None:
-        data = model.addEpisode(message)
+    trainer = _trainers.get_current()
+    if trainer is not None:
+        data = trainer.addEpisode(message)
         _emit('episode ack', json.dumps(data))
     else:
-        _emit('get action error', {'data': 'no model found'})
+        _emit('get action error', {'data': 'no trainer found'})
 
 
 @socketio.on('stop training', namespace='/rlmodels')
 def on_stop_training():
-    print("Stop training for: " + flask.session['id'])
-    model = _model_set.get_current()
-    if model is not None:
-        _model_set.remove_current()
+    print("Stop training for: " + flask.request.sid)
+    trainer = _trainers.get_current()
+    if trainer is not None:
+        _trainers.remove_current()
         _emit('stop training ack', {})
     else:
-        _emit('get action error', {'data': 'no model found'})
+        _emit('get action error', {'data': 'no trainer found'})
 
 
 @socketio.on('disconnect', namespace='/rlmodels')
 def on_disconnect():
-    if 'id' in flask.session:
-        print('Removing client from the room: ' + flask.session['id'])
-        _model_set.remove_current()
-    print('Client disconnected: ' + flask.session['id'])
+    _trainers.remove_current()
+    print('Client disconnected: ' + flask.request.sid)
 
 
 def _emit(verb, json):
-    flask_socketio.emit(verb, json, room=flask.session['id'])
+    flask_socketio.emit(verb, json, room=flask.request.sid)
 
 
 if __name__ == '__main__':
