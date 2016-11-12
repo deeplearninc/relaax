@@ -29,7 +29,7 @@ class Trainer:
                 self._summary_writer.add_summary(summary, step)
         )
 
-        self._workers = [new_worker() for _ in xrange(params.threads_cnt)]
+        self._worker = new_worker()
 
         variables = [(tf.is_variable_initialized(v), tf.initialize_variables([v])) for v in tf.all_variables()]
 
@@ -43,27 +43,16 @@ class Trainer:
                 self.sess.run(initialize)
 
     def getAction(self, message):
-        thread_index = int(message['thread_index'])
         state = json.loads(message['state'], object_hook=_ndarray_decoder)
-        return self._workers[thread_index].act(state), thread_index
+        return self._worker.act(state)
 
     def addEpisode(self, message):
-        thread_index = int(message['thread_index'])
         reward = message['reward']
         terminal = bool(message['terminal'])
 
-        if thread_index == -1:
-            return {
-                'thread_index': thread_index,
-                'terminal': terminal,
-                'score': 0,
-                'stop_training': False
-            }
-
-        score, stop_training = self._workers[thread_index].on_episode(reward, terminal)
+        score, stop_training = self._worker.on_episode(reward, terminal)
 
         return {
-            'thread_index': thread_index,
             'terminal': terminal,
             'score': score,
             'stop_training': stop_training

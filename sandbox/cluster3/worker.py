@@ -30,7 +30,7 @@ def main(n_worker_):
     lstm_str = ''
     if params.use_LSTM:
         lstm_str = 'lstm_'
-    log_dir = 'logs/boxing_a3c_%s%dthreads/worker_%d' % (lstm_str, params.threads_cnt, n_worker_)
+    log_dir = 'logs/boxing_a3c_%s%dthreads/worker_%d' % (lstm_str, 1, n_worker_)
 
     return app
 
@@ -59,7 +59,7 @@ class _ModelSet(object):
         return None
 
 
-model_set = _ModelSet()
+_model_set = _ModelSet()
 
 
 @app.route('/')
@@ -71,15 +71,15 @@ def index():
 def on_connect():
     print('on connect: ' + flask.request.sid)
     flask.session['id'] = flask.request.sid
-    model = model_set.create_current()
+    model = _model_set.create_current()
     model.init_model()
-    emit('model is ready', {'threads_cnt': model.threads_cnt()}, room=flask.session['id'])
+    emit('connected', {}, room=flask.session['id'])
 
 
 @socketio.on('get action', namespace='/rlmodels')
 def on_get_action(message):
     # print("Get action for: " + flask.session['id'])
-    model = model_set.get_current()
+    model = _model_set.get_current()
     if model is not None:
         emit('get action ack', {'action': model.getAction(message)}, room=flask.session['id'])
     else:
@@ -89,7 +89,7 @@ def on_get_action(message):
 @socketio.on('episode', namespace='/rlmodels')
 def on_episode(message):
     # print("Episode for: " + flask.session['id'])
-    model = model_set.get_current()
+    model = _model_set.get_current()
     if model is not None:
         data = model.addEpisode(message)
         emit('episode ack', json.dumps(data), room=flask.session['id'])
@@ -100,9 +100,9 @@ def on_episode(message):
 @socketio.on('stop training', namespace='/rlmodels')
 def on_stop_training():
     print("Stop training for: " + flask.session['id'])
-    model = model_set.get_current()
+    model = _model_set.get_current()
     if model is not None:
-        model_set.remove_current()
+        _model_set.remove_current()
         emit('stop training ack', {}, room=flask.session['id'])
     else:
         emit('get action error', {'data': 'no model found'}, room=flask.session['id'])
@@ -112,7 +112,7 @@ def on_stop_training():
 def on_disconnect():
     if 'id' in flask.session:
         print('Removing client from the room: ' + flask.session['id'])
-        model_set.remove_current()
+        _model_set.remove_current()
     print('Client disconnected: ' + flask.session['id'])
 
 
