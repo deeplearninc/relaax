@@ -3,16 +3,22 @@ from __future__ import print_function
 import sys
 sys.path.append('../../server')
 
-import json
 import flask
 import flask_socketio
-
 import grpc
-import models.ale_model
+import json
+import logging
+import os
+import random
 
 import algorithms.a3c.params
 import algorithms.a3c.master
 import algorithms.a3c.trainer
+
+logging.basicConfig(
+    format='%(asctime)s:%(levelname)s: %(message)s',
+    level=logging.WARNING
+)
 
 app = flask.Flask(__name__)
 app.config['SECRET_KEY'] = 'TotalRecall'
@@ -67,13 +73,13 @@ def index():
 
 @socketio.on('connect', namespace='/rlmodels')
 def on_connect():
-    print('on connect: ' + flask.request.sid)
+    logging.info('%d %s on_connect', os.getpid(), flask.request.sid)
     trainer = _trainers.create_current()
-    _emit('connected', {})
-
+    _emit('connected', {'server_pid': os.getpid()})
 
 @socketio.on('get action', namespace='/rlmodels')
 def on_get_action(message):
+    logging.info('%d %s on_get_action', os.getpid(), flask.request.sid)
     trainer = _trainers.get_current()
     if trainer is not None:
         _emit('get action ack', {'action': trainer.getAction(message)})
@@ -83,6 +89,7 @@ def on_get_action(message):
 
 @socketio.on('episode', namespace='/rlmodels')
 def on_episode(message):
+    logging.info('%d %s on_episode', os.getpid(), flask.request.sid)
     trainer = _trainers.get_current()
     if trainer is not None:
         data = trainer.addEpisode(message)
@@ -93,7 +100,7 @@ def on_episode(message):
 
 @socketio.on('stop training', namespace='/rlmodels')
 def on_stop_training():
-    print("Stop training for: " + flask.request.sid)
+    logging.info('%d %s on_stop_training', os.getpid(), flask.request.sid)
     trainer = _trainers.get_current()
     if trainer is not None:
         _trainers.remove_current()
@@ -104,8 +111,8 @@ def on_stop_training():
 
 @socketio.on('disconnect', namespace='/rlmodels')
 def on_disconnect():
+    logging.info('%d %s on_disconnect', os.getpid(), flask.request.sid)
     _trainers.remove_current()
-    print('Client disconnected: ' + flask.request.sid)
 
 
 def _emit(verb, json):
