@@ -42,7 +42,7 @@ class Trainer:
 
     def getAction(self, message):
         state = json.loads(message['state'], object_hook=_ndarray_decoder)
-        return self._worker.act(state), 0
+        return self._worker.act(state)
 
     def addEpisode(self, message):
         reward = message['reward']
