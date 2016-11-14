@@ -1,6 +1,7 @@
 # from misc_utils import comma_sep_ints
 from algos import *     # comma_sep_ints(misc_utils), PG_OPTIONS(core)
 from algos.trpo import TrpoUpdater
+from algos.ppo import PpoLbfgsUpdater, PpoSgdUpdater
 from gym.spaces import Box, Discrete
 
 # NEED Session THERE !!!
@@ -53,6 +54,29 @@ def make_mlps(ob_space, ac_space, cfg, session):
     return policy, baseline, net, vfnet     # add return for Keras nets for saving
 
 
+def make_deterministic_mlp(ob_space, ac_space, cfg, session):
+    K.set_session(session)
+    assert isinstance(ob_space, Box)
+    hid_sizes = cfg["hid_sizes"]
+    if isinstance(ac_space, Box):
+        outdim = ac_space.shape[0]
+        probtype = DiagGauss(outdim)
+    elif isinstance(ac_space, Discrete):
+        outdim = ac_space.n
+        probtype = Categorical(outdim)
+
+    net = Sequential()
+    for (i, layeroutsize) in enumerate(hid_sizes):
+        inshp = dict(input_shape=ob_space.shape) if i==0 else {}
+        net.add(Dense(layeroutsize, activation="tanh", **inshp))
+    inshp = dict(input_shape=ob_space.shape) if len(hid_sizes) == 0 else {}
+    net.add(Dense(outdim, **inshp))
+    net.add(Lambda(lambda x: x * 0.1))
+    # Wlast = net.layers[-1].W
+    # Wlast.set_value(Wlast.get_value(borrow=True)*0.1)
+    policy = StochPolicyKeras(net, probtype, session)
+    return policy, net
+
 FILTER_OPTIONS = [
     ("filter", int, 1, "Whether to do a running average filter of the incoming observations and rewards")
 ]
@@ -69,11 +93,15 @@ def make_filters(cfg, ob_space):
 
 
 class AgentWithPolicy(object):
-    def __init__(self, policy, obfilter, rewfilter):
+    def __init__(self, policy, obfilter, rewfilter, pnet=None, vfnet=None, chk_dir=None):
         self.policy = policy
         self.obfilter = obfilter
         self.rewfilter = rewfilter
         self.stochastic = True
+        # addition for child classes
+        self.pnet = pnet
+        self.vfnet = vfnet
+        self.chk_dir = chk_dir
 
     def set_stochastic(self, stochastic):
         self.stochastic = stochastic
@@ -93,38 +121,104 @@ class AgentWithPolicy(object):
     def rewfilt(self, rew):
         return self.rewfilter(rew)
 
+    def save(self, n_iter):
+        if not os.path.exists(self.chk_dir):
+            os.makedirs(self.chk_dir)
+        self.pnet.save_weights(self.chk_dir+"/pnet--"+str(n_iter)+".h5")
+        self.vfnet.save_weights(self.chk_dir+"/vfnet--"+str(n_iter)+".h5")
+
+    def restore(self):
+        n_iter = 0
+        if os.path.exists(self.chk_dir):
+            for filename in os.listdir(self.chk_dir):
+                tokens = filename.split("--")
+                n_iter = int(tokens[1].split(".")[0])
+                if tokens[0] == 'pnet':
+                    self.pnet.load_weights(self.chk_dir+"/pnet--"+str(n_iter)+".h5")
+                else:
+                    self.vfnet.load_weights(self.chk_dir+"/vfnet--"+str(n_iter)+".h5")
+        return n_iter
+
 
 class TrpoAgent(AgentWithPolicy):
     options = MLP_OPTIONS + PG_OPTIONS + TrpoUpdater.options + FILTER_OPTIONS
 
     def __init__(self, ob_space, ac_space, usercfg, session):   # SESSION !!! --> need ADD
         algo_name = '_trpo_'
-        misc = 'orig'
-        self.CHECKPOINT_DIR = 'checkpoints/' + usercfg["env"] + algo_name + misc
-
+        misc = 'gae'
+        chk_dir = 'checkpoints/' + usercfg["env"] + algo_name + misc
         cfg = update_default_config(self.options, usercfg)
-        policy, self.baseline, self.pnet, self.vfnet \
+
+        policy, self.baseline, pnet, vfnet \
             = make_mlps(ob_space, ac_space, cfg, session)   # SESSION !!! --> need ADD
         obfilter, rewfilter = make_filters(cfg, ob_space)
         self.updater = TrpoUpdater(policy, cfg, session)    # SESSION !!! --> need ADD
-        AgentWithPolicy.__init__(self, policy, obfilter, rewfilter)
 
+        AgentWithPolicy.__init__(self, policy, obfilter, rewfilter, pnet, vfnet, chk_dir)
+        session.run(tf.initialize_all_variables())
+
+
+class PpoLbfgsAgent(AgentWithPolicy):
+    options = MLP_OPTIONS + PG_OPTIONS + PpoLbfgsUpdater.options + FILTER_OPTIONS
+
+    def __init__(self, ob_space, ac_space, usercfg, session):
+        algo_name = '_ppo_'
+        misc = 'l-bfgs'
+        chk_dir = 'checkpoints/' + usercfg["env"] + algo_name + misc
+        cfg = update_default_config(self.options, usercfg)
+
+        policy, self.baseline, pnet, vfnet \
+            = make_mlps(ob_space, ac_space, cfg, session)
+        obfilter, rewfilter = make_filters(cfg, ob_space)
+        self.updater = PpoLbfgsUpdater(policy, cfg, session)
+
+        AgentWithPolicy.__init__(self, policy, obfilter, rewfilter, pnet, vfnet, chk_dir)
+        session.run(tf.initialize_all_variables())
+
+
+class PpoSgdAgent(AgentWithPolicy):
+    options = MLP_OPTIONS + PG_OPTIONS + PpoSgdUpdater.options + FILTER_OPTIONS
+
+    def __init__(self, ob_space, ac_space, usercfg, session):
+        algo_name = '_ppo_'
+        misc = 'sgd'
+        chk_dir = 'checkpoints/' + usercfg["env"] + algo_name + misc
+        cfg = update_default_config(self.options, usercfg)
+
+        policy, self.baseline, pnet, vfnet \
+            = make_mlps(ob_space, ac_space, cfg, session)
+        obfilter, rewfilter = make_filters(cfg, ob_space)
+        self.updater = PpoSgdUpdater(policy, cfg, session)
+
+        AgentWithPolicy.__init__(self, policy, obfilter, rewfilter, pnet, vfnet, chk_dir)
+        session.run(tf.initialize_all_variables())
+
+
+class DeterministicAgent(AgentWithPolicy):
+    options = MLP_OPTIONS + FILTER_OPTIONS + CEM_OPTIONS
+
+    def __init__(self, ob_space, ac_space, usercfg, session):
+        algo_name = '_cem'
+        chk_dir = 'checkpoints/' + usercfg["env"] + algo_name
+        cfg = update_default_config(self.options, usercfg)
+
+        policy, pnet = make_deterministic_mlp(ob_space, ac_space, cfg, session)
+        obfilter, rewfilter = make_filters(cfg, ob_space)
+
+        AgentWithPolicy.__init__(self, policy, obfilter, rewfilter, pnet=pnet, chk_dir=chk_dir)
+        self.set_stochastic(False)
         session.run(tf.initialize_all_variables())
 
     def save(self, n_iter):
-        if not os.path.exists(self.CHECKPOINT_DIR):
-            os.makedirs(self.CHECKPOINT_DIR)
-        self.pnet.save_weights(self.CHECKPOINT_DIR+"/pnet--"+str(n_iter)+".h5")
-        self.vfnet.save_weights(self.CHECKPOINT_DIR+"/vfnet--"+str(n_iter)+".h5")
+        if not os.path.exists(self.chk_dir):
+            os.makedirs(self.chk_dir)
+        self.pnet.save_weights(self.chk_dir+"/pnet--"+str(n_iter)+".h5")
 
     def restore(self):
         n_iter = 0
-        if os.path.exists(self.CHECKPOINT_DIR):
-            for filename in os.listdir(self.CHECKPOINT_DIR):
+        if os.path.exists(self.chk_dir):
+            for filename in os.listdir(self.chk_dir):
                 tokens = filename.split("--")
                 n_iter = int(tokens[1].split(".")[0])
-                if tokens[0] == 'pnet':
-                    self.pnet.load_weights(self.CHECKPOINT_DIR+"/pnet--"+str(n_iter)+".h5")
-                else:
-                    self.vfnet.load_weights(self.CHECKPOINT_DIR+"/vfnet--"+str(n_iter)+".h5")
+                self.pnet.load_weights(self.chk_dir+"/pnet--"+str(n_iter)+".h5")
         return n_iter
