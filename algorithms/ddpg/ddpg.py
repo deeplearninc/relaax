@@ -51,7 +51,7 @@ class DDPG:
         self.done = done
         self.replay_memory.append((self.observation_1, self.observation_2, self.action, self.reward, self.done))
         self.time_step = self.time_step + 1
-        print(getsizeof(self.replay_memory))
+        # print(getsizeof(self.replay_memory))
         if len(self.replay_memory) > REPLAY_MEMORY_SIZE:
             self.replay_memory.popleft()
 

@@ -39,7 +39,8 @@ def trainer():
             action = agent.evaluate_actor(np.reshape(x, [1, num_states]))
             noise = exploration_noise.noise()
             action = action[0] + noise  # Select action according to current policy and exploration noise
-            print("Action at step", t, " :", action, "\n")
+            # Action output (optional)
+            # print("Action at step", t, " :", action, "\n")
 
             observation, reward, done, info = env.step(action)
 
