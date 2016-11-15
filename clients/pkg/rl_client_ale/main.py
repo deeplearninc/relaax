@@ -43,7 +43,7 @@ class _ServerAPI(server_api.ServerAPI):
 def _seed(value):
     if value is None:
         return random.randrange(1000000)
-    return int(value)
+    return value
 
 if __name__ == "__main__":
     main()
