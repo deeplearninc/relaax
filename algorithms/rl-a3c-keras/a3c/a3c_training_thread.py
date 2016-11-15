@@ -64,7 +64,8 @@ class A3CTrainingThread(object):
             learning_rate = 0.0
         return learning_rate
 
-    def choose_action(self, pi_values):
+    @staticmethod
+    def choose_action(pi_values):
         values = []
         sum = 0.0
         for rate in pi_values:
@@ -78,6 +79,13 @@ class A3CTrainingThread(object):
                 return i
         # fail safe
         return len(values) - 1
+
+    @staticmethod
+    def choose_act(pi_values):
+        values = np.cumsum(pi_values)
+        total = values[-1]
+        r = np.random.rand() * total
+        return np.searchsorted(values, r)
 
     @staticmethod
     def _record_score(sess, summary_writer, summary_op, score_input, score, global_t):
