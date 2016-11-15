@@ -25,37 +25,20 @@ class ServerAPI(socketIO_client.LoggingNamespace):
 
     def on_connected(self, *args):
         print('on_connected')
-        self.emit('get action', {'state': self._dump_state()})
+        self.emit('state', self._dump_state())
 
-    def on_get_action_ack(self, *args):
-        action = args[0]['action']
-
+    def on_action(self, action):
         reward = self._game.act(action)
-        terminal = self._game.terminal
+        if self._game.terminal:
+            self.emit('reward', reward)
+        else:
+            self.emit('reward_and_state', reward, self._dump_state())
 
-        if terminal:
-            self._game.reset()
-
-        self.emit('episode', {
-            'reward': reward,
-            'terminal': terminal
-        })
-
-    def on_episode_ack(self, *args):
-        episode_params = json.loads(args[0])
-        if episode_params['stop_training']:
-            self.emit('stop training')
-            return
-
-        if episode_params['terminal']:
-            self._game_played += 1
-            print("Score at game", self._game_played, "=", int(episode_params['score']))
-
-        self.emit('get action', {'state': self._dump_state()})
-
-    def on_stop_training_ack(self, *args):
-        print('on_stop_training_ack', args)
-        self.emit('disconnect', {})
+    def on_score(self, score):
+        self._game_played += 1
+        print("Score at game", self._game_played, "=", score)
+        self._game.reset()
+        self.emit('state', self._dump_state())
 
     def _dump_state(self):
         return json.dumps(self._game.state(), cls=_NDArrayEncoder)

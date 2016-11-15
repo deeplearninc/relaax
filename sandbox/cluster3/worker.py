@@ -3,11 +3,14 @@ from __future__ import print_function
 import sys
 sys.path.append('../../server')
 
+import base64
 import flask
 import flask_socketio
 import grpc
+import io
 import json
 import logging
+import numpy
 import os
 import random
 
@@ -75,38 +78,47 @@ def index():
 def on_connect():
     logging.info('%d %s on_connect', os.getpid(), flask.request.sid)
     trainer = _trainers.create_current()
-    _emit('connected', {'server_pid': os.getpid()})
+    _emit('connected')
 
-@socketio.on('get action', namespace='/rlmodels')
-def on_get_action(message):
-    logging.info('%d %s on_get_action', os.getpid(), flask.request.sid)
+
+@socketio.on('state', namespace='/rlmodels')
+def on_state(state_dump):
+    logging.info('%d %s on_state', os.getpid(), flask.request.sid)
     trainer = _trainers.get_current()
-    if trainer is not None:
-        _emit('get action ack', {'action': trainer.getAction(message)})
-    else:
-        _emit('get action error', {'data': 'no trainer found'})
+    if trainer is None:
+        _emit('error', 'no trainer found')
+        return
+    state = json.loads(state_dump, object_hook=_ndarray_decoder)
+    _emit('action', trainer.getAction(state))
 
 
-@socketio.on('episode', namespace='/rlmodels')
-def on_episode(message):
+@socketio.on('reward', namespace='/rlmodels')
+def on_reward(reward):
     logging.info('%d %s on_episode', os.getpid(), flask.request.sid)
     trainer = _trainers.get_current()
-    if trainer is not None:
-        data = trainer.addEpisode(message)
-        _emit('episode ack', json.dumps(data))
-    else:
-        _emit('get action error', {'data': 'no trainer found'})
+    if trainer is None:
+        _emit('error', 'no trainer found')
+        return
+    score, stop_training = trainer.addEpisode(reward, True)
+    if stop_training:
+        flask_socketio.disconnect()
+        return
+    _emit('score', score)
 
 
-@socketio.on('stop training', namespace='/rlmodels')
-def on_stop_training():
-    logging.info('%d %s on_stop_training', os.getpid(), flask.request.sid)
+@socketio.on('reward_and_state', namespace='/rlmodels')
+def on_reward_and_state(reward, state_dump):
+    logging.info('%d %s on_episode', os.getpid(), flask.request.sid)
     trainer = _trainers.get_current()
-    if trainer is not None:
-        _trainers.remove_current()
-        _emit('stop training ack', {})
-    else:
-        _emit('get action error', {'data': 'no trainer found'})
+    if trainer is None:
+        _emit('error', 'no trainer found')
+        return
+    score, stop_training = trainer.addEpisode(reward, False)
+    if stop_training:
+        flask_socketio.disconnect()
+        return
+    state = json.loads(state_dump, object_hook=_ndarray_decoder)
+    _emit('action', trainer.getAction(state))
 
 
 @socketio.on('disconnect', namespace='/rlmodels')
@@ -115,8 +127,17 @@ def on_disconnect():
     _trainers.remove_current()
 
 
-def _emit(verb, json):
-    flask_socketio.emit(verb, json, room=flask.request.sid)
+def _emit(verb, *args):
+    flask_socketio.emit(verb, *args, room=flask.request.sid)
+
+
+def _ndarray_decoder(dct):
+    """Decoder from base64 to numpy.ndarray for big arrays(states)"""
+    if isinstance(dct, dict) and 'b64npz' in dct:
+        output = io.BytesIO(base64.b64decode(dct['b64npz']))
+        output.seek(0)
+        return numpy.load(output)['obj']
+    return dct
 
 
 if __name__ == '__main__':
