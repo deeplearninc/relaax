@@ -15,11 +15,11 @@ def main():
     )
 
     s = socket.socket()
-    s.connect('localhost', 7000)
+    s.connect(('localhost', 7000))
 
     while True:
         time.sleep(1)
-        s.send(bytes('hello', 'utf-8'))
+        s.send(bytearray('hello', 'utf-8'))
         info('client')
 
 if __name__ == '__main__':
