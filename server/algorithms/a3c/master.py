@@ -20,7 +20,7 @@ def add_service_to_server(service, server):
     master_pb2.add_MasterServicer_to_server(_MasterServicer(service), server)
 
 
-class Stub(object):
+class Stub(Service):
     def __init__(self, channel):
         self._stub = master_pb2.MasterStub(channel)
 
