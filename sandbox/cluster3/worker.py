@@ -80,20 +80,20 @@ def on_connect():
     _emit('connected')
 
 
-@socketio.on('state', namespace='/rlmodels')
-def on_state(state_dump):
-    logging.info('%d %s on_state', os.getpid(), flask.request.sid)
+@socketio.on('act', namespace='/rlmodels')
+def on_act(state_dump):
+    logging.info('%d %s on_act', os.getpid(), flask.request.sid)
     trainer = _trainers.get_current()
     if trainer is None:
         _emit('error', 'no trainer found')
         return
     state = json.loads(state_dump, object_hook=_ndarray_decoder)
-    _emit('action', trainer.act(state))
+    _emit('act', trainer.act(state))
 
 
-@socketio.on('reward_and_terminal', namespace='/rlmodels')
-def on_reward_and_terminal(reward):
-    logging.info('%d %s on_episode', os.getpid(), flask.request.sid)
+@socketio.on('reward_and_reset', namespace='/rlmodels')
+def on_reward_and_reset(reward):
+    logging.info('%d %s on_reward_and_reset', os.getpid(), flask.request.sid)
     trainer = _trainers.get_current()
     if trainer is None:
         _emit('error', 'no trainer found')
@@ -102,12 +102,12 @@ def on_reward_and_terminal(reward):
     if stop_training:
         flask_socketio.disconnect()
         return
-    _emit('score', score)
+    _emit('reset', score)
 
 
-@socketio.on('reward_and_state', namespace='/rlmodels')
-def on_reward_and_state(reward, state_dump):
-    logging.info('%d %s on_episode', os.getpid(), flask.request.sid)
+@socketio.on('reward_and_act', namespace='/rlmodels')
+def on_reward_and_act(reward, state_dump):
+    logging.info('%d %s on_reward_and_act', os.getpid(), flask.request.sid)
     trainer = _trainers.get_current()
     if trainer is None:
         _emit('error', 'no trainer found')
@@ -117,7 +117,7 @@ def on_reward_and_state(reward, state_dump):
     if stop_training:
         flask_socketio.disconnect()
         return
-    _emit('action', action)
+    _emit('act', action)
 
 
 @socketio.on('disconnect', namespace='/rlmodels')

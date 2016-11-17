@@ -25,20 +25,20 @@ class ServerAPI(socketIO_client.LoggingNamespace):
 
     def on_connected(self, *args):
         print('on_connected')
-        self.emit('state', self._dump_state())
+        self.emit('act', self._dump_state())
 
-    def on_action(self, action):
-        reward, terminal = self._game.act(action)
-        if terminal:
-            self.emit('reward_and_terminal', reward)
+    def on_act(self, action):
+        reward, reset = self._game.act(action)
+        if reset:
+            self.emit('reward_and_reset', reward)
         else:
-            self.emit('reward_and_state', reward, self._dump_state())
+            self.emit('reward_and_act', reward, self._dump_state())
 
-    def on_score(self, score):
+    def on_reset(self, score):
         self._game_played += 1
         print("Score at game", self._game_played, "=", score)
         self._game.reset()
-        self.emit('state', self._dump_state())
+        self.emit('act', self._dump_state())
 
     def _dump_state(self):
         return json.dumps(self._game.state(), cls=_NDArrayEncoder)
