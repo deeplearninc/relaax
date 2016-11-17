@@ -108,7 +108,7 @@ class _Worker(object):
                 self.start_lstm_state = self._local_network.lstm_state_out
 
         pi_, value_ = self._local_network.run_policy_and_value(sess, self.frameQueue)
-        action = self.choose_action(pi_)
+        action = self._choose_action(pi_)
 
         self.states.append(self.frameQueue)
         self.actions.append(action)
@@ -120,11 +120,32 @@ class _Worker(object):
 
         return action
 
-    def on_episode(self, reward, terminal):
-        sess = self._get_session()
+    def reward_and_act(self, reward, state):
+        if self._reward(reward):
+            return self.act(state)
+        return None
 
-        score = 0
+    def reward_and_reset(self, reward):
+        if not self._reward(reward):
+            return None
 
+        self.terminal_end = True
+        print("score=", self.episode_reward)
+
+        score = self.episode_reward
+
+        self._log_reward(self.episode_reward, self.global_t)
+
+        self.episode_reward = 0
+
+        if self._params.use_LSTM:
+            self._local_network.reset_state()
+
+        self.episode_t = self._params.episode_len
+
+        return score
+
+    def _reward(self, reward):
         self.episode_reward += reward
 
         # clip reward
@@ -132,30 +153,12 @@ class _Worker(object):
 
         self.local_t += 1
         self.episode_t += 1
-        global_t = self._master.increment_global_t()
+        self.global_t = self._master.increment_global_t()
 
-        if global_t > self._params.max_global_step:
-            return 0, True
-
-        if terminal:
-            self.terminal_end = True
-            print("score=", self.episode_reward)
-
-            score = self.episode_reward
-
-            self._log_reward(self.episode_reward, global_t)
-
-            self.episode_reward = 0
-
-            if self._params.use_LSTM:
-                self._local_network.reset_state()
-
-            self.episode_t = self._params.episode_len
-
-        return score, False
+        return self.global_t < self._params.max_global_step
 
     @staticmethod
-    def choose_action(pi_values):
+    def _choose_action(pi_values):
         values = []
         total = 0.0
         for rate in pi_values:

@@ -35,13 +35,7 @@ class Trainer(object):
         return self._worker.act(state)
 
     def reward_and_act(self, reward, state):
-        score, stop_training = self._worker.on_episode(reward, False)
-        if stop_training:
-            return None
-        return self._worker.act(state)
+        return self._worker.reward_and_act(reward, state)
 
     def reward_and_reset(self, reward):
-        score, stop_training = self._worker.on_episode(reward, True)
-        if stop_training:
-            return None
-        return score
+        return self._worker.reward_and_reset(reward)
