@@ -98,8 +98,8 @@ def on_reward_and_reset(reward):
     if trainer is None:
         _emit('error', 'no trainer found')
         return
-    score, stop_training = trainer.reward_and_reset(reward)
-    if stop_training:
+    score = trainer.reward_and_reset(reward)
+    if score is None:
         flask_socketio.disconnect()
         return
     _emit('reset', score)
@@ -113,8 +113,8 @@ def on_reward_and_act(reward, state_dump):
         _emit('error', 'no trainer found')
         return
     state = json.loads(state_dump, object_hook=_ndarray_decoder)
-    action, stop_training = trainer.reward_and_act(reward, state)
-    if stop_training:
+    action = trainer.reward_and_act(reward, state)
+    if action is None:
         flask_socketio.disconnect()
         return
     _emit('act', action)
