@@ -5,7 +5,7 @@ import tensorflow as tf
 import worker
 
 
-class Trainer:
+class Trainer(object):
     def __init__(self, params, master, log_dir='.'):
         kernel = "/cpu:0"
         if params.use_GPU:
@@ -31,8 +31,14 @@ class Trainer:
             if not self.sess.run(initialized):
                 self.sess.run(initialize)
 
-    def getAction(self, state):
+    def act(self, state):
         return self._worker.act(state)
 
-    def addEpisode(self, reward, terminal):
-        return self._worker.on_episode(reward, terminal)
+    def reward_and_act(self, reward, state):
+        score, stop_training = self._worker.on_episode(reward, False)
+        if stop_training:
+            return None, True
+        return self._worker.act(state), False
+
+    def reward_and_reset(self, reward):
+        return self._worker.on_episode(reward, True)

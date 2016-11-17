@@ -88,7 +88,7 @@ def on_state(state_dump):
         _emit('error', 'no trainer found')
         return
     state = json.loads(state_dump, object_hook=_ndarray_decoder)
-    _emit('action', trainer.getAction(state))
+    _emit('action', trainer.act(state))
 
 
 @socketio.on('reward_and_terminal', namespace='/rlmodels')
@@ -98,7 +98,7 @@ def on_reward_and_terminal(reward):
     if trainer is None:
         _emit('error', 'no trainer found')
         return
-    score, stop_training = trainer.addEpisode(reward, True)
+    score, stop_training = trainer.reward_and_reset(reward)
     if stop_training:
         flask_socketio.disconnect()
         return
@@ -112,12 +112,12 @@ def on_reward_and_state(reward, state_dump):
     if trainer is None:
         _emit('error', 'no trainer found')
         return
-    score, stop_training = trainer.addEpisode(reward, False)
+    state = json.loads(state_dump, object_hook=_ndarray_decoder)
+    action, stop_training = trainer.reward_and_act(reward, state)
     if stop_training:
         flask_socketio.disconnect()
         return
-    state = json.loads(state_dump, object_hook=_ndarray_decoder)
-    _emit('action', trainer.getAction(state))
+    _emit('action', action)
 
 
 @socketio.on('disconnect', namespace='/rlmodels')
