@@ -19,9 +19,7 @@ class Factory(object):
         episode_score = tf.placeholder(tf.int32)
         summary = tf.scalar_summary('episode score', episode_score)
 
-        self._n_workers = 0
-        self._factory = lambda ident: _Worker(
-            ident=ident,
+        self._factory = lambda: _Worker(
             params=params,
             master=master,
             device=local_device,
@@ -33,15 +31,12 @@ class Factory(object):
         )
 
     def __call__(self):
-        worker = self._factory(self._n_workers)
-        self._n_workers += 1
-        return worker
+        return self._factory()
 
 
 class _Worker(object):
     def __init__(
         self,
-        ident,
         params,
         master,
         device,
@@ -49,7 +44,6 @@ class _Worker(object):
         log_reward
     ):
 
-        self._ident = ident
         self._params = params
         self._master = master
         self._get_session = get_session
@@ -58,7 +52,7 @@ class _Worker(object):
 
         with tf.device(device):
             self._local_network = game_ac_network \
-                .make_full_network(params, ident) \
+                .make_full_network(params, 0) \
                 .prepare_loss(params)
 
         # TODO: don't need accum trainer anymore with batch
@@ -120,7 +114,7 @@ class _Worker(object):
         self.actions.append(action)
         self.values.append(value_)
 
-        if (self._ident == 0) and (self.local_t % 100) == 0:
+        if (self.local_t % 100) == 0:
             print("pi=", pi_)
             print(" V=", value_)
 
@@ -250,6 +244,6 @@ class _Worker(object):
         interval = time.time() - self._last_time
         self._last_time = time.time()
 
-        if (self._ident == 0) and (self.local_t % 100) == 0:
+        if (self.local_t % 100) == 0:
             print("TIMESTEP", self.local_t)
             print("ELAPSED", elapsed, interval, elapsed / interval)
