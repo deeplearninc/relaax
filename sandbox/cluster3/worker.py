@@ -12,148 +12,120 @@ import json
 import logging
 import numpy
 import os
-import random
-import tensorflow as tf
+import signal
+import socket
+import struct
 
 import algorithms.a3c.params
 import algorithms.a3c.master
 import algorithms.a3c.worker
 
-logging.basicConfig(
-    format='%(asctime)s:%(levelname)s: %(message)s',
-    level=logging.WARNING
-)
-
-app = flask.Flask(__name__)
-app.config['SECRET_KEY'] = 'TotalRecall'
-socketio = flask_socketio.SocketIO(app)
-log_dir = None
-master = algorithms.a3c.master.Stub(grpc.insecure_channel('localhost:50051'))
+def info(message, *args):
+    logging.info('%d:' + message, os.getpid(), *args)
 
 
-def main(n_worker_):
-    global log_dir
-
+def handle_connection(s, address, n_worker):
+    info('%s: start', address)
     params = algorithms.a3c.params.Params()
 
     lstm_str = ''
     if params.use_LSTM:
         lstm_str = 'lstm_'
-    log_dir = 'logs/boxing_a3c_%s%dthreads/worker_%d' % (lstm_str, 1, n_worker_)
 
-    return app
-
-
-def _worker(params, master, log_dir):
-    kernel = "/cpu:0"
-    if params.use_GPU:
-        kernel = "/gpu:0"
-
-    worker = algorithms.a3c.worker.Factory(
+    agent = algorithms.a3c.worker.Factory(
         params=params,
-        master=master,
-        local_device=kernel,
-        get_session=lambda: session,
-        add_summary=lambda summary, step:
-            summary_writer.add_summary(summary, step)
+        master=algorithms.a3c.master.Stub(grpc.insecure_channel('localhost:50051')),
+        log_dir='logs/boxing_a3c_%s%dthreads/worker_%d' % (lstm_str, 1, n_worker)
     )()
 
-    initialize_all_variables = tf.initialize_all_variables()
+    s.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+    while True:
+        message = receive(s)
+        if message is None:
+            break
+        # info('message %s', str(message)[:64])
+        verb, args = message
+        if verb == 'act':
+            state = json.loads(args[0], object_hook=_ndarray_decoder)
+            send(s, 'act', agent.act(state))
+        if verb == 'reward_and_reset':
+            score = agent.reward_and_reset(args[0])
+            if score is None:
+                break
+            send(s, 'reset', score)
+        if verb == 'reward_and_act':
+            state = json.loads(args[1], object_hook=_ndarray_decoder)
+            action = agent.reward_and_act(args[0], state)
+            if action is None:
+                break
+            send(s, 'act', action)
 
-    session = tf.Session()
-
-    summary_writer = tf.train.SummaryWriter(log_dir, session.graph)
-
-    session.run(initialize_all_variables)
-
-    return worker
+    info('%s: stop', address)
 
 
-class _Workers(object):
-    def __init__(self):
-        self._params = algorithms.a3c.params.Params()
-        self._workers = {}
+def main():
+    logging.basicConfig(
+        format='%(asctime)s:%(levelname)s:%(message)s',
+        level=logging.INFO
+    )
 
-    def create_current(self):
-        self._workers[flask.request.sid] = _worker(
-            params=self._params,
-            master=master,
-            log_dir=log_dir
-        )
+    signal.signal(signal.SIGCHLD, signal.SIG_IGN)
 
-    def remove_current(self):
-        if flask.request.sid in self._workers:
-            del self._workers[flask.request.sid]
+    s = socket.socket()
+    s.bind(('localhost', 7000))
+    s.listen(100)
 
-    def get_current(self):
-        if flask.request.sid in self._workers:
-            return self._workers[flask.request.sid]
+    n_worker = 0
+
+    while True:
+        c, address = s.accept()
+        pid = os.fork()
+        if pid == 0:
+            s.close()
+            handle_connection(c, address, n_worker)
+            c.close()
+            break
+        c.close()
+        n_worker += 1
+
+    s.close()
+
+
+def send(socket, verb, *args):
+    sends(socket, verb)
+    sends(socket, json.dumps(args))
+
+def sends(socket, string):
+    assert type(string) == type('')
+    socket.sendall(struct.pack('<I', len(string)))
+    socket.sendall(string)
+
+class ReceiveError(Exception):
+    pass
+        
+def receive(socket):
+    try:
+        return receives(socket), json.loads(receives(socket))
+    except ReceiveError:
         return None
 
+def receives(socket):
+    l1 = len(struct.pack('<I', 0))
+    l2 = struct.unpack('<I', receiveb(socket, l1))[0]
+    return receiveb(socket, l2)
 
-_workers = _Workers()
-
-
-@app.route('/')
-def index():
-    return flask.render_template('index.html')
-
-
-@socketio.on('connect', namespace='/rlmodels')
-def on_connect():
-    logging.info('%d %s on_connect', os.getpid(), flask.request.sid)
-    _workers.create_current()
-    _emit('connected')
-
-
-@socketio.on('act', namespace='/rlmodels')
-def on_act(state_dump):
-    logging.info('%d %s on_act', os.getpid(), flask.request.sid)
-    trainer = _workers.get_current()
-    if trainer is None:
-        _emit('error', 'no trainer found')
-        return
-    state = json.loads(state_dump, object_hook=_ndarray_decoder)
-    _emit('act', trainer.act(state))
-
-
-@socketio.on('reward_and_reset', namespace='/rlmodels')
-def on_reward_and_reset(reward):
-    logging.info('%d %s on_reward_and_reset', os.getpid(), flask.request.sid)
-    trainer = _workers.get_current()
-    if trainer is None:
-        _emit('error', 'no trainer found')
-        return
-    score = trainer.reward_and_reset(reward)
-    if score is None:
-        flask_socketio.disconnect()
-        return
-    _emit('reset', score)
-
-
-@socketio.on('reward_and_act', namespace='/rlmodels')
-def on_reward_and_act(reward, state_dump):
-    logging.info('%d %s on_reward_and_act', os.getpid(), flask.request.sid)
-    trainer = _workers.get_current()
-    if trainer is None:
-        _emit('error', 'no trainer found')
-        return
-    state = json.loads(state_dump, object_hook=_ndarray_decoder)
-    action = trainer.reward_and_act(reward, state)
-    if action is None:
-        flask_socketio.disconnect()
-        return
-    _emit('act', action)
-
-
-@socketio.on('disconnect', namespace='/rlmodels')
-def on_disconnect():
-    logging.info('%d %s on_disconnect', os.getpid(), flask.request.sid)
-    _workers.remove_current()
-
-
-def _emit(verb, *args):
-    flask_socketio.emit(verb, *args, room=flask.request.sid)
+def receiveb(socket, length):
+    packets = []
+    rest = length
+    while rest > 0:
+        packet = socket.recv(rest)
+        if not packet:
+            raise ReceiveError
+        packets.append(packet)
+        rest -= len(packet)
+    data = ''.join(packets)
+    assert len(data) == length
+    return data
 
 
 def _ndarray_decoder(dct):
@@ -166,4 +138,4 @@ def _ndarray_decoder(dct):
 
 
 if __name__ == '__main__':
-    socketio.run(app)
+    main()
