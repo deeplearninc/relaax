@@ -13,10 +13,11 @@ import logging
 import numpy
 import os
 import random
+import tensorflow as tf
 
 import algorithms.a3c.params
 import algorithms.a3c.master
-import algorithms.a3c.trainer
+import algorithms.a3c.worker
 
 logging.basicConfig(
     format='%(asctime)s:%(levelname)s: %(message)s',
@@ -43,29 +44,54 @@ def main(n_worker_):
     return app
 
 
-class _Trainers(object):
+def _worker(params, master, log_dir):
+    kernel = "/cpu:0"
+    if params.use_GPU:
+        kernel = "/gpu:0"
+
+    worker = algorithms.a3c.worker.Factory(
+        params=params,
+        master=master,
+        local_device=kernel,
+        get_session=lambda: session,
+        add_summary=lambda summary, step:
+            summary_writer.add_summary(summary, step)
+    )()
+
+    initialize_all_variables = tf.initialize_all_variables()
+
+    session = tf.Session()
+
+    summary_writer = tf.train.SummaryWriter(log_dir, session.graph)
+
+    session.run(initialize_all_variables)
+
+    return worker
+
+
+class _Workers(object):
     def __init__(self):
         self._params = algorithms.a3c.params.Params()
-        self._trainers = {}
+        self._workers = {}
 
     def create_current(self):
-        self._trainers[flask.request.sid] = algorithms.a3c.trainer.Trainer(
+        self._workers[flask.request.sid] = _worker(
             params=self._params,
             master=master,
             log_dir=log_dir
         )
 
     def remove_current(self):
-        if flask.request.sid in self._trainers:
-            del self._trainers[flask.request.sid]
+        if flask.request.sid in self._workers:
+            del self._workers[flask.request.sid]
 
     def get_current(self):
-        if flask.request.sid in self._trainers:
-            return self._trainers[flask.request.sid]
+        if flask.request.sid in self._workers:
+            return self._workers[flask.request.sid]
         return None
 
 
-_trainers = _Trainers()
+_workers = _Workers()
 
 
 @app.route('/')
@@ -76,14 +102,14 @@ def index():
 @socketio.on('connect', namespace='/rlmodels')
 def on_connect():
     logging.info('%d %s on_connect', os.getpid(), flask.request.sid)
-    _trainers.create_current()
+    _workers.create_current()
     _emit('connected')
 
 
 @socketio.on('act', namespace='/rlmodels')
 def on_act(state_dump):
     logging.info('%d %s on_act', os.getpid(), flask.request.sid)
-    trainer = _trainers.get_current()
+    trainer = _workers.get_current()
     if trainer is None:
         _emit('error', 'no trainer found')
         return
@@ -94,7 +120,7 @@ def on_act(state_dump):
 @socketio.on('reward_and_reset', namespace='/rlmodels')
 def on_reward_and_reset(reward):
     logging.info('%d %s on_reward_and_reset', os.getpid(), flask.request.sid)
-    trainer = _trainers.get_current()
+    trainer = _workers.get_current()
     if trainer is None:
         _emit('error', 'no trainer found')
         return
@@ -108,7 +134,7 @@ def on_reward_and_reset(reward):
 @socketio.on('reward_and_act', namespace='/rlmodels')
 def on_reward_and_act(reward, state_dump):
     logging.info('%d %s on_reward_and_act', os.getpid(), flask.request.sid)
-    trainer = _trainers.get_current()
+    trainer = _workers.get_current()
     if trainer is None:
         _emit('error', 'no trainer found')
         return
@@ -123,7 +149,7 @@ def on_reward_and_act(reward, state_dump):
 @socketio.on('disconnect', namespace='/rlmodels')
 def on_disconnect():
     logging.info('%d %s on_disconnect', os.getpid(), flask.request.sid)
-    _trainers.remove_current()
+    _workers.remove_current()
 
 
 def _emit(verb, *args):
