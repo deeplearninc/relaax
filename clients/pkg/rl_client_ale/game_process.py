@@ -51,12 +51,8 @@ class GameProcess(object):
     def act(self, action):
         # convert original 18 action index to minimal action set index
         real_action = self.real_actions[action]
-
-        r, t, self.s_t = self._process_frame(real_action, True)
-
-        self.reward = r
-        self.terminal = t
-        return self.reward
+        self.reward, self.terminal, self.s_t = self._process_frame(real_action, True)
+        return self.reward, self.terminal
 
     def _process_frame(self, action, reshape):
         reward = self.ale.act(action)

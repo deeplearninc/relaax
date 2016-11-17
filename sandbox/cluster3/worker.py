@@ -54,7 +54,6 @@ class _Trainers(object):
             master=master,
             log_dir=log_dir
         )
-        return self._trainers[flask.request.sid]
 
     def remove_current(self):
         if flask.request.sid in self._trainers:
@@ -77,7 +76,7 @@ def index():
 @socketio.on('connect', namespace='/rlmodels')
 def on_connect():
     logging.info('%d %s on_connect', os.getpid(), flask.request.sid)
-    trainer = _trainers.create_current()
+    _trainers.create_current()
     _emit('connected')
 
 
@@ -92,8 +91,8 @@ def on_state(state_dump):
     _emit('action', trainer.getAction(state))
 
 
-@socketio.on('reward', namespace='/rlmodels')
-def on_reward(reward):
+@socketio.on('reward_and_terminal', namespace='/rlmodels')
+def on_reward_and_terminal(reward):
     logging.info('%d %s on_episode', os.getpid(), flask.request.sid)
     trainer = _trainers.get_current()
     if trainer is None:

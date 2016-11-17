@@ -28,9 +28,9 @@ class ServerAPI(socketIO_client.LoggingNamespace):
         self.emit('state', self._dump_state())
 
     def on_action(self, action):
-        reward = self._game.act(action)
-        if self._game.terminal:
-            self.emit('reward', reward)
+        reward, terminal = self._game.act(action)
+        if terminal:
+            self.emit('reward_and_terminal', reward)
         else:
             self.emit('reward_and_state', reward, self._dump_state())
 
