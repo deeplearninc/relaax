@@ -8,38 +8,41 @@ import game_ac_network
 
 
 class Factory(object):
-    def __init__(
-        self,
-        params,
-        master,
-        local_device,
-        get_session,
-        add_summary
-    ):
-        episode_score = tf.placeholder(tf.int32)
-        summary = tf.scalar_summary('episode score', episode_score)
+    def __init__(self, params, master, log_dir):
+        self._params = params
+        self._master = master
+        self._log_dir = log_dir
 
-        self._factory = lambda: _Worker(
-            params=params,
-            master=master,
-            device=local_device,
-            get_session=get_session,
-            log_reward=lambda reward, step: add_summary(
-                get_session().run(summary, feed_dict={episode_score: reward}),
+    def __call__(self):
+        agent = _Agent(
+            params=self._params,
+            master=self._master,
+            get_session=lambda: session,
+            log_reward=lambda reward, step: summary_writer.add_summary(
+                session.run(summary, feed_dict={episode_score: reward}),
                 step
             )
         )
 
-    def __call__(self):
-        return self._factory()
+        episode_score = tf.placeholder(tf.int32)
+        summary = tf.scalar_summary('episode score', episode_score)
+
+        initialize_all_variables = tf.initialize_all_variables()
+
+        session = tf.Session()
+
+        summary_writer = tf.train.SummaryWriter(self._log_dir, session.graph)
+
+        session.run(initialize_all_variables)
+
+        return agent
 
 
-class _Worker(object):
+class _Agent(object):
     def __init__(
         self,
         params,
         master,
-        device,
         get_session,
         log_reward
     ):
@@ -50,13 +53,17 @@ class _Worker(object):
         self._log_reward = log_reward
         self._last_time = 0
 
-        with tf.device(device):
+        kernel = "/cpu:0"
+        if params.use_GPU:
+            kernel = "/gpu:0"
+
+        with tf.device(kernel):
             self._local_network = game_ac_network \
                 .make_full_network(params, 0) \
                 .prepare_loss(params)
 
         # TODO: don't need accum trainer anymore with batch
-        trainer = accum_trainer.AccumTrainer(device)
+        trainer = accum_trainer.AccumTrainer(kernel)
         trainer.prepare_minimize(
             self._local_network.total_loss,
             self._local_network.get_vars()
