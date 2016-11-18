@@ -117,48 +117,49 @@ class GameACFFNetwork(GameACNetwork):
         GameACNetwork.__init__(self, action_size, session, device)
 
         with tf.device(self._device):
-            '''
-            # state (input)
-            # self.s = K.placeholder(shape=(None, 84, 84, 4), dtype="float")
-            self.s = Input(shape=(84, 84, 4), dtype="float")    # [..]  tf.float32  K.placeholder  S
+            if not os.path.isfile('model.json'):
+                # state (input)
+                # self.s = K.placeholder(shape=(None, 84, 84, 4), dtype="float")
+                self.s = Input(shape=(84, 84, 4), dtype="float")    # [..]  tf.float32  K.placeholder  S
 
-            # h_conv1 = tf.nn.relu(self._conv2d(self.s, self.W_conv1, 4) + self.b_conv1)
-            h_conv1 = Convolution2D(16, 8, 8, subsample=(4, 4), border_mode='valid',
-                                    activation='relu', dim_ordering='tf')(self.s)   # S
-            # h_conv2 = tf.nn.relu(self._conv2d(h_conv1, self.W_conv2, 2) + self.b_conv2)
-            h_conv2 = Convolution2D(32, 4, 4, subsample=(2, 2), border_mode='valid',
-                                    activation='relu', dim_ordering='tf')(h_conv1)
+                # h_conv1 = tf.nn.relu(self._conv2d(self.s, self.W_conv1, 4) + self.b_conv1)
+                h_conv1 = Convolution2D(16, 8, 8, subsample=(4, 4), border_mode='valid',
+                                        activation='relu', dim_ordering='tf')(self.s)   # S
+                # h_conv2 = tf.nn.relu(self._conv2d(h_conv1, self.W_conv2, 2) + self.b_conv2)
+                h_conv2 = Convolution2D(32, 4, 4, subsample=(2, 2), border_mode='valid',
+                                        activation='relu', dim_ordering='tf')(h_conv1)
 
-            # h_conv2_flat = tf.reshape(h_conv2, [-1, 2592])
-            h_conv2_flat = Flatten()(h_conv2)
-            # h_fc1 = tf.nn.relu(tf.matmul(h_conv2_flat, self.W_fc1) + self.b_fc1)
-            h_fc1 = Dense(256, activation='relu')(h_conv2_flat)
+                # h_conv2_flat = tf.reshape(h_conv2, [-1, 2592])
+                h_conv2_flat = Flatten()(h_conv2)
+                # h_fc1 = tf.nn.relu(tf.matmul(h_conv2_flat, self.W_fc1) + self.b_fc1)
+                h_fc1 = Dense(256, activation='relu')(h_conv2_flat)
 
-            # policy (output)
-            # self.pi = tf.nn.softmax(tf.matmul(h_fc1, self.W_fc2) + self.b_fc2)
-            self.pi = Dense(action_size, activation='softmax')(h_fc1)
-            # value (output)
-            # v_ = tf.matmul(h_fc1, self.W_fc3) + self.b_fc3
-            v_ = Dense(1)(h_fc1)    # v_
-            # self.v = Reshape((1, ))(v_)   # need reverse shape
-            self.v = tf.reshape(v_, [-1])
+                # policy (output)
+                # self.pi = tf.nn.softmax(tf.matmul(h_fc1, self.W_fc2) + self.b_fc2)
+                self.pi = Dense(action_size, activation='softmax')(h_fc1)
+                # value (output)
+                # v_ = tf.matmul(h_fc1, self.W_fc3) + self.b_fc3
+                v_ = Dense(1)(h_fc1)    # v_
+                # self.v = Reshape((1, ))(v_)   # need reverse shape
+                self.v = tf.reshape(v_, [-1])
 
-            # out = merge([self.pi, self.v], mode='concat')
-            self.net = Model(input=self.s, output=[self.pi, v_])
-            model_json = self.net.to_json()
-            with open("model.json", "w") as json_file:
-                json_file.write(model_json)
-            '''
-            # load json and create model
-            json_file = open('model.json', 'r')
-            loaded_model_json = json_file.read()
-            json_file.close()
-            self.net = model_from_json(loaded_model_json)
+                # out = merge([self.pi, self.v], mode='concat')
+                self.net = Model(input=self.s, output=[self.pi, v_])
 
-            self.s = self.net.input
-            self.pi = self.net.output[0]
-            v_ = self.net.output[1]
-            self.v = tf.reshape(v_, [-1])
+                model_json = self.net.to_json()
+                with open("model.json", "w") as json_file:
+                    json_file.write(model_json)
+            else:
+                # load json and create model
+                json_file = open('model.json', 'r')
+                loaded_model_json = json_file.read()
+                json_file.close()
+                self.net = model_from_json(loaded_model_json)
+
+                self.s = self.net.input
+                self.pi = self.net.output[0]
+                v_ = self.net.output[1]
+                self.v = tf.reshape(v_, [-1])
 
     def run_policy_and_value(self, sess, s_t):
         pi_out, v_out = sess.run([self.pi, self.v], feed_dict={self.s: [s_t]})
@@ -185,56 +186,57 @@ class GameACLSTMNetwork(GameACNetwork):
         GameACNetwork.__init__(self, action_size, session, device)
 
         with tf.device(self._device):
-            '''
-            # state (input)
-            # self.s = tf.placeholder("float", [None, 84, 84, 4])
-            self.s = Input(shape=(84, 84, 4), dtype="float")
-            # Lambda(lambda x: tf.transpose(self.s, [2, 0, 1]))
+            if not os.path.isfile('model-lstm.json'):
+                # state (input)
+                # self.s = tf.placeholder("float", [None, 84, 84, 4])
+                self.s = Input(shape=(84, 84, 4), dtype="float")
+                # Lambda(lambda x: tf.transpose(self.s, [2, 0, 1]))
 
-            # h_conv1 = tf.nn.relu(self._conv2d(self.s, self.W_conv1, 4) + self.b_conv1)
-            h_conv1 = Convolution2D(16, 8, 8, subsample=(4, 4), border_mode='valid',
-                                    activation='relu', dim_ordering='tf')(self.s)
-            # h_conv2 = tf.nn.relu(self._conv2d(h_conv1, self.W_conv2, 2) + self.b_conv2)
-            h_conv2 = Convolution2D(32, 4, 4, subsample=(2, 2), border_mode='valid',
-                                    activation='relu', dim_ordering='tf')(h_conv1)
+                # h_conv1 = tf.nn.relu(self._conv2d(self.s, self.W_conv1, 4) + self.b_conv1)
+                h_conv1 = Convolution2D(16, 8, 8, subsample=(4, 4), border_mode='valid',
+                                        activation='relu', dim_ordering='tf')(self.s)
+                # h_conv2 = tf.nn.relu(self._conv2d(h_conv1, self.W_conv2, 2) + self.b_conv2)
+                h_conv2 = Convolution2D(32, 4, 4, subsample=(2, 2), border_mode='valid',
+                                        activation='relu', dim_ordering='tf')(h_conv1)
 
-            # h_conv2_flat = tf.reshape(h_conv2, [-1, 2592])
-            h_conv2_flat = Flatten()(h_conv2)
-            # h_fc1 = tf.nn.relu(tf.matmul(h_conv2_flat, self.W_fc1) + self.b_fc1)
-            h_fc1 = Dense(256, activation='relu')(h_conv2_flat)
-            # h_fc1 shape = (5,256)
+                # h_conv2_flat = tf.reshape(h_conv2, [-1, 2592])
+                h_conv2_flat = Flatten()(h_conv2)
+                # h_fc1 = tf.nn.relu(tf.matmul(h_conv2_flat, self.W_fc1) + self.b_fc1)
+                h_fc1 = Dense(256, activation='relu')(h_conv2_flat)
+                # h_fc1 shape = (5,256)
 
-            # h_fc1_reshaped = tf.reshape(h_fc1, [1, -1, 256])
-            h_fc1_reshaped = RepeatVector(1)(h_fc1)
-            # h_fc1_reshaped shape = (1,5,256)
+                # h_fc1_reshaped = tf.reshape(h_fc1, [1, -1, 256])
+                h_fc1_reshaped = RepeatVector(1)(h_fc1)
+                # h_fc1_reshaped shape = (1,5,256)
 
-            lstm_outputs = LSTM(256)(h_fc1_reshaped)
+                lstm_outputs = LSTM(256)(h_fc1_reshaped)
 
-            # policy (output)
-            # self.pi = tf.nn.softmax(tf.matmul(lstm_outputs, self.W_fc2) + self.b_fc2)
-            self.pi = Dense(action_size, activation='softmax')(lstm_outputs)
+                # policy (output)
+                # self.pi = tf.nn.softmax(tf.matmul(lstm_outputs, self.W_fc2) + self.b_fc2)
+                self.pi = Dense(action_size, activation='softmax')(lstm_outputs)
 
-            # value (output)
-            # v_ = tf.matmul(lstm_outputs, self.W_fc3) + self.b_fc3
-            v_ = Dense(1)(h_fc1)
-            self.v = tf.reshape(v_, [-1])
+                # value (output)
+                # v_ = tf.matmul(lstm_outputs, self.W_fc3) + self.b_fc3
+                v_ = Dense(1)(h_fc1)
+                self.v = tf.reshape(v_, [-1])
 
-            self.net = Model(input=self.s, output=[self.pi, v_])
-            # self.reset_state()
-            model_json = self.net.to_json()
-            with open("model-lstm.json", "w") as json_file:
-                json_file.write(model_json)
-            '''
-            # load json and create model
-            json_file = open('model-lstm.json', 'r')
-            loaded_model_json = json_file.read()
-            json_file.close()
-            self.net = model_from_json(loaded_model_json)
+                self.net = Model(input=self.s, output=[self.pi, v_])
+                # self.reset_state()
 
-            self.s = self.net.input
-            self.pi = self.net.output[0]
-            v_ = self.net.output[1]
-            self.v = tf.reshape(v_, [-1])
+                model_json = self.net.to_json()
+                with open("model-lstm.json", "w") as json_file:
+                    json_file.write(model_json)
+            else:
+                # load json and create model
+                json_file = open('model-lstm.json', 'r')
+                loaded_model_json = json_file.read()
+                json_file.close()
+                self.net = model_from_json(loaded_model_json)
+
+                self.s = self.net.input
+                self.pi = self.net.output[0]
+                v_ = self.net.output[1]
+                self.v = tf.reshape(v_, [-1])
 
     def reset_state(self):
         self.lstm_state_out = np.zeros([1, self.lstm.state_size])
