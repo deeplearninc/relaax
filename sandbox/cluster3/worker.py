@@ -20,11 +20,13 @@ class _AgentFactory(object):
         self._n_worker = 0
 
     def __call__(self):
-        return algorithms.a3c.worker.Factory(
+        agent = algorithms.a3c.worker.Factory(
             params=self._params,
             master=algorithms.a3c.master.Stub(self._master),
             log_dir='%s/worker_%d' % (self._log_dir, self._n_worker)
         )()
+        self._n_worker += 1
+        return agent
 
 
 def main():
