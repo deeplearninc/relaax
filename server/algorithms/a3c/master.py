@@ -1,5 +1,6 @@
 from __future__ import print_function
 
+import grpc
 import numpy
 
 import master_pb2
@@ -21,8 +22,8 @@ def add_service_to_server(service, server):
 
 
 class Stub(Service):
-    def __init__(self, channel):
-        self._stub = master_pb2.MasterStub(channel)
+    def __init__(self, master):
+        self._stub = master_pb2.MasterStub(grpc.insecure_channel(master))
 
     def increment_global_t(self):
         return self._stub.IncrementGlobalT(master_pb2.NullMessage()).n

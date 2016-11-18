@@ -21,7 +21,7 @@ for i in `seq 0 $((N - 1))`;
 do
     echo client $i
     # source activate client&&exec python ../../clients/rl_client_ale.py --host localhost --port $((8000 + i)) --seed $i &>out/client_$i &
-    source activate client&&exec python ../../clients/rl_client_ale.py --host localhost --port 7000 --seed $i &>out/client_$i &
+    source activate client&&exec python ../../clients/rl_client_ale.py --agent localhost:7000 --seed $i &>out/client_$i &
     PIDS+=($!)
     sleep 1
 done
