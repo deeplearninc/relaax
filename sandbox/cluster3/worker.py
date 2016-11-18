@@ -17,15 +17,13 @@ class _AgentFactory(object):
         self._params = params
         self._master = master
         self._log_dir = log_dir
-        self._n_worker = 0
 
-    def __call__(self):
+    def __call__(self, n_agent):
         agent = algorithms.a3c.worker.Factory(
             params=self._params,
             master=algorithms.a3c.master.Stub(self._master),
-            log_dir='%s/worker_%d' % (self._log_dir, self._n_worker)
+            log_dir='%s/worker_%d' % (self._log_dir, n_agent)
         )()
-        self._n_worker += 1
         return agent
 
 

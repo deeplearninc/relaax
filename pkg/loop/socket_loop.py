@@ -45,6 +45,7 @@ def run_agents(bind_address, agent_factory):
         socket_.bind(_parse_address(bind_address))
         socket_.listen(100)
 
+        n_agent = 0
         while True:
             connection, _ = socket_.accept()
             try:
@@ -52,11 +53,12 @@ def run_agents(bind_address, agent_factory):
                 if pid == 0:
                     socket_.close()
                     connection.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-                    run_agent(connection, agent_factory())
+                    run_agent(connection, agent_factory(n_agent))
                     connection.close()
                     break
             finally:
                 connection.close()
+            n_agent += 1
     finally:
         socket_.close()
 
