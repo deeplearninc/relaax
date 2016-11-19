@@ -7,7 +7,7 @@ PIDS+=($!)
 sleep 1
 
 echo worker
-source activate server&&exec python worker.py &>out/worker &
+source activate server&&exec python worker.py --bind localhost:7000 --master localhost:50051 --log-dir logs/boxing_a3c_1threads &>out/worker &
 PIDS+=($!)
 sleep 1
 

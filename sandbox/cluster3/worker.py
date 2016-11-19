@@ -4,6 +4,7 @@ import sys
 sys.path.append('../../pkg')
 sys.path.append('../../server')
 
+import argparse
 import logging
 
 import algorithms.a3c.params
@@ -12,39 +13,35 @@ import algorithms.a3c.worker
 import loop.socket_loop
 
 
-class _AgentFactory(object):
-    def __init__(self, params, master, log_dir):
-        self._params = params
-        self._master = master
-        self._log_dir = log_dir
-
-    def __call__(self, n_agent):
-        agent = algorithms.a3c.worker.Factory(
-            params=self._params,
-            master=algorithms.a3c.master.Stub(self._master),
-            log_dir='%s/worker_%d' % (self._log_dir, n_agent)
-        )()
-        return agent
-
-
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--bind', type=str, default=None, help='address to serve (host:port)')
+    parser.add_argument('--master', type=str, default=None, help='master address (host:port)')
+    parser.add_argument('--log-dir', type=str, default=None, help='TensorBoard log directory')
+    args = parser.parse_args()
+
     logging.basicConfig(
         format='%(asctime)s:%(levelname)s:%(message)s',
         level=logging.INFO
     )
 
     params = algorithms.a3c.params.Params()
-    lstm_str = ''
-    if params.use_LSTM:
-        lstm_str = 'lstm_'
 
     loop.socket_loop.run_agents(
-        'localhost:7000',
-        _AgentFactory(
+        args.bind,
+        _get_factory(
             params=params,
-            master='localhost:50051',
-            log_dir='logs/boxing_a3c_%s%dthreads' % (lstm_str, 1)
+            master=args.master,
+            log_dir=args.log_dir
         )
+    )
+
+
+def _get_factory(params, master, log_dir):
+    return lambda n_agent: algorithms.a3c.worker.Agent(
+        params=params,
+        master=algorithms.a3c.master.Stub(master),
+        log_dir='%s/worker_%d' % (log_dir, n_agent)
     )
 
 
