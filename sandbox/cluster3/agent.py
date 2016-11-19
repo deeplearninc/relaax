@@ -7,9 +7,9 @@ sys.path.append('../../server')
 import argparse
 import logging
 
-import algorithms.a3c.params
-import algorithms.a3c.bridge
 import algorithms.a3c.agent
+import algorithms.a3c.bridge
+import algorithms.a3c.params
 import loop.socket_loop
 
 
