@@ -6,8 +6,8 @@ source activate server&&exec python master.py &>out/master &
 PIDS+=($!)
 sleep 1
 
-echo worker
-source activate server&&exec python worker.py --bind localhost:7000 --master localhost:50051 --log-dir logs/boxing_a3c_1threads &>out/worker &
+echo agent
+source activate server&&exec python agent.py --bind localhost:7000 --master localhost:50051 --log-dir logs/boxing_a3c_1threads &>out/agent &
 PIDS+=($!)
 sleep 1
 
