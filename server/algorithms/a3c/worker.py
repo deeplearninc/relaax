@@ -7,51 +7,11 @@ import accum_trainer
 import game_ac_network
 
 
-class Factory(object):
+class Agent(object):
     def __init__(self, params, master, log_dir):
         self._params = params
         self._master = master
         self._log_dir = log_dir
-
-    def __call__(self):
-        agent = _Agent(
-            params=self._params,
-            master=self._master,
-            get_session=lambda: session,
-            log_reward=lambda reward, step: summary_writer.add_summary(
-                session.run(summary, feed_dict={episode_score: reward}),
-                step
-            )
-        )
-
-        episode_score = tf.placeholder(tf.int32)
-        summary = tf.scalar_summary('episode score', episode_score)
-
-        initialize_all_variables = tf.initialize_all_variables()
-
-        session = tf.Session()
-
-        summary_writer = tf.train.SummaryWriter(self._log_dir, session.graph)
-
-        session.run(initialize_all_variables)
-
-        return agent
-
-
-class _Agent(object):
-    def __init__(
-        self,
-        params,
-        master,
-        get_session,
-        log_reward
-    ):
-
-        self._params = params
-        self._master = master
-        self._get_session = get_session
-        self._log_reward = log_reward
-        self._last_time = 0
 
         kernel = "/cpu:0"
         if params.use_GPU:
@@ -87,9 +47,23 @@ class _Agent(object):
 
         self.frameQueue = None      # frame accumulator for state, cuz state = 4 consecutive frames
 
-    def act(self, state):
-        sess = self._get_session()
+        episode_score = tf.placeholder(tf.int32)
+        summary = tf.scalar_summary('episode score', episode_score)
 
+        initialize_all_variables = tf.initialize_all_variables()
+
+        self._session = tf.Session()
+
+        summary_writer = tf.train.SummaryWriter(self._log_dir, self._session.graph)
+
+        self._session.run(initialize_all_variables)
+
+        self._log_reward = lambda: summary_writer.add_summary(
+            self._session.run(summary, feed_dict={episode_score: self.episode_reward}),
+            self.global_t
+        )
+
+    def act(self, state):
         self.update_state(state)
 
         if self.episode_t == self._params.episode_len:
@@ -102,9 +76,9 @@ class _Agent(object):
 
         if self.episode_t == 0:
             # reset accumulated gradients
-            sess.run(self.reset_gradients)
+            self._session.run(self.reset_gradients)
             # copy weights from shared to local
-            self._local_network.assign_values(sess, self._master.get_values())
+            self._local_network.assign_values(self._session, self._master.get_values())
 
             self.states = []
             self.actions = []
@@ -114,7 +88,7 @@ class _Agent(object):
             if self._params.use_LSTM:
                 self.start_lstm_state = self._local_network.lstm_state_out
 
-        pi_, value_ = self._local_network.run_policy_and_value(sess, self.frameQueue)
+        pi_, value_ = self._local_network.run_policy_and_value(self._session, self.frameQueue)
         action = self._choose_action(pi_)
 
         self.states.append(self.frameQueue)
@@ -141,7 +115,7 @@ class _Agent(object):
 
         score = self.episode_reward
 
-        self._log_reward(self.episode_reward, self.global_t)
+        self._log_reward()
 
         self.episode_reward = 0
 
@@ -187,11 +161,9 @@ class _Agent(object):
             self.frameQueue = np.stack((frame, frame, frame, frame), axis=2)
 
     def _update_global(self):
-        sess = self._get_session()
-
         R = 0.0
         if not self.terminal_end:
-            R = self._local_network.run_value(sess, self.frameQueue)
+            R = self._local_network.run_value(self._session, self.frameQueue)
 
         self.actions.reverse()
         self.states.reverse()
@@ -224,7 +196,7 @@ class _Agent(object):
             batch_td.reverse()
             batch_R.reverse()
 
-            sess.run(
+            self._session.run(
                 self.accum_gradients,
                 feed_dict={
                     self._local_network.s: batch_si,
@@ -236,7 +208,7 @@ class _Agent(object):
                 }
             )
         else:
-            sess.run(
+            self._session.run(
                 self.accum_gradients,
                 feed_dict={
                     self._local_network.s: batch_si,
@@ -248,12 +220,7 @@ class _Agent(object):
 
         start_time = time.time()
 
-        self._master.apply_gradients(sess.run(self._accum_grad_list))
-
-        elapsed = time.time() - start_time
-        interval = time.time() - self._last_time
-        self._last_time = time.time()
+        self._master.apply_gradients(self._session.run(self._accum_grad_list))
 
         if (self.local_t % 100) == 0:
             print("TIMESTEP", self.local_t)
-            print("ELAPSED", elapsed, interval, elapsed / interval)

@@ -13,10 +13,10 @@ import algorithms.a3c.params
 import os
 
 import algorithms.a3c.game_ac_network
-import algorithms.a3c.master
+import algorithms.a3c.bridge
 
 
-class _Service(algorithms.a3c.master.Service):
+class _Service(algorithms.a3c.bridge.MasterService):
     def __init__(self, params, network, session):
         self._params = params
         self._network = network
@@ -91,7 +91,7 @@ def main():
     signal.signal(signal.SIGINT, stop_server)
 
     server = grpc.server(concurrent.futures.ThreadPoolExecutor(max_workers=1))
-    algorithms.a3c.master.add_service_to_server(_Service(params, global_network, sess), server)
+    algorithms.a3c.bridge.add_service_to_server(_Service(params, global_network, sess), server)
     server.add_insecure_port('[::]:50051')
     server.start()
 

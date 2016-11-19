@@ -8,7 +8,7 @@ import argparse
 import logging
 
 import algorithms.a3c.params
-import algorithms.a3c.master
+import algorithms.a3c.bridge
 import algorithms.a3c.worker
 import loop.socket_loop
 
@@ -40,7 +40,7 @@ def main():
 def _get_factory(params, master, log_dir):
     return lambda n_agent: algorithms.a3c.worker.Agent(
         params=params,
-        master=algorithms.a3c.master.Stub(master),
+        master=algorithms.a3c.bridge.MasterStub(master),
         log_dir='%s/worker_%d' % (log_dir, n_agent)
     )
 
