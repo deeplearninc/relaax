@@ -1,5 +1,6 @@
 from __future__ import print_function
 
+import concurrent
 import grpc
 import numpy
 
@@ -17,8 +18,12 @@ class MasterService(object):
         raise NotImplementedError
 
 
-def add_service_to_server(service, server):
+def start_server(address, service):
+    server = grpc.server(concurrent.futures.ThreadPoolExecutor(max_workers=1))
     bridge_pb2.add_MasterServicer_to_server(_MasterServicer(service), server)
+    server.add_insecure_port(address)
+    server.start()
+    return server
 
 
 class MasterStub(MasterService):

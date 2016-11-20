@@ -8,6 +8,7 @@ import logging
 import time
 import signal
 
+import algorithms.a3c.bridge
 import algorithms.a3c.master
 import algorithms.a3c.params
 
@@ -32,7 +33,7 @@ def main():
     signal.signal(signal.SIGINT, stop_server)
 
     # keep the server or else GC will stop it
-    server = algorithms.a3c.master.start_server(args.bind, master)
+    server = algorithms.a3c.bridge.start_server(args.bind, master.service())
 
     last_global_t = None
     while True:

@@ -38,6 +38,9 @@ class Master(object):
 
         self._saver = tf.train.Saver()
 
+    def service(self):
+        return _Service(self)
+
     def close(self):
         self._session.close()
 
@@ -75,14 +78,6 @@ class Master(object):
         if learning_rate < 0.0:
             learning_rate = 0.0
         return learning_rate
-
-
-def start_server(address, master):
-    server = grpc.server(concurrent.futures.ThreadPoolExecutor(max_workers=1))
-    algorithms.a3c.bridge.add_service_to_server(_Service(master), server)
-    server.add_insecure_port(address)
-    server.start()
-    return server
 
 
 class _Service(algorithms.a3c.bridge.MasterService):
