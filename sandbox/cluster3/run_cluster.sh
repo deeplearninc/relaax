@@ -1,13 +1,14 @@
 N=$1
 PIDS=()
+DIR=boxing_a3c_${N}_agents
 
 echo master
-source activate server&&exec python master.py --bind localhost:7000 --checkpoint-dir checkpoints/boxing_a3c_8_agents &>out/master &
+source activate server&&exec python master.py --bind localhost:7000 --checkpoint-dir checkpoints/$DIR &>out/master &
 PIDS+=($!)
 sleep 1
 
 echo agent
-source activate server&&exec python agent.py --bind localhost:7001 --master localhost:7000 --log-dir logs/boxing_a3c_8_agents &>out/agent &
+source activate server&&exec python agent.py --bind localhost:7001 --master localhost:7000 --log-dir logs/$DIR &>out/agent &
 PIDS+=($!)
 sleep 1
 
