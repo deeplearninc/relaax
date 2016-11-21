@@ -37,6 +37,10 @@ class CriticNet:
             # from simple actor net:
             self.check_fl = self.action_gradients
 
+            # temporary
+            self.TAU = tf.constant(TAU)         # TAU
+            self.TAU_ = tf.constant(1 - TAU)    # 1 - TAU
+
             # initialize all tensor variable parameters:
             self.sess.run(tf.initialize_all_variables())
 
@@ -91,10 +95,10 @@ class CriticNet:
 
     def update_target_critic(self):
         self.sess.run([
-            self.t_W1_c.assign(TAU * self.W1_c + (1 - TAU) * self.t_W1_c),
-            self.t_B1_c.assign(TAU * self.B1_c + (1 - TAU) * self.t_B1_c),
-            self.t_W2_c.assign(TAU * self.W2_c + (1 - TAU) * self.t_W2_c),
-            self.t_W2_action_c.assign(TAU * self.W2_action_c + (1 - TAU) * self.t_W2_action_c),
-            self.t_B2_c.assign(TAU * self.B2_c + (1 - TAU) * self.t_B2_c),
-            self.t_W3_c.assign(TAU * self.W3_c + (1 - TAU) * self.t_W3_c),
-            self.t_B3_c.assign(TAU * self.B3_c + (1 - TAU) * self.t_B3_c)])
+            self.t_W1_c.assign(tf.mul(self.TAU, self.W1_c) + tf.mul(self.TAU_, self.t_W1_c)),
+            self.t_B1_c.assign(tf.mul(self.TAU, self.B1_c) + tf.mul(self.TAU_, self.t_B1_c)),
+            self.t_W2_c.assign(tf.mul(self.TAU, self.W2_c) + tf.mul(self.TAU_, self.t_W2_c)),
+            self.t_W2_action_c.assign(tf.mul(self.TAU, self.W2_action_c) + tf.mul(self.TAU_, self.t_W2_action_c)),
+            self.t_B2_c.assign(tf.mul(self.TAU, self.B2_c) + tf.mul(self.TAU_, self.t_B2_c)),
+            self.t_W3_c.assign(tf.mul(self.TAU, self.W3_c) + tf.mul(self.TAU_, self.t_W3_c)),
+            self.t_B3_c.assign(tf.mul(self.TAU, self.B3_c) + tf.mul(self.TAU_, self.t_B3_c))])

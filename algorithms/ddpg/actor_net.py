@@ -27,6 +27,11 @@ class ActorNet:
                                                      -self.q_gradient_input)  # /BATCH_SIZE)
             self.optimizer = tf.train.AdamOptimizer(LEARNING_RATE).apply_gradients(
                 zip(self.parameters_gradients, self.actor_parameters))
+
+            # temporary
+            self.TAU = tf.constant(TAU)         # TAU
+            self.TAU_ = tf.constant(1 - TAU)    # 1 - TAU
+
             # initialize all tensor variable parameters:
             self.sess.run(tf.initialize_all_variables())
 
@@ -70,9 +75,9 @@ class ActorNet:
 
     def update_target_actor(self):
         self.sess.run([
-            self.t_W1_a.assign(TAU * self.W1_a + (1 - TAU) * self.t_W1_a),
-            self.t_B1_a.assign(TAU * self.B1_a + (1 - TAU) * self.t_B1_a),
-            self.t_W2_a.assign(TAU * self.W2_a + (1 - TAU) * self.t_W2_a),
-            self.t_B2_a.assign(TAU * self.B2_a + (1 - TAU) * self.t_B2_a),
-            self.t_W3_a.assign(TAU * self.W3_a + (1 - TAU) * self.t_W3_a),
-            self.t_B3_a.assign(TAU * self.B3_a + (1 - TAU) * self.t_B3_a)])
+            self.t_W1_a.assign(tf.mul(self.TAU, self.W1_a) + tf.mul(self.TAU_, self.t_W1_a)),
+            self.t_B1_a.assign(tf.mul(self.TAU, self.B1_a) + tf.mul(self.TAU_, self.t_B1_a)),
+            self.t_W2_a.assign(tf.mul(self.TAU, self.W2_a) + tf.mul(self.TAU_, self.t_W2_a)),
+            self.t_B2_a.assign(tf.mul(self.TAU, self.B2_a) + tf.mul(self.TAU_, self.t_B2_a)),
+            self.t_W3_a.assign(tf.mul(self.TAU, self.W3_a) + tf.mul(self.TAU_, self.t_W3_a)),
+            self.t_B3_a.assign(tf.mul(self.TAU, self.B3_a) + tf.mul(self.TAU_, self.t_B3_a))])

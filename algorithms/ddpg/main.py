@@ -29,7 +29,7 @@ def trainer():
     reward_st = np.array([0])
 
     for i in range(episodes):
-        print("==== Starting episode no:", i, "====", "\n")
+        # print("==== Starting episode no:", i, "====", "\n")
         observation = env.reset()
         reward_per_episode = 0
         for t in range(steps):
@@ -54,11 +54,11 @@ def trainer():
             # check if episode ends:
             if done or (t == steps - 1):
                 print('EPISODE: ', i, ' Steps: ', t, ' Total Reward: ', reward_per_episode)
-                print("Printing reward to file")
+                # print("Printing reward to file")
                 exploration_noise.reset()  # reinitializing random noise for action exploration
-                reward_st = np.append(reward_st, reward_per_episode)
-                np.savetxt('episode_reward.txt', reward_st, newline="\n")
-                print('\n\n')
+                # reward_st = np.append(reward_st, reward_per_episode)
+                # np.savetxt('episode_reward.txt', reward_st, newline="\n")
+                # print('\n\n')
                 break
     total_reward += reward_per_episode
     print("Average reward per episode {}".format(total_reward / episodes))
