@@ -5,17 +5,7 @@ import grpc
 import numpy
 
 import bridge_pb2
-
-
-class MasterService(object):
-    def increment_global_t(self):
-        raise NotImplementedError
-
-    def apply_gradients(self, gradients):
-        raise NotImplementedError
-
-    def get_values(self):
-        raise NotImplementedError
+import master
 
 
 def start_server(address, service):
@@ -26,7 +16,7 @@ def start_server(address, service):
     return server
 
 
-class MasterStub(MasterService):
+class MasterStub(master.Service):
     def __init__(self, master):
         self._stub = bridge_pb2.MasterStub(grpc.insecure_channel(master))
 

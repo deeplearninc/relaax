@@ -8,9 +8,18 @@ import signal
 import tensorflow as tf
 import os
 
-import algorithms.a3c.params
-import algorithms.a3c.game_ac_network
-import algorithms.a3c.bridge
+import game_ac_network
+
+
+class Service(object):
+    def increment_global_t(self):
+        raise NotImplementedError
+
+    def apply_gradients(self, gradients):
+        raise NotImplementedError
+
+    def get_values(self):
+        raise NotImplementedError
 
 
 class Master(object):
@@ -22,7 +31,7 @@ class Master(object):
             kernel = "/gpu:0"
 
         with tf.device(kernel):
-            self._network = algorithms.a3c.game_ac_network.make_shared_network(params, -1)
+            self._network = game_ac_network.make_shared_network(params, -1)
 
         initialize = tf.initialize_all_variables()
 
@@ -80,7 +89,7 @@ class Master(object):
         return learning_rate
 
 
-class _Service(algorithms.a3c.bridge.MasterService):
+class _Service(Service):
     def __init__(self, master):
         self.increment_global_t = master.increment_global_t
         self.apply_gradients = master.apply_gradients
