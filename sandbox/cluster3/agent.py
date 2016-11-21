@@ -6,6 +6,7 @@ sys.path.append('../../server')
 
 import argparse
 import logging
+import ruamel.yaml
 
 import algorithms.a3c.agent
 import algorithms.a3c.bridge
@@ -15,6 +16,7 @@ import loop.socket_loop
 
 def main():
     parser = argparse.ArgumentParser()
+    parser.add_argument('--params', type=str, default=None, help='parameters YAML file')
     parser.add_argument('--bind', type=str, default=None, help='address to serve (host:port)')
     parser.add_argument('--master', type=str, default=None, help='master address (host:port)')
     parser.add_argument('--log-dir', type=str, default=None, help='TensorBoard log directory')
@@ -25,7 +27,10 @@ def main():
         level=logging.INFO
     )
 
-    params = algorithms.a3c.params.Params()
+    with open(args.params, 'r') as f:
+        yaml = ruamel.yaml.load(f, Loader=ruamel.yaml.Loader)
+
+    params = algorithms.a3c.params.Params(yaml)
 
     loop.socket_loop.run_agents(
         args.bind,

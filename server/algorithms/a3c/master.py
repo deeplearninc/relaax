@@ -39,12 +39,6 @@ class Master(object):
 
         self._session.run(initialize)
 
-        self._initial_learning_rate = _log_uniform(
-            params.INITIAL_ALPHA_LOW,
-            params.INITIAL_ALPHA_HIGH,
-            params.INITIAL_ALPHA_LOG_RATE
-        )
-
         self._saver = tf.train.Saver()
 
     def service(self):
@@ -83,7 +77,7 @@ class Master(object):
 
     def _anneal_learning_rate(self, global_time_step):
         factor = (self._params.max_global_step - global_time_step) / self._params.max_global_step
-        learning_rate = self._initial_learning_rate * factor
+        learning_rate = self._params.INITIAL_LEARNING_RATE * factor
         if learning_rate < 0.0:
             learning_rate = 0.0
         return learning_rate

@@ -7,6 +7,7 @@ import argparse
 import logging
 import time
 import signal
+import ruamel.yaml
 
 import algorithms.a3c.bridge
 import algorithms.a3c.master
@@ -15,11 +16,15 @@ import algorithms.a3c.params
 
 def main():
     parser = argparse.ArgumentParser()
+    parser.add_argument('--params', type=str, default=None, help='parameters YAML file')
     parser.add_argument('--bind', type=str, default=None, help='address to serve (host:port)')
     parser.add_argument('--checkpoint-dir', type=str, default=None, help='TensorFlow checkpoint directory')
     args = parser.parse_args()
 
-    master = algorithms.a3c.master.Master(algorithms.a3c.params.Params())
+    with open(args.params, 'r') as f:
+        yaml = ruamel.yaml.load(f, Loader=ruamel.yaml.Loader)
+
+    master = algorithms.a3c.master.Master(algorithms.a3c.params.Params(yaml))
 
     if master.load_checkpoint(args.checkpoint_dir):
         print('checkpoint loaded from %s' % args.checkpoint_dir)

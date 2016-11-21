@@ -1,21 +1,23 @@
 N=$1
-PIDS=()
 DIR=boxing_a3c_${N}_agents
+MASTER=localhost:7000
+AGENT=localhost:7001
+PIDS=()
 
 echo master
-source activate server&&exec python master.py --bind localhost:7000 --checkpoint-dir checkpoints/$DIR &>out/master &
+source activate server&&exec python master.py --params params.yaml --bind $MASTER --checkpoint-dir checkpoints/$DIR &>out/master &
 PIDS+=($!)
 sleep 1
 
 echo agent
-source activate server&&exec python agent.py --bind localhost:7001 --master localhost:7000 --log-dir logs/$DIR &>out/agent &
+source activate server&&exec python agent.py --params params.yaml --bind $AGENT --master $MASTER --log-dir logs/$DIR &>out/agent &
 PIDS+=($!)
 sleep 1
 
 for i in `seq 0 $((N - 1))`;
 do
     echo client $i
-    source activate client&&exec python ../../clients/rl_client_ale.py --agent localhost:7001 --seed $i &>out/client_$i &
+    source activate client&&exec python ../../clients/rl_client_ale.py --agent $AGENT --seed $i &>out/client_$i &
     PIDS+=($!)
     sleep 1
 done
