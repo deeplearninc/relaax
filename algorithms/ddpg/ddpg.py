@@ -1,109 +1,94 @@
+import tensorflow as tf
 import numpy as np
 from params import *
 
-from actor_net import ActorNet
-from critic_net import CriticNet
-from actor_net_bn import ActorNet_bn
-from critic_net_bn import CriticNet_bn
-
-from collections import deque
-import random
-from tensorflow_grad_inverter import GradInverter
-from sys import getsizeof
+from replay_buffer import ReplayBuffer
+from ou_noise import OUNoise
 
 
 class DDPG:
     """ Deep Deterministic Policy Gradient Algorithm"""
-
-    def __init__(self, env, is_batch_norm):
+    def __init__(self, env, is_batch_norm_):
         self.env = env
-        self.num_states = env.observation_space.shape[0]
-        self.num_actions = env.action_space.shape[0]
+        self.state_dim = env.observation_space.shape[0]
+        self.action_dim = env.action_space.shape[0]
+        self.sess = tf.Session()
 
-        if is_batch_norm:
-            self.critic_net = CriticNet_bn(self.num_states, self.num_actions)
-            self.actor_net = ActorNet_bn(self.num_states, self.num_actions)
-
+        if is_batch_norm_:
+            from actor_net_bn import ActorNet
+            from critic_net_bn import CriticNet
+            self.actor_net = ActorNet(self.sess, self.state_dim, self.action_dim)
+            self.critic_net = CriticNet(self.sess, self.state_dim, self.action_dim)
         else:
-            self.critic_net = CriticNet(self.num_states, self.num_actions)
-            self.actor_net = ActorNet(self.num_states, self.num_actions)
+            from actor_net import ActorNet
+            from critic_net import CriticNet
+            self.actor_net = ActorNet(self.sess, self.state_dim, self.action_dim)
+            self.critic_net = CriticNet(self.sess, self.state_dim, self.action_dim)
 
-        # Initialize Buffer Network:
-        self.replay_memory = deque()
+        # Update targets
+        self.sess.run(tf.initialize_all_variables())
+        self.actor_net.update_target()
+        self.critic_net.update_target()
 
-        # Initialize time step:
-        self.time_step = 0
-        self.counter = 0
+        # Initialize Memory Replay Buffer:
+        self.replay_buffer = ReplayBuffer(REPLAY_BUFFER_SIZE)
 
-        action_max = np.array(env.action_space.high).tolist()
-        action_min = np.array(env.action_space.low).tolist()
-        action_bounds = [action_max, action_min]
-        self.grad_inv = GradInverter(action_bounds)
-
-    def evaluate_actor(self, state_t):
-        return self.actor_net.evaluate_actor(state_t)
-
-    def add_experience(self, observation_1, observation_2, action, reward, done):
-        self.observation_1 = observation_1
-        self.observation_2 = observation_2
-        self.action = action
-        self.reward = reward
-        self.done = done
-        self.replay_memory.append((self.observation_1, self.observation_2, self.action, self.reward, self.done))
-        self.time_step = self.time_step + 1
-        # print(getsizeof(self.replay_memory))
-        if len(self.replay_memory) > REPLAY_MEMORY_SIZE:
-            self.replay_memory.popleft()
-
-    def minibatches(self):
-        batch = random.sample(self.replay_memory, BATCH_SIZE)
-        # state t
-        self.state_t_batch = [item[0] for item in batch]
-        self.state_t_batch = np.array(self.state_t_batch)
-        # state t+1
-        self.state_t_1_batch = [item[1] for item in batch]
-        self.state_t_1_batch = np.array(self.state_t_1_batch)
-        self.action_batch = [item[2] for item in batch]
-        self.action_batch = np.array(self.action_batch)
-        self.action_batch = np.reshape(self.action_batch, [len(self.action_batch), self.num_actions])
-        self.reward_batch = [item[3] for item in batch]
-        self.reward_batch = np.array(self.reward_batch)
-        self.done_batch = [item[4] for item in batch]
-        self.done_batch = np.array(self.done_batch)
+        # Initialize an Ornstein-Uhlenbeck process for action exploration
+        self.exploration_noise = OUNoise(self.action_dim)
 
     def train(self):
-        # sample a random minibatch of N transitions from R
-        self.minibatches()
-        self.action_t_1_batch = self.actor_net.evaluate_target_actor(self.state_t_1_batch)
-        # Q'(s_i+1,a_i+1)
-        q_t_1 = self.critic_net.evaluate_target_critic(self.state_t_1_batch, self.action_t_1_batch)
+        # Sample a random minibatch of N transitions from replay buffer
+        minibatch = self.replay_buffer.get_batch(BATCH_SIZE)
 
-        self.y_i_batch = []
-        for i in range(0, BATCH_SIZE):
-            if self.done_batch[i]:
-                self.y_i_batch.append(self.reward_batch[i])
+        state_batch = np.asarray([data[0] for data in minibatch])
+        action_batch = np.asarray([data[1] for data in minibatch])
+        reward_batch = np.asarray([data[2] for data in minibatch])
+        next_state_batch = np.asarray([data[3] for data in minibatch])
+        done_batch = np.asarray([data[4] for data in minibatch])
+
+        # for action_dim = 1
+        action_batch = np.resize(action_batch, [BATCH_SIZE, self.action_dim])
+
+        next_action_batch = self.actor_net.target_actions(next_state_batch)
+        q_value_batch = self.critic_net.target_q(next_state_batch, next_action_batch)
+
+        # Calculate y_batch
+        y_batch = []
+        for i in range(len(minibatch)):
+            if done_batch[i]:
+                y_batch.append(reward_batch[i])
             else:
-                self.y_i_batch.append(self.reward_batch[i] + GAMMA * q_t_1[i][0])
+                y_batch.append(reward_batch[i] + GAMMA * q_value_batch[i])
+        y_batch = np.resize(y_batch, [BATCH_SIZE, 1])
 
-        self.y_i_batch = np.array(self.y_i_batch)
-        self.y_i_batch = np.reshape(self.y_i_batch, [len(self.y_i_batch), 1])
+        # Update critic by minimizing the loss L
+        self.critic_net.train(y_batch, state_batch, action_batch)
 
-        # Update critic by minimizing the loss
-        self.critic_net.train_critic(self.state_t_batch, self.action_batch, self.y_i_batch)
+        # Update the actor policy using the sampled gradient:
+        action_batch_for_gradients = self.actor_net.actions(state_batch)
+        q_gradient_batch = self.critic_net.gradients(state_batch, action_batch_for_gradients)
 
-        # Update actor proportional to the gradients:
-        action_for_delQ = self.evaluate_actor(self.state_t_batch)
+        self.actor_net.train(q_gradient_batch, state_batch)
 
-        if is_grad_inverter:
-            self.del_Q_a = self.critic_net.compute_delQ_a(self.state_t_batch,
-                                                          action_for_delQ)  # /BATCH_SIZE
-            self.del_Q_a = self.grad_inv.invert(self.del_Q_a, action_for_delQ)
-        else:
-            self.del_Q_a = self.critic_net.compute_delQ_a(self.state_t_batch, action_for_delQ)[0]  # /BATCH_SIZE
+        # Update the target networks
+        self.actor_net.update_target()
+        self.critic_net.update_target()
 
-        # train actor network proportional to delQ/dela and del_Actor_model/del_actor_parameters:
-        self.actor_net.train_actor(self.state_t_batch, self.del_Q_a)
+    def action(self, state):
+        return self.actor_net.action(state)
 
-        # Update target Critic and actor network
-        self.critic_net.update_target_critic()
-        self.actor_net.update_target_actor()
+    def noise_action(self, state):
+        # Select action according to the current policy and exploration noise
+        return self.action(state) + self.exploration_noise.noise()
+
+    def perceive(self, state, action, reward, next_state, done):
+        # Store transition (s_t, a_t, r_t, s_{t+1}) in replay buffer
+        self.replay_buffer.add(state, action, reward, next_state, done)
+
+        # Store transitions to replay start size then start training
+        if self.replay_buffer.count() > REPLAY_START_SIZE:
+            self.train()
+
+        # Reinitialize the random OU process when an episode ends
+        if done:
+            self.exploration_noise.reset()

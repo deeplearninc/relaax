@@ -1,114 +1,117 @@
 import tensorflow as tf
 import math
 from params import *
-from batch_norm import BatchNorm
 
 
-class ActorNet_bn:
-    """ Actor Network Model with Batch Normalization of DDPG Algorithm """
+class ActorNet:
+    """ Actor Network Model of DDPG Algorithm """
+    def __init__(self, sess, state_dim, action_dim):
+        self.state_dim = state_dim
+        self.action_dim = action_dim
+        self.sess = sess
 
-    def __init__(self, num_states, num_actions):
-        tf.reset_default_graph()
-        self.g = tf.Graph()
-        with self.g.as_default():
-            self.sess = tf.InteractiveSession()
+        # create actor network
+        self.state_input, self.action_output, self.net, self.is_training = \
+            self.create_network(state_dim, action_dim)
 
-            # actor network model parameters:
-            self.actor_state_in = tf.placeholder("float", [None, num_states])
-            self.W1_a = tf.Variable(
-                tf.random_uniform([num_states, N_HIDDEN_1], -1 / math.sqrt(num_states), 1 / math.sqrt(num_states)))
-            self.B1_a = tf.Variable(
-                tf.random_uniform([N_HIDDEN_1], -1 / math.sqrt(num_states), 1 / math.sqrt(num_states)))
-            self.W2_a = tf.Variable(
-                tf.random_uniform([N_HIDDEN_1, N_HIDDEN_2], -1 / math.sqrt(N_HIDDEN_1), 1 / math.sqrt(N_HIDDEN_1)))
-            self.B2_a = tf.Variable(
-                tf.random_uniform([N_HIDDEN_2], -1 / math.sqrt(N_HIDDEN_1), 1 / math.sqrt(N_HIDDEN_1)))
-            self.W3_a = tf.Variable(tf.random_uniform([N_HIDDEN_2, num_actions], -0.003, 0.003))
-            self.B3_a = tf.Variable(tf.random_uniform([num_actions], -0.003, 0.003))
+        # create target actor network
+        self.target_state_input, self.target_action_output, self.target_update, self.target_is_training = \
+            self.create_target_network(state_dim, action_dim)
 
-            self.is_training = tf.placeholder(tf.bool, [])
-            self.H1_t = tf.matmul(self.actor_state_in, self.W1_a)
-            self.H1_a_bn = BatchNorm(self.H1_t, N_HIDDEN_1, self.is_training, self.sess)
-            self.H1_a = tf.nn.softplus(self.H1_a_bn.bnorm) + self.B1_a
+        # define training rules
+        self.create_training_method()
 
-            self.H2_t = tf.matmul(self.H1_a, self.W2_a)
-            self.H2_a_bn = BatchNorm(self.H2_t, N_HIDDEN_2, self.is_training, self.sess)
-            self.H2_a = tf.nn.tanh(self.H2_a_bn.bnorm) + self.B2_a
-            self.actor_model = tf.matmul(self.H2_a, self.W3_a) + self.B3_a
+    def create_training_method(self):
+        self.q_gradient_input = tf.placeholder("float", [None, self.action_dim])
+        self.parameters_gradients = tf.gradients(self.action_output, self.net, -self.q_gradient_input)
+        self.optimizer = tf.train.AdamOptimizer(ACTOR_LR).apply_gradients(zip(self.parameters_gradients, self.net))
 
-            # target actor network model parameters:
-            self.t_actor_state_in = tf.placeholder("float", [None, num_states])
-            self.t_W1_a = tf.Variable(
-                tf.random_uniform([num_states, N_HIDDEN_1], -1 / math.sqrt(num_states), 1 / math.sqrt(num_states)))
-            self.t_B1_a = tf.Variable(
-                tf.random_uniform([N_HIDDEN_1], -1 / math.sqrt(num_states), 1 / math.sqrt(num_states)))
-            self.t_W2_a = tf.Variable(
-                tf.random_uniform([N_HIDDEN_1, N_HIDDEN_2], -1 / math.sqrt(N_HIDDEN_1), 1 / math.sqrt(N_HIDDEN_1)))
-            self.t_B2_a = tf.Variable(
-                tf.random_uniform([N_HIDDEN_2], -1 / math.sqrt(N_HIDDEN_1), 1 / math.sqrt(N_HIDDEN_1)))
-            self.t_W3_a = tf.Variable(tf.random_uniform([N_HIDDEN_2, num_actions], -0.003, 0.003))
-            self.t_B3_a = tf.Variable(tf.random_uniform([num_actions], -0.003, 0.003))
+    def create_network(self, state_dim, action_dim):
+        layer1_size = LAYER1_SIZE
+        layer2_size = LAYER2_SIZE
 
-            self.t_is_training = tf.placeholder(tf.bool, [])
-            self.t_H1_t = tf.matmul(self.t_actor_state_in, self.t_W1_a)
-            self.t_H1_a_bn = BatchNorm(self.t_H1_t, N_HIDDEN_1, self.t_is_training, self.sess, self.H1_a_bn)
-            self.t_H1_a = tf.nn.softplus(self.t_H1_a_bn.bnorm) + self.t_B1_a
+        state_input = tf.placeholder("float", [None, state_dim])
+        is_training = tf.placeholder(tf.bool)
 
-            self.t_H2_t = tf.matmul(self.t_H1_a, self.t_W2_a)
-            self.t_H2_a_bn = BatchNorm(self.t_H2_t, N_HIDDEN_2, self.t_is_training, self.sess, self.H2_a_bn)
-            self.t_H2_a = tf.nn.tanh(self.t_H2_a_bn.bnorm) + self.t_B2_a
-            self.t_actor_model = tf.matmul(self.t_H2_a, self.t_W3_a) + self.t_B3_a
+        W1 = self.variable([state_dim, layer1_size], state_dim)
+        b1 = self.variable([layer1_size], state_dim)
+        W2 = self.variable([layer1_size, layer2_size], layer1_size)
+        b2 = self.variable([layer2_size], layer1_size)
+        W3 = tf.Variable(tf.random_uniform([layer2_size, action_dim], -3e-3, 3e-3))
+        b3 = tf.Variable(tf.random_uniform([action_dim], -3e-3, 3e-3))
 
-            # cost of actor network:
-            # gets input from action_gradient computed in critic network file
-            self.q_gradient_input = tf.placeholder("float", [None, num_actions])
-            self.actor_parameters = [self.W1_a, self.B1_a, self.W2_a, self.B2_a, self.W3_a, self.B3_a,
-                                     self.H1_a_bn.scale, self.H1_a_bn.beta, self.H2_a_bn.scale, self.H2_a_bn.beta]
-            self.parameters_gradients = tf.gradients(self.actor_model, self.actor_parameters,
-                                                     -self.q_gradient_input)  # /BATCH_SIZE) changed -self.q_gradient to -
+        layer0_bn = self.batch_norm_layer(state_input, training_phase=is_training, scope_bn='batch_norm_0',
+                                          activation=tf.identity)
+        layer1 = tf.matmul(layer0_bn, W1) + b1
+        layer1_bn = self.batch_norm_layer(layer1, training_phase=is_training, scope_bn='batch_norm_1',
+                                          activation=tf.nn.relu)
+        layer2 = tf.matmul(layer1_bn, W2) + b2
+        layer2_bn = self.batch_norm_layer(layer2, training_phase=is_training, scope_bn='batch_norm_2',
+                                          activation=tf.nn.relu)
 
-            self.optimizer = tf.train.AdamOptimizer(learning_rate=LEARNING_RATE, epsilon=1e-08).apply_gradients(
-                zip(self.parameters_gradients, self.actor_parameters))
+        action_output = tf.tanh(tf.matmul(layer2_bn, W3) + b3)
 
-            # temporary
-            self.TAU = tf.constant(TAU)         # TAU
-            self.TAU_ = tf.constant(1 - TAU)    # 1 - TAU
+        return state_input, action_output, [W1, b1, W2, b2, W3, b3], is_training
 
-            # initialize all tensor variable parameters:
-            self.sess.run(tf.initialize_all_variables())
+    def create_target_network(self, state_dim, action_dim):
+        state_input = tf.placeholder("float", [None, state_dim])
+        is_training = tf.placeholder(tf.bool)
+        ema = tf.train.ExponentialMovingAverage(decay=1 - TAU)
+        target_update = ema.apply(self.net)
+        target_net = [ema.average(x) for x in self.net]
 
-            # To make sure actor and target have same initial parameters copy the parameters:
-            # copy target parameters
-            self.sess.run([
-                self.t_W1_a.assign(self.W1_a),
-                self.t_B1_a.assign(self.B1_a),
-                self.t_W2_a.assign(self.W2_a),
-                self.t_B2_a.assign(self.B2_a),
-                self.t_W3_a.assign(self.W3_a),
-                self.t_B3_a.assign(self.B3_a)])
+        layer0_bn = self.batch_norm_layer(state_input, training_phase=is_training, scope_bn='target_batch_norm_0',
+                                          activation=tf.identity)
 
-    def evaluate_actor(self, state_t):
-        return self.sess.run(self.actor_model, feed_dict={self.actor_state_in: state_t, self.is_training: False})
+        layer1 = tf.matmul(layer0_bn, target_net[0]) + target_net[1]
+        layer1_bn = self.batch_norm_layer(layer1, training_phase=is_training, scope_bn='target_batch_norm_1',
+                                          activation=tf.nn.relu)
+        layer2 = tf.matmul(layer1_bn, target_net[2]) + target_net[3]
+        layer2_bn = self.batch_norm_layer(layer2, training_phase=is_training, scope_bn='target_batch_norm_2',
+                                          activation=tf.nn.relu)
 
-    def evaluate_target_actor(self, state_t_1):
-        return self.sess.run(self.t_actor_model,
-                             feed_dict={self.t_actor_state_in: state_t_1, self.t_is_training: False})
+        action_output = tf.tanh(tf.matmul(layer2_bn, target_net[4]) + target_net[5])
 
-    def train_actor(self, actor_state_in, q_gradient_input):
-        self.sess.run([self.optimizer, self.H1_a_bn.train_mean, self.H1_a_bn.train_var, self.H2_a_bn.train_mean,
-                       self.H2_a_bn.train_var, self.t_H1_a_bn.train_mean, self.t_H1_a_bn.train_var,
-                       self.t_H2_a_bn.train_mean, self.t_H2_a_bn.train_var],
-                      feed_dict={self.actor_state_in: actor_state_in, self.t_actor_state_in: actor_state_in,
-                                 self.q_gradient_input: q_gradient_input, self.is_training: True,
-                                 self.t_is_training: True})
+        return state_input, action_output, target_update, is_training
 
-    def update_target_actor(self):
-        self.sess.run([
-            self.t_W1_a.assign(tf.mul(self.TAU, self.W1_a) + tf.mul(self.TAU_, self.t_W1_a)),
-            self.t_B1_a.assign(tf.mul(self.TAU, self.B1_a) + tf.mul(self.TAU_, self.t_B1_a)),
-            self.t_W2_a.assign(tf.mul(self.TAU, self.W2_a) + tf.mul(self.TAU_, self.t_W2_a)),
-            self.t_B2_a.assign(tf.mul(self.TAU, self.B2_a) + tf.mul(self.TAU_, self.t_B2_a)),
-            self.t_W3_a.assign(tf.mul(self.TAU, self.W3_a) + tf.mul(self.TAU_, self.t_W3_a)),
-            self.t_B3_a.assign(tf.mul(self.TAU, self.B3_a) + tf.mul(self.TAU_, self.t_B3_a)),
-            self.t_H1_a_bn.updateTarget,
-            self.t_H2_a_bn.updateTarget])
+    def update_target(self):
+        self.sess.run(self.target_update)
+
+    def train(self, q_gradient_batch, state_batch):
+        self.sess.run(self.optimizer, feed_dict={
+            self.q_gradient_input: q_gradient_batch,
+            self.state_input: state_batch,
+            self.is_training: True
+        })
+
+    def actions(self, state_batch):
+        return self.sess.run(self.action_output, feed_dict={
+            self.state_input: state_batch,
+            self.is_training: True
+        })
+
+    def action(self, state):
+        return self.sess.run(self.action_output, feed_dict={
+            self.state_input: [state],
+            self.is_training: False
+        })[0]
+
+    def target_actions(self, state_batch):
+        return self.sess.run(self.target_action_output, feed_dict={
+            self.target_state_input: state_batch,
+            self.target_is_training: True
+        })
+
+    @staticmethod
+    def variable(shape, f):
+        return tf.Variable(tf.random_uniform(shape, -1 / math.sqrt(f), 1 / math.sqrt(f)))
+
+    @staticmethod
+    def batch_norm_layer(x, training_phase, scope_bn, activation=None):
+        return tf.cond(training_phase,
+                       lambda: tf.contrib.layers.batch_norm(x, activation_fn=activation, center=True, scale=True,
+                                                            updates_collections=None, is_training=True, reuse=None,
+                                                            scope=scope_bn, decay=0.9, epsilon=1e-5),
+                       lambda: tf.contrib.layers.batch_norm(x, activation_fn=activation, center=True, scale=True,
+                                                            updates_collections=None, is_training=False, reuse=True,
+                                                            scope=scope_bn, decay=0.9, epsilon=1e-5))

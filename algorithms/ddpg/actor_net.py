@@ -5,79 +5,80 @@ from params import *
 
 class ActorNet:
     """ Actor Network Model of DDPG Algorithm """
+    def __init__(self, sess, state_dim, action_dim):
+        self.state_dim = state_dim
+        self.action_dim = action_dim
+        self.sess = sess
 
-    def __init__(self, num_states, num_actions):
-        self.g = tf.Graph()
-        with self.g.as_default():
-            self.sess = tf.InteractiveSession()
+        # create actor network
+        self.state_input, self.action_output, self.net = self.create_network(state_dim, action_dim)
 
-            # actor network model parameters:
-            self.W1_a, self.B1_a, self.W2_a, self.B2_a, self.W3_a, self.B3_a, \
-            self.actor_state_in, self.actor_model = self.create_actor_net(num_states, num_actions)
+        # create target actor network
+        self.target_state_input, self.target_action_output, self.target_update, self.target_net = \
+            self.create_target_network(state_dim, action_dim)
 
-            # target actor network model parameters:
-            self.t_W1_a, self.t_B1_a, self.t_W2_a, self.t_B2_a, self.t_W3_a, self.t_B3_a, \
-            self.t_actor_state_in, self.t_actor_model = self.create_actor_net(num_states, num_actions)
+        # define training rules
+        self.create_training_method()
 
-            # cost of actor network:
-            # gets input from action_gradient computed in critic network file
-            self.q_gradient_input = tf.placeholder("float", [None, num_actions])
-            self.actor_parameters = [self.W1_a, self.B1_a, self.W2_a, self.B2_a, self.W3_a, self.B3_a]
-            self.parameters_gradients = tf.gradients(self.actor_model, self.actor_parameters,
-                                                     -self.q_gradient_input)  # /BATCH_SIZE)
-            self.optimizer = tf.train.AdamOptimizer(LEARNING_RATE).apply_gradients(
-                zip(self.parameters_gradients, self.actor_parameters))
+    def create_training_method(self):
+        self.q_gradient_input = tf.placeholder("float", [None, self.action_dim])
+        self.parameters_gradients = tf.gradients(self.action_output, self.net, -self.q_gradient_input)
+        self.optimizer = tf.train.AdamOptimizer(ACTOR_LR).apply_gradients(zip(self.parameters_gradients, self.net))
 
-            # temporary
-            self.TAU = tf.constant(TAU)         # TAU
-            self.TAU_ = tf.constant(1 - TAU)    # 1 - TAU
+    def create_network(self, state_dim, action_dim):
+        layer1_size = LAYER1_SIZE
+        layer2_size = LAYER2_SIZE
+        state_input = tf.placeholder("float", [None, state_dim])
 
-            # initialize all tensor variable parameters:
-            self.sess.run(tf.initialize_all_variables())
+        W1 = self.variable([state_dim, layer1_size], state_dim)
+        b1 = self.variable([layer1_size], state_dim)
+        W2 = self.variable([layer1_size, layer2_size], layer1_size)
+        b2 = self.variable([layer2_size], layer1_size)
+        W3 = tf.Variable(tf.random_uniform([layer2_size, action_dim], -3e-3, 3e-3))
+        b3 = tf.Variable(tf.random_uniform([action_dim], -3e-3, 3e-3))
 
-            # To make sure actor and target have same initial parameters copy the parameters:
-            # copy target parameters
-            self.sess.run([
-                self.t_W1_a.assign(self.W1_a),
-                self.t_B1_a.assign(self.B1_a),
-                self.t_W2_a.assign(self.W2_a),
-                self.t_B2_a.assign(self.B2_a),
-                self.t_W3_a.assign(self.W3_a),
-                self.t_B3_a.assign(self.B3_a)])
+        layer1 = tf.nn.relu(tf.matmul(state_input, W1) + b1)
+        layer2 = tf.nn.relu(tf.matmul(layer1, W2) + b2)
+        action_output = tf.tanh(tf.matmul(layer2, W3) + b3)
+
+        return state_input, action_output, [W1, b1, W2, b2, W3, b3]
+
+    def create_target_network(self, state_dim, action_dim):
+        state_input = tf.placeholder("float", [None, state_dim])
+        ema = tf.train.ExponentialMovingAverage(decay=1 - TAU)
+        target_update = ema.apply(self.net)
+        target_net = [ema.average(x) for x in self.net]
+
+        layer1 = tf.nn.relu(tf.matmul(state_input, target_net[0]) + target_net[1])
+        layer2 = tf.nn.relu(tf.matmul(layer1, target_net[2]) + target_net[3])
+        action_output = tf.tanh(tf.matmul(layer2, target_net[4]) + target_net[5])
+
+        return state_input, action_output, target_update, target_net
+
+    def update_target(self):
+        self.sess.run(self.target_update)
+
+    def train(self, q_gradient_batch, state_batch):
+        self.sess.run(self.optimizer, feed_dict={
+            self.q_gradient_input: q_gradient_batch,
+            self.state_input: state_batch
+        })
+
+    def actions(self, state_batch):
+        return self.sess.run(self.action_output, feed_dict={
+            self.state_input: state_batch
+        })
+
+    def action(self, state):
+        return self.sess.run(self.action_output, feed_dict={
+            self.state_input: [state]
+        })[0]
+
+    def target_actions(self, state_batch):
+        return self.sess.run(self.target_action_output, feed_dict={
+            self.target_state_input: state_batch
+        })
 
     @staticmethod
-    def create_actor_net(num_states=4, num_actions=1):
-        """ Network that takes states and return action """
-        actor_state_in = tf.placeholder("float", [None, num_states])
-        W1_a = tf.Variable(
-            tf.random_uniform([num_states, N_HIDDEN_1], -1 / math.sqrt(num_states), 1 / math.sqrt(num_states)))
-        B1_a = tf.Variable(tf.random_uniform([N_HIDDEN_1], -1 / math.sqrt(num_states), 1 / math.sqrt(num_states)))
-        W2_a = tf.Variable(
-            tf.random_uniform([N_HIDDEN_1, N_HIDDEN_2], -1 / math.sqrt(N_HIDDEN_1), 1 / math.sqrt(N_HIDDEN_1)))
-        B2_a = tf.Variable(tf.random_uniform([N_HIDDEN_2], -1 / math.sqrt(N_HIDDEN_1), 1 / math.sqrt(N_HIDDEN_1)))
-        W3_a = tf.Variable(tf.random_uniform([N_HIDDEN_2, num_actions], -0.003, 0.003))
-        B3_a = tf.Variable(tf.random_uniform([num_actions], -0.003, 0.003))
-
-        H1_a = tf.nn.softplus(tf.matmul(actor_state_in, W1_a) + B1_a)
-        H2_a = tf.nn.tanh(tf.matmul(H1_a, W2_a) + B2_a)
-        actor_model = tf.matmul(H2_a, W3_a) + B3_a
-        return W1_a, B1_a, W2_a, B2_a, W3_a, B3_a, actor_state_in, actor_model
-
-    def evaluate_actor(self, state_t):
-        return self.sess.run(self.actor_model, feed_dict={self.actor_state_in: state_t})
-
-    def evaluate_target_actor(self, state_t_1):
-        return self.sess.run(self.t_actor_model, feed_dict={self.t_actor_state_in: state_t_1})
-
-    def train_actor(self, actor_state_in, q_gradient_input):
-        self.sess.run(self.optimizer,
-                      feed_dict={self.actor_state_in: actor_state_in, self.q_gradient_input: q_gradient_input})
-
-    def update_target_actor(self):
-        self.sess.run([
-            self.t_W1_a.assign(tf.mul(self.TAU, self.W1_a) + tf.mul(self.TAU_, self.t_W1_a)),
-            self.t_B1_a.assign(tf.mul(self.TAU, self.B1_a) + tf.mul(self.TAU_, self.t_B1_a)),
-            self.t_W2_a.assign(tf.mul(self.TAU, self.W2_a) + tf.mul(self.TAU_, self.t_W2_a)),
-            self.t_B2_a.assign(tf.mul(self.TAU, self.B2_a) + tf.mul(self.TAU_, self.t_B2_a)),
-            self.t_W3_a.assign(tf.mul(self.TAU, self.W3_a) + tf.mul(self.TAU_, self.t_W3_a)),
-            self.t_B3_a.assign(tf.mul(self.TAU, self.B3_a) + tf.mul(self.TAU_, self.t_B3_a))])
+    def variable(shape, f):
+        return tf.Variable(tf.random_uniform(shape, -1 / math.sqrt(f), 1 / math.sqrt(f)))
