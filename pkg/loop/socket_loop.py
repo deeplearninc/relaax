@@ -22,7 +22,7 @@ def run_environment(server_address, environment):
             message = _receive(s)
             if message is None:
                 break
-            # _info('message %s', str(message)[:64])
+            _info('message %s', str(message)[:64])
             verb, args = message[0], message[1:]
             if verb == 'act':
                 reward, reset = environment.act(args[0])
@@ -47,13 +47,13 @@ def run_agents(bind_address, agent_factory):
 
         n_agent = 0
         while True:
-            connection, _ = socket_.accept()
+            connection, address = socket_.accept()
             try:
                 pid = os.fork()
                 if pid == 0:
                     socket_.close()
                     connection.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-                    run_agent(connection, agent_factory(n_agent))
+                    run_agent(connection, address, agent_factory(n_agent))
                     connection.close()
                     break
             finally:
@@ -63,12 +63,12 @@ def run_agents(bind_address, agent_factory):
         socket_.close()
 
 
-def run_agent(socket, agent):
+def run_agent(socket, address, agent):
     while True:
         message = _receive(socket)
         if message is None:
             break
-        # _info('message %s', str(message)[:64])
+        _info('from %s message %s', address, str(message)[:64])
         verb, args = message[0], message[1:]
         if verb == 'act':
             state = json.loads(args[0], object_hook=_ndarray_decoder)

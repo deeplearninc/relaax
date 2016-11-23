@@ -5,12 +5,12 @@ AGENT=localhost:7001
 PIDS=()
 
 echo master
-source activate server&&exec python master.py --params params.yaml --bind $MASTER --checkpoint-dir checkpoints/$DIR &>out/master &
+source activate server&&exec python master.py --params params.yaml --bind $MASTER --checkpoint-dir checkpoints/$DIR --log-level INFO &>out/master &
 PIDS+=($!)
 sleep 1
 
 echo agent
-source activate server&&exec python agent.py --params params.yaml --bind $AGENT --master $MASTER --log-dir logs/$DIR &>out/agent &
+source activate server&&exec python agent.py --params params.yaml --bind $AGENT --master $MASTER --log-dir logs/$DIR --log-level INFO &>out/agent &
 PIDS+=($!)
 sleep 1
 

@@ -16,15 +16,25 @@ import loop.socket_loop
 
 def main():
     parser = argparse.ArgumentParser()
+    parser.add_argument(
+        '--log-level',
+        type=str,
+        default='WARNING',
+        choices=('DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'),
+        help='logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)'
+    )
     parser.add_argument('--params', type=str, default=None, help='parameters YAML file')
     parser.add_argument('--bind', type=str, default=None, help='address to serve (host:port)')
     parser.add_argument('--master', type=str, default=None, help='master address (host:port)')
     parser.add_argument('--log-dir', type=str, default=None, help='TensorBoard log directory')
     args = parser.parse_args()
 
+    log_level = getattr(logging, args.log_level.upper(), None)
+    if not isinstance(log_level, int):
+        raise ValueError('Invalid log level: %s' % loglevel)
     logging.basicConfig(
         format='%(asctime)s:%(levelname)s:%(message)s',
-        level=logging.INFO
+        level=log_level
     )
 
     with open(args.params, 'r') as f:
