@@ -100,19 +100,26 @@ class _GameACFFNetworkShared(_GameACNetwork):
         ])
 
         self.gradients = [tf.placeholder(v.dtype, v.get_shape()) for v in self.values]
+        gradients = [tf.Variable(initial_value=v.initialized_value()) for v in self.values]
+        self.assign_grads = tf.group(*[tf.assign(g, sg) for g, sg in zip(gradients, self.gradients)])
 
         self.learning_rate_input = tf.placeholder(tf.float32)
 
         if True:
+            self.loss = tf.placeholder(tf.float32)
+            loss = tf.Variable(0.0)
+            self.assign_loss = tf.assign(loss, self.loss)
             optimizer = tf.train.RMSPropOptimizer(
                 learning_rate=self.learning_rate_input,
                 decay=params.RMSP_ALPHA,
                 momentum=0.0,
                 epsilon=params.RMSP_EPSILON
             )
-            grads_and_vars = optimizer.compute_gradients(self.total_loss, self.gradients)
+            grads_and_vars = optimizer.compute_gradients(loss, gradients)
+            print(grads_and_vars)
             grads_and_vars = [[tf.clip_by_norm(grad, params.GRAD_NORM_CLIP), var]
                               for grad, var in grads_and_vars if grad is not None]
+            print(len(grads_and_vars))
             self.apply_gradients = optimizer.apply_gradients(grads_and_vars)
         else:
             applier = rmsprop_applier.RMSPropApplier(

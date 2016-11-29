@@ -16,8 +16,13 @@ message NdArrays {
     repeated NdArray arrays = 1;
 }
 
+message LossVars {
+    float loss = 1;
+    NdArrays vars = 2;
+}
+
 service Master {
     rpc IncrementGlobalT(NullMessage) returns (Step) {}
-    rpc ApplyGradients(NdArrays) returns (NullMessage) {}
+    rpc ApplyGradients(LossVars) returns (NullMessage) {}
     rpc GetValues(NullMessage) returns (NdArrays) {}
 }

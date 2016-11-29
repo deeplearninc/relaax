@@ -19,8 +19,7 @@ class Agent(object):
 
         with tf.device(kernel):
             self._local_network = game_ac_network \
-                .make_full_network(params, 0) \
-                .prepare_loss(params)
+                .make_full_network(params, 0)
 
         # TODO: don't need accum trainer anymore with batch
         trainer = accum_trainer.AccumTrainer(kernel)
@@ -220,7 +219,17 @@ class Agent(object):
 
         start_time = time.time()
 
-        self._master.apply_gradients(self._session.run(self._accum_grad_list))
+        if True:
+            loss, vars = self._session.run([self._local_network.total_loss, self._local_network.get_vars()],
+                                           feed_dict={
+                                               self._local_network.s: batch_si,
+                                               self._local_network.a: batch_a,
+                                               self._local_network.td: batch_td,
+                                               self._local_network.r: batch_R
+                                           })
+            self._master.apply_gradients(loss, vars)
+        else:
+            self._master.apply_gradients(self._session.run(self._accum_grad_list))
 
         if (self.local_t % 100) == 0:
             print("TIMESTEP", self.local_t)

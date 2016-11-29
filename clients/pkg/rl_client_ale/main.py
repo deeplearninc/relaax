@@ -14,7 +14,7 @@ import loop.socket_loop
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--agent', type=str, default=None, help='agent server address (host:port)')
-    parser.add_argument("--game", type=str, default="boxing", help="Name of the Atari game ROM")
+    parser.add_argument("--game", type=str, default="breakout", help="Name of the Atari game ROM")
     parser.add_argument("--seed", type=int, default=None, help="Seed for random generator")
     return parser.parse_args()
 
