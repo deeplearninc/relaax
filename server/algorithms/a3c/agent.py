@@ -3,7 +3,6 @@ import random
 import tensorflow as tf
 import io
 import numpy as np
-import accum_trainer
 import game_ac_network
 
 
@@ -22,18 +21,6 @@ class Agent(object):
                 .make_full_network(params, 0) \
                 .prepare_loss(params)\
                 .compute_gradients(params)
-
-        # TODO: don't need accum trainer anymore with batch
-        trainer = accum_trainer.AccumTrainer(kernel)
-        trainer.prepare_minimize(
-            self._local_network.total_loss,
-            self._local_network.get_vars()
-        )
-
-        self.accum_gradients = trainer.accumulate_gradients()
-        self.reset_gradients = trainer.reset_gradients()
-
-        self._accum_grad_list = trainer.get_accum_grad_list()
 
         self.local_t = 0            # steps count for current agent's thread
         self.episode_reward = 0     # score accumulator for current game
@@ -76,8 +63,6 @@ class Agent(object):
             self.episode_t = 0
 
         if self.episode_t == 0:
-            # reset accumulated gradients
-            self._session.run(self.reset_gradients)
             # copy weights from shared to local
             self._local_network.assign_values(self._session, self._master.get_values())
 
