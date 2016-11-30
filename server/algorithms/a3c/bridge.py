@@ -23,8 +23,8 @@ class MasterStub(master.Service):
     def increment_global_t(self):
         return self._stub.IncrementGlobalT(bridge_pb2.NullMessage()).n
 
-    def apply_gradients(self, loss, vars):
-        self._stub.ApplyGradients(bridge_pb2.LossVars(loss, _build_ndarrays_message(vars)))
+    def apply_gradients(self, gradients):
+        self._stub.ApplyGradients(_build_ndarrays_message(gradients))
 
     def get_values(self):
         return _parse_ndarrays_message(self._stub.GetValues(bridge_pb2.NullMessage()))
@@ -38,7 +38,7 @@ class _MasterServicer(bridge_pb2.MasterServicer):
         return bridge_pb2.Step(n=long(self._service.increment_global_t()))
 
     def ApplyGradients(self, request, context):
-        self._service.apply_gradients(request.loss, _parse_ndarrays_message(request.vars))
+        self._service.apply_gradients(_parse_ndarrays_message(request))
         return bridge_pb2.NullMessage()
 
     def GetValues(self, request, context):

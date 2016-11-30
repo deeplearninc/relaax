@@ -19,7 +19,9 @@ class Agent(object):
 
         with tf.device(kernel):
             self._local_network = game_ac_network \
-                .make_full_network(params, 0)
+                .make_full_network(params, 0) \
+                .prepare_loss(params)\
+                .compute_gradients(params)
 
         # TODO: don't need accum trainer anymore with batch
         trainer = accum_trainer.AccumTrainer(kernel)
@@ -195,41 +197,26 @@ class Agent(object):
             batch_td.reverse()
             batch_R.reverse()
 
-            self._session.run(
-                self.accum_gradients,
-                feed_dict={
+            feed_dict = {
                     self._local_network.s: batch_si,
                     self._local_network.a: batch_a,
                     self._local_network.td: batch_td,
                     self._local_network.r: batch_R,
                     self._local_network.initial_lstm_state: self.start_lstm_state,
                     self._local_network.step_size: [len(batch_a)]
-                }
-            )
+            }
         else:
-            self._session.run(
-                self.accum_gradients,
-                feed_dict={
+            feed_dict = {
                     self._local_network.s: batch_si,
                     self._local_network.a: batch_a,
                     self._local_network.td: batch_td,
                     self._local_network.r: batch_R
-                }
-            )
+            }
+
 
         start_time = time.time()
 
-        if True:
-            loss, vars = self._session.run([self._local_network.total_loss, self._local_network.get_vars()],
-                                           feed_dict={
-                                               self._local_network.s: batch_si,
-                                               self._local_network.a: batch_a,
-                                               self._local_network.td: batch_td,
-                                               self._local_network.r: batch_R
-                                           })
-            self._master.apply_gradients(loss, vars)
-        else:
-            self._master.apply_gradients(self._session.run(self._accum_grad_list))
+        self._master.apply_gradients(self._session.run(self._local_network.grads, feed_dict=feed_dict))
 
         if (self.local_t % 100) == 0:
             print("TIMESTEP", self.local_t)

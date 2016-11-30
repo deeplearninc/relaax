@@ -15,7 +15,7 @@ class Service(object):
     def increment_global_t(self):
         raise NotImplementedError
 
-    def apply_gradients(self, loss, vars):
+    def apply_gradients(self, gradients):
         raise NotImplementedError
 
     def get_values(self):
@@ -31,7 +31,8 @@ class Master(object):
             kernel = "/gpu:0"
 
         with tf.device(kernel):
-            self._network = game_ac_network.make_shared_network(params, -1)
+            self._network = game_ac_network.make_shared_network(params, -1)\
+                .apply_gradients(params)
 
         initialize = tf.initialize_all_variables()
 
@@ -65,15 +66,12 @@ class Master(object):
     def increment_global_t(self):
         return self._session.run(self._network.increment_global_t)
 
-    def apply_gradients(self, loss, vars):
-        print(self._session.run(self._network.assign_loss, feed_dict={self._network.loss: loss}))
-
-        feed_dict = {p: v for p, v in zip(self._network.gradients, vars)}
-        print(self._session.run(self._network.assign_grads, feed_dict=feed_dict))
-
-        self._session.run(self._network.apply_gradients,
-                          feed_dict={self._network.learning_rate_input:
-                                     self._anneal_learning_rate(self._session.run(self._network.global_t))})
+    def apply_gradients(self, gradients):
+        feed_dict = {p: v for p, v in zip(self._network.gradients, gradients)}
+        feed_dict[self._network.learning_rate_input] = self._anneal_learning_rate(
+            self._session.run(self._network.global_t)
+        )
+        self._session.run(self._network.apply_gradients, feed_dict=feed_dict)
 
     def get_values(self):
         return self._session.run(self._network.values)
