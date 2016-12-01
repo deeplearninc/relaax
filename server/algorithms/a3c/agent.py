@@ -1,7 +1,6 @@
 import time
 import random
 import tensorflow as tf
-import io
 import numpy as np
 import game_ac_network
 

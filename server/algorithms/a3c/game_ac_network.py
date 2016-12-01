@@ -1,7 +1,6 @@
 import tensorflow as tf
 import numpy as np
 from lstm import CustomBasicLSTMCell
-import rmsprop_applier
 
 
 def make_shared_network(params, thread_index):
@@ -123,21 +122,7 @@ class _GameACFFNetworkShared(_GameACNetwork):
         ])
 
         self.gradients = [tf.placeholder(v.dtype, v.get_shape()) for v in self.values]
-
         self.learning_rate_input = tf.placeholder(tf.float32)
-
-        if True:
-            pass
-        else:
-            applier = rmsprop_applier.RMSPropApplier(
-                learning_rate=self.learning_rate_input,
-                decay=params.RMSP_ALPHA,
-                momentum=0.0,
-                epsilon=params.RMSP_EPSILON,
-                clip_norm=params.GRAD_NORM_CLIP,
-                global_vars=self.values
-            )
-            self.apply_gradients = applier(self.gradients)
 
     def assign_values(self, session, values):
         session.run(self._assign_values, feed_dict={

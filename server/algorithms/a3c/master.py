@@ -2,12 +2,8 @@ from __future__ import print_function
 
 import math
 import concurrent
-import grpc
-import time
-import signal
 import tensorflow as tf
 import os
-
 import game_ac_network
 
 
