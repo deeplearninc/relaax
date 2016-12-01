@@ -61,7 +61,6 @@ class _GameACNetwork(object):
             epsilon=params.RMSP_EPSILON
         )
         grads_and_vars = optimizer.compute_gradients(self.total_loss, self.values)
-        print(grads_and_vars)
         self.grads = [tf.clip_by_norm(grad, params.GRAD_NORM_CLIP)
                       for grad, _ in grads_and_vars]
         return self
