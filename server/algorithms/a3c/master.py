@@ -27,8 +27,7 @@ class Master(object):
             kernel = "/gpu:0"
 
         with tf.device(kernel):
-            self._network = game_ac_network.make_shared_network(params, -1)\
-                .apply_gradients(params)
+            self._network = game_ac_network.make_shared_network(params, -1)
 
         initialize = tf.initialize_all_variables()
 

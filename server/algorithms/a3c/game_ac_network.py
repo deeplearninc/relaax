@@ -5,14 +5,18 @@ from lstm import CustomBasicLSTMCell
 
 def make_shared_network(params, thread_index):
     if params.use_LSTM:
-        return _GameACLSTMNetworkShared(params.action_size, thread_index)
-    return _GameACFFNetworkShared(params)
+        network = _GameACLSTMNetworkShared(params.action_size, thread_index)
+    else:
+        network = _GameACFFNetworkShared(params)
+    return network.apply_gradients(params)
 
 
 def make_full_network(params, thread_index):
     if params.use_LSTM:
-        return _GameACLSTMNetwork(params.action_size, thread_index)
-    return _GameACFFNetwork(params)
+        network = _GameACLSTMNetwork(params.action_size, thread_index)
+    else:
+        network = _GameACFFNetwork(params)
+    return network.prepare_loss(params).compute_gradients(params)
 
 
 # Actor-Critic Network Base Class
