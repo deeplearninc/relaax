@@ -149,6 +149,7 @@ def loop(handler):
 
 def main():
     args = parse_args()
+    print(args)
     help()
     loop(Handler(args.game, args.agent))
 
