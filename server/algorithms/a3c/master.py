@@ -19,8 +19,9 @@ class Service(object):
 
 
 class Master(object):
-    def __init__(self, params):
+    def __init__(self, params, saver):
         self._params = params
+        self._saver = saver
 
         kernel = "/cpu:0"
         if params.use_GPU:
@@ -35,25 +36,20 @@ class Master(object):
 
         self._session.run(initialize)
 
-        self._saver = tf.train.Saver()
-
     def service(self):
         return _Service(self)
 
     def close(self):
         self._session.close()
 
-    def load_checkpoint(self, dir):
-        checkpoint = tf.train.get_checkpoint_state(dir)
-        if checkpoint and checkpoint.model_checkpoint_path:
-            self._saver.restore(self._session, checkpoint.model_checkpoint_path)
-            return True
-        return False
+    def restore_latest_checkpoint(self):
+        return self._saver.restore_latest_checkpoint(self._session)
 
-    def save_checkpoint(self, dir):
-        if not os.path.exists(dir):
-            os.makedirs(dir)
-        self._saver.save(self._session, dir + '/' + 'checkpoint', global_step=self.global_t())
+    def save_checkpoint(self):
+        self._saver.save_checkpoint(self._session, self.global_t())
+
+    def checkpoint_place(self):
+        return self._saver.place()
 
     def global_t(self):
         return self._session.run(self._network.global_t)

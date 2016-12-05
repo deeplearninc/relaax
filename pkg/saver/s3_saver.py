@@ -4,6 +4,7 @@ import boto3
 import botocore
 import contextlib
 import os
+import re
 import shutil
 import tempfile
 import tensorflow
@@ -11,7 +12,7 @@ import tensorflow
 import saver
 
 
-class S3Saver(object):
+class S3Saver(saver.Saver):
     def __init__(self, bucket, key, aws_access_key=None, aws_secret_key=None):
         super(S3Saver, self).__init__()
         self._bucket = bucket
@@ -21,46 +22,76 @@ class S3Saver(object):
 
     def restore_latest_checkpoint(self, session):
         with _temp_dir() as dir:
-            lf_path = self._download(dir, _LATEST_FILENAME)
+            lf_path = self._download(dir, self._LATEST_FILENAME)
             if lf_path is None:
                 return False
-            cp_path = self._download(dir, self._latest_cp_name(dir))
+            cp_name = self._latest_cp_name(dir)
+            self._download(dir, '%s.meta' % cp_name)
+            cp_path = self._download(dir, cp_name)
             if cp_path is None:
                 return False
-            self._saver.restore(session, cp_path)
+            self._get_saver().restore(session, cp_path)
         return True
 
     def save_checkpoint(self, session, global_step):
         with _temp_dir() as dir:
             self._save(dir, session, global_step)
-            self._upload(dir, self._latest_cp_name(dir))
-            self._upload(dir, _LATEST_FILENAME)
+
+            cp_name = self._latest_cp_name(dir)
+            if cp_name.startswith('%s/' % dir):
+                cp_name = cp_name[len(dir) + 1:]
+                with open('%s/%s' % (dir, self._LATEST_FILENAME), 'w') as f:
+                    print('model_checkpoint_path: "%s"' % cp_name, file=f)
+                    print('all_model_checkpoint_paths: "%s"' % cp_name, file=f)
+
+            cp_name = self._latest_cp_name(dir)
+            self._upload(dir, cp_name)
+            self._upload(dir, '%s.meta' % cp_name)
+            self._upload(dir, self._LATEST_FILENAME)
+
+    def place(self):
+        return "'%s' bucket '%s' key" % (self._bucket, self._key)
 
     def _latest_cp_name(self, dir):
-        return os.path.basename(self._latest_cp_path(dir))
+        cp_name = None
+        with open('%s/%s' % (dir, self._LATEST_FILENAME), 'r') as f:
+            for line in f:
+                print('line "%s"' % line)
+                match = re.match('^model_checkpoint_path:\s*"(.*)"\s*$', line)
+                if match is not None:
+                    cp_name = match.group(1)
+        print('cp_name "%s"' % cp_name)
+        return cp_name
 
     def _download(self, dir, name):
         if not self._bucket_exists():
             return None
-        self._s3().download_file(
-            self._bucket,
-            '%s/%s' % (self._key, name),
-            '%s/%s' % (dir, name)
-        )
+        path = '%s/%s' % (dir, name)
+        try:
+            self._s3().meta.client.download_file(
+                self._bucket,
+                '%s/%s' % (self._key, name),
+                path
+            )
+        except botocore.exceptions.ClientError as e:
+            if int(e.response['Error']['Code']) == 404:
+                return None 
+            raise
+        return path
 
     def _upload(self, dir, name):
         if not self._bucket_exists():
             self._create_bucket()
-        self._s3().upload_file(
+        self._s3().meta.client.upload_file(
             '%s/%s' % (dir, name),
             self._bucket,
             '%s/%s' % (self._key, name)
         )
 
     def _bucket_exists(self):
-        session = self._session()
+        s3 = self._s3()
         try:
-            session.meta.client.head_bucket(Bucket='mybucket')
+            s3.meta.client.head_bucket(Bucket=self._bucket)
         except botocore.exceptions.ClientError as e:
             # If a client error is thrown, then check that it was a 404 error.
             # If it was a 404 error, then the bucket does not exist.
