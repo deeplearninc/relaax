@@ -49,8 +49,6 @@ def main():
 
     if master.restore_latest_checkpoint():
         print('checkpoint restored from %s' % master.checkpoint_place())
-    print('INCREMENT!!!')
-    master.increment_global_t()
 
     def stop_server(_1, _2):
         master.save_checkpoint()

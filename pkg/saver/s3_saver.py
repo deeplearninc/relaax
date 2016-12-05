@@ -56,11 +56,9 @@ class S3Saver(saver.Saver):
         cp_name = None
         with open('%s/%s' % (dir, self._LATEST_FILENAME), 'r') as f:
             for line in f:
-                print('line "%s"' % line)
                 match = re.match('^model_checkpoint_path:\s*"(.*)"\s*$', line)
                 if match is not None:
                     cp_name = match.group(1)
-        print('cp_name "%s"' % cp_name)
         return cp_name
 
     def _download(self, dir, name):
