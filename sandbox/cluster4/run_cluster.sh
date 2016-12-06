@@ -5,7 +5,7 @@ AGENT=localhost:7001
 PIDS=()
 
 echo master
-source activate server&&exec python master.py --params params.yaml --bind $MASTER --checkpoint-dir dl-checkpoints $DIR --aws-keys aws.yaml --log-level WARNING &>out/master &
+source activate server&&exec python master.py --params params.yaml --bind $MASTER --checkpoint-dir checkpoints/$DIR --aws-keys aws-keys.yaml --log-level WARNING &>out/master &
 PIDS+=($!)
 sleep 1
 
@@ -17,7 +17,7 @@ sleep 1
 for i in `seq 0 $((N - 1))`;
 do
     echo client $i
-    source activate client&&exec python ../../clients/rl_client_ale.py --agent $AGENT --seed $i &>out/client_$i &
+    source activate client&&exec python ../../clients/rl_client_ale.py --game boxing --agent $AGENT --seed $i &>out/client_$i &
     PIDS+=($!)
     sleep 1
 done
