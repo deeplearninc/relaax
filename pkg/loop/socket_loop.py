@@ -93,7 +93,7 @@ def _parse_address(address):
 
 
 def _send(socket, *args):
-    data = json.dumps(args)
+    data = json.dumps(args, cls=_NDArrayEncoder)
     socket.sendall(''.join([
         struct.pack('<I', len(data)),
         data
@@ -109,10 +109,13 @@ _COUNT_LEN = len(struct.pack('<I', 0))
 
 def _receive(socket):
     try:
-        return json.loads(_receiveb(
-            socket,
-            struct.unpack('<I', _receiveb(socket, _COUNT_LEN))[0]
-        ))
+        return json.loads(
+            _receiveb(
+                socket,
+                struct.unpack('<I', _receiveb(socket, _COUNT_LEN))[0]
+            ),
+            object_hook=_ndarray_decoder
+        )
     except _ReceiveError:
         return None
 
