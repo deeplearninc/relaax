@@ -1,2 +1,7 @@
 **/*_pb2.py
 **/aws-keys.yaml
+sandbox/cluster*/out
+sandbox/cluster*/logs
+sandbox/cluster*/checkpoints
+Session.vim
+tags
