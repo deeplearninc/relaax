@@ -26,29 +26,27 @@ class StateDeterminator(object):
 
 
 class EnvFactory(object):
-    def __init__(self, params):
-        self.params = params
+    def __init__(self, game_rom):
+        self._game_rom = game_rom
 
     def new_env(self, seed):
-        return Env(self.params, seed)
+        return Env(self._game_rom, seed)
 
     def new_display_env(self, seed):
-        return Env(self.params, seed, display=True)
+        return Env(self._game_rom, seed, display=True)
 
 
 class Env(object):
-    def __init__(self, params, seed=0, display=False, no_op_max=7):
+    def __init__(self, game_rom, seed, display=False, no_op_max=7):
         self.display = display
-        self.gym = gym.make(params.game_rom)
+        self.gym = gym.make(game_rom)
         self.gym.seed(seed)
         self._no_op_max = no_op_max
 
-        self.dims = (params.screen_height, params.screen_width)     # not used yet
-        self.state_ = None   # np.empty((210, 160, 1), dtype=np.uint8)
-        self.terminal = None
+        self._state = None   # np.empty((210, 160, 1), dtype=np.uint8)
 
         self.getState = StateDeterminator(self.getStateAll)
-        if params.game_rom in AtariList:
+        if game_rom in AtariList:
             self.getState = StateDeterminator(self.getStateAtari)
         self.reset()
 
@@ -56,16 +54,14 @@ class Env(object):
         return self.gym.action_space.n
 
     def state(self):
-        return self.state_
+        return self._state
 
     def act(self, action):
         if self.display:
             self.gym.render()
-        screen, reward, self.terminal, info = self.gym.step(action)
-        self.state_ = self.getState(screen)
-        if self.terminal:
-            self.gym.reset()
-        return reward
+        screen, reward, terminal, info = self.gym.step(action)
+        self._state = self.getState(screen)
+        return reward, terminal
 
     def getActionSpace(self):
         return self.gym.action_space
@@ -74,13 +70,17 @@ class Env(object):
         return self.gym.observation_space
 
     def reset(self):
-        self.gym.reset()
-        no_op = np.random.randint(0, self._no_op_max)
-        for _ in range(no_op):
-            self.gym.step(0)
+        while True:
+            self.gym.reset()
+            terminal = False
+            no_op = np.random.randint(0, self._no_op_max)
+            for _ in range(no_op):
+                self.gym.step(0)
+                _, _, terminal, _ = self.gym.step(0)
 
-        self.state_ = self.getState(self.gym.step(0)[0], False)
-        self.terminal = False
+            self._state = self.getState(self.gym.step(0)[0], False)
+            if not terminal:
+                break
 
     @staticmethod
     def getStateAtari(screen, reshape=True):

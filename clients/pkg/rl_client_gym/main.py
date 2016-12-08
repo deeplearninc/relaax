@@ -1,41 +1,58 @@
 from __future__ import print_function
 
-from socketIO_client import SocketIO
-import logging
+import sys
+sys.path.append('../../pkg')
 
-from time import sleep
+import argparse
+import logging
+import random
 
 import game_env
-from params import Params
+import loop.socket_loop
 
-from .. import server_api
+
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--agent', type=str, default=None, help='agent server address (host:port)')
+    parser.add_argument("--game", type=str, default="Boxing-v0", help="Name of game environment")
+    parser.add_argument("--seed", type=int, default=None, help="Seed for random generator")
+    return parser.parse_args()
+
+
+class _Environment(object):
+    def __init__(self, game):
+        self._game = game
+        self._n_game = 0
+
+    def get_state(self):
+        return self._game.state()
+
+    def act(self, action):
+        return self._game.act(action)
+
+    def reset(self, score):
+        self._n_game += 1
+        print("Score at game", self._n_game, "=", score)
+        self._game.reset()
 
 
 def main():
-    logging.getLogger('requests').setLevel(logging.WARNING)
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(
+        format='%(asctime)s:%(levelname)s: %(message)s',
+        level=logging.INFO
+    )
 
-    socketIO = SocketIO('localhost', 8000)
-    rlmodels_namespace = socketIO.define(ServerAPI, '/rlmodels')
-    socketIO.wait(seconds=1)
+    args = parse_args()
+    loop.socket_loop.run_environment(
+        args.agent,
+        _Environment(game_env.EnvFactory(args.game).new_env(_seed(args.seed)))
+    )
 
 
-class ServerAPI(server_api.ServerAPI):
-    def __init__(self, *args, **kwargs):
-        params = Params()
-        server_api.ServerAPI.__init__(
-            self,
-            params,
-            game_env.EnvFactory(params),
-            *args,
-            **kwargs
-        )
-
-    def stop_play_thread(self):
-        sleep(3)
-        self.gameList[-1].gym.render(close=True)
-        self.play_thread.join()
-        self.gameList.pop()
+def _seed(value):
+    if value is None:
+        return random.randrange(1000000)
+    return value
 
 
 if __name__ == "__main__":
