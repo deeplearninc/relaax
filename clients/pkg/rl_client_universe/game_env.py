@@ -1,7 +1,7 @@
 import gym
 import numpy as np
+import universe
 from scipy.misc import imresize
-
 
 AtariList = ['AirRaid-v0', 'Alien-v0', 'Amidar-v0', 'Assault-v0', 'Asterix-v0',
              'Asteroids-v0', 'Atlantis-v0', 'BankHeist-v0', 'BattleZone-v0', 'BeamRider-v0',
@@ -40,13 +40,14 @@ class Env(object):
     def __init__(self, game_rom, seed, display=False, no_op_max=7):
         self.display = display
         self.gym = gym.make(game_rom)
+        self.gym.configure()
         self.gym.seed(seed)
         self._no_op_max = no_op_max
 
         self._state = None   # np.empty((210, 160, 1), dtype=np.uint8)
 
         self.getState = StateDeterminator(self.getStateAll)
-        if game_rom in AtariList:
+        if True or game_rom in AtariList:
             self.getState = StateDeterminator(self.getStateAtari)
         self.reset()
 
@@ -71,10 +72,11 @@ class Env(object):
 
     def reset(self):
         while True:
-            self.gym.reset()
+            observation_n = self.gym.reset()
+            action_n = [[('KeyEvent', 'ArrowUp', True)] for _ in observation_n]
             no_op = np.random.randint(1, self._no_op_max)
             for _ in xrange(no_op):
-                screen, _, terminal, _ = self.gym.step(0)
+                screen, _, terminal, _ = self.gym.step(action_n)
 
             if not terminal:
                 self._state = self.getState(screen, False)

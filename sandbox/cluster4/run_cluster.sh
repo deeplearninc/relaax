@@ -1,5 +1,5 @@
 N=$1
-DIR=boxing
+DIR=pong_universe
 MASTER=localhost:7000
 AGENT=localhost:7001
 PIDS=()
@@ -17,7 +17,7 @@ sleep 1
 for i in `seq 0 $((N - 1))`;
 do
     echo client $i
-    source activate client&&exec python ../../clients/rl_client_gym.py --game Boxing-v0 --agent $AGENT --seed $i &>out/client_$i &
+    source activate universe&&exec python ../../clients/rl_client_universe.py --game flashgames.DuskDrive-v0 --agent $AGENT --seed $i &>out/client_$i &
     PIDS+=($!)
     sleep 1
 done
