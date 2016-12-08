@@ -75,11 +75,10 @@ class Env(object):
             terminal = False
             no_op = np.random.randint(0, self._no_op_max)
             for _ in range(no_op):
-                self.gym.step(0)
-                _, _, terminal, _ = self.gym.step(0)
+                screen, _, terminal, _ = self.gym.step(0)
 
-            self._state = self.getState(self.gym.step(0)[0], False)
             if not terminal:
+                self._state = self.getState(screen, False)
                 break
 
     @staticmethod
