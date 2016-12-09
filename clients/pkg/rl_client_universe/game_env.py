@@ -1,7 +1,9 @@
 import gym
 import numpy as np
+import time
 import universe
 from scipy.misc import imresize
+
 
 AtariList = ['AirRaid-v0', 'Alien-v0', 'Amidar-v0', 'Assault-v0', 'Asterix-v0',
              'Asteroids-v0', 'Atlantis-v0', 'BankHeist-v0', 'BattleZone-v0', 'BeamRider-v0',
@@ -60,8 +62,8 @@ class Env(object):
     def act(self, action):
         if self.display:
             self.gym.render()
-        screen, reward, terminal, info = self.gym.step(action)
-        self._state = self.getState(screen)
+        screen, reward, terminal, info = self.gym.step([action])
+        self._state = self.getState(screen[0])
         return reward, terminal
 
     def getActionSpace(self):
@@ -73,13 +75,20 @@ class Env(object):
     def reset(self):
         while True:
             observation_n = self.gym.reset()
-            action_n = [[('KeyEvent', 'ArrowUp', True)] for _ in observation_n]
+
+            while True:
+                screen, _, terminal, _ = self.gym.step([[]])
+                if screen[0] is None:
+                    time.sleep(1)
+                else:
+                    break
+
             no_op = np.random.randint(1, self._no_op_max)
             for _ in xrange(no_op):
-                screen, _, terminal, _ = self.gym.step(action_n)
+                screen, _, terminal, _ = self.gym.step([[]])
 
-            if not terminal:
-                self._state = self.getState(screen, False)
+            if not terminal[0]:
+                self._state = self.getState(screen[0]['vision'], False)
                 break
 
     @staticmethod

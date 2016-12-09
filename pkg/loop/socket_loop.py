@@ -22,7 +22,7 @@ def run_environment(server_address, environment):
             message = _receive(s)
             if message is None:
                 break
-            _info('message %s', str(message)[:64])
+            _debug('receive message %s', str(message)[:64])
             verb, args = message[0], message[1:]
             if verb == 'act':
                 reward, reset = environment.act(args[0])
@@ -42,12 +42,15 @@ def run_agents(bind_address, agent_factory):
 
     socket_ = socket.socket()
     try:
+        _info('listening %s', bind_address)
+
         socket_.bind(_parse_address(bind_address))
         socket_.listen(100)
 
         n_agent = 0
         while True:
             connection, address = socket_.accept()
+            _debug('accepted %s from %s', str(connection), str(address))
             try:
                 pid = os.fork()
                 if pid == 0:
@@ -68,7 +71,7 @@ def run_agent(socket, address, agent):
         message = _receive(socket)
         if message is None:
             break
-        _info('from %s message %s', address, str(message)[:64])
+        _debug('from %s message %s', address, str(message)[:64])
         verb, args = message[0], message[1:]
         if verb == 'act':
             state = json.loads(args[0], object_hook=_ndarray_decoder)
@@ -94,6 +97,7 @@ def _parse_address(address):
 
 def _send(socket, *args):
     data = json.dumps(args, cls=_NDArrayEncoder)
+    _debug('send data %s', data[:64])
     socket.sendall(''.join([
         struct.pack('<I', len(data)),
         data
@@ -154,6 +158,10 @@ def _ndarray_decoder(dct):
         output.seek(0)
         return numpy.load(output)['obj']
     return dct
+
+
+def _debug(message, *args):
+    logging.debug('%d:' + message, os.getpid(), *args)
 
 
 def _info(message, *args):

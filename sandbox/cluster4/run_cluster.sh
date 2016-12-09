@@ -1,5 +1,5 @@
 N=$1
-DIR=pong_universe
+DIR=dusk_universe
 MASTER=localhost:7000
 AGENT=localhost:7001
 PIDS=()
@@ -10,14 +10,14 @@ PIDS+=($!)
 sleep 1
 
 echo agent
-source activate server&&exec python agent.py --params params.yaml --bind $AGENT --master $MASTER --log-dir logs/$DIR --log-level WARNING &>out/agent &
+source activate server&&exec python agent.py --params params.yaml --bind $AGENT --master $MASTER --log-dir logs/$DIR --log-level DEBUG &>out/agent &
 PIDS+=($!)
 sleep 1
 
 for i in `seq 0 $((N - 1))`;
 do
     echo client $i
-    source activate universe&&exec python ../../clients/rl_client_universe.py --game flashgames.DuskDrive-v0 --agent $AGENT --seed $i &>out/client_$i &
+    source activate universe&&exec python ../../clients/rl_client_universe.py --game flashgames.DuskDrive-v0 --agent $AGENT --seed $i --log-level DEBUG &>out/client_$i &
     PIDS+=($!)
     sleep 1
 done
