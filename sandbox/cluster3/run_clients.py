@@ -74,7 +74,7 @@ class Handler(object):
                 if c < n:
                     print('Starting client %d...' % i)
                     self._clients[i] = subprocess.Popen(
-                        ['bash', 'run_client.sh', self._agent, str(i)],
+                        ['bash', 'run_client.sh', self._agent, self._game, str(i)],
                         preexec_fn=os.setpgrp
                     )
                     c += 1
