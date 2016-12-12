@@ -47,12 +47,14 @@ def main():
         saver=_saver(args)
     )
 
+    print('looking for checkpoint in %s ...' % master.checkpoint_place())
     if master.restore_latest_checkpoint():
         print('checkpoint restored from %s' % master.checkpoint_place())
+        print("global_t is %d" % master.global_t())
 
     def stop_server(_1, _2):
-        master.save_checkpoint()
-        print('checkpoint saved to %s' % master.checkpoint_place())
+        print('')
+        _save(master)
         master.close()
         sys.exit(0)
 
@@ -61,13 +63,22 @@ def main():
     # keep the server or else GC will stop it
     server = algorithms.a3c.bridge.start_server(args.bind, master.service())
 
-    last_global_t = None
+    last_global_t = master.global_t()
+    last_activity_time = None
     while True:
         time.sleep(1)
+
         global_t = master.global_t()
-        if global_t != last_global_t:
+        if global_t == last_global_t:
+            if last_activity_time is not None and time.time() >= last_activity_time + 10:
+                _save(master)
+                last_activity_time = None
+        else:
+            last_activity_time = time.time()
+
             last_global_t = global_t
             print("global_t is %d" % global_t)
+
 
 
 def _load_yaml(path):
@@ -91,6 +102,13 @@ def _saver(args):
             aws_access_key=aws_access_key,
             aws_secret_key=aws_secret_key
         )
+
+
+def _save(master):
+    print('checkpoint %d is saving to %s ...' % (master.global_t(), master.checkpoint_place()))
+    master.save_checkpoint()
+    print('done')
+
 
 if __name__ == '__main__':
     main()
