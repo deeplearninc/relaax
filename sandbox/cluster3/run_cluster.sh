@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 N=$1
-DIR=boxing
+DIR=boxing_a3c
 MASTER=localhost:7000
 AGENT=localhost:7001
 PIDS=()
