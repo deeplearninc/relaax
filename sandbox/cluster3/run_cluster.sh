@@ -18,7 +18,7 @@ sleep 1
 for i in `seq 0 $((N - 1))`;
 do
     echo client $i
-    source activate client&&exec python ../../clients/rl_client_ale.py --agent $AGENT --seed $i &>out/client_$i &
+    source activate client&&exec python ../../clients/rl_client_ale.py --agent $AGENT --game boxing --seed $i &>out/client_$i &
     PIDS+=($!)
     sleep 1
 done
