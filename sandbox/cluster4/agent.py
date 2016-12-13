@@ -27,6 +27,7 @@ def main():
     parser.add_argument('--bind', type=str, default=None, help='address to serve (host:port)')
     parser.add_argument('--master', type=str, default=None, help='master address (host:port)')
     parser.add_argument('--log-dir', type=str, default=None, help='TensorBoard log directory')
+    parser.add_argument('--timeout', type=float, default=120, help='Agent stops on game reset after given timeout')
     args = parser.parse_args()
 
     log_level = getattr(logging, args.log_level.upper(), None)
@@ -43,12 +44,13 @@ def main():
     params = algorithms.a3c.params.Params(yaml)
 
     loop.socket_loop.run_agents(
-        args.bind,
-        _get_factory(
+        bind_address=args.bind,
+        agent_factory=_get_factory(
             params=params,
             master=args.master,
             log_dir=args.log_dir
-        )
+        ),
+        timeout=args.timeout
     )
 
 

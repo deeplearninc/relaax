@@ -43,7 +43,7 @@ def run_environment(server_address, environment):
             s.close()
 
 
-def run_agents(bind_address, agent_factory):
+def run_agents(bind_address, agent_factory, timeout):
     signal.signal(signal.SIGCHLD, signal.SIG_IGN)
 
     socket_ = socket.socket()
@@ -62,7 +62,7 @@ def run_agents(bind_address, agent_factory):
                 if pid == 0:
                     socket_.close()
                     connection.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-                    run_agent(connection, address, agent_factory(n_agent))
+                    run_agent(connection, address, agent_factory(n_agent), timeout)
                     connection.close()
                     break
             finally:
@@ -72,7 +72,8 @@ def run_agents(bind_address, agent_factory):
         socket_.close()
 
 
-def run_agent(socket, address, agent):
+def run_agent(socket, address, agent, timeout):
+    stop = time.time() + timeout
     while True:
         message = _receive(socket)
         if message is None:
@@ -85,6 +86,8 @@ def run_agent(socket, address, agent):
         if verb == 'reward_and_reset':
             score = agent.reward_and_reset(args[0])
             if score is None:
+                break
+            if time.time() >= stop:
                 break
             _send(socket, 'reset', score)
         if verb == 'reward_and_act':

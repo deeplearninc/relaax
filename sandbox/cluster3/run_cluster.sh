@@ -11,7 +11,7 @@ PIDS+=($!)
 sleep 1
 
 echo agent
-source activate server&&exec python agent.py --params params.yaml --bind $AGENT --master $MASTER --log-dir logs/$DIR --log-level WARNING &>out/agent &
+source activate server&&exec python agent.py --params params.yaml --bind $AGENT --master $MASTER --log-dir logs/$DIR --log-level WARNING --timeout 120 &>out/agent &
 PIDS+=($!)
 sleep 1
 
