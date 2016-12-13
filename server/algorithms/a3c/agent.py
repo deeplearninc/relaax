@@ -138,7 +138,11 @@ class Agent(object):
 
     def update_state(self, frame):
         if not self.terminal_end and self.local_t != 0:
-            self.frameQueue = np.append(self.frameQueue[:, :, 1:], frame, axis=2)
+            self.frameQueue = np.append(
+                self.frameQueue[:, :, 1:],
+                np.reshape(frame, frame.shape + (1, )),
+                axis=2
+            )
         else:
             self.frameQueue = np.stack((frame, frame, frame, frame), axis=2)
 

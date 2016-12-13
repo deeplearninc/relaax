@@ -51,10 +51,10 @@ class GameProcess(object):
     def act(self, action):
         # convert original 18 action index to minimal action set index
         real_action = self.real_actions[action]
-        self.reward, self.terminal, self.s_t = self._process_frame(real_action, True)
+        self.reward, self.terminal, self.s_t = self._process_frame(real_action)
         return self.reward, self.terminal
 
-    def _process_frame(self, action, reshape):
+    def _process_frame(self, action):
         reward = self.ale.act(action)
         terminal = self.ale.game_over()
 
@@ -68,8 +68,6 @@ class GameProcess(object):
         resized_screen = imresize(reshaped_screen, (110, 84))
 
         x_t = resized_screen[18:102, :]
-        if reshape:
-            x_t = np.reshape(x_t, (84, 84, 1))
         x_t = x_t.astype(np.float32)
         x_t *= (1.0 / 255.0)
         return reward, terminal, x_t
@@ -92,7 +90,7 @@ class GameProcess(object):
             for _ in range(no_op):
                 self.ale.act(0)
 
-        _, _, self.s_t = self._process_frame(0, False)
+        _, _, self.s_t = self._process_frame(0)
 
         self.reward = 0
         self.terminal = False
