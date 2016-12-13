@@ -15,50 +15,32 @@ import time
 
 def run_environment(server_address, environment):
     while True:
+        s = socket.socket()
+        s.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         try:
-            s = socket.socket()
-            try:
-                s.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-                try:
-                    s.connect(_parse_address(server_address))
-                except socket.error as e:
-                    raise _Failure("socket error({}): {} for {}".format(e.errno, e.strerror, server_address))
+            _connectf(s, _parse_address(server_address))
 
-                try:
-                    _send(s, 'act', _dump_state(environment))
-                except socket.error as e:
-                    raise _Failure("socket error({}): {} for {}".format(e.errno, e.strerror, server_address))
-                while True:
-                    message = _receive(s)
-                    if message is None:
-                        raise _Failure("no message from agent {}".format(server_address))
-                    _debug('receive message %s', str(message)[:64])
-                    verb, args = message[0], message[1:]
-                    if verb == 'act':
-                        reward, reset = environment.act(args[0])
-                        if reset:
-                            try:
-                                _send(s, 'reward_and_reset', reward)
-                            except socket.error as e:
-                                raise _Failure("socket error({}): {} for {}".format(e.errno, e.strerror, server_address))
-                        else:
-                            try:
-                                _send(s, 'reward_and_act', reward, _dump_state(environment))
-                            except socket.error as e:
-                                raise _Failure("socket error({}): {} for {}".format(e.errno, e.strerror, server_address))
-                    if verb == 'reset':
-                        environment.reset(args[0])
-                        try:
-                            _send(s, 'act', _dump_state(environment))
-                        except socket.error as e:
-                            raise _Failure("socket error({}): {} for {}".format(e.errno, e.strerror, server_address))
-            finally:
-                s.close()
+            _sendf(s, 'act', _dump_state(environment))
+            while True:
+                message = _receivef(s)
+                _debug('receive message %s', str(message)[:64])
+                verb, args = message[0], message[1:]
+                if verb == 'act':
+                    reward, reset = environment.act(args[0])
+                    if reset:
+                        _sendf(s, 'reward_and_reset', reward)
+                    else:
+                        _sendf(s, 'reward_and_act', reward, _dump_state(environment))
+                if verb == 'reset':
+                    environment.reset(args[0])
+                    _sendf(s, 'act', _dump_state(environment))
         except _Failure as e:
-            _warning(str(e))
+            _warning('{} : {}'.format(server_address, e.message))
             delay = random.randint(1, 10)
             _info('waiting for %ds...', delay)
             time.sleep(delay)
+        finally:
+            s.close()
 
 
 def run_agents(bind_address, agent_factory):
@@ -114,11 +96,36 @@ def run_agent(socket, address, agent):
 
 
 class _Failure(Exception):
-    def __init__(self, value):
-        self.value = value
+    def __init__(self, message):
+        self.message = message
 
-    def __str__(self):
-        return self.value
+
+def _failure(socket_error):
+    return _Failure("socket error({}): {}".format(socket_error.errno, socket_error.strerror))
+
+
+def _connectf(s, server_address):
+    try:
+        s.connect(server_address)
+    except socket.error as e:
+        raise _failure(e)
+
+
+def _receivef(s):
+    try:
+        message = _receive(s)
+    except socket.error as e:
+        raise _failure(e)
+    if message is None:
+        raise _Failure("no message from agent")
+    return message
+
+
+def _sendf(s, *args):
+    try:
+        _send(s, *args)
+    except socket.error as e:
+        raise _failure(e)
 
 
 def _parse_address(address):
