@@ -77,7 +77,21 @@ TBD by Vlad
 
 ## [Protocol](#relaax)
 
-TBD
+-1) We use grpc connections between our (parameter) server and agents.
+
+-2) Clients & Agents eXchange protocol:
+
+* Clients feed agents by its:
+    - State
+    it could be images, physical conditions and any n-dim array 
+    - Reward
+    some scalar if client gains it at this time
+    - Terminal
+    if we operate with some episodic environments
+ 
+* Agents send to agents:
+    - Action
+    some scalar or array (more complex structures not supported atm)
 
 ## [Environments](#relaax)
 We support only two types of well-known environments for now.
