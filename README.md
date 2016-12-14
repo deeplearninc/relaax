@@ -57,12 +57,6 @@ we have some instability in training process (anyway DeepMind shows only 34 poin
 Source papers:
 - [Trust Region Policy Optimization](https://arxiv.org/abs/1502.05477)
 - [High-Dimensional Continuous Control Using Generalized Advantage Estimation](https://arxiv.org/abs/1506.02438)
-    
-##### Some test run example with one walker:
-
-| Walker with yawners      | Walker with hill obstacle |
-| -------------------------|:-------------------------:|
-| ![img](resources/walker-1.gif) | ![img](resources/walker-2.gif) |
 
 #### Others
     - PPO with L-BFGS (similar to TRPO)
