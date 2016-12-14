@@ -90,7 +90,6 @@ TBD by Vlad
     - Action (some scalar or array, more complex structures not supported atm)
     
 ![img](resources/protocol-flow.png)
-{:.some-css-class style="height: 200px"}
 
 ## [Environments](#relaax)
 We support only two types of well-known environments for now.
