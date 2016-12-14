@@ -154,7 +154,7 @@ def _forkf():
     try:
         return os.fork()
     except OSError as e:
-        raise _failure('OSError', e):
+        raise _failure('OSError', e)
 
 
 def _parse_address(address):
