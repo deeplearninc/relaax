@@ -6,6 +6,7 @@ import json
 import logging
 import numpy
 import os
+import psutil
 import random
 import signal
 import socket
@@ -56,15 +57,26 @@ def run_agents(bind_address, agent_factory, timeout):
         n_agent = 0
         while True:
             connection, address = socket_.accept()
-            _debug('accepted %s from %s', str(connection), str(address))
             try:
-                pid = os.fork()
-                if pid == 0:
-                    socket_.close()
-                    connection.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-                    run_agent(connection, address, agent_factory(n_agent), timeout)
-                    connection.close()
-                    break
+                _debug('accepted %s from %s', str(connection), str(address))
+                available = _available_memory()
+                required = _memory_per_child()
+                if required is None:
+                    _info('memory %.3f, None' % available)
+                else:
+                    _info('memory %.3f, %.3f' % (available, required))
+                if required is not None and available < required:
+                    _warning(
+                        'Cannot start new child: available memory (%.3f) is less than memory per child (%.3f)' %
+                        (available, required)
+                    )
+                else:
+                    pid = os.fork()
+                    if pid == 0:
+                        socket_.close()
+                        connection.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+                        run_agent(connection, address, agent_factory(n_agent), timeout)
+                        break
             finally:
                 connection.close()
             n_agent += 1
@@ -177,6 +189,30 @@ def _receiveb(socket, length):
     data = ''.join(packets)
     assert len(data) == length
     return data
+
+
+def _available_memory():
+    vm = psutil.virtual_memory()
+    return 100 * float(vm.available) / vm.total
+
+
+def _memory_per_child():
+    process = psutil.Process(os.getpid())
+    n = 0
+    mem = 0
+    for child in process.children(recursive=False):
+        n += 1
+        mem += _process_tree_memory(child)
+    if n == 0:
+        return None
+    return mem / n
+
+
+def _process_tree_memory(process):
+    mem = process.memory_percent()
+    for child in process.children(recursive=True):
+        mem += child.memory_percent()
+    return mem
 
 
 def _dump_state(environment):
