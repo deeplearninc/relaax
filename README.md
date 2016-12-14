@@ -15,11 +15,11 @@ within a cluster to auto-scale and maintain by server
  sends a feedback via specified protocol
  
 Navigation links:
-[Algorithms & Performance](algorithms-&-performance)
-[Architecture](architecture)
-[Protocol](protocol)
-[Environments](Environments)
-[Repository](repository)
+[Algorithms & Performance](#algorithms-performance)
+[Architecture](#architecture)
+[Protocol](#protocol)
+[Environments](#environments)
+[Repository](#repository)
 
 ## Algorithms & Performance
 
