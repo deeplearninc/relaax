@@ -14,7 +14,7 @@ within a cluster to auto-scale and maintain by server
 * [Clients](/clients) (Environments) which feeds its data to agents and
  sends a feedback via specified protocol
  
-Navigation links:
+##### Navigation links:
 [Algorithms & Performance](#algorithms-performance)
 [Architecture](#architecture)
 [Protocol](#protocol)
@@ -92,7 +92,7 @@ emulates all gym's Environments such as:
     * [Walkers, Landers & Racing](https://gym.openai.com/envs##box2d)
     * ant others, see the full list [there](https://gym.openai.com/envs)
     
-## [Repository](#architecture)
+## [Repository](#####navigation-links)
 #### RELAAX
   - [Algorithms]()
     - [Distributed A3C]()
