@@ -88,6 +88,8 @@ TBD by Vlad
  
 * Agents send to agents:
     - Action (some scalar or array, more complex structures not supported atm)
+    
+![img](resources/protocol-flow.png=250x)
 
 ## [Environments](#relaax)
 We support only two types of well-known environments for now.
