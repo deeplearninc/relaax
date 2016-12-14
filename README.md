@@ -21,7 +21,7 @@ within a cluster to auto-scale and maintain by server
 [Environments](#environments)
 [Repository](#repository)
 
-## Algorithms & Performance
+## [Algorithms & Performance](#relaax)
 
 #### Distributed A3C [DA3C]
 Inspired by original [paper](https://arxiv.org/abs/1602.01783) - Asynchronous Methods for Deep Reinforcement Learning from [DeepMind](https://deepmind.com/)
@@ -71,15 +71,15 @@ Source papers:
     - DDPG
     - Gorila (Distributed DQN)
 
-## Architecture
+## [Architecture](#relaax)
 
 TBD by Vlad
 
-## Protocol
+## [Protocol](#relaax)
 
 TBD
 
-## Environments
+## [Environments](#relaax)
 We support only two types of well-known environments for now.
 
 - [ALE Client](/clients/rl-client-ale)
@@ -92,7 +92,7 @@ emulates all gym's Environments such as:
     * [Walkers, Landers & Racing](https://gym.openai.com/envs##box2d)
     * ant others, see the full list [there](https://gym.openai.com/envs)
     
-## [Repository](#####navigation-links)
+## [Repository](#relaax)
 #### RELAAX
   - [Algorithms]()
     - [Distributed A3C]()
