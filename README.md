@@ -27,6 +27,13 @@ within a cluster to auto-scale and maintain by server
 Inspired by original [paper](https://arxiv.org/abs/1602.01783) - Asynchronous Methods for Deep Reinforcement Learning from [DeepMind](https://deepmind.com/)
 
 ##### Principal scheme of our implementation of A3C
+- Parameter (Master) Server holds the global parameters of training process
+such as: global neural network weights, state of optimizer and gradients slots
+- Agents (Learners) perform the main training loop: make a copy of global
+network, collect batch from client's data and compute gradients wrt loss,
+which transmits to master server to apply
+- Clients (Environments) connect to Agent (more than one client can connect)
+and send their data to it: state, reward and terminal (if exist)
 ![img](resources/DA3C.png)
 
 ##### Quality performance on some Atari environments:
