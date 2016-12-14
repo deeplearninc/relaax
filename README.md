@@ -92,7 +92,7 @@ emulates all gym's Environments such as:
     * [Walkers, Landers & Racing](https://gym.openai.com/envs##box2d)
     * ant others, see the full list [there](https://gym.openai.com/envs)
     
-## Repository
+## [Repository](#architecture)
 #### RELAAX
   - [Algorithms]()
     - [Distributed A3C]()
