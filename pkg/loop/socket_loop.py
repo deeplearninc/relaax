@@ -71,12 +71,15 @@ def run_agents(bind_address, agent_factory, timeout):
                         (available, required)
                     )
                 else:
-                    pid = os.fork()
-                    if pid == 0:
-                        socket_.close()
-                        connection.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-                        run_agent(connection, address, agent_factory(n_agent), timeout)
-                        break
+                    try:
+                        pid = _forkf()
+                        if pid == 0:
+                            socket_.close()
+                            connection.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+                            run_agent(connection, address, agent_factory(n_agent), timeout)
+                            break
+                    except _Failure as e:
+                        _warning('{} : {}'.format(server_address, e.message))
             finally:
                 connection.close()
             n_agent += 1
@@ -115,22 +118,26 @@ class _Failure(Exception):
         self.message = message
 
 
-def _failure(socket_error):
-    return _Failure("socket error({}): {}".format(socket_error.errno, socket_error.strerror))
+def _failure(etype, e):
+    return _Failure("{}({}): {}".format(etype, e.errno, e.strerror))
+
+
+def _socket_failure(socket_error):
+    return _failure('socket error', socket_error)
 
 
 def _connectf(s, server_address):
     try:
         s.connect(server_address)
     except socket.error as e:
-        raise _failure(e)
+        raise _socket_failure(e)
 
 
 def _receivef(s):
     try:
         message = _receive(s)
     except socket.error as e:
-        raise _failure(e)
+        raise _socket_failure(e)
     if message is None:
         raise _Failure("no message from agent")
     return message
@@ -140,7 +147,14 @@ def _sendf(s, *args):
     try:
         _send(s, *args)
     except socket.error as e:
-        raise _failure(e)
+        raise _socket_failure(e)
+
+
+def _forkf():
+    try:
+        return os.fork()
+    except OSError as e:
+        raise _failure('OSError', e):
 
 
 def _parse_address(address):
