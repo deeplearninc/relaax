@@ -94,26 +94,21 @@ we have some instability in training process (anyway DeepMind shows only 34 poin
 These other algorithms we are working on and planning to make distributed versions of: 
 
 * TRPO-GAE
-
 Inspired by:
- - [Trust Region Policy Optimization](https://arxiv.org/abs/1502.05477)
- - [High-Dimensional Continuous Control Using Generalized Advantage Estimation](https://arxiv.org/abs/1506.02438)
+    - [Trust Region Policy Optimization](https://arxiv.org/abs/1502.05477)
+    - [High-Dimensional Continuous Control Using Generalized Advantage Estimation](https://arxiv.org/abs/1506.02438)
 
 * PPO with L-BFGS (similar to TRPO)
-
 Inspired by:
 
 * CEM
-
 Inspired by:
 * DDPG
-
 Inspired by:
- - [Continuous control with deep reinforcement learning](https://arxiv.org/abs/1509.02971)
+    - [Continuous control with deep reinforcement learning](https://arxiv.org/abs/1509.02971)
 * Distributed DQN (Gorila)
-
 Inspired by:
- - [Massively Parallel Methods for Deep Reinforcement Learning](https://arxiv.org/abs/1507.04296) 
+    - [Massively Parallel Methods for Deep Reinforcement Learning](https://arxiv.org/abs/1507.04296) 
  
 ## [Repository Overview](#contents)
   - [Algorithms]()
