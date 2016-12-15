@@ -51,10 +51,10 @@ Clients-Agents eXchange protocol is a simple protocol implemented over GRPC. It 
 
 ## [Algorithms](#contents)
  
-### [Destributed A3C](#contents)
+### [Distributed A3C](#contents)
 Inspired by original [paper](https://arxiv.org/abs/1602.01783) - Asynchronous Methods for Deep Reinforcement Learning from [DeepMind](https://deepmind.com/)
 
-##### Destributed A3C Architecure
+##### Distributed A3C Architecure
 ![img](resources/DA3C.png)
 
 - Parameter (Master) Server holds the global parameters of training process
