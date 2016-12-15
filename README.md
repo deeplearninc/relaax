@@ -2,7 +2,7 @@
 
 We expose state-of-the-art reinforcement learning algorithms in easy to use RELAAX framework. RELAAX allows your to scale training dinamically by running cluster of RL Agents on any of the popular clouds and connecting RL Environments over GRPC based [Clients-Agents eXchange protocol](#clients-agents-exchange-protocol).
 
-* [RELAAX Client](#relaax-clients) is wrapping details of the [Clients-Agents eXchange protocol](#clients-agents-exchange-protocol) implementation and exposes simple API to be used to exchange Stata, Revard, and Actions between scalable RL Server and Environment. 
+* [RELAAX Client](#relaax-clients) is wrapping details of the [Clients-Agents eXchange protocol](#clients-agents-exchange-protocol) implementation and exposes simple API to be used to exchange States, Rewards, and Actions between scalable RL Server and Environment. 
 
 * [RELAAX Server](#relaax-server) allow developers to run RL Agents locally or at scale on popular cloud platforms. See more details below.
 
@@ -27,7 +27,7 @@ We expose state-of-the-art reinforcement learning algorithms in easy to use RELA
 ## [System Architecture](#contents)
 
 ## [RELAAX Clients](#contents)
-Client is small library which could be used with the Environment implemented in many popular laguages or embedded into specialised hardware systems. Currently client support ALE, OpenAI gym, and OpenAI Universe Environments. Later on we are planning to implement client code in C/C++, Ruby, GO, etc. to simplify integration of other inveronments.
+Client is small library which could be used with the Environment implemented in many popular programming languages or embedded into specialised hardware systems. Currently client support ALE, OpenAI gym, and OpenAI Universe Environments. Later on we are planning to implement client code in C/C++, Ruby, GO, etc. to simplify integration of other environments.
 
 ###  [Clients-Agents eXchange protocol](#contents)
 
@@ -95,8 +95,8 @@ These other algorithms we are working on and planning to make distributed versio
 
 * TRPO-GAE
 Inpired by:
-- [Trust Region Policy Optimization](https://arxiv.org/abs/1502.05477)
-- [High-Dimensional Continuous Control Using Generalized Advantage Estimation](https://arxiv.org/abs/1506.02438)
+ - [Trust Region Policy Optimization](https://arxiv.org/abs/1502.05477)
+ - [High-Dimensional Continuous Control Using Generalized Advantage Estimation](https://arxiv.org/abs/1506.02438)
 
 * PPO with L-BFGS (similar to TRPO)
 Inpired by:
@@ -104,9 +104,10 @@ Inpired by:
 Inpired by:
 * DDPG
 Inpired by:
-* Distributed DQN
+ - [Continuous control with deep reinforcement learning](https://arxiv.org/abs/1509.02971)
+* Distributed DQN (Gorila)
 Inpired by:
- - [Gorila](http://) 
+ - [Massively Parallel Methods for Deep Reinforcement Learning](https://arxiv.org/abs/1507.04296) 
  
 ## [Repository Overview](#contents)
   - [Algorithms]()
