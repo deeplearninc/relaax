@@ -39,6 +39,8 @@ Client is small library which could be used with the Environment implemented in 
 * Agents send to agents:
     - Action (some scalar or array, more complex structures not supported atm)
 
+![img](resources/protocol-flow.png)
+
 ### [Supported Environments](#contents)
 
 * [ALE](/clients/rl-client-ale)
@@ -61,6 +63,14 @@ Inspired by original [paper](https://arxiv.org/abs/1602.01783) - Asynchronous Me
 
 ##### Destributed A3C Architecure
 ![img](resources/DA3C.png)
+
+- Parameter (Master) Server holds the global parameters of training process
+such as: global neural network weights, state of optimizer and gradients slots
+- Agents (Learners) perform the main training loop: make a copy of global
+network, collect batch from client's data and compute gradients wrt loss,
+which transmits to master server to apply
+- Clients (Environments) connect to Agent (more than one client can connect)
+and send their data to it: state, reward and terminal (if exist)
 
 ##### Performance on some of the Atari Environments
 Breakout with DA3C-FF and 8 parallel agents: score performance is similar to DeepMind [paper](https://arxiv.org/pdf/1602.01783v2.pdf#19)
