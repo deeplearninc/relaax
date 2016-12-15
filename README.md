@@ -1,8 +1,8 @@
 # REinforcement Learning Algorithms, Autoscaling and eXchange (RELAAX)
 
-We expose state-of-the-art reinforcement learning algorithms in easy to use RELAAX framework. RELAAX allows your to scale training of the Agents dinamically by running cluster of RL Agents on any of the popular clouds and connecting RL Environments over GRPC based [Clients-Agents eXchange protocol](#protocol).
+We expose state-of-the-art reinforcement learning algorithms in easy to use RELAAX framework. RELAAX allows your to scale training of the Agents dinamically by running cluster of RL Agents on any of the popular clouds and connecting RL Environments over GRPC based [Clients-Agents eXchange protocol](#clients-agents-exchange-protocol).
 
-* [RELAAX Client](#relaax-clients) is wrapping details of the [Clients-Agents eXchange protocol](#protocol) implementation and exposes simple API to be used to exchange Stata, Revard, and Actions between scalable RL Server and Environment. 
+* [RELAAX Client](#relaax-clients) is wrapping details of the [Clients-Agents eXchange protocol](#clients-agents-exchange-protocol) implementation and exposes simple API to be used to exchange Stata, Revard, and Actions between scalable RL Server and Environment. 
 
 * [RELAAX Server](#relaax-server) allow developers to run RL Agents locally or at scale on popular cloud platforms. See more details below.
 
