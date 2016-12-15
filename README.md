@@ -1,42 +1,68 @@
-# RELAAX
-### REinforcement Learning Algorithms, Auto-scaling and eXchange
+# REinforcement Learning Algorithms, Autoscaling and eXchange (RELAAX)
 
-We expose state-of-the-art reinforcement learning algorithms in easy to use
-RELAAX framework, which allows your to scale your task dynamically
-within a cluster and its nodes (machines) via specified protocol.
+We expose state-of-the-art reinforcement learning algorithms in easy to use RELAAX framework. RELAAX allows your to scale training of the Agents dinamically by running cluster of RL Agents on any of the popular clouds and connecting RL Environments over GRPC based [Clients-Agents eXchange protocol](#protocol).
 
-Conceptually we can divide our architecture on three parts:
+* [RELAAX Client](#relaax-clients) is wrapping details of the [Clients-Agents eXchange protocol](#protocol) implementation and exposes simple API to be used to exchange Stata, Revard, and Actions between scalable RL Server and Environment. 
 
-* [Server](/server) side, which maintain you task configuration and nodes
- within your cluster allows to communicate all parts with each other
-* [Algorithms](/algos) (Agents) which you choose to perform your task
-within a cluster to auto-scale and maintain by server
-* [Clients](/clients) (Environments) which feeds its data to agents and
- sends a feedback via specified protocol
+* [RELAAX Server](#relaax-server) allow developers to run RL Agents locally or at scale on popular cloud platforms. See more details below.
+
+* RELAAX provides implementations of the popular [RL algorithms](#algorithms) to simplify RL application(s) development and research. 
  
-##### Navigation links:
-[Algorithms & Performance](#algorithms--performance)
-[Architecture](#architecture)
-[Protocol](#protocol)
-[Environments](#environments)
-[Repository](#repository)
+## Contents:
+- [RELAAX Clients](#relaax-clients)
+ - [Clients-Agents eXchange protocol](#clients-agents-exchange-protocol)
+ - [Supported Environments](#supported-environments)
+- [RELAAX Server](#relaax-server)
+ - [Architecture](#architecture)
+ - [Parameter Server](#parameter-server)
+ - [Workers](#workers)
+ - [Visualization](#visualization)
+- [Algorithms](#algorithms)
+ - [Destributed A3C](#destributed-a3c)
+ - [Other Algorithms](#other-algorithms)
+- [Repository Overview](#repository-overview)
 
-## [Algorithms & Performance](#relaax)
+## [RELAAX Clients](#contents)
+Client is small library which could be used with the Environment implemented in many popular laguages or embedded into specialised hardware systems. Currently client support ALE, OpenAI gym, and OpenAI Universe Environments. Later on we are planning to implement client code in C/C++, Ruby, GO, etc. to simplify integration of other inveronments.
 
-#### Distributed A3C [DA3C]
+###  [Clients-Agents eXchange protocol](#contents)
+
+-1) We use grpc connections between our (parameter) server and agents.
+
+-2) Clients & Agents eXchange protocol:
+
+* Clients feed agents by its:
+    - State (it could be images, physical conditions and any n-dim array) 
+    - Reward (some scalar if client gains it at this time)
+    - Terminal (if we operate with some episodic environments)
+ 
+* Agents send to agents:
+    - Action (some scalar or array, more complex structures not supported atm)
+
+### [Supported Environments](#contents)
+
+* [ALE](/clients/rl-client-ale)
+* [OpenAI Gym](/clients/rl-client-gym)
+ * [Classic Control](https://gym.openai.com/envs#classic_control)
+ * [Atari Games](https://gym.openai.com/envs#atari)
+ * [Walkers, Landers & Racing](https://gym.openai.com/envs##box2d)
+* [OpenAI Universe](https://universe.openai.com/)
+
+## [RELAAX Server](#contents)
+### [Architecture](#contents)
+### [Parameter Server](#contents)
+### [Workers](#contents)
+### [Visualization](#contents)
+
+## [Algorithms](#contents)
+ 
+### [Destributed A3C](#contents)
 Inspired by original [paper](https://arxiv.org/abs/1602.01783) - Asynchronous Methods for Deep Reinforcement Learning from [DeepMind](https://deepmind.com/)
 
-##### Principal scheme of our implementation of A3C
-- Parameter (Master) Server holds the global parameters of training process
-such as: global neural network weights, state of optimizer and gradients slots
-- Agents (Learners) perform the main training loop: make a copy of global
-network, collect batch from client's data and compute gradients wrt loss,
-which transmits to master server to apply
-- Clients (Environments) connect to Agent (more than one client can connect)
-and send their data to it: state, reward and terminal (if exist)
+##### Destributed A3C Architecure
 ![img](resources/DA3C.png)
 
-##### Quality performance on some Atari environments:
+##### Performance on some of the Atari Environments
 Breakout with DA3C-FF and 8 parallel agents: score performance is similar to DeepMind [paper](https://arxiv.org/pdf/1602.01783v2.pdf#19)
 ![img](resources/Breakout-8th-80mil.png "Breakout")
 
@@ -60,52 +86,26 @@ we have some instability in training process (anyway DeepMind shows only 34 poin
 | c4.2xlarge |          271      | 271 steps per sec |
 <br><br>
 
-#### TRPO-GAE (in plan to make a distributed version)
-Source papers:
+    
+### [Other Algorithms](#contents)
+These other algorithms we are working on and planning to make distributed versions of: 
+
+* TRPO-GAE
+Inpired by:
 - [Trust Region Policy Optimization](https://arxiv.org/abs/1502.05477)
 - [High-Dimensional Continuous Control Using Generalized Advantage Estimation](https://arxiv.org/abs/1506.02438)
 
-#### Others
-    - PPO with L-BFGS (similar to TRPO)
-    - CEM
-    - DDPG
-    - Gorila (Distributed DQN)
-
-## [Architecture](#relaax)
-
-TBD by Vlad
-
-## [Protocol](#relaax)
-
--1) We use grpc connections between our (parameter) server and agents.
-
--2) Clients & Agents eXchange protocol:
-
-* Clients feed agents by its:
-    - State (it could be images, physical conditions and any n-dim array) 
-    - Reward (some scalar if client gains it at this time)
-    - Terminal (if we operate with some episodic environments)
+* PPO with L-BFGS (similar to TRPO)
+Inpired by:
+* CEM
+Inpired by:
+* DDPG
+Inpired by:
+* Distributed DQN
+Inpired by:
+ - [Gorila](http://) 
  
-* Agents send to agents:
-    - Action (some scalar or array, more complex structures not supported atm)
-    
-![img](resources/protocol-flow.png)
-
-## [Environments](#relaax)
-We support only two types of well-known environments for now.
-
-- [ALE Client](/clients/rl-client-ale)
-which can emulates Atari Games
-
-- [OpenAI's gym Client](/clients/rl-client-gym)
-emulates all gym's Environments such as:
-    * [Classic Control](https://gym.openai.com/envs#classic_control)
-    * [Atari Games](https://gym.openai.com/envs#atari)
-    * [Walkers, Landers & Racing](https://gym.openai.com/envs##box2d)
-    * ant others, see the full list [there](https://gym.openai.com/envs)
-    
-## [Repository](#relaax)
-#### RELAAX
+## [Repository Overview](#contents)
   - [Algorithms]()
     - [Distributed A3C]()
       - Parameter Server
