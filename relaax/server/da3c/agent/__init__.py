@@ -4,9 +4,7 @@ import argparse
 import logging
 import ruamel.yaml
 
-from ....algorithms.da3c.common import config
-from ....algorithms.da3c.agent import Agent
-from ..common import bridge
+from ....algorithms import da3c
 from ....common.loop import socket_loop
 
 
@@ -37,7 +35,7 @@ def main():
     with open(args.config, 'r') as f:
         yaml = ruamel.yaml.load(f, Loader=ruamel.yaml.Loader)
 
-    config_ = config.Config(yaml)
+    config_ = da3c.Config(yaml)
 
     socket_loop.run_agents(
         bind_address=args.bind,
@@ -51,8 +49,8 @@ def main():
 
 
 def _get_factory(config, ps, log_dir):
-    return lambda n_agent: Agent(
+    return lambda n_agent: da3c.Agent(
         config=config,
-        ps=bridge.Stub(ps),
+        ps=da3c.PsStub(ps),
         log_dir='%s/worker_%d' % (log_dir, n_agent)
     )

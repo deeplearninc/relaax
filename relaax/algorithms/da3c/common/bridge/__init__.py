@@ -7,7 +7,7 @@ import numpy
 from . import bridge_pb2
 
 
-class Service(object):
+class PsService(object):
     def increment_global_t(self):
         raise NotImplementedError
 
@@ -18,15 +18,15 @@ class Service(object):
         raise NotImplementedError
 
 
-def start_server(address, service):
+def start_ps(address, service):
     server = grpc.server(concurrent.futures.ThreadPoolExecutor(max_workers=1))
-    bridge_pb2.add_ParameterServerServicer_to_server(_ParameterServerServicer(service), server)
+    bridge_pb2.add_ParameterServerServicer_to_server(_Servicer(service), server)
     server.add_insecure_port(address)
     server.start()
     return server
 
 
-class Stub(Service):
+class PsStub(PsService):
     def __init__(self, ps):
         self._stub = bridge_pb2.ParameterServerStub(grpc.insecure_channel(ps))
 
@@ -40,7 +40,7 @@ class Stub(Service):
         return _parse_ndarrays_message(self._stub.GetValues(bridge_pb2.NullMessage()))
 
 
-class _ParameterServerServicer(bridge_pb2.ParameterServerServicer):
+class _Servicer(bridge_pb2.ParameterServerServicer):
     def __init__(self, service):
         self._service = service
 

@@ -7,9 +7,7 @@ import signal
 import sys
 import time
 
-from ....algorithms.da3c.common import config
-from ....algorithms.da3c.ps import ParameterServer
-from ..common import bridge
+from ....algorithms import da3c
 from ...common.saver import fs_saver, s3_saver
 
 
@@ -37,8 +35,8 @@ def main():
         level=log_level
     )
 
-    ps = ParameterServer(
-        config=config.Config(_load_yaml(args.config)),
+    ps = da3c.Ps(
+        config=da3c.Config(_load_yaml(args.config)),
         saver=_saver(args)
     )
 
@@ -56,7 +54,7 @@ def main():
     signal.signal(signal.SIGINT, stop_server)
 
     # keep the server or else GC will stop it
-    server = bridge.start_server(args.bind, _Service(ps))
+    server = da3c.start_ps(args.bind, _Service(ps))
 
     last_global_t = ps.global_t()
     last_activity_time = None
@@ -75,7 +73,7 @@ def main():
             print("global_t is %d" % global_t)
 
 
-class _Service(bridge.Service):
+class _Service(da3c.PsService):
     def __init__(self, ps):
         self.increment_global_t = ps.increment_global_t
         self.apply_gradients = ps.apply_gradients
