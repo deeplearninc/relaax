@@ -7,8 +7,8 @@ import signal
 import sys
 import time
 
-from ....algorithms import da3c
-from ...common.saver import fs_saver, s3_saver
+from ...algorithms import da3c
+from ..common.saver import fs_saver, s3_saver
 
 
 def main():

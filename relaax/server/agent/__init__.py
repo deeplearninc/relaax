@@ -4,8 +4,8 @@ import argparse
 import logging
 import ruamel.yaml
 
-from ....algorithms import da3c
-from ....common.loop import socket_loop
+from ...algorithms import da3c
+from ...common.loop import socket_loop
 
 
 def main():
