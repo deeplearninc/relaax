@@ -3,8 +3,14 @@ import sys
 import numpy as np
 from scipy.misc import imresize
 
-from .ale_python_interface import ALEInterface
 from ...common.loop import socket_loop
+
+sys.path.append(os.path.normpath(os.path.join(
+    os.path.dirname(__file__),
+    '../../../../Arcade-Learning-Environment'
+)))
+
+from ale_python_interface import ALEInterface
 
 
 class GameProcessFactory(object):
