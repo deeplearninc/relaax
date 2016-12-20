@@ -1,5 +1,5 @@
 from .common.config import Config
-from .ps import Ps
+from .parameter_server import ParameterServer
 from .agent import Agent
-from .common.bridge import PsStub, PsService, start_ps
+from .common.bridge import ParameterServerStub, ParameterServerService, start_parameter_server
 

@@ -19,7 +19,7 @@ def main():
     )
     parser.add_argument('--config', type=str, default=None, help='parameters YAML file')
     parser.add_argument('--bind', type=str, default=None, help='address to serve (host:port)')
-    parser.add_argument('--ps', type=str, default=None, help='parameter server address (host:port)')
+    parser.add_argument('--parameter_server', type=str, default=None, help='parameter server address (host:port)')
     parser.add_argument('--log-dir', type=str, default=None, help='TensorBoard log directory')
     parser.add_argument('--timeout', type=float, default=120, help='Agent stops on game reset after given timeout')
     args = parser.parse_args()
@@ -41,16 +41,16 @@ def main():
         bind_address=args.bind,
         agent_factory=_get_factory(
             config=config_,
-            ps=args.ps,
+            parameter_server=args.parameter_server,
             log_dir=args.log_dir
         ),
         timeout=args.timeout
     )
 
 
-def _get_factory(config, ps, log_dir):
+def _get_factory(config, parameter_server, log_dir):
     return lambda n_agent: da3c.Agent(
         config=config,
-        ps=da3c.PsStub(ps),
+        parameter_server=da3c.ParameterServerStub(parameter_server),
         log_dir='%s/worker_%d' % (log_dir, n_agent)
     )

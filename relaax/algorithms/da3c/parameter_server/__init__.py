@@ -3,7 +3,7 @@ import tensorflow as tf
 from . import network
 
 
-class Ps(object):
+class ParameterServer(object):
     def __init__(self, config, saver):
         self._config = config
         self._saver = saver

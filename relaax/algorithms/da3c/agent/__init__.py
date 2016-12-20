@@ -8,9 +8,9 @@ from . import network
 
 
 class Agent(object):
-    def __init__(self, config, ps, log_dir):
+    def __init__(self, config, parameter_server, log_dir):
         self._config = config
-        self._ps = ps
+        self._parameter_server = parameter_server
         self._log_dir = log_dir
 
         kernel = "/cpu:0"
@@ -62,7 +62,7 @@ class Agent(object):
 
         if self.episode_t == 0:
             # copy weights from shared to local
-            self._local_network.assign_values(self._session, self._ps.get_values())
+            self._local_network.assign_values(self._session, self._parameter_server.get_values())
 
             self.states = []
             self.actions = []
@@ -118,7 +118,7 @@ class Agent(object):
 
         self.local_t += 1
         self.episode_t += 1
-        self.global_t = self._ps.increment_global_t()
+        self.global_t = self._parameter_server.increment_global_t()
 
         return self.global_t < self._config.max_global_step
 
@@ -201,7 +201,9 @@ class Agent(object):
             }
 
 
-        self._ps.apply_gradients(self._session.run(self._local_network.grads, feed_dict=feed_dict))
+        self._parameter_server.apply_gradients(
+            self._session.run(self._local_network.grads, feed_dict=feed_dict)
+        )
 
         if (self.local_t % 100) == 0:
             print("TIMESTEP", self.local_t)
