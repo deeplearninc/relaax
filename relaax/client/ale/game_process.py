@@ -14,18 +14,18 @@ from ale_python_interface import ALEInterface
 
 
 class GameProcessFactory(object):
-    def __init__(self, game_rom):
-        self._game_rom = game_rom
+    def __init__(self, rom):
+        self._rom = rom
 
     def new_env(self, seed):
-        return GameProcess(seed, self._game_rom)
+        return _GameProcess(seed, self._rom)
 
     def new_display_env(self, seed):
-        return GameProcess(seed, self._game_rom, display=True, no_op_max=0)
+        return _GameProcess(seed, self._rom, display=True, no_op_max=0)
 
 
-class GameProcess(object):
-    def __init__(self, rand_seed, game_name, display=False, frame_skip=4, no_op_max=7):
+class _GameProcess(object):
+    def __init__(self, rand_seed, rom, display=False, frame_skip=4, no_op_max=7):
         self.ale = ALEInterface()
 
         self.ale.setInt(b'random_seed', rand_seed)
@@ -37,8 +37,7 @@ class GameProcess(object):
         if display:
             self._setup_display()
 
-        ROM = os.path.dirname(__file__) + '/atari-games/' + game_name + '.bin'
-        self.ale.loadROM(ROM.encode('ascii'))
+        self.ale.loadROM(rom.encode('ascii'))
 
         # collect minimal action set
         self.real_actions = self.ale.getMinimalActionSet()

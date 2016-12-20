@@ -6,6 +6,6 @@ sys.path.append(os.path.normpath(os.path.join(
     '../../..'
 )))
 
-import relaax.server.ps
+import relaax.server.rlx_server
 
-relaax.server.ps.main()
+relaax.server.rlx_server.main()

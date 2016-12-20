@@ -6,6 +6,6 @@ sys.path.append(os.path.normpath(os.path.join(
     '../../..'
 )))
 
-import relaax.server.agent
+import relaax.server.parameter_server
 
-relaax.server.agent.main()
+relaax.server.parameter_server.main()
