@@ -1,3 +1,4 @@
+import imp
 import os
 import sys
 import numpy as np
@@ -5,27 +6,21 @@ from scipy.misc import imresize
 
 from ...common.loop import socket_loop
 
-sys.path.append(os.path.normpath(os.path.join(
-    os.path.dirname(__file__),
-    '../../../../Arcade-Learning-Environment'
-)))
-
-from ale_python_interface import ALEInterface
-
 
 class GameProcessFactory(object):
-    def __init__(self, rom):
+    def __init__(self, ale_path, rom):
+        self._ALEInterface = _load_module(ale_path, 'ale_python_interface').ALEInterface
         self._rom = rom
 
     def new_env(self, seed):
-        return _GameProcess(seed, self._rom)
+        return _GameProcess(seed, self._ALEInterface, self._rom)
 
     def new_display_env(self, seed):
-        return _GameProcess(seed, self._rom, display=True, no_op_max=0)
+        return _GameProcess(seed, self._ALEInterface, self._rom, display=True, no_op_max=0)
 
 
 class _GameProcess(object):
-    def __init__(self, rand_seed, rom, display=False, frame_skip=4, no_op_max=7):
+    def __init__(self, rand_seed, ALEInterface, rom, display=False, frame_skip=4, no_op_max=7):
         self.ale = ALEInterface()
 
         self.ale.setInt(b'random_seed', rand_seed)
@@ -99,3 +94,9 @@ class _GameProcess(object):
 
         self.reward = 0
         self.terminal = False
+
+
+def _load_module(path, name):
+    if name not in sys.modules:
+        imp.load_module(name, *imp.find_module(name, [path]))
+    return sys.modules[name]

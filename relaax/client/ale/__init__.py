@@ -11,6 +11,7 @@ from ...common.loop import socket_loop
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--agent', type=str, default=None, help='agent server address (host:port)')
+    parser.add_argument('--ale', type=str, help='path to Arcade-Learning-Environment directory')
     parser.add_argument('--rom', type=str, help='Atari game ROM file')
     parser.add_argument('--seed', type=int, default=None, help='Seed for random generator')
     return parser.parse_args()
@@ -42,7 +43,7 @@ def main():
     args = parse_args()
     socket_loop.run_environment(
         args.agent,
-        _Environment(game_process.GameProcessFactory(args.rom).new_env(_seed(args.seed)))
+        _Environment(game_process.GameProcessFactory(args.ale, args.rom).new_env(_seed(args.seed)))
     )
 
 
