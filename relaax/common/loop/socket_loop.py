@@ -6,9 +6,7 @@ import json
 import logging
 import numpy
 import os
-import psutil
 import random
-import signal
 import socket
 import struct
 import time
@@ -25,18 +23,9 @@ class AgentService(object):
         raise NotImplementedError
 
 
-class _AgentStub(AgentService):
-    def __init__(self, socket):
-        self._socket = socket
-
-    def act(self, state):
-        _sendf(self._socket, 'act', json.dumps(state, cls=_NDArrayEncoder))
-
-    def reward_and_reset(self, reward):
-        _sendf(self._socket, 'reward_and_reset', reward)
-
-    def reward_and_act(self, reward, state):
-        _sendf(self._socket, 'reward_and_act', reward, json.dumps(state, cls=_NDArrayEncoder))
+class AgentServiceFactory(object):
+    def __call__(self, environment_service):
+        raise NotImplementedError
 
 
 class EnvironmentService(object):
@@ -76,73 +65,25 @@ def run_environment(server_address, environment_service_factory):
             s.close()
 
 
-def run_agents(bind_address, agent_factory, timeout):
-    signal.signal(signal.SIGCHLD, signal.SIG_IGN)
+def run_agent(socket, address, agent_service_factory):
+    agent_service = agent_service_factory(_EnvironmentStub(socket))
 
-    socket_ = socket.socket()
     try:
-        _info('listening %s', bind_address)
-
-        socket_.bind(_parse_address(bind_address))
-        socket_.listen(100)
-
-        n_agent = 0
         while True:
-            connection, address = socket_.accept()
-            try:
-                _debug('accepted %s from %s', str(connection), str(address))
-                available = _available_memory()
-                required = _memory_per_child()
-                if required is None:
-                    _info('memory %.3f, None' % available)
-                else:
-                    _info('memory %.3f, %.3f' % (available, required))
-                if required is not None and available < required:
-                    _warning(
-                        'Cannot start new child: available memory (%.3f) is less than memory per child (%.3f)' %
-                        (available, required)
-                    )
-                else:
-                    try:
-                        pid = _forkf()
-                        if pid == 0:
-                            socket_.close()
-                            connection.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-                            run_agent(connection, address, agent_factory(n_agent), timeout)
-                            break
-                    except _Failure as e:
-                        _warning('{} : {}'.format(server_address, e.message))
-            finally:
-                connection.close()
-            n_agent += 1
-    finally:
-        socket_.close()
-
-
-def run_agent(socket, address, agent, timeout):
-    stop = time.time() + timeout
-    while True:
-        message = _receive(socket)
-        if message is None:
-            break
-        _debug('from %s message %s', address, str(message)[:64])
-        verb, args = message[0], message[1:]
-        if verb == 'act':
-            state = json.loads(args[0], object_hook=_ndarray_decoder)
-            _send(socket, 'act', agent.act(state))
-        if verb == 'reward_and_reset':
-            score = agent.reward_and_reset(args[0])
-            if score is None:
-                break
-            if time.time() >= stop:
-                break
-            _send(socket, 'reset', score)
-        if verb == 'reward_and_act':
-            state = json.loads(args[1], object_hook=_ndarray_decoder)
-            action = agent.reward_and_act(args[0], state)
-            if action is None:
-                break
-            _send(socket, 'act', action)
+            message = _receivef(socket)
+            _debug('from %s message %s', address, str(message)[:64])
+            verb, args = message[0], message[1:]
+            if verb == 'act':
+                agent_service.act(json.loads(args[0], object_hook=_ndarray_decoder))
+            if verb == 'reward_and_reset':
+                agent_service.reward_and_reset(args[0])
+            if verb == 'reward_and_act':
+                agent_service.reward_and_act(
+                    args[0],
+                    json.loads(args[1], object_hook=_ndarray_decoder)
+                )
+    except _Failure as e:
+        _warning('{} : {}'.format(address, e.message))
 
 
 class _Failure(Exception):
@@ -171,7 +112,7 @@ def _receivef(s):
     except socket.error as e:
         raise _socket_failure(e)
     if message is None:
-        raise _Failure("no message from agent")
+        raise _Failure('no message in socket')
     return message
 
 
@@ -180,13 +121,6 @@ def _sendf(s, *args):
         _send(s, *args)
     except socket.error as e:
         raise _socket_failure(e)
-
-
-def _forkf():
-    try:
-        return os.fork()
-    except OSError as e:
-        raise _failure('OSError', e)
 
 
 def _parse_address(address):
@@ -237,34 +171,6 @@ def _receiveb(socket, length):
     return data
 
 
-def _available_memory():
-    vm = psutil.virtual_memory()
-    return 100 * float(vm.available) / vm.total
-
-
-def _memory_per_child():
-    process = psutil.Process(os.getpid())
-    n = 0
-    mem = 0
-    for child in process.children(recursive=False):
-        n += 1
-        mem += _process_tree_memory(child)
-    if n == 0:
-        return None
-    return mem / n
-
-
-def _process_tree_memory(process):
-    mem = process.memory_percent()
-    for child in process.children(recursive=True):
-        mem += child.memory_percent()
-    return mem
-
-
-def _dump_state(environment):
-    return json.dumps(environment.get_state(), cls=_NDArrayEncoder)
-
-
 class _NDArrayEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, numpy.ndarray):
@@ -293,3 +199,28 @@ def _info(message, *args):
 
 def _warning(message, *args):
     logging.warning('%d:' + message, os.getpid(), *args)
+
+
+class _AgentStub(AgentService):
+    def __init__(self, socket):
+        self._socket = socket
+
+    def act(self, state):
+        _sendf(self._socket, 'act', json.dumps(state, cls=_NDArrayEncoder))
+
+    def reward_and_reset(self, reward):
+        _sendf(self._socket, 'reward_and_reset', reward)
+
+    def reward_and_act(self, reward, state):
+        _sendf(self._socket, 'reward_and_act', reward, json.dumps(state, cls=_NDArrayEncoder))
+
+
+class _EnvironmentStub(EnvironmentService):
+    def __init__(self, socket):
+        self._socket = socket
+
+    def act(self, action):
+        _send(self._socket, 'act', action)
+
+    def reset(self, episode_score):
+        _send(self._socket, 'reset', episode_score)
