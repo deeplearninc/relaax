@@ -1,12 +1,10 @@
 from __future__ import print_function
 
 import argparse
-import imp
 import logging
-import os.path
 import ruamel.yaml
-import sys
 
+from ..common import algorithm_loader
 from ...common.loop import socket_loop
 
 
@@ -37,10 +35,7 @@ def main():
     with open(args.config, 'r') as f:
         yaml = ruamel.yaml.load(f, Loader=ruamel.yaml.Loader)
 
-    path, name = os.path.split(yaml['path'])
-    if path == '':
-        path = '.'
-    algorithm = _load_module(path, name)
+    algorithm = algorithm_loader.load(yaml['path'])
 
     socket_loop.run_agents(
         bind_address=args.bind,
@@ -61,14 +56,3 @@ def _get_factory(algorithm, yaml, parameter_server, log_dir):
         parameter_server=algorithm.ParameterServerStub(parameter_server),
         log_dir='%s/worker_%d' % (log_dir, n_agent)
     )
-
-
-def _load_module(path, name):
-    if name not in sys.modules:
-        file, pathname, description = imp.find_module(name, [path])
-        try:
-            imp.load_module(name, file, pathname, description)
-        finally:
-            if file:
-                file.close()
-    return sys.modules[name]

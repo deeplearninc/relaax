@@ -7,7 +7,7 @@ import signal
 import sys
 import time
 
-from ...algorithms import da3c
+from ..common import algorithm_loader
 from ..common.saver import fs_saver, s3_saver
 
 
@@ -35,8 +35,12 @@ def main():
         level=log_level
     )
 
-    parameter_server = da3c.ParameterServer(
-        config=da3c.Config(_load_yaml(args.config)),
+    yaml = _load_yaml(args.config)
+
+    algorithm = algorithm_loader.load(yaml['path'])
+
+    parameter_server = algorithm.ParameterServer(
+        config=algorithm.Config(yaml),
         saver=_saver(args)
     )
 
@@ -54,7 +58,7 @@ def main():
     signal.signal(signal.SIGINT, stop_server)
 
     # keep the server or else GC will stop it
-    server = da3c.start_parameter_server(args.bind, _Service(parameter_server))
+    server = algorithm.start_parameter_server(args.bind, _Service(parameter_server))
 
     last_global_t = parameter_server.global_t()
     last_activity_time = None
@@ -73,7 +77,7 @@ def main():
             print("global_t is %d" % global_t)
 
 
-class _Service(da3c.ParameterServerService):
+class _Service(object):
     def __init__(self, parameter_server):
         self.increment_global_t = parameter_server.increment_global_t
         self.apply_gradients = parameter_server.apply_gradients
