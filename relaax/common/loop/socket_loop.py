@@ -14,27 +14,59 @@ import struct
 import time
 
 
-def run_environment(server_address, environment):
+class AgentService(object):
+    def act(self, state):
+        raise NotImplementedError
+
+    def reward_and_reset(self, reward):
+        raise NotImplementedError
+
+    def reward_and_act(self, reward, state):
+        raise NotImplementedError
+
+
+class _AgentStub(AgentService):
+    def __init__(self, socket):
+        self._socket = socket
+
+    def act(self, state):
+        _sendf(self._socket, 'act', json.dumps(state, cls=_NDArrayEncoder))
+
+    def reward_and_reset(self, reward):
+        _sendf(self._socket, 'reward_and_reset', reward)
+
+    def reward_and_act(self, reward, state):
+        _sendf(self._socket, 'reward_and_act', reward, json.dumps(state, cls=_NDArrayEncoder))
+
+
+class EnvironmentService(object):
+    def act(self, action):
+        raise NotImplementedError
+
+    def reset(self, episode_score):
+        raise NotImplementedError
+
+
+class EnvironmentServiceFactory(object):
+    def __call__(self, agent_service):
+        raise NotImplementedError
+
+
+def run_environment(server_address, environment_service_factory):
     while True:
         s = socket.socket()
         s.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         try:
             _connectf(s, _parse_address(server_address))
-
-            _sendf(s, 'act', _dump_state(environment))
+            environment_service = environment_service_factory(_AgentStub(s))
             while True:
                 message = _receivef(s)
                 _debug('receive message %s', str(message)[:64])
                 verb, args = message[0], message[1:]
                 if verb == 'act':
-                    reward, reset = environment.act(args[0])
-                    if reset:
-                        _sendf(s, 'reward_and_reset', reward)
-                    else:
-                        _sendf(s, 'reward_and_act', reward, _dump_state(environment))
+                    environment_service.act(args[0])
                 if verb == 'reset':
-                    environment.reset(args[0])
-                    _sendf(s, 'act', _dump_state(environment))
+                    environment_service.reset(args[0])
         except _Failure as e:
             _warning('{} : {}'.format(server_address, e.message))
             delay = random.randint(1, 10)
