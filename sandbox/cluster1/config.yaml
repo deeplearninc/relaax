@@ -1,4 +1,6 @@
 ---
+path: ../../relaax/algorithms/da3c
+
 action_size: 4                 # action size for given game rom (18 fits ale boxing)
 episode_len: 5                  # local loop size for one episode
 gpu: false                      # to use GPU, set to the True

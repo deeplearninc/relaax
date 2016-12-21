@@ -98,5 +98,10 @@ class _GameProcess(object):
 
 def _load_module(path, name):
     if name not in sys.modules:
-        imp.load_module(name, *imp.find_module(name, [path]))
+        file, pathname, description = imp.find_module(name, [path])
+        try:
+            imp.load_module(name, file, pathname, description)
+        finally:
+            if file:
+                file.close()
     return sys.modules[name]

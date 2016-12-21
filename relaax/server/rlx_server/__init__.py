@@ -1,10 +1,12 @@
 from __future__ import print_function
 
 import argparse
+import imp
 import logging
+import os.path
 import ruamel.yaml
+import sys
 
-from ...algorithms import da3c
 from ...common.loop import socket_loop
 
 
@@ -35,12 +37,16 @@ def main():
     with open(args.config, 'r') as f:
         yaml = ruamel.yaml.load(f, Loader=ruamel.yaml.Loader)
 
-    config_ = da3c.Config(yaml)
+    path, name = os.path.split(yaml['path'])
+    if path == '':
+        path = '.'
+    algorithm = _load_module(path, name)
 
     socket_loop.run_agents(
         bind_address=args.bind,
         agent_factory=_get_factory(
-            config=config_,
+            algorithm=algorithm,
+            yaml=yaml,
             parameter_server=args.parameter_server,
             log_dir=args.log_dir
         ),
@@ -48,9 +54,21 @@ def main():
     )
 
 
-def _get_factory(config, parameter_server, log_dir):
-    return lambda n_agent: da3c.Agent(
+def _get_factory(algorithm, yaml, parameter_server, log_dir):
+    config = algorithm.Config(yaml)
+    return lambda n_agent: algorithm.Agent(
         config=config,
-        parameter_server=da3c.ParameterServerStub(parameter_server),
+        parameter_server=algorithm.ParameterServerStub(parameter_server),
         log_dir='%s/worker_%d' % (log_dir, n_agent)
     )
+
+
+def _load_module(path, name):
+    if name not in sys.modules:
+        file, pathname, description = imp.find_module(name, [path])
+        try:
+            imp.load_module(name, file, pathname, description)
+        finally:
+            if file:
+                file.close()
+    return sys.modules[name]
