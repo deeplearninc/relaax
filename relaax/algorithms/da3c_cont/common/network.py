@@ -93,7 +93,7 @@ class _GameACFFNetworkShared(_GameACNetwork):
         fc_size_2 = 200     # Size of the 2nd fully connected layer
         fc_size_3 = 100     # Size of the 3rd fully connected layer
 
-        # set of fully connected layers (from input to heads)
+        # set of weights for fully connected layers (from input to heads)
         self.W_fc1 = _fc_weight_variable([config.action_size, fc_size_1])
         self.b_fc1 = _fc_bias_variable([fc_size_1], config.action_size)
 
@@ -176,87 +176,93 @@ class _GameACFFNetwork(_GameACFFNetworkShared):
 
 class _GameACLSTMNetworkShared(_GameACNetwork):
 
-    def __init__(self, action_size, thread_index):
+    def __init__(self, config):
         super(_GameACLSTMNetworkShared, self).__init__()
+        lstm_size = 128     # Size of the LSTM layer
 
-        self.W_conv1 = _conv_weight_variable([8, 8, 4, 16])  # stride=4
-        self.b_conv1 = _conv_bias_variable([16], 8, 8, 4)
-
-        self.W_conv2 = _conv_weight_variable([4, 4, 16, 32])  # stride=2
-        self.b_conv2 = _conv_bias_variable([32], 4, 4, 16)
-
-        self.W_fc1 = _fc_weight_variable([2592, 256])
-        self.b_fc1 = _fc_bias_variable([256], 2592)
+        # set of weights for fully connected layers (from input to lstm)
+        self.W_fc1 = _fc_weight_variable([config.action_size, lstm_size])
+        self.b_fc1 = _fc_bias_variable([lstm_size], config.action_size)
 
         # lstm
-        self.lstm = CustomBasicLSTMCell(256)
+        self.lstm = CustomBasicLSTMCell(lstm_size)
 
-        # weight for policy output layer
-        self.W_fc2 = _fc_weight_variable([256, action_size])
-        self.b_fc2 = _fc_bias_variable([action_size], 256)
+        # weights for policy output layer
+        self.W_fc4 = _fc_weight_variable([lstm_size, config.action_size])
+        self.b_fc4 = _fc_bias_variable([config.action_size], lstm_size)
 
-        # weight for value output layer
-        self.W_fc3 = _fc_weight_variable([256, 1])
-        self.b_fc3 = _fc_bias_variable([1], 256)
+        self.W_fc5 = _fc_weight_variable([lstm_size, config.action_size])
+        self.b_fc5 = _fc_bias_variable([config.action_size], lstm_size)
+
+        # weights for value output layer
+        self.W_fc6 = _fc_weight_variable([lstm_size, 1])
+        self.b_fc6 = _fc_bias_variable([1], lstm_size)
 
         # state (input)
-        self.s = tf.placeholder("float", [None, 84, 84, 4])
+        self.s = tf.placeholder("float", [None, config.action_size])
 
-        h_conv1 = tf.nn.relu(_conv2d(self.s, self.W_conv1, 4) + self.b_conv1)
-        h_conv2 = tf.nn.relu(_conv2d(h_conv1, self.W_conv2, 2) + self.b_conv2)
+        h_fc1 = tf.nn.relu(tf.matmul(self.s, self.W_fc1) + self.b_fc1)
 
-        h_conv2_flat = tf.reshape(h_conv2, [-1, 2592])
-        h_fc1 = tf.nn.relu(tf.matmul(h_conv2_flat, self.W_fc1) + self.b_fc1)
-        # h_fc1 shape=(5,256)
-
-        h_fc1_reshaped = tf.reshape(h_fc1, [1, -1, 256])
-        # h_fc_reshaped = (1,5,256)
+        # (batch_size, lstm_size) --> (1, batch_size, lstm_size)
+        h_fc1_reshaped = tf.reshape(h_fc1, [1, -1, lstm_size])
 
         # place holder for LSTM unrolling time step size.
         self.step_size = tf.placeholder(tf.float32, [1])
 
         self.initial_lstm_state = tf.placeholder(tf.float32, [1, self.lstm.state_size])
 
-        # Unrolling LSTM up to EPISODE_LEN time steps. (=5 time steps)
-        # When episode terminates unrolling time steps becomes less than LOCAL_TIME_STEP.
-        # Unrolling step size is applied via self.step_size placeholder.
-        # When forward propagating, step_size is 1.
+        # Unrolling LSTM up to EPISODE_LEN time steps (=5 time steps)
+        # When episode terminates unrolling time steps becomes less than LOCAL_TIME_STEP
+        # Unrolling step size is applied via self.step_size placeholder
+        # When forward propagating, step_size is 1
         # (time_major = False, so output shape is [batch_size, max_time, cell.output_size])
         self.lstm_outputs, self.lstm_state = tf.nn.dynamic_rnn(
             self.lstm,
             h_fc1_reshaped,
             initial_state=self.initial_lstm_state,
             sequence_length=self.step_size,
-            time_major=False,
-            scope="net_%d" % thread_index
-        )
+            time_major=False)
+
+        self.values = [
+            self.W_fc1, self.b_fc1,
+            self.lstm.matrix, self.lstm.bias,
+            self.W_fc4, self.b_fc4,
+            self.W_fc5, self.b_fc5,
+            self.W_fc6, self.b_fc6
+        ]
+
+        self._placeholders = [tf.placeholder(v.dtype, v.get_shape()) for v in self.values]
+        self._assign_values = tf.group(*[
+            tf.assign(v, p) for v, p in zip(self.values, self._placeholders)
+            ])
+
+        self.gradients = [tf.placeholder(v.dtype, v.get_shape()) for v in self.values]
+        self.learning_rate_input = tf.placeholder(tf.float32)
+
+    def assign_values(self, session, values):
+        session.run(self._assign_values, feed_dict={
+            p: v for p, v in zip(self._placeholders, values)
+            })
 
     def get_vars(self):
-        return [
-            self.W_conv1    , self.b_conv1  ,
-            self.W_conv2    , self.b_conv2  ,
-            self.W_fc1      , self.b_fc1    ,
-            self.lstm.matrix, self.lstm.bias,
-            self.W_fc2      , self.b_fc2    ,
-            self.W_fc3      , self.b_fc3
-        ]
+        return self.values
 
 
 # Actor-Critic LSTM Network
 class _GameACLSTMNetwork(_GameACLSTMNetworkShared):
 
-    def __init__(self, action_size, thread_index):
-        super(_GameACLSTMNetwork, self).__init__(action_size, thread_index)
+    def __init__(self, config):
+        super(_GameACLSTMNetwork, self).__init__(config)
 
-        # lstm_outputs: (1,5,256) for back prop, (1,1,256) for forward prop.
-
-        lstm_outputs = tf.reshape(self.lstm_outputs, [-1, 256])
+        # lstm_outputs: (1, batch_size, lstm_size) for back prop; (1, batch_size, lstm_size) for forward prop
+        lstm_outputs = tf.reshape(self.lstm_outputs, [-1, self.lstm.state_size / 2])
 
         # policy (output)
-        self.pi = tf.nn.softmax(tf.matmul(lstm_outputs, self.W_fc2) + self.b_fc2)
+        self.mu = tf.matmul(lstm_outputs, self.W_fc4) + self.b_fc4
+        self.sigma2 = tf.nn.softplus(tf.matmul(lstm_outputs, self.W_fc5) + self.b_fc5)
 
         # value (output)
-        v_ = tf.matmul(lstm_outputs, self.W_fc3) + self.b_fc3
+        v_ = tf.matmul(lstm_outputs, self.W_fc6) + self.b_fc6
         self.v = tf.reshape(v_, [-1])
 
         self.reset_state()
@@ -265,23 +271,21 @@ class _GameACLSTMNetwork(_GameACLSTMNetworkShared):
         self.lstm_state_out = np.zeros([1, self.lstm.state_size])
 
     def run_policy_and_value(self, sess, s_t):
-        # This run_policy_and_value() is used when forward propagating.
-        # so the step size is 1.
-        pi_out, v_out, self.lstm_state_out = sess.run([self.pi, self.v, self.lstm_state],
+        # This run_policy_and_value() is used when forward propagating, so the step size is 1.
+        mu_out, sig_out, v_out, self.lstm_state_out = sess.run([self.mu, self.sigma2, self.v, self.lstm_state],
                                                       feed_dict={self.s: [s_t],
                                                                  self.initial_lstm_state: self.lstm_state_out,
                                                                  self.step_size: [1]})
-        # pi_out: (1,3), v_out: (1)
-        return (pi_out[0], v_out[0])
+        return mu_out[0], sig_out[0], v_out[0]
 
     def run_policy(self, sess, s_t):
         # This run_policy() is used for displaying the result with display tool.
-        pi_out, self.lstm_state_out = sess.run([self.pi, self.lstm_state],
+        mu_out, sig_out, self.lstm_state_out = sess.run([self.mu, self.sigma2, self.lstm_state],
                                                feed_dict={self.s: [s_t],
                                                           self.initial_lstm_state: self.lstm_state_out,
                                                           self.step_size: [1]})
 
-        return pi_out[0]
+        return mu_out[0], sig_out[0]
 
     def run_value(self, sess, s_t):
         # This run_value() is used for calculating V for bootstrapping at the
