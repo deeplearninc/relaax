@@ -147,7 +147,7 @@ class _GameACFFNetwork(_GameACFFNetworkShared):
         super(_GameACFFNetwork, self).__init__(config)
 
         # state (input)
-        self.s = tf.placeholder("float", [None, config.action_size])
+        self.s = tf.placeholder("float", [None, 24])    # fix later with config
 
         h_fc1 = tf.nn.relu(tf.matmul(self.s, self.W_fc1) + self.b_fc1)
         h_fc2 = tf.nn.relu(tf.matmul(h_fc1, self.W_fc2) + self.b_fc2)
@@ -199,7 +199,7 @@ class _GameACLSTMNetworkShared(_GameACNetwork):
         self.b_fc6 = _fc_bias_variable([1], lstm_size)
 
         # state (input)
-        self.s = tf.placeholder("float", [None, config.action_size])
+        self.s = tf.placeholder("float", [None, 24])    # fix later with config
 
         h_fc1 = tf.nn.relu(tf.matmul(self.s, self.W_fc1) + self.b_fc1)
 
