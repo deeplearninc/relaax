@@ -35,16 +35,20 @@ class _GameACNetwork(object):
         # temporary difference (R-V) (input for policy)
         self.td = tf.placeholder("float", [None])
 
-        # avoid NaN with clipping when value in pi becomes zero
-        log_pi = tf.log(tf.clip_by_value(self.pi, 1e-20, 1.0))
+        # compute log and avoid NaN
+        log_pi = tf.log(self.sigma2 + 1e-20)
 
         # policy entropy
-        entropy = -tf.reduce_sum(self.pi * log_pi, reduction_indices=1)
+        entropy = -tf.reduce_sum(0.5 * (tf.log(2. * np.pi * self.sigma2) + 1.), reduction_indices=1)
 
-        # policy loss (output)  (Adding minus, because the original paper's
-        # objective function is for gradient ascent, but we use gradient descent optimizer)
-        policy_loss = - tf.reduce_sum(
-            tf.reduce_sum(tf.mul(log_pi, self.a), reduction_indices=1) * self.td + entropy * config.ENTROPY_BETA)
+        # policy loss (output)
+        b_size = tf.to_float(tf.size(self.a) / config.action_size)
+        x_prec = tf.exp(-log_pi)
+        x_diff = tf.sub(self.a, self.mu)
+        x_power = tf.square(x_diff) * x_prec * -0.5
+        gaussian_nll = (tf.reduce_sum(log_pi, reduction_indices=1)
+                        + b_size * tf.log(2. * np.pi)) / 2. - tf.reduce_sum(x_power, reduction_indices=1)
+        policy_loss = tf.mul(gaussian_nll, tf.stop_gradient(self.td)) + config.ENTROPY_BETA * entropy
 
         # R (input for value)
         self.r = tf.placeholder("float", [None])
@@ -85,39 +89,38 @@ class _GameACFFNetworkShared(_GameACNetwork):
 
     def __init__(self, config):
         super(_GameACFFNetworkShared, self).__init__()
+        fc_size_1 = 300     # Size of the 1st fully connected layer
+        fc_size_2 = 200     # Size of the 2nd fully connected layer
+        fc_size_3 = 100     # Size of the 3rd fully connected layer
 
-        self.W_conv1 = _conv_weight_variable([8, 8, 4, 16])  # stride=4
-        self.b_conv1 = _conv_bias_variable([16], 8, 8, 4)
+        # set of fully connected layers (from input to heads)
+        self.W_fc1 = _fc_weight_variable([config.action_size, fc_size_1])
+        self.b_fc1 = _fc_bias_variable([fc_size_1], config.action_size)
 
-        self.W_conv2 = _conv_weight_variable([4, 4, 16, 32])  # stride=2
-        self.b_conv2 = _conv_bias_variable([32], 4, 4, 16)
+        self.W_fc2 = _fc_weight_variable([fc_size_1, fc_size_2])
+        self.b_fc2 = _fc_bias_variable([fc_size_2], fc_size_1)
 
-        self.W_fc1 = _fc_weight_variable([2592, 256])
-        self.b_fc1 = _fc_bias_variable([256], 2592)
+        self.W_fc3 = _fc_weight_variable([fc_size_2, fc_size_3])
+        self.b_fc3 = _fc_bias_variable([fc_size_3], fc_size_2)
 
-        # weight for policy output layer
-        self.W_fc2 = _fc_weight_variable([256, config.action_size])
-        self.b_fc2 = _fc_bias_variable([config.action_size], 256)
+        # weights for policy output layer
+        self.W_fc4 = _fc_weight_variable([fc_size_3, config.action_size])
+        self.b_fc4 = _fc_bias_variable([config.action_size], fc_size_3)
 
-        # weight for value output layer
-        self.W_fc3 = _fc_weight_variable([256, 1])
-        self.b_fc3 = _fc_bias_variable([1], 256)
+        self.W_fc5 = _fc_weight_variable([fc_size_3, config.action_size])
+        self.b_fc5 = _fc_bias_variable([config.action_size], fc_size_3)
 
-        self.W_fc3_copy = tf.Variable(self.W_fc3.initialized_value())
-        self.diff = tf.reduce_sum(self.W_fc3 - self.W_fc3_copy)
-        self.copy_W_fc3 = tf.assign(self.W_fc3_copy, self.W_fc3)
+        # weights for value output layer
+        self.W_fc6 = _fc_weight_variable([fc_size_3, 1])
+        self.b_fc6 = _fc_bias_variable([1], fc_size_3)
 
         self.values = [
-            self.W_conv1,
-            self.b_conv1,
-            self.W_conv2,
-            self.b_conv2,
-            self.W_fc1  ,
-            self.b_fc1  ,
-            self.W_fc2  ,
-            self.b_fc2  ,
-            self.W_fc3  ,
-            self.b_fc3
+            self.W_fc1, self.b_fc1,
+            self.W_fc2, self.b_fc2,
+            self.W_fc3, self.b_fc3,
+            self.W_fc4, self.b_fc4,
+            self.W_fc5, self.b_fc5,
+            self.W_fc6, self.b_fc6
         ]
 
         self._placeholders = [tf.placeholder(v.dtype, v.get_shape()) for v in self.values]
@@ -144,27 +147,27 @@ class _GameACFFNetwork(_GameACFFNetworkShared):
         super(_GameACFFNetwork, self).__init__(config)
 
         # state (input)
-        self.s = tf.placeholder("float", [None, 84, 84, 4])
+        self.s = tf.placeholder("float", [None, config.action_size])
 
-        h_conv1 = tf.nn.relu(_conv2d(self.s, self.W_conv1, 4) + self.b_conv1)
-        h_conv2 = tf.nn.relu(_conv2d(h_conv1, self.W_conv2, 2) + self.b_conv2)
-
-        h_conv2_flat = tf.reshape(h_conv2, [-1, 2592])
-        h_fc1 = tf.nn.relu(tf.matmul(h_conv2_flat, self.W_fc1) + self.b_fc1)
+        h_fc1 = tf.nn.relu(tf.matmul(self.s, self.W_fc1) + self.b_fc1)
+        h_fc2 = tf.nn.relu(tf.matmul(h_fc1, self.W_fc2) + self.b_fc2)
+        h_fc3 = tf.nn.relu(tf.matmul(h_fc2, self.W_fc3) + self.b_fc3)
 
         # policy (output)
-        self.pi = tf.nn.softmax(tf.matmul(h_fc1, self.W_fc2) + self.b_fc2)
+        self.mu = tf.matmul(h_fc3, self.W_fc4) + self.b_fc4
+        self.sigma2 = tf.nn.softplus(tf.matmul(h_fc3, self.W_fc5) + self.b_fc5)
+
         # value (output)
-        v_ = tf.matmul(h_fc1, self.W_fc3) + self.b_fc3
+        v_ = tf.matmul(h_fc3, self.W_fc6) + self.b_fc6
         self.v = tf.reshape(v_, [-1])
 
     def run_policy_and_value(self, sess, s_t):
-        pi_out, v_out = sess.run([self.pi, self.v], feed_dict={self.s: [s_t]})
-        return pi_out[0], v_out[0]
+        mu_out, sig_out, v_out = sess.run([self.mu, self.sigma2, self.v], feed_dict={self.s: [s_t]})
+        return mu_out[0], sig_out[0], v_out[0]
 
     def run_policy(self, sess, s_t):
-        pi_out = sess.run(self.pi, feed_dict={self.s: [s_t]})
-        return pi_out[0]
+        mu_out, sig_out = sess.run([self.mu, self.sigma2], feed_dict={self.s: [s_t]})
+        return mu_out[0], sig_out[0]
 
     def run_value(self, sess, s_t):
         v_out = sess.run(self.v, feed_dict={self.s: [s_t]})
