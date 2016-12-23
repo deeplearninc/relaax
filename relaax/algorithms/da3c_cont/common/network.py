@@ -89,13 +89,14 @@ class _GameACFFNetworkShared(_GameACNetwork):
 
     def __init__(self, config):
         super(_GameACFFNetworkShared, self).__init__()
+        self.state_size = 24    # move to config later
         fc_size_1 = 300     # Size of the 1st fully connected layer
         fc_size_2 = 200     # Size of the 2nd fully connected layer
         fc_size_3 = 100     # Size of the 3rd fully connected layer
 
         # set of weights for fully connected layers (from input to heads)
-        self.W_fc1 = _fc_weight_variable([config.action_size, fc_size_1])
-        self.b_fc1 = _fc_bias_variable([fc_size_1], config.action_size)
+        self.W_fc1 = _fc_weight_variable([self.state_size, fc_size_1])
+        self.b_fc1 = _fc_bias_variable([fc_size_1], self.state_size)
 
         self.W_fc2 = _fc_weight_variable([fc_size_1, fc_size_2])
         self.b_fc2 = _fc_bias_variable([fc_size_2], fc_size_1)
@@ -147,7 +148,7 @@ class _GameACFFNetwork(_GameACFFNetworkShared):
         super(_GameACFFNetwork, self).__init__(config)
 
         # state (input)
-        self.s = tf.placeholder("float", [None, 24])    # fix later with config
+        self.s = tf.placeholder("float", [None, self.state_size])    # fix later with config
 
         h_fc1 = tf.nn.relu(tf.matmul(self.s, self.W_fc1) + self.b_fc1)
         h_fc2 = tf.nn.relu(tf.matmul(h_fc1, self.W_fc2) + self.b_fc2)
@@ -178,11 +179,12 @@ class _GameACLSTMNetworkShared(_GameACNetwork):
 
     def __init__(self, config):
         super(_GameACLSTMNetworkShared, self).__init__()
+        self.state_size = 24  # move to config later
         lstm_size = 128     # Size of the LSTM layer
 
         # set of weights for fully connected layers (from input to lstm)
-        self.W_fc1 = _fc_weight_variable([config.action_size, lstm_size])
-        self.b_fc1 = _fc_bias_variable([lstm_size], config.action_size)
+        self.W_fc1 = _fc_weight_variable([self.state_size, lstm_size])
+        self.b_fc1 = _fc_bias_variable([lstm_size], self.state_size)
 
         # lstm
         self.lstm = CustomBasicLSTMCell(lstm_size)
@@ -199,7 +201,7 @@ class _GameACLSTMNetworkShared(_GameACNetwork):
         self.b_fc6 = _fc_bias_variable([1], lstm_size)
 
         # state (input)
-        self.s = tf.placeholder("float", [None, 24])    # fix later with config
+        self.s = tf.placeholder("float", [None, self.state_size])    # fix later with config
 
         h_fc1 = tf.nn.relu(tf.matmul(self.s, self.W_fc1) + self.b_fc1)
 
