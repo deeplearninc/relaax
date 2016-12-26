@@ -4,7 +4,7 @@ import logging
 import os
 import time
 
-from ...common.loop import socket_loop
+from ...common.protocol import socket_protocol
 
 
 class Worker(object):
@@ -17,18 +17,18 @@ class Worker(object):
 
     def run(self):
         agent_service = _AgentService(
-            environment_service=socket_loop.EnvironmentStub(self._connection),
+            environment_service=socket_protocol.EnvironmentStub(self._connection),
             agent=self._agent_factory(self._n_agent),
             timeout=self._timeout
         )
         try:
             while True:
-                socket_loop.agent_dispatch(self._connection, agent_service)
-        except socket_loop.Failure as e:
+                socket_protocol.agent_dispatch(self._connection, agent_service)
+        except socket_protocol.Failure as e:
             logging.warning('{}: {}: {}'.format(os.getpid(), self._address, e.message))
 
 
-class _AgentService(socket_loop.AgentService):
+class _AgentService(socket_protocol.AgentService):
     def __init__(self, environment_service, agent, timeout):
         self._environment_service = environment_service
         self._agent = agent
@@ -40,15 +40,15 @@ class _AgentService(socket_loop.AgentService):
     def reward_and_reset(self, reward):
         score = self._agent.reward_and_reset(reward)
         if score is None:
-            raise socket_loop.Failure('no answer from agent')
+            raise socket_protocol.Failure('no answer from agent')
         if time.time() >= self._stop:
-            raise socket_loop.Failure('timeout')
+            raise socket_protocol.Failure('timeout')
         self._environment_service.reset(score)
 
     def reward_and_act(self, reward, state):
         action = self._agent.reward_and_act(reward, state)
         if action is None:
-            raise socket_loop.Failure('no answer from agent')
+            raise socket_protocol.Failure('no answer from agent')
         self._environment_service.act(action)
 
 

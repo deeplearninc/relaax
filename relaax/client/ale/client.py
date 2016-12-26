@@ -7,7 +7,7 @@ import socket
 import time
 
 from . import game_process
-from ...common.loop import socket_loop
+from ...common.protocol import socket_protocol
 
 
 def run(rlx_server, ale, rom, seed):
@@ -23,21 +23,21 @@ def run(rlx_server, ale, rom, seed):
                 s.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
                 _connectf(s, _parse_address(server_address))
                 environment_service = _EnvironmentService(
-                    agent_service=socket_loop.AgentStub(s),
+                    agent_service=socket_protocol.AgentStub(s),
                     environment=environment
                 )
                 while True:
-                    socket_loop.environment_dispatch(s, environment_service)
+                    socket_protocol.environment_dispatch(s, environment_service)
             finally:
                 s.close()
-        except socket_loop.Failure as e:
+        except socket_protocol.Failure as e:
             _warning('{} : {}'.format(server_address, e.message))
             delay = random.randint(1, 10)
             _info('waiting for %ds...', delay)
             time.sleep(delay)
 
 
-class _EnvironmentService(socket_loop.EnvironmentService):
+class _EnvironmentService(socket_protocol.EnvironmentService):
     def __init__(self, agent_service, environment):
         self._agent_service = agent_service
         self._environment = environment
@@ -87,7 +87,7 @@ def _connectf(s, server_address):
     try:
         s.connect(server_address)
     except socket.error as e:
-        raise socket_loop.Failure("socket error({}): {}".format(e.errno, e.strerror))
+        raise socket_protocol.Failure("socket error({}): {}".format(e.errno, e.strerror))
 
 
 def _info(message, *args):
