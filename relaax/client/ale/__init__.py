@@ -8,13 +8,34 @@ from . import game_process
 from ...common.loop import socket_loop
 
 
-def parse_args():
+def main():
+    logging.basicConfig(
+        format='%(asctime)s:%(levelname)s: %(message)s',
+        level=logging.INFO
+    )
+
     parser = argparse.ArgumentParser()
     parser.add_argument('--rlx-server', type=str, default=None, help='RLX server address (host:port)')
     parser.add_argument('--ale', type=str, help='path to Arcade-Learning-Environment directory')
     parser.add_argument('--rom', type=str, help='Atari game ROM file')
     parser.add_argument('--seed', type=int, default=None, help='Seed for random generator')
-    return parser.parse_args()
+    args = parser.parse_args()
+
+    run(
+        rlx_server=args.rlx_server,
+        ale=args.ale,
+        rom=args.rom,
+        seed=args.seed
+    )
+
+
+def run(rlx_server, ale, rom, seed):
+    socket_loop.run_environment(
+        server_address=rlx_server,
+        environment_service_factory=_EnvironmentServiceFactory(
+            _Environment(game_process.GameProcessFactory(ale, rom).new_env(_seed(seed)))
+        )
+    )
 
 
 class _EnvironmentService(socket_loop.EnvironmentService):
@@ -58,21 +79,6 @@ class _Environment(object):
         self._n_game += 1
         print('Score at game', self._n_game, '=', score)
         self._game.reset()
-
-
-def main():
-    logging.basicConfig(
-        format='%(asctime)s:%(levelname)s: %(message)s',
-        level=logging.INFO
-    )
-
-    args = parse_args()
-    socket_loop.run_environment(
-        args.rlx_server,
-        _EnvironmentServiceFactory(
-            _Environment(game_process.GameProcessFactory(args.ale, args.rom).new_env(_seed(args.seed)))
-        )
-    )
 
 
 def _seed(value):
