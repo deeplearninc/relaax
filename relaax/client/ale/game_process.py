@@ -4,8 +4,6 @@ import sys
 import numpy as np
 from scipy.misc import imresize
 
-from ...common.loop import socket_loop
-
 
 class GameProcessFactory(object):
     def __init__(self, ale_path, rom):
