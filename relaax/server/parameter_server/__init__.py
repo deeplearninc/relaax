@@ -35,13 +35,19 @@ def main():
         level=log_level
     )
 
-    yaml = _load_yaml(args.config)
+    run(
+        yaml=_load_yaml(args.config),
+        bind=args.bind,
+        saver=_saver(args)
+    )
 
+
+def run(yaml, bind, saver):
     algorithm = algorithm_loader.load(yaml['path'])
 
     parameter_server = algorithm.ParameterServer(
         config=algorithm.Config(yaml),
-        saver=_saver(args)
+        saver=saver
     )
 
     print('looking for checkpoint in %s ...' % parameter_server.checkpoint_place())
@@ -58,7 +64,7 @@ def main():
     signal.signal(signal.SIGINT, stop_server)
 
     # keep the server or else GC will stop it
-    server = algorithm.start_parameter_server(args.bind, _Service(parameter_server))
+    server = algorithm.start_parameter_server(bind, _Service(parameter_server))
 
     last_global_t = parameter_server.global_t()
     last_activity_time = None
@@ -99,6 +105,7 @@ def _load_yaml(path):
 def _saver(args):
     if args.checkpoint_dir is not None:
         return fs_saver.FsSaver(args.checkpoint_dir)
+
     if args.checkpoint_aws_s3 is not None:
         if args.aws_keys is None:
             aws_access_key = None
