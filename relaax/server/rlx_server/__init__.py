@@ -39,17 +39,26 @@ def main():
     with open(args.config, 'r') as f:
         yaml = ruamel.yaml.load(f, Loader=ruamel.yaml.Loader)
 
-    algorithm = algorithm_loader.load(yaml['path'])
-
-    _run_agents(
+    run(
         bind_address=args.bind,
+        yaml=yaml,
+        parameter_server=args.parameter_server,
+        log_dir=args.log_dir,
+        timeout=args.timeout
+    )
+
+
+def run(bind_address, yaml, parameter_server, log_dir, timeout):
+    algorithm = algorithm_loader.load(yaml['path'])
+    _run_agents(
+        bind_address=bind_address,
         agent_factory=_get_factory(
             algorithm=algorithm,
             yaml=yaml,
-            parameter_server=args.parameter_server,
-            log_dir=args.log_dir
+            parameter_server=parameter_server,
+            log_dir=log_dir
         ),
-        timeout=args.timeout
+        timeout=timeout
     )
 
 
