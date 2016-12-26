@@ -7,10 +7,9 @@ import psutil
 import ruamel.yaml
 import signal
 import socket
-import time
 
+from .worker import Worker
 from ..common import algorithm_loader
-from ...common.loop import socket_loop
 
 
 def main():
@@ -90,62 +89,21 @@ def _run_agents(bind_address, agent_factory, timeout):
                         (available, required)
                     )
                 else:
+                    pid = None
                     try:
-                        pid = _forkf()
-                        if pid == 0:
-                            socket_.close()
-                            connection.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-                            socket_loop.run_agent(
-                                connection,
-                                address,
-                                _AgentServiceFactory(agent_factory(n_agent), timeout)
-                            )
-                            break
-                    except _Failure as e:
+                        pid = os.fork()
+                    except OSError as e:
                         _warning('{} : {}'.format(bind_address, e.message))
+                    if pid == 0:
+                        socket_.close()
+                        connection.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+                        Worker(agent_factory, timeout, n_agent, connection, address).run()
+                        break
             finally:
                 connection.close()
             n_agent += 1
     finally:
         socket_.close()
-
-
-class _Failure(Exception):
-    def __init__(self, message):
-        self.message = message
-
-
-class _AgentService(socket_loop.AgentService):
-    def __init__(self, environment_service, agent, timeout):
-        self._stop = time.time() + timeout
-        self._environment_service = environment_service
-        self._agent = agent
-
-    def act(self, state):
-        self._environment_service.act(self._agent.act(state))
-
-    def reward_and_reset(self, reward):
-        score = self._agent.reward_and_reset(reward)
-        if score is None:
-            raise _Failure('no answer from agent')
-        if time.time() >= self._stop:
-            raise _Failure('timeout')
-        self._environment_service.reset(score)
-
-    def reward_and_act(self, reward, state):
-        action = self._agent.reward_and_act(reward, state)
-        if action is None:
-            raise _Failure('no answer from agent')
-        self._environment_service.act(action)
-
-
-class _AgentServiceFactory(socket_loop.AgentServiceFactory):
-    def __init__(self, agent, timeout):
-        self._agent = agent
-        self._timeout = timeout
-
-    def __call__(self, environment_service):
-        return _AgentService(environment_service, self._agent, self._timeout)
 
 
 def _debug(message, *args):
@@ -185,12 +143,5 @@ def _process_tree_memory(process):
     return mem
 
 
-def _forkf():
-    try:
-        return os.fork()
-    except OSError as e:
-        raise _failure('OSError', e)
-
-
-def _failure(etype, e):
-    return _Failure("{}({}): {}".format(etype, e.errno, e.strerror))
+def _warning(message, *args):
+    logging.warning('%d:' + message, os.getpid(), *args)
