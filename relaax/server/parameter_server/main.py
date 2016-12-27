@@ -4,12 +4,6 @@ import argparse
 import logging
 import ruamel.yaml
 import os
-import sys
-
-sys.path.append(os.path.normpath(os.path.join(
-    os.path.dirname(__file__),
-    '../../..'
-)))
 
 import relaax.server.common.saver.fs_saver
 import relaax.server.common.saver.s3_saver

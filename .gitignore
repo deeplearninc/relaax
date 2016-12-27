@@ -5,3 +5,4 @@ sandbox/cluster*/logs
 sandbox/cluster*/checkpoints
 Session.vim
 tags
+relaax.egg-info
