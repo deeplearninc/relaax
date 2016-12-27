@@ -24,6 +24,3 @@ def main():
         rom=args.rom,
         seed=args.seed
     )
-
-
-main()

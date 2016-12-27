@@ -42,6 +42,3 @@ def main():
         log_dir=args.log_dir,
         timeout=args.timeout
     )
-
-
-main()
