@@ -10,10 +10,10 @@ from . import game_process
 from ...common.protocol import socket_protocol
 
 
-def run(rlx_server, ale, rom, seed):
+def run(rlx_server, rom, seed):
     server_address=rlx_server
     environment = _Environment(
-        game_process.GameProcessFactory(ale, rom).new_env(_seed(seed))
+        game_process.GameProcessFactory(rom).new_env(_seed(seed))
     )
 
     while True:

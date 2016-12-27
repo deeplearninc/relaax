@@ -21,14 +21,12 @@ def main():
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--rlx-server', type=str, default=None, help='RLX server address (host:port)')
-    parser.add_argument('--ale', type=str, help='path to Arcade-Learning-Environment directory')
     parser.add_argument('--rom', type=str, help='Atari game ROM file')
     parser.add_argument('--seed', type=int, default=None, help='Seed for random generator')
     args = parser.parse_args()
 
     relaax.client.ale.client.run(
         rlx_server=args.rlx_server,
-        ale=args.ale,
         rom=args.rom,
         seed=args.seed
     )
