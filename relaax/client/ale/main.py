@@ -3,14 +3,8 @@ from __future__ import print_function
 import argparse
 import logging
 import os
-import sys
 
-sys.path.append(os.path.normpath(os.path.join(
-    os.path.dirname(__file__),
-    '../../..'
-)))
-
-import relaax.client.ale.client
+from .client import run
 
 
 def main():
@@ -25,7 +19,7 @@ def main():
     parser.add_argument('--seed', type=int, default=None, help='Seed for random generator')
     args = parser.parse_args()
 
-    relaax.client.ale.client.run(
+    run(
         rlx_server=args.rlx_server,
         rom=args.rom,
         seed=args.seed
