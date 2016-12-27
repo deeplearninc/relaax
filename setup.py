@@ -13,8 +13,8 @@ setup(
     requires=[],
     provides=['relaax'],
     scripts=[
-        'scripts/relaax-parameter-server',
-        'scripts/relaax-rlx-server',
-        'scripts/relaax-client-ale'
+        'bin/relaax-parameter-server',
+        'bin/relaax-rlx-server',
+        'bin/relaax-client-ale'
     ]
 )
