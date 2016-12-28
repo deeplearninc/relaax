@@ -15,7 +15,7 @@ def main():
     )
 
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--agent', type=str, default=None,
+    parser.add_argument('--rlx_server', type=str, default=None,
                         help='agent server address (host:port)')
     parser.add_argument('--length', type=int, default=8 * 10 ** 7,
                         help='Number of steps to run the agent')
