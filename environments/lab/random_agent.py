@@ -39,5 +39,3 @@ def main():
         level=args.level_script,
         fps=args.fps
     )
-
-main()
