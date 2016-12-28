@@ -15,6 +15,7 @@ setup(
     scripts=[
         'bin/relaax-parameter-server',
         'bin/relaax-rlx-server',
-        'bin/relaax-client-ale'
+        'bin/relaax-client-ale',
+        'bin/relaax-client-gym'
     ]
 )
