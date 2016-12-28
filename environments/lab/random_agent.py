@@ -5,7 +5,7 @@ from __future__ import print_function
 import argparse
 import logging
 
-from .client import run
+from client import run
 
 
 def main():

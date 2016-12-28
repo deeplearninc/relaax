@@ -6,7 +6,7 @@ import random
 import socket
 import time
 
-from . import env_process
+import env_process
 import relaax.common.protocol.socket_protocol as socket_protocol
 
 
