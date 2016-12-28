@@ -37,5 +37,7 @@ def main():
     run(
         rlx_server=args.rlx_server,
         level=args.level_script,
-        seed=args.seed
+        fps=args.fps
     )
+
+main()

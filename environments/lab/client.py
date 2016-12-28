@@ -10,10 +10,11 @@ import env_process
 import relaax.common.protocol.socket_protocol as socket_protocol
 
 
-def run(rlx_server, rom, seed):
-    server_address=rlx_server
+def run(rlx_server, level, fps):
+    print('aaa')
+    server_address = rlx_server
     environment = _Environment(
-        env_process.GameProcessFactory(rom).new_env(_seed(seed))
+        env_process.GameProcessFactory(level).new_env(_seed(fps))
     )
 
     while True:
