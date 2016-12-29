@@ -34,8 +34,22 @@ def main():
         level=log_level
     )
 
+    yaml=_load_yaml(args.config)
+
+    if 'relaax-parameter-server' in yaml:
+        cmdl = yaml['relaax-parameter-server']
+
+        if args.log_level is None and '--log-level' in cmdl:
+            args.log_level = cmdl['--log-level']
+        if args.bind is None and '--bind' in cmdl:
+            args.bind = cmdl['--bind']
+        if args.checkpoint_dir is None and '--checkpoint-dir' in cmdl:
+            args.checkpoint_dir = cmdl['--checkpoint-dir']
+        if args.checkpoint_aws_s3 is None and '--checkpoint-aws-s3' in cmdl:
+            args.checkpoint_aws_s3 = cmdl['--checkpoint-aws-s3']
+
     relaax.server.parameter_server.server.run(
-        yaml=_load_yaml(args.config),
+        yaml=yaml['algorithm'],
         bind=args.bind,
         saver=_saver(args)
     )
