@@ -56,10 +56,10 @@ class GameProcess(object):
         return self.s_t
 
     def act(self, action):
-        reward, terminal, self.s_t = self._process_frame(GameProcess.ACTION_LIST[action], True)
+        reward, terminal, self.s_t = self._process_frame(GameProcess.ACTION_LIST[action])
         return reward, terminal
 
-    def _process_frame(self, action, reshape):
+    def _process_frame(self, action):
         reward = self.env.step(action, num_steps=self._frame_skip)
         terminal = not self.env.is_running()
 
@@ -70,8 +70,6 @@ class GameProcess(object):
         screen = self.env.observations()['RGB_INTERLACED']
         x_t = np.dot(screen[..., :3], [0.299, 0.587, 0.114])
 
-        if reshape:
-            x_t = np.reshape(x_t, (84, 84, 1))
         x_t = x_t.astype(np.float32)
         x_t *= (1.0 / 255.0)
         return reward, terminal, x_t
@@ -87,7 +85,7 @@ class GameProcess(object):
                     action = random.choice(GameProcess.ACTION_LIST)
                     self.env.step(action, num_steps=self._frame_skip)
 
-            _, terminal, self.s_t = self._process_frame(random.choice(GameProcess.ACTION_LIST), False)
+            _, terminal, self.s_t = self._process_frame(random.choice(GameProcess.ACTION_LIST))
             if not terminal:
                 break
 
