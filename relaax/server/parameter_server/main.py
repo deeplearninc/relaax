@@ -34,7 +34,12 @@ def main():
         level=log_level
     )
 
-    yaml=_load_yaml(args.config)
+    yaml = _load_yaml(args.config)
+
+    yaml['algorithm']['path'] = os.path.join(
+        os.path.dirname(args.config),
+        yaml['algorithm']['path']
+    )
 
     if 'relaax-parameter-server' in yaml:
         cmdl = yaml['relaax-parameter-server']

@@ -35,10 +35,13 @@ def main():
     with open(args.config, 'r') as f:
         yaml = ruamel.yaml.load(f, Loader=ruamel.yaml.Loader)
 
-    print(repr(yaml))
+    yaml['algorithm']['path'] = os.path.join(
+        os.path.dirname(args.config),
+        yaml['algorithm']['path']
+    )
+
     if 'relaax-rlx-server' in yaml:
         cmdl = yaml['relaax-rlx-server']
-        print(repr(cmdl))
 
         if args.log_level is None and '--log-level' in cmdl:
             args.log_level = cmdl['--log-level']
@@ -53,8 +56,6 @@ def main():
                 args.timeout = cmdl['--timeout']
             else:
                 args.timeout = 1000000 # arbitrary large number
-
-    print(repr(args))
 
     relaax.server.rlx_server.server.run(
         bind_address=args.bind,

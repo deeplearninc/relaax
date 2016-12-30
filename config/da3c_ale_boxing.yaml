@@ -3,8 +3,8 @@
 # This is an example of configuration to train DA3C agent to play ALE boxing game.
 #                                                                                 
 # To run this training navigate to empty directory open three terminals there and run:
-# relaax-parameter-server --config da3c_ale_boxing.yaml
-# relaax-rlx-server --config da3c_ale_boxing.yaml
+# relaax-parameter-server --config <path_to/da3c_ale_boxing.yaml>
+# relaax-rlx-server --config <path_to/da3c_ale_boxing.yaml>
 # relaax-client-ale --rlx-server localhost:7001 --rom <path_to_atari_games/boxing.bin>
 
 relaax-parameter-server:
@@ -19,7 +19,7 @@ relaax-rlx-server:
   --log-dir: logs
 
 algorithm:
-  path: ../../relaax/algorithms/da3c
+  path: ../algorithms/da3c
 
   action_size: 4                  # action size for given game rom (18 fits ale boxing)
   episode_len: 5                  # local loop size for one episode
