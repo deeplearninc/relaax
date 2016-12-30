@@ -28,7 +28,7 @@ def main():
 
     log_level = getattr(logging, args.log_level.upper(), None)
     if not isinstance(log_level, int):
-        raise ValueError('Invalid log level: %s' % loglevel)
+        raise ValueError('Invalid log level: %s' % log_level)
     logging.basicConfig(
         format='%(asctime)s:%(levelname)s:%(message)s',
         level=log_level
