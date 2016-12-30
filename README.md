@@ -15,16 +15,31 @@ We expose state-of-the-art reinforcement learning algorithms in easy to use RELA
 - [RELAAX Clients](#relaax-clients)
  - [Reinforcement Learning eXchange protocol](#reinforcement-learning-exchange-protocol)
  - [Supported Environments](#supported-environments)
+  - [DeepMind Lab](#deepmind-lab)
 - [RELAAX Server](#relaax-server)
  - [RLX Server](#rlx-server)
+  - [RLX Server structure](#rlx-server-structure)
+  - [RLX Server command line](#rlx-server-command-line)
+  - [Configuration](#configuration)
  - [Worker](#worker)
+  - [Worker structure](#worker-structure)
  - [Parameter Server](#parameter-server)
- - [Algorithm structure](#algorithm-structure)
+  - [Parameter Server structure](#parameter-server-structure)
+  - [Parameter Server command line](#parameter-server-command-line)
+ - [Algorithm](#algorithm)
+  - [Algorithm structure](#algorithm-structure)
+  - [Worker-to-Parameter Server Bridge](#worker-to-parameter-server-bridge)
  - [Visualization](#visualization)
  - [RELAAX Installation](#relaax-installation)
+  - [Installation for training on cluster and for algorithm development](#installation-for-training-on-cluster-and-for-algorithm-development)
+  - [Installation for RELAAX development](#installation-for-relaax-development)
 - [Algorithms](#algorithms)
  - [Distributed A3C](#distributed-a3c)
+  - [Distributed A3C Architecture](#distributed-a3c-architecture)
+  - [Performance on some of the Atari Environments](#performance-on-some-of-the-atari-environments)
  - [Distributed A3C Continuous](#distributed-a3c-continuous)
+  - [Distributed A3C Architecture with Continuous Actions](#distributed-a3c-architecture-with-continuous-actions)
+  - [Performance on gym's Walker](#performance-on-gym's-walker)
  - [Other Algorithms](#other-algorithms)
 - [Deployment in Cloud](#deployment-in-cloud)
 
@@ -131,7 +146,7 @@ RLX Server denies starting new worker in case of insufficient memory. To impleme
 
 Another balancing feature is regular connection drop on worker side. After specified timeout worker drops connection with client on next learning episode reset. Client automaticaly reconnects to load balancer allowing even load between working RLX Server nodes.
 
-#### [Class, module and file structure](#contents)
+#### [RLX Server structure](#contents)
 
 TODO: links to actual files
 
@@ -156,7 +171,7 @@ relaax
                           run new Worker.
 ```
 
-#### [Command line](#contents)
+#### [RLX Server command line](#contents)
 
 When you install RELAAX on your node you've got `relaax-rlx-server` command.
 
@@ -225,7 +240,7 @@ algorithm:
 
 Worker is main training unit. RLX Server starts worker as a separate process on new connection from client. New worker runs agent and provides communication between agent and environment inside client. Workers do not have separate configuration or command line. Both configuration and command line of worker are inherited from RLX server when worker is forked.
 
-#### [Class, module and file structure](#contents)
+#### [Worker structure](#contents)
 
 TODO: links to actual files
 ```
@@ -255,7 +270,7 @@ Parameter Server saves checkpoint if
 - it is idle for 10s;
 - the training is over - algorithm reports that required number of training steps are done.
 
-#### [Class, module and file structure](#contents)
+#### [Parameter Server structure](#contents)
 
 TODO: links to actual files
 ```
@@ -276,7 +291,7 @@ relaax
                           run monitor loop.
 ```
 
-#### [Command line](#contents)
+#### [Parameter Server command line](#contents)
 
 When you install RELAAX on your node you've got `relaax-parameter-server` command.
 
@@ -316,7 +331,7 @@ access: YOUR_ACCESS_KEY_YOUR
 secret: your+secret+key+your+secret+key+your+sec
 ```
 
-### [Algorithm structure](#contents)
+### [Algorithm](#contents)
 
 The structure of algorithm may vary. But generic layout is same for all algorithms. DA3C algorithm is an example.
 Algorithm is an usual Python package. But RELAAX server loads algorithms dynamically. Dynamic loading simplifies algorithm developement outside Python package structure. The path to algorithm to load is defined in config.yaml or in command line.
@@ -360,7 +375,7 @@ class ParameterServerStub          - Parameter server interface stup for Agent
 def start_parameter_server():      - start parameter server with bind address and ParameterServerService object
 ```
 
-#### [Class, module and file structure](#contents)
+#### [Algorithm structure](#contents)
 
 TODO: links to actual files
 TODO: complete
