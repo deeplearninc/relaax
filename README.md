@@ -27,7 +27,6 @@ We expose state-of-the-art reinforcement learning algorithms in easy to use RELA
  - [Distributed A3C Continuous](#distributed-a3c-continuous)
  - [Other Algorithms](#other-algorithms)
 - [Deployment in Cloud](#deployment-in-cloud)
-- [Repository Overview](#repository-overview)
 
 
 ## [System Architecture](#contents)
@@ -458,7 +457,7 @@ class PsService(object):
         return values
 ```
 
-### [Metrics](#contents)
+### [Visualization](#contents)
 
 Metrics is a way to gather information about training process in time. RELAAX uses TensorFlow to gather metrics and TensorBoard to present them.
 Metrics could be gathered from Parameter Server, workers (agents) and environments (clients). The API is the same in all three cases:
