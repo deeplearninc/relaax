@@ -181,26 +181,40 @@ Available options are:
 
 Both RLX Server (read workers) and Parameter server shares the same configuration file. The file describes algorithm to use and algorithm specific parameters.
 
-Configuration file example (config.yaml):
+Configuration file example (relaax/config/da3c_ale_boxing.yaml):
 ```
 ---
+# relaax-parameter-server command line
+relaax-parameter-server:
+  --bind: localhost:7000
+  --checkpoint-dir: checkpoints/boxing_a3c
+  --log-level: WARNING
+
+# relaax-rlx-server command line
+relaax-rlx-server:
+  --bind: localhost:7001
+  --parameter-server: localhost:7000
+  --log-level: WARNING
+  --log-dir: logs
+
 # Number and meaning of these keys depends on specific algorithm.
 # path to algorithm directory. In this case we use one from RELAAX repo. Feel free to create your own algorithm and use it for training.
-path: ../../relaax/algorithms/da3c
+algorithm:
+  path: ../relaax/algorithms/da3c
 
-action_size: 18                 # action size for given environment
-episode_len: 5                  # local loop size for one episode
-gpu: false                      # to use GPU, set to the True
-lstm: false                     # to use LSTM instead of FF, set to the True
-max_global_step: 1e8            # amount of maximum global steps to pass through the training
+  action_size: 4                  # action size for given game rom (18 fits ale boxing)
+  episode_len: 5                  # local loop size for one episode
+  gpu: false                      # to use GPU, set to the True
+  lstm: false                     # to use LSTM instead of FF, set to the True
+  max_global_step: 1e8            # amount of maximum global steps to pass through the training
 
-initial_learning_rate: 7e-4
-entropy_beta: 0.01              # entropy regularization constant
-rewards_gamma: 0.99             # rewards discount factor
-RMSProp:
-   decay: 0.99
-   epsilon: 0.1
-   gradient_norm_clipping: 40
+  initial_learning_rate: 7e-4
+  entropy_beta: 0.01              # entropy regularization constant
+  rewards_gamma: 0.99             # rewards discount factor
+  RMSProp:
+    decay: 0.99
+    epsilon: 0.1
+    gradient_norm_clipping: 40
 ```
 
 ### [Worker](#contents)
