@@ -7,7 +7,7 @@ import socket
 import time
 
 from . import game_process
-from ...common.protocol import socket_protocol
+from relaax.common.protocol import socket_protocol
 
 
 def run(rlx_server, rom, seed):
