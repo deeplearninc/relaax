@@ -41,9 +41,9 @@ class _AgentService(socket_protocol.AgentService):
         score = self._agent.reward_and_reset(reward)
         if score is None:
             raise socket_protocol.Failure('no answer from agent')
+        self._environment_service.reset(score)
         if time.time() >= self._stop:
             raise socket_protocol.Failure('timeout')
-        self._environment_service.reset(score)
 
     def reward_and_act(self, reward, state):
         action = self._agent.reward_and_act(reward, state)
