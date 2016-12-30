@@ -39,7 +39,7 @@ We expose state-of-the-art reinforcement learning algorithms in easy to use RELA
         - [Performance on some of the Atari Environments](#performance-on-some-of-the-atari-environments)
     - [Distributed A3C Continuous](#distributed-a3c-continuous)
         - [Distributed A3C Architecture with Continuous Actions](#distributed-a3c-architecture-with-continuous-actions)
-        - [Performance on gym's Walker](#performance-on-gym's-walker)
+        - [Performance on gym's Walker](#performance-on-gyms-walker)
     - [Other Algorithms](#other-algorithms)
 - [Deployment in Cloud](#deployment-in-cloud)
 
