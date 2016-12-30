@@ -20,7 +20,8 @@ We expose state-of-the-art reinforcement learning algorithms in easy to use RELA
  - [Workers](#workers)
  - [Visualization](#visualization)
 - [Algorithms](#algorithms)
- - [Destributed A3C](#destributed-a3c)
+ - [Distributed A3C](#distributed-a3c)
+ - [Distributed A3C Continuous](#distributed-a3c-continuous)
  - [Other Algorithms](#other-algorithms)
 - [Deployment in Cloud](#deployment-in-cloud)
 - [Repository Overview](#repository-overview)
@@ -525,7 +526,7 @@ pip install -e .
 ### [Distributed A3C](#contents)
 Inspired by original [paper](https://arxiv.org/abs/1602.01783) - Asynchronous Methods for Deep Reinforcement Learning from [DeepMind](https://deepmind.com/)
 
-##### Distributed A3C Architecture
+#### Distributed A3C Architecture
 ![img](resources/DA3C-Architecture.png)
 
 **Environment (Client)** - each client connects to a particular Agent (Learner).
@@ -632,7 +633,7 @@ You can also specify hyperparameters for training in provided `params.yaml` file
        epsilon: 0.1
        gradient_norm_clipping: 40
 
-##### Performance on some of the Atari Environments
+#### Performance on some of the Atari Environments
 Breakout with DA3C-FF and 8 parallel agents: score performance is similar to DeepMind [paper](https://arxiv.org/pdf/1602.01783v2.pdf#19)
 ![img](resources/Breakout-8th-80mil.png "Breakout")
 
@@ -640,7 +641,11 @@ Breakout with DA3C-FF and 8 parallel agents: ih this case we outperforms signifi
 we have some instability in training process (anyway DeepMind shows only 34 points after 80mil steps)
 ![img](resources/Boxing-8th-35mil.png "Boxing")
 
-##### Distributed A3C Architecture with Continuous Actions
+### [Distributed A3C Continuous](#contents)
+Version of Distributed A3C algorithm, which can cope with continuous action space.
+Inspired by original [paper](https://arxiv.org/abs/1602.01783) - Asynchronous Methods for Deep Reinforcement Learning from [DeepMind](https://deepmind.com/)
+
+#### Distributed A3C Architecture with Continuous Actions
 ![img](resources/DA3C-Continuous.png)
 
 Most of the parts are the same to previous scheme, excluding:
@@ -685,7 +690,7 @@ Most of the parts are the same to previous scheme, excluding:
 
 We also use a smaller `learning rate = 1e-4`
 
-##### Performance on gym's Walker
+#### Performance on gym's Walker
 ![img](resources/a3c_cont-4th-80mil.png "Walker")
 
 ##### Server Latency
