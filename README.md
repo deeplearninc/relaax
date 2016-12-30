@@ -16,15 +16,19 @@ We expose state-of-the-art reinforcement learning algorithms in easy to use RELA
  - [Reinforcement Learning eXchange protocol](#reinforcement-learning-exchange-protocol)
  - [Supported Environments](#supported-environments)
 - [RELAAX Server](#relaax-server)
+ - [RLX Server](#rlx-server)
+ - [Worker](#worker)
  - [Parameter Server](#parameter-server)
- - [Workers](#workers)
+ - [Algorithm structure](#algorithm-structure)
  - [Visualization](#visualization)
+ - [RELAAX Installation](#relaax-installation)
 - [Algorithms](#algorithms)
  - [Distributed A3C](#distributed-a3c)
  - [Distributed A3C Continuous](#distributed-a3c-continuous)
  - [Other Algorithms](#other-algorithms)
 - [Deployment in Cloud](#deployment-in-cloud)
 - [Repository Overview](#repository-overview)
+
 
 ## [System Architecture](#contents)
 
@@ -41,7 +45,7 @@ We expose state-of-the-art reinforcement learning algorithms in easy to use RELA
 ## [RELAAX Clients](#contents)
 Client is small library used to communicate with RL Agents. It could be used with the Environment implemented in many popular programming languages or embedded into specialised hardware systems. Currently client support Arcade Learning Environments (ALE), OpenAI Gym, and OpenAI Universe Environments. At the moment client implemented in Python, later on we are planning to implement client code in C/C++, Ruby, GO, etc. to simplify integration of other environments.
 
-###  [Reinforcement Learning eXchange protocol](#reinforcement-learning-exchange-protocol)
+###  [Reinforcement Learning eXchange protocol](#contents)
 
 Reinforcement Learning eXchange protocol is a simple protocol implemented over TCP using JSON (later will be moved to Protobuf). It allow to send State of the Environment and Revard to the Server and deliver Action from the Agent to the Environment.
 
@@ -480,7 +484,7 @@ DA3C gathers following metrics:
 
 It's recommended to use isolated Python environment to run RELAAX. Virtualenv or Anaconda are examples.
 
-#### Installation for training on cluster and for algorithm development
+#### [Installation for training on cluster and for algorithm development](#contents)
 
 * Install PIP - tool to install Python packages.
 
@@ -497,7 +501,7 @@ cd <relaax_repo>
 pip install .
 ```
 
-#### Installation for RELAAX development
+#### [Installation for RELAAX development](#contents)
 
 If you are going to modify RELAAX code itself then install it in "develop mode".
 
@@ -526,7 +530,7 @@ pip install -e .
 ### [Distributed A3C](#contents)
 Inspired by original [paper](https://arxiv.org/abs/1602.01783) - Asynchronous Methods for Deep Reinforcement Learning from [DeepMind](https://deepmind.com/)
 
-#### Distributed A3C Architecture
+#### [Distributed A3C Architecture](#contents)
 ![img](resources/DA3C-Architecture.png)
 
 **Environment (Client)** - each client connects to a particular Agent (Learner).
@@ -633,7 +637,7 @@ You can also specify hyperparameters for training in provided `params.yaml` file
        epsilon: 0.1
        gradient_norm_clipping: 40
 
-#### Performance on some of the Atari Environments
+#### [Performance on some of the Atari Environments](#contents)
 Breakout with DA3C-FF and 8 parallel agents: score performance is similar to DeepMind [paper](https://arxiv.org/pdf/1602.01783v2.pdf#19)
 ![img](resources/Breakout-8th-80mil.png "Breakout")
 
@@ -645,7 +649,7 @@ we have some instability in training process (anyway DeepMind shows only 34 poin
 Version of Distributed A3C algorithm, which can cope with continuous action space.
 Inspired by original [paper](https://arxiv.org/abs/1602.01783) - Asynchronous Methods for Deep Reinforcement Learning from [DeepMind](https://deepmind.com/)
 
-#### Distributed A3C Architecture with Continuous Actions
+#### [Distributed A3C Architecture with Continuous Actions](#contents)
 ![img](resources/DA3C-Continuous.png)
 
 Most of the parts are the same to previous scheme, excluding:
@@ -690,10 +694,10 @@ Most of the parts are the same to previous scheme, excluding:
 
 We also use a smaller `learning rate = 1e-4`
 
-#### Performance on gym's Walker
+#### [Performance on gym's Walker](#contents)
 ![img](resources/a3c_cont-4th-80mil.png "Walker")
 
-##### Server Latency
+##### [Server Latency](#contents)
 Measure how fast Agent returns Action in response to the State sent by the Client
 
 | Node Type  | Number of clients | Latency  |
@@ -712,7 +716,7 @@ Measure how fast Agent returns Action in response to the State sent by the Clien
 TBD - Latency chart (Show latency of the agents over time)
 
 
-##### Compute Performance with different amount of clients and node types (AWS):
+##### [Compute Performance with different amount of clients and node types (AWS)](#contents)
 
 | Node Type  | Number of clients | Performance       |
 | ---------- |:-----------------:| -----------------:|
