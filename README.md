@@ -204,9 +204,9 @@ on which you run `relaax-rlx-server`. It's minimal set of what you need.
 
     You can also pass to the client:
 
-    `level_script` (string) - path to DeepMind's maps
+    `--level_script tests/demo_map` - path to DeepMind's maps (string)
 
-    `fps` (integer) - frame per second rate
+    `--fps 60` - frame per second rate (integer)
 
 We have some preconfigured (*.yaml) files to run experiments.
 
