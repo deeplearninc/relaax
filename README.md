@@ -199,6 +199,18 @@ in this file:
     lab$ cd bazel-bin/random_agent.runfiles/org_deepmind_lab
     ...$ python random_agent --rlx_server host:port
     ```
+    You have to pass `--rlx_server` parameter with appropriate `host:port`
+on which you run `relaax-rlx-server`. It's minimal set of what you need.
+    You can also pass to the client:
+    `level_script` (string) - path to DeepMind's maps
+    `fps` (integer) - frame per second rate
+
+We have some preconfigured (*.yaml) files to run experiments.
+You can find one to run DeepMind Lab there:
+`relaax/config/da3c_lab_demo.yaml`
+
+You should check the `action_size` parameter, which is environment dependent.
+
 
 ## [RELAAX Server](#contents)
 
