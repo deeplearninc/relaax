@@ -11,6 +11,7 @@ We expose state-of-the-art reinforcement learning algorithms in easy to use RELA
 * RELAAX comes with set of Terraform scripts which allow you to build your cluster on AWS, GCP, and Azure
 
 ## Contents
+- [Quick start](#quick-start)
 - [System Architecture](#system-architecture)
 - [RELAAX Clients](#relaax-clients)
     - [Reinforcement Learning eXchange protocol](#reinforcement-learning-exchange-protocol)
@@ -42,6 +43,53 @@ We expose state-of-the-art reinforcement learning algorithms in easy to use RELA
         - [Performance on gym's Walker](#performance-on-gyms-walker)
     - [Other Algorithms](#other-algorithms)
 - [Deployment in Cloud](#deployment-in-cloud)
+
+
+## [Quick start](#contents)
+
+It's recommended to use isolated Python environment to run RELAAX. Virtualenv or Anaconda are examples.
+
+* Clone RELAAX repo.
+```
+git clone git@github.com:deeplearninc/relaax.git
+```
+
+* Install RELAAX
+```
+cd relaax
+pip install -e .
+```
+
+* Install [Arcade Learning Environment](https://github.com/mgbellemare/Arcade-Learning-Environment)
+
+* Download Atari ROM file boxing.bin to atari-games directory (TODO link)
+```
+cd ..
+mkdir atari-games
+cd atari-games
+```
+
+* Create training directory
+```
+cd ..
+mkdir training
+cd training
+```
+
+* Open new terminal window, navigate to training directory and run parameter server
+```
+relaax-parameter-server --config ../relaax/config/da3c_ale_boxing.yaml
+```
+
+* Open new terminal window, navigate to training directory and run RLX server
+```
+relaax-rlx-server --config ../relaax/config/da3c_ale_boxing.yaml
+```
+
+* Open new terminal window, navigate to training directory and run environment
+```
+../relaax/environments/ALE/main --rlx-server localhost:7001 --rom ../atari-games/boxing.bin
+```
 
 
 ## [System Architecture](#contents)
