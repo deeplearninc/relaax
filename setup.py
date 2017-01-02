@@ -13,7 +13,7 @@ setup(
     requires=[
         'ruamel.yaml',
         'futures',
-        'grpcio-tools',
+        'grpcio_tools',
         'grpcio',
         'boto3',
         'pillow',
