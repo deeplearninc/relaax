@@ -142,7 +142,15 @@ TODO: description
 
 #### [OpenAI Gym](#contents)
 
-TODO: description
+[OpenAI Gym](https://gym.openai.com/) is open-source library: a collection of test problems environments,
+that you can use to work out your reinforcement learning algorithms.
+
+1. [Installation](https://github.com/openai/gym#installation)
+
+2. TODO
+
+3. TODO
+
 
 #### [DeepMind Lab](#contents)
 
