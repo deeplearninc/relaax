@@ -10,7 +10,7 @@ setup(
     author_email='stanislav@dplrn.com',
     url='http://www.dplrn.com/',
     packages=['relaax'],
-    requires=[
+    install_requires=[
         'ruamel.yaml',
         'futures',
         'grpcio_tools',
