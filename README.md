@@ -61,7 +61,21 @@ Client is small library used to communicate with RL Agents. It could be used wit
 
 ###  [Reinforcement Learning eXchange protocol](#contents)
 
-Reinforcement Learning eXchange protocol is a simple protocol implemented over TCP using JSON (later will be moved to Protobuf). It allow to send State of the Environment and Revard to the Server and deliver Action from the Agent to the Environment.
+Reinforcement Learning eXchange protocol is a simple protocol implemented over TCP using JSON (later will be moved to Protobuf). It allows to send State of the Environment and Revard to the Server and deliver Action from the Agent to the Environment.
+
+TODO: links to actual files
+
+```
+relaax
+  client.py
+    class Client                               - agent interface for environment
+      def act(self, state):                    - environment calls this method to start training
+      def reward_and_reset(self, reward):      - if training episode is over environment sends reward
+                                                 for current action and requests agent to reset episode
+      def reward_and_act(self, reward, state): - otherwise environment sends reward for current action
+                                                 and state for next action
+```
+
 
 ![img](resources/protocol-flow.png)
 
