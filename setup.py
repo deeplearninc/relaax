@@ -17,7 +17,8 @@ setup(
         'grpcio',
         'boto3',
         'pillow',
-        'scipy'
+        'scipy',
+        'psutil'
     ],
     provides=['relaax'],
     scripts=[
