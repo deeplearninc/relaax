@@ -16,6 +16,8 @@ We expose state-of-the-art reinforcement learning algorithms in easy to use RELA
 - [RELAAX Clients](#relaax-clients)
     - [Reinforcement Learning eXchange protocol](#reinforcement-learning-exchange-protocol)
     - [Supported Environments](#supported-environments)
+        - [ALE](#arcade-learning-environment)
+        - [OpenAI Gym](#openai-gym)
         - [DeepMind Lab](#deepmind-lab)
 - [RELAAX Server](#relaax-server)
     - [RLX Server](#rlx-server)
@@ -134,6 +136,14 @@ relaax
 * [OpenAI Universe](https://universe.openai.com/)
 * [DeepMind Lab](https://github.com/deepmind/lab)
 
+#### [Arcade-Learning-Environment](#contents)
+
+TODO: description
+
+#### [OpenAI Gym](#contents)
+
+TODO: description
+
 #### [DeepMind Lab](#contents)
 
 _DeepMind Lab_ uses [Bazel](https://www.bazel.io/) as its build system. It works out of the box on Debian (Jessie or newer)
@@ -173,14 +183,8 @@ headless software rendering mode `--define headless=osmesa` or non-headless mode
 
     You can copy our version of `random_agent.py` from:
 
-    `TODO:repo_name/environments/lab/`
+    `relaax/environments/lab/`
 
-    or you can overwrite DeepMind's agent by couples of lines:
-    ```
-    #!/usr/bin/env python
-    from environments.lab.agent import main
-    main()
-    ```
     You can also replace default agent's name (`random_agent.py`)
 in this file:
 
