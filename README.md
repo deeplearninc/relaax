@@ -49,7 +49,7 @@ We expose state-of-the-art reinforcement learning algorithms in easy to use RELA
 
 ## [Quick start](#contents)
 
-It's recommended to use isolated Python environment to run RELAAX. Virtualenv or Anaconda are examples.
+It's recommended to use isolated Python environment to run RELAAX. Virtualenv or Anaconda are examples. If you are not going to use isolated environment use `sudo` on `pip install` commands.
 
 * Clone RELAAX repo.
 ```
@@ -60,6 +60,16 @@ git clone git@github.com:deeplearninc/relaax.git
 ```
 cd relaax
 pip install -e .
+```
+
+* Build DA3C bridge.
+```
+algorithms/da3c/common/bridge/bridge.sh
+```
+
+* Install TensorFlow
+```
+pip install --upgrade https://storage.googleapis.com/tensorflow/linux/cpu/tensorflow-0.11.0-cp27-none-linux_x86_64.whl
 ```
 
 * Install [Arcade Learning Environment](https://github.com/mgbellemare/Arcade-Learning-Environment)

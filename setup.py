@@ -10,7 +10,15 @@ setup(
     author_email='stanislav@dplrn.com',
     url='http://www.dplrn.com/',
     packages=['relaax'],
-    requires=[],
+    requires=[
+        'ruamel.yaml',
+        'futures',
+        'grpcio-tools',
+        'grpcio',
+        'boto3',
+        'pillow',
+        'scipy'
+    ],
     provides=['relaax'],
     scripts=[
         'bin/relaax-parameter-server',
