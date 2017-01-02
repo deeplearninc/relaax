@@ -4,8 +4,8 @@
 #
 # To run this training navigate to empty directory next to relaax repo,
 # open three terminals there and run:
-# relaax-parameter-server --config ../relaax/config/da3c_lab_demo.yaml
-# relaax-rlx-server --config ../relaax/config/da3c_lab_demo.yaml
+# relaax-parameter-server --config ../relaax/config/da3cc_gym_walker.yaml
+# relaax-rlx-server --config ../relaax/config/da3cc_gym_walker.yaml
 
 
 relaax-parameter-server:

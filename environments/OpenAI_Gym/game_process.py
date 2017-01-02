@@ -51,9 +51,9 @@ class _GameProcess(object):
         self.cur_step_limit = None
         self._state = None
 
-        self._process_state = SetProcessFunc(self._process_atari)
+        self._process_state = SetProcessFunc(self._process_all)
         if env in _GameProcess.AtariGameList:
-            self._process_state = SetProcessFunc(self._process_all)
+            self._process_state = SetProcessFunc(self._process_atari)
 
         self.ac_size, self.box = self._action_size()
         self.reset()
