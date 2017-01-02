@@ -55,7 +55,7 @@ class _GameProcess(object):
         return self.s_t
 
     def act(self, action):
-        reward, terminal, self.s_t = self._process_frame(GameProcess.ACTION_LIST[action])
+        reward, terminal, self.s_t = self._process_frame(_GameProcess.ACTION_LIST[action])
         return reward, terminal
 
     def _process_frame(self, action):
@@ -81,9 +81,9 @@ class _GameProcess(object):
             if self._no_op_max > 0:
                 no_op = np.random.randint(0, self._no_op_max + 1)
                 for _ in range(no_op):
-                    action = random.choice(GameProcess.ACTION_LIST)
+                    action = random.choice(_GameProcess.ACTION_LIST)
                     self.env.step(action, num_steps=self._frame_skip)
 
-            _, terminal, self.s_t = self._process_frame(random.choice(GameProcess.ACTION_LIST))
+            _, terminal, self.s_t = self._process_frame(random.choice(_GameProcess.ACTION_LIST))
             if not terminal:
                 break
