@@ -1,7 +1,6 @@
 from __future__ import print_function
 
 import time
-import random
 import numpy as np
 import tensorflow as tf
 
@@ -20,7 +19,7 @@ class Agent(object):
             kernel = "/gpu:0"
 
         with tf.device(kernel):
-            self._local_network = network.make(config, 0)
+            self._local_network = network.make(config)
 
         self.local_t = 0            # steps count for current agent's process
         self.episode_reward = 0     # score accumulator for current episode
@@ -88,7 +87,7 @@ class Agent(object):
         mu_, sig_, value_ = self._local_network.run_policy_and_value(self._session, self.obsQueue)
         action = self._choose_action(mu_, sig_)
 
-        self.states.append(self.frameQueue)
+        self.states.append(self.obsQueue)
         self.actions.append(action)
         self.values.append(value_)
 
