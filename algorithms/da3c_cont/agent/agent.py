@@ -21,6 +21,7 @@ class Agent(object):
         with tf.device(kernel):
             self._local_network = network.make(config)
 
+        self.global_t = 0           # counter for global steps between all agents
         self.local_t = 0            # steps count for current agent's process
         self.episode_reward = 0     # score accumulator for current episode
         self.act_latency = .0       # latency summarizer
