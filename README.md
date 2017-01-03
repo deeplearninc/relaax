@@ -128,13 +128,15 @@ relaax
 
 
 ![img](resources/protocol-flow.png)
+<br><br>
 
 ### [Supported Environments](#contents)
 
-* [ALE](/clients/rl-client-ale)
-* [OpenAI Gym](/clients/rl-client-gym)
+* [ALE](http://www.arcadelearningenvironment.org/)
+* [OpenAI Gym](https://gym.openai.com/)
 * [OpenAI Universe](https://universe.openai.com/)
 * [DeepMind Lab](https://github.com/deepmind/lab)
+<br><br>
 
 #### [Arcade-Learning-Environment](#contents)
 
