@@ -154,24 +154,25 @@ that you can use to work out your reinforcement learning algorithms.
     `relaax/environments/OpenAI_Gym/`
 
     You just need to run `main` file to launch the client. For example,
-you want to run a client from a directory located near `relaax` at the same level.
-You command to launch a client should looks like this:
+you want to run a client from a directory located near `relaax` repositore
+at the same level. You launch command should looks like as follows:
     ```
     python ../relaax/environments/OpenAI_Gym/main --rlx-server localhost:7001 --env BipedalWalker-v2
     ```
 
     You have to provide `--rlx_server` parameter with appropriate `host:port`
 (on which you run `relaax-rlx-server`) and an environment name. It's minimal set.
-You also can add `--seed` to randomize initialization by this parameter.
+You also can add `--seed` argument to specify initialization of your environment
+(it sets to random by default).
 
-We have some preconfigured (*.yaml) files to run experiments.
+We use some preconfigured (*.yaml) files to run our experiments.
 
-You can find one to run OpenAI Gym there:
+You can find one of them to run OpenAI Gym there:
 `relaax/config/da3cc_gym_walker.yaml`
 
-We run `BipedalWalker-v2` environment here, which can use continuous action space.
-Since that we use continuous version of `Distributed A3C`. `action_size` parameter
-is set to `4`, you should check (change) this parameter if you want to set another environment.
+We set `BipedalWalker-v2` environment here, which operates with continuous action space.
+Since that we use continuous version of our `Distributed A3C`. `action_size` parameter
+is set to `4`, you should check / change this parameter if you want to use another environment.
 
 
 #### [DeepMind Lab](#contents)
