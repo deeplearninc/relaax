@@ -67,12 +67,9 @@ pip install -e .
 algorithms/da3c/common/bridge/bridge.sh
 ```
 
-* Install TensorFlow
-```
-pip install --upgrade https://storage.googleapis.com/tensorflow/linux/cpu/tensorflow-0.11.0-cp27-none-linux_x86_64.whl
-```
+* Install <a href="https://www.tensorflow.org/get_started/os_setup" target="_blank">TensorFlow</a>
 
-* Install [Arcade Learning Environment](https://github.com/mgbellemare/Arcade-Learning-Environment)
+* Install <a href="https://github.com/mgbellemare/Arcade-Learning-Environment" target="_blank">Arcade Learning Environment</a>
 
 * Download Atari ROM file boxing.bin to atari-games directory (TODO link)
 ```
