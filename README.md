@@ -171,7 +171,7 @@ We use some preconfigured (*.yaml) files to run our experiments.
 You can find one of them to run ALE there:
 `relaax/config/da3c_ale_boxing.yaml`
 
-We set `Atari Boxing` game here, which operates by 18 actions.
+We set `Atari Boxing` game here, which is controlled by 18 actions.
 We use our `Distributed A3C` algorithm to perform the training.
 You should check / change `action_size` parameter if you want to use another environment.
 <br><br>
