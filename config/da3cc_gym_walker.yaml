@@ -6,7 +6,7 @@
 # open three terminals there and run:
 # relaax-parameter-server --config ../relaax/config/da3cc_gym_walker.yaml
 # relaax-rlx-server --config ../relaax/config/da3cc_gym_walker.yaml
-
+# python ../relaax/environments/OpenAI_Gym/main --rlx-server localhost:7001 --env BipedalWalker-v2
 
 relaax-parameter-server:
   --bind: localhost:7000

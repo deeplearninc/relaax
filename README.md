@@ -138,14 +138,48 @@ relaax
 
 #### [Arcade-Learning-Environment](#contents)
 
-TODO: description
+The [Arcade Learning Environment (ALE)](http://www.arcadelearningenvironment.org/)
+is a framework that allows to develop AI agents for Atari 2600 games.
+It is built on top of the Atari 2600 emulator [Stella](http://stella.sourceforge.net/)
+and separates the details of emulation from agent design.
+
+1. [Install ALE.](https://github.com/mgbellemare/Arcade-Learning-Environment#quick-start)
+
+2. Run our Client:
+
+    You can find our version of ALE's client there:
+
+    `relaax/environments/ALE/`
+
+    You just need to run `main` file to launch the client. For example,
+you want to run a client from a directory located near `relaax` repository
+at the same level. You launch command should looks like as follows:
+    ```
+    python ../relaax/environments/ALE/main --rlx-server localhost:7001 --rom ../atari-games/boxing.bin
+    ```
+
+    You have to provide `--rlx_server` parameter with appropriate `host:port`
+(on which you run `relaax-rlx-server`) and a path to your Atari game rom
+(some details you can find [there](https://groups.google.com/forum/#!forum/arcade-learning-environment)).
+It's minimal set. You also can add `--seed` argument to specify initialization of your environment
+(it sets to random by default).
+
+We use some preconfigured (*.yaml) files to run our experiments.
+
+You can find one of them to run ALE there:
+`relaax/config/da3c_ale_boxing.yaml`
+
+We set `Atari Boxing` game here, which operates by 18 actions.
+We use our `Distributed A3C` algorithm to perform the training.
+You should check / change `action_size` parameter if you want to use another environment.
+<br><br>
 
 #### [OpenAI Gym](#contents)
 
 [OpenAI Gym](https://gym.openai.com/) is open-source library: a collection of test problems environments,
 that you can use to work out your reinforcement learning algorithms.
 
-1. [Install OpenAI Gym](https://github.com/openai/gym#installation)
+1. [Install OpenAI Gym.](https://github.com/openai/gym#installation)
 
 2. Run our Client:
 
@@ -154,7 +188,7 @@ that you can use to work out your reinforcement learning algorithms.
     `relaax/environments/OpenAI_Gym/`
 
     You just need to run `main` file to launch the client. For example,
-you want to run a client from a directory located near `relaax` repositore
+you want to run a client from a directory located near `relaax` repository
 at the same level. You launch command should looks like as follows:
     ```
     python ../relaax/environments/OpenAI_Gym/main --rlx-server localhost:7001 --env BipedalWalker-v2
@@ -173,7 +207,7 @@ You can find one of them to run OpenAI Gym there:
 We set `BipedalWalker-v2` environment here, which operates with continuous action space.
 Since that we use continuous version of our `Distributed A3C`. `action_size` parameter
 is set to `4`, you should check / change this parameter if you want to use another environment.
-
+<br><br>
 
 #### [DeepMind Lab](#contents)
 
@@ -258,7 +292,7 @@ The full set of actions consists of 11-types of interactions:
 - fire
 - jump
 - crouch
-
+<br><br>
 
 ## [RELAAX Server](#contents)
 
