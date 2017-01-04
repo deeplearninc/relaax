@@ -31,11 +31,7 @@ class Agent(object):
         self.episode_t = 0          # episode counter through episode_len = 0..5
         self.terminal_end = False   # auxiliary parameter to compute R in update_global and frameQueue
 
-        obs_dims = (84, 84)
-        state_dims = obs_dims + (config.history_len,)
-        self.dims = len(state_dims)
-
-        self.obsQueue = None      # observation accumulator for state = history_len * consecutive frames
+        self.obsQueue = None        # observation accumulator for state = history_len * consecutive frames
 
         episode_score = tf.placeholder(tf.int32)
         summary = tf.scalar_summary('episode score', episode_score)
@@ -154,14 +150,14 @@ class Agent(object):
 
     def _update_state(self, obs):
         if not self.terminal_end and self.local_t != 0:
-            np.delete(self.obsQueue, 0, self.dims - 1)
+            np.delete(self.obsQueue, 0, len(self._config.state_size))
             np.append(self.obsQueue,
                       np.reshape(obs, obs.shape + (1,)),
-                      axis=self.dims - 1)
+                      axis=len(self._config.state_size))
         else:
             self.obsQueue = np.repeat(np.reshape(obs, obs.shape + (1,)),
                                       self._config.history_len,
-                                      axis=self.dims - 1)
+                                      axis=len(self._config.state_size))
 
     def _update_global(self):
         R = 0.0

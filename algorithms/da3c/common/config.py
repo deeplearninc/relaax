@@ -4,11 +4,14 @@ class Config(object):
         # action size for given game rom (18 fits ale boxing)
         self.action_size = config.get('action_size', 18)
 
-        # local loop size for one episode
-        self.episode_len = config.get('episode_len', 5)
+        # size of the input observation (image to pass through 2D Convolution)
+        self.state_size = config.get('state_size', [84, 84])
 
         # number of consecutive observations to stack in state
         self.history_len = config.get('history_len', 4)
+
+        # local loop size for one episode
+        self.episode_len = config.get('episode_len', 5)
 
         # to use GPU, set to the True
         self.use_GPU = config.get('gpu', False)
