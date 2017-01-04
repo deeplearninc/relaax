@@ -23,11 +23,9 @@ def make_full_network(config):
 # Actor-Critic Network Base Class
 # (Policy network and Value network)
 class _GameACNetwork(object):
-
     def __init__(self):
         self.global_t = tf.Variable(0, tf.int64)
         self.increment_global_t = tf.assign_add(self.global_t, 1)
-        self.state_size = 24  # TODO: move to yaml
 
     def prepare_loss(self, config):
         # taken action (input for policy)
@@ -87,16 +85,15 @@ class _GameACNetwork(object):
 
 
 class _GameACFFNetworkShared(_GameACNetwork):
-
     def __init__(self, config):
         super(_GameACFFNetworkShared, self).__init__()
-        fc_size_1 = 300     # Size of the 1st fully connected layer
-        fc_size_2 = 200     # Size of the 2nd fully connected layer
-        fc_size_3 = 100     # Size of the 3rd fully connected layer
+        fc_size_1 = 300  # Size of the 1st fully connected layer
+        fc_size_2 = 200  # Size of the 2nd fully connected layer
+        fc_size_3 = 100  # Size of the 3rd fully connected layer
 
         # set of weights for fully connected layers (from input to heads)
-        self.W_fc1 = _fc_weight_variable([self.state_size, fc_size_1])
-        self.b_fc1 = _fc_bias_variable([fc_size_1], self.state_size)
+        self.W_fc1 = _fc_weight_variable([config.state_size, fc_size_1])
+        self.b_fc1 = _fc_bias_variable([fc_size_1], config.state_size)
 
         self.W_fc2 = _fc_weight_variable([fc_size_1, fc_size_2])
         self.b_fc2 = _fc_bias_variable([fc_size_2], fc_size_1)
@@ -127,7 +124,7 @@ class _GameACFFNetworkShared(_GameACNetwork):
         self._placeholders = [tf.placeholder(v.dtype, v.get_shape()) for v in self.values]
         self._assign_values = tf.group(*[
             tf.assign(v, p) for v, p in zip(self.values, self._placeholders)
-        ])
+            ])
 
         self.gradients = [tf.placeholder(v.dtype, v.get_shape()) for v in self.values]
         self.learning_rate_input = tf.placeholder(tf.float32)
@@ -135,7 +132,7 @@ class _GameACFFNetworkShared(_GameACNetwork):
     def assign_values(self, session, values):
         session.run(self._assign_values, feed_dict={
             p: v for p, v in zip(self._placeholders, values)
-        })
+            })
 
     def get_vars(self):
         return self.values
@@ -143,12 +140,11 @@ class _GameACFFNetworkShared(_GameACNetwork):
 
 # Actor-Critic FF Network
 class _GameACFFNetwork(_GameACFFNetworkShared):
-
     def __init__(self, config):
         super(_GameACFFNetwork, self).__init__(config)
 
         # state (input)
-        self.s = tf.placeholder("float", [None, self.state_size])
+        self.s = tf.placeholder("float", [None] + config.state_size)
 
         h_fc1 = tf.nn.relu(tf.matmul(self.s, self.W_fc1) + self.b_fc1)
         h_fc2 = tf.nn.relu(tf.matmul(h_fc1, self.W_fc2) + self.b_fc2)
@@ -176,14 +172,13 @@ class _GameACFFNetwork(_GameACFFNetworkShared):
 
 
 class _GameACLSTMNetworkShared(_GameACNetwork):
-
     def __init__(self, config):
         super(_GameACLSTMNetworkShared, self).__init__()
-        lstm_size = 128     # Size of the LSTM layer
+        lstm_size = 128  # Size of the LSTM layer
 
         # set of weights for fully connected layers (from input to lstm)
-        self.W_fc1 = _fc_weight_variable([self.state_size, lstm_size])
-        self.b_fc1 = _fc_bias_variable([lstm_size], self.state_size)
+        self.W_fc1 = _fc_weight_variable([config.state_size, lstm_size])
+        self.b_fc1 = _fc_bias_variable([lstm_size], config.state_size)
 
         # lstm
         self.lstm = CustomBasicLSTMCell(lstm_size)
@@ -200,7 +195,7 @@ class _GameACLSTMNetworkShared(_GameACNetwork):
         self.b_fc6 = _fc_bias_variable([1], lstm_size)
 
         # state (input)
-        self.s = tf.placeholder("float", [None, self.state_size])
+        self.s = tf.placeholder("float", [None] + config.state_size)
 
         h_fc1 = tf.nn.relu(tf.matmul(self.s, self.W_fc1) + self.b_fc1)
 
@@ -251,7 +246,6 @@ class _GameACLSTMNetworkShared(_GameACNetwork):
 
 # Actor-Critic LSTM Network
 class _GameACLSTMNetwork(_GameACLSTMNetworkShared):
-
     def __init__(self, config):
         super(_GameACLSTMNetwork, self).__init__(config)
 
@@ -274,18 +268,17 @@ class _GameACLSTMNetwork(_GameACLSTMNetworkShared):
     def run_policy_and_value(self, sess, s_t):
         # This run_policy_and_value() is used when forward propagating, so the step size is 1.
         mu_out, sig_out, v_out, self.lstm_state_out = sess.run([self.mu, self.sigma2, self.v, self.lstm_state],
-                                                      feed_dict={self.s: [s_t],
-                                                                 self.initial_lstm_state: self.lstm_state_out,
-                                                                 self.step_size: [1]})
+                                                               feed_dict={self.s: [s_t],
+                                                                          self.initial_lstm_state: self.lstm_state_out,
+                                                                          self.step_size: [1]})
         return mu_out[0], sig_out[0], v_out[0]
 
     def run_policy(self, sess, s_t):
         # This run_policy() is used for displaying the result with display tool.
         mu_out, sig_out, self.lstm_state_out = sess.run([self.mu, self.sigma2, self.lstm_state],
-                                               feed_dict={self.s: [s_t],
-                                                          self.initial_lstm_state: self.lstm_state_out,
-                                                          self.step_size: [1]})
-
+                                                        feed_dict={self.s: [s_t],
+                                                                   self.initial_lstm_state: self.lstm_state_out,
+                                                                   self.step_size: [1]})
         return mu_out[0], sig_out[0]
 
     def run_value(self, sess, s_t):
