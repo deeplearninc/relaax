@@ -103,10 +103,6 @@ class _GameACFFNetworkShared(_GameACNetwork):
         self.W_fc3 = _fc_weight_variable([256, 1])
         self.b_fc3 = _fc_bias_variable([1], 256)
 
-        self.W_fc3_copy = tf.Variable(self.W_fc3.initialized_value())
-        self.diff = tf.reduce_sum(self.W_fc3 - self.W_fc3_copy)
-        self.copy_W_fc3 = tf.assign(self.W_fc3_copy, self.W_fc3)
-
         self.values = [
             self.W_conv1,
             self.b_conv1,
@@ -144,7 +140,7 @@ class _GameACFFNetwork(_GameACFFNetworkShared):
         super(_GameACFFNetwork, self).__init__(config)
 
         # state (input)
-        self.s = tf.placeholder("float", [None, 84, 84, 4])
+        self.s = tf.placeholder("float", [None] + config.state_size + [config.history_len])
 
         h_conv1 = tf.nn.relu(_conv2d(self.s, self.W_conv1, 4) + self.b_conv1)
         h_conv2 = tf.nn.relu(_conv2d(h_conv1, self.W_conv2, 2) + self.b_conv2)
