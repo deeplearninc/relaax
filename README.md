@@ -132,12 +132,6 @@ relaax
 
 ### [Supported Environments](#contents)
 
-* [ALE](http://www.arcadelearningenvironment.org/)
-* [OpenAI Gym](https://gym.openai.com/)
-* [OpenAI Universe](https://universe.openai.com/)
-* [DeepMind Lab](https://github.com/deepmind/lab)
-<br><br>
-
 #### [Arcade-Learning-Environment](#contents)
 
 The [Arcade Learning Environment (ALE)](http://www.arcadelearningenvironment.org/)
@@ -147,34 +141,42 @@ and separates the details of emulation from agent design.
 
 1. [Install ALE.](https://github.com/mgbellemare/Arcade-Learning-Environment#quick-start)
 
-2. Run our Client:
+2. Run Client:
 
-    You can find our version of ALE's client there:
+    Our version of ALE's client is located here:
 
     `relaax/environments/ALE/`
 
-    You just need to run `main` file to launch the client. For example,
-you want to run a client from a directory located near `relaax` repository
-at the same level. You launch command should looks like as follows:
+    To launch the client it needs to run `main` file from this directory.
+For example, launch command to run a client from a directory located near
+`relaax` repository at the same level should looks like as follows:
     ```
     python ../relaax/environments/ALE/main --rlx-server localhost:7001 --rom ../atari-games/boxing.bin
     ```
 
-    You have to provide `--rlx_server` parameter with appropriate `host:port`
-(on which you run `relaax-rlx-server`) and a path to your Atari game rom
-(some details you can find [there](https://groups.google.com/forum/#!forum/arcade-learning-environment)).
-It's minimal set. You also can add `--seed` argument to specify initialization of your environment
+    This command provides `--rlx_server` parameter with appropriate `host:port`
+(on which `relaax-rlx-server` was running) and a path to Atari game rom
+(some details about [roms](https://groups.google.com/forum/#!forum/arcade-learning-environment)).
+It's minimal set. It also allows to add `--seed` argument to specify initialization of the environment
 (it sets to random by default).
 
-We use some preconfigured (*.yaml) files to run our experiments.
-
-You can find one of them to run ALE there:
+Please find sample configuration to run ALE there:
 `relaax/config/da3c_ale_boxing.yaml`
 
-We set `Atari Boxing` game here, which is controlled by 18 actions.
-We use our `Distributed A3C` algorithm to perform the training.
-You should check / change `action_size` parameter if you want to use another environment.
-<br><br>
+This sample is setup for `Atari Boxing` game, which has a discrete set of actions.
+Therefore you may use discrete version of our `Distributed A3C` or set another algorithm there:
+```
+algorithm:
+  path: ../relaax/algorithms/da3c
+```
+
+`action_size` and `state_size` parameters for `Atari Boxing` is equal to:
+```
+action_size: 18                 # action size for given game rom (18 fits ale boxing)
+state_size: [84, 84]            # dimensions of input screen frame of an Atari game
+```
+You should check / change these parameter if you want to use another environment.
+<br><br><br><br>
 
 #### [OpenAI Gym](#contents)
 
@@ -183,32 +185,40 @@ that you can use to work out your reinforcement learning algorithms.
 
 1. [Install OpenAI Gym.](https://github.com/openai/gym#installation)
 
-2. Run our Client:
+2. Run Client:
 
-    You can find our version of OpenAI Gym's client there:
+    Our version of OpenAI Gym's client is located there:
 
     `relaax/environments/OpenAI_Gym/`
 
-    You just need to run `main` file to launch the client. For example,
-you want to run a client from a directory located near `relaax` repository
-at the same level. You launch command should looks like as follows:
+    To launch the client it needs to run `main` file from this directory.
+For example, launch command to run a client from a directory located near
+`relaax` repository at the same level should looks like as follows
     ```
     python ../relaax/environments/OpenAI_Gym/main --rlx-server localhost:7001 --env BipedalWalker-v2
     ```
 
-    You have to provide `--rlx_server` parameter with appropriate `host:port`
-(on which you run `relaax-rlx-server`) and an environment name. It's minimal set.
-You also can add `--seed` argument to specify initialization of your environment
+    This command provides `--rlx_server` parameter with appropriate `host:port`
+(on which `relaax-rlx-server` was running) and an environment name. It's minimal set.
+It also allows to add `--seed` argument to specify initialization of the environment
 (it sets to random by default).
 
-We use some preconfigured (*.yaml) files to run our experiments.
-
-You can find one of them to run OpenAI Gym there:
+Please find sample configuration to run OpenAI Gym there:
 `relaax/config/da3cc_gym_walker.yaml`
 
-We set `BipedalWalker-v2` environment here, which operates with continuous action space.
-Since that we use continuous version of our `Distributed A3C`. `action_size` parameter
-is set to `4`, you should check / change this parameter if you want to use another environment.
+This sample is setup for `BipedalWalker-v2` environment, which operates with continuous action space.
+Therefore you may use continuous version of our `Distributed A3C` or set another algorithm there:
+```
+algorithm:
+  path: ../relaax/algorithms/da3c_cont
+```
+
+`action_size` and `state_size` parameters for `BipedalWalker-v2` is equal to:
+```
+action_size: 4                  # action size for the given environment
+state_size: [24]                # array of dimensions for the input observation
+```
+You should check / change these parameter if you want to use another environment.
 <br><br>
 
 #### [DeepMind Lab](#contents)
@@ -244,15 +254,15 @@ headless software rendering mode `--define headless=osmesa` or non-headless mode
     ```
 6. Replace default agent by ours:
 
-    You can find DeepMind's `random_agent.py` there:
+    DeepMind's `random_agent.py` is created there after building:
 
     `lab/bazel-bin/random_agent.runfiles/org_deepmind_lab/python/`
 
-    You can copy our version of `random_agent.py` from:
+    Our version of `random_agent.py` is located there:
 
     `relaax/environments/DeepMind_Lab/`
 
-    You can also replace default agent's name (`random_agent.py`)
+    You can replace the first one by ours or change default agent's name (`random_agent.py`)
 in this file:
 
     `lab/bazel-bin/random_agent.runfiles/org_deepmind_lab/random_agent`
@@ -266,23 +276,19 @@ in this file:
     lab$ cd bazel-bin/random_agent.runfiles/org_deepmind_lab
     ...$ python random_agent --rlx_server host:port
     ```
-    You have to pass `--rlx_server` parameter with appropriate `host:port`
-on which you run `relaax-rlx-server`. It's minimal set of what you need.
+    This command provides `--rlx_server` parameter with appropriate `host:port`
+on which `relaax-rlx-server` was running. It's minimal set of arguments.
 
-    You can also pass to the client:
+    It also allows to pass to the client:
 
     `--level_script tests/demo_map` - path to DeepMind's maps (string)
 
     `--fps 60` - frame per second rate (integer)
 
-We have some preconfigured (*.yaml) files to run experiments.
-
-You can find one to run DeepMind Lab there (use DA3C algorithm):
+Please find sample configuration to run DeepMind Lab there:
 `relaax/config/da3c_lab_demo.yaml`
 
-You should check the `action_size` parameter, which is environment dependent.
-
-The full set of actions consists of 11-types of interactions:
+The full set for `action_size` consists of 11-types of interactions:
 - look_left
 - look_right
 - look_up
