@@ -18,7 +18,7 @@ class Agent(object):
             kernel = "/gpu:0"
 
         with tf.device(kernel):
-            self._local_network = network.make(config, 0)
+            self._local_network = network.make(config)
 
         self.local_t = 0            # steps count for current agent's thread
         self.episode_reward = 0     # score accumulator for current game

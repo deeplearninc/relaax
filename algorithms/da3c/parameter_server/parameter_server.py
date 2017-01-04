@@ -13,7 +13,7 @@ class ParameterServer(object):
             kernel = "/gpu:0"
 
         with tf.device(kernel):
-            self._network = network.make(config, -1)
+            self._network = network.make(config)
 
         initialize = tf.initialize_all_variables()
 

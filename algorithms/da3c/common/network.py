@@ -4,17 +4,17 @@ import numpy as np
 from lstm import CustomBasicLSTMCell
 
 
-def make_shared_network(config, thread_index):
+def make_shared_network(config):
     if config.use_LSTM:
-        network = _GameACLSTMNetworkShared(config.action_size, thread_index)
+        network = _GameACLSTMNetworkShared(config)
     else:
         network = _GameACFFNetworkShared(config)
     return network.apply_gradients(config)
 
 
-def make_full_network(config, thread_index):
+def make_full_network(config):
     if config.use_LSTM:
-        network = _GameACLSTMNetwork(config.action_size, thread_index)
+        network = _GameACLSTMNetwork(config)
     else:
         network = _GameACFFNetwork(config)
     return network.prepare_loss(config).compute_gradients(config)
@@ -169,7 +169,7 @@ class _GameACFFNetwork(_GameACFFNetworkShared):
 
 class _GameACLSTMNetworkShared(_GameACNetwork):
 
-    def __init__(self, action_size, thread_index):
+    def __init__(self, config):
         super(_GameACLSTMNetworkShared, self).__init__()
 
         self.W_conv1 = _conv_weight_variable([8, 8, 4, 16])  # stride=4
@@ -185,8 +185,8 @@ class _GameACLSTMNetworkShared(_GameACNetwork):
         self.lstm = CustomBasicLSTMCell(256)
 
         # weight for policy output layer
-        self.W_fc2 = _fc_weight_variable([256, action_size])
-        self.b_fc2 = _fc_bias_variable([action_size], 256)
+        self.W_fc2 = _fc_weight_variable([256, config.action_size])
+        self.b_fc2 = _fc_bias_variable([config.action_size], 256)
 
         # weight for value output layer
         self.W_fc3 = _fc_weight_variable([256, 1])
@@ -220,8 +220,7 @@ class _GameACLSTMNetworkShared(_GameACNetwork):
             h_fc1_reshaped,
             initial_state=self.initial_lstm_state,
             sequence_length=self.step_size,
-            time_major=False,
-            scope="net_%d" % thread_index
+            time_major=False
         )
 
     def get_vars(self):
@@ -238,8 +237,8 @@ class _GameACLSTMNetworkShared(_GameACNetwork):
 # Actor-Critic LSTM Network
 class _GameACLSTMNetwork(_GameACLSTMNetworkShared):
 
-    def __init__(self, action_size, thread_index):
-        super(_GameACLSTMNetwork, self).__init__(action_size, thread_index)
+    def __init__(self, config):
+        super(_GameACLSTMNetwork, self).__init__(config)
 
         # lstm_outputs: (1,5,256) for back prop, (1,1,256) for forward prop.
 
@@ -332,4 +331,3 @@ def _fc_bias_variable(shape, input_channels):
 
 def _conv2d(x, W, stride):
     return tf.nn.conv2d(x, W, strides=[1, stride, stride, 1], padding="VALID")
-
