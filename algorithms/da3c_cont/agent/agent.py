@@ -1,10 +1,11 @@
 from __future__ import print_function
 
+import time
 import numpy as np
-import random
 import tensorflow as tf
 
 from . import network
+from .stats import ZFilter
 
 
 class Agent(object):
@@ -18,23 +19,30 @@ class Agent(object):
             kernel = "/gpu:0"
 
         with tf.device(kernel):
-            self._local_network = network.make(config, 0)
+            self._local_network = network.make(config)
 
-        self.local_t = 0            # steps count for current agent's thread
-        self.episode_reward = 0     # score accumulator for current game
+        self.global_t = 0           # counter for global steps between all agents
+        self.local_t = 0            # steps count for current agent's process
+        self.episode_reward = 0     # score accumulator for current episode
+        self.act_latency = .0       # latency summarizer
 
         self.states = []            # auxiliary states accumulator through episode_len = 0..5
         self.actions = []           # auxiliary actions accumulator through episode_len = 0..5
         self.rewards = []           # auxiliary rewards accumulator through episode_len = 0..5
         self.values = []            # auxiliary values accumulator through episode_len = 0..5
-        self.start_lstm_state = None
-        self.episode_t = 0          # episode counter through episode_len = 0..5
-        self.terminal_end = False   # auxiliary parameter to compute R in update_global and frameQueue
 
-        self.frameQueue = None      # frame accumulator for state, cuz state = 4 consecutive frames
+        self.episode_t = 0          # episode counter through episode_len = 0..5
+        self.terminal_end = False   # auxiliary parameter to compute R in update_global and obsQueue
+        self.start_lstm_state = None
+
+        self.obsQueue = None        # observation accumulator, cuz state = history_len * consecutive observations
+        self.obfilter = ZFilter((24,), clip=5)  # TODO: move 24 to yaml (may be a clip value)
 
         episode_score = tf.placeholder(tf.int32)
         summary = tf.scalar_summary('episode score', episode_score)
+
+        act_latency = tf.placeholder(tf.float32)
+        act_summary = tf.scalar_summary('act_latency', act_latency)
 
         initialize_all_variables = tf.initialize_all_variables()
 
@@ -48,8 +56,13 @@ class Agent(object):
             self._session.run(summary, feed_dict={episode_score: self.episode_reward}),
             self.global_t
         )
+        self._log_latency = lambda: summary_writer.add_summary(
+            self._session.run(act_summary, feed_dict={act_latency: self.act_latency}),
+            self.global_t
+        )
 
     def act(self, state):
+        self.act_latency = time.time()
         self.update_state(state)
 
         if self.episode_t == self._config.episode_len:
@@ -72,16 +85,20 @@ class Agent(object):
             if self._config.use_LSTM:
                 self.start_lstm_state = self._local_network.lstm_state_out
 
-        pi_, value_ = self._local_network.run_policy_and_value(self._session, self.frameQueue)
-        action = self._choose_action(pi_)
+        mu_, sig_, value_ = self._local_network.run_policy_and_value(self._session, self.obsQueue)
+        action = self._choose_action(mu_, sig_)
 
-        self.states.append(self.frameQueue)
+        self.states.append(self.obsQueue)
         self.actions.append(action)
         self.values.append(value_)
 
         if (self.local_t % 100) == 0:
-            print("pi=", pi_)
+            print("mu=", mu_)
+            print("sigma=", sig_)
             print(" V=", value_)
+
+        self.act_latency = time.time() - self.act_latency
+        self._log_latency()
 
         return action
 
@@ -122,36 +139,17 @@ class Agent(object):
 
         return self.global_t < self._config.max_global_step
 
-    @staticmethod
-    def _choose_action(pi_values):
-        values = []
-        total = 0.0
-        for rate in pi_values:
-            total += rate
-            value = total
-            values.append(value)
+    def _choose_action(self, mu, sig):
+        return (np.random.randn(1, self._config.action_size).astype(np.float32) * sig + mu)[0]
 
-        r = random.random() * total
-        for i in range(len(values)):
-            if values[i] >= r:
-                return i
-        # fail safe
-        return len(values) - 1
-
-    def update_state(self, frame):
-        if not self.terminal_end and self.local_t != 0:
-            self.frameQueue = np.append(
-                self.frameQueue[:, :, 1:],
-                np.reshape(frame, frame.shape + (1, )),
-                axis=2
-            )
-        else:
-            self.frameQueue = np.stack((frame, frame, frame, frame), axis=2)
+    def update_state(self, observation):
+        # TODO: add history len for stacking
+        self.obsQueue = self.obfilter(observation)
 
     def _update_global(self):
         R = 0.0
         if not self.terminal_end:
-            R = self._local_network.run_value(self._session, self.frameQueue)
+            R = self._local_network.run_value(self._session, self.obsQueue)
 
         self.actions.reverse()
         self.states.reverse()
@@ -170,11 +168,9 @@ class Agent(object):
                                     self.values):
             R = ri + self._config.GAMMA * R
             td = R - Vi
-            a = np.zeros([self._config.action_size])
-            a[ai] = 1
 
             batch_si.append(si)
-            batch_a.append(a)
+            batch_a.append(ai)
             batch_td.append(td)
             batch_R.append(R)
 
@@ -199,7 +195,6 @@ class Agent(object):
                     self._local_network.td: batch_td,
                     self._local_network.r: batch_R
             }
-
 
         self._parameter_server.apply_gradients(
             self._session.run(self._local_network.grads, feed_dict=feed_dict)
