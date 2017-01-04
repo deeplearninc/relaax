@@ -193,7 +193,7 @@ class _GameACLSTMNetworkShared(_GameACNetwork):
         self.b_fc3 = _fc_bias_variable([1], 256)
 
         # state (input)
-        self.s = tf.placeholder("float", [None, 84, 84, 4])
+        self.s = tf.placeholder("float", [None] + config.state_size + [config.history_len])
 
         h_conv1 = tf.nn.relu(_conv2d(self.s, self.W_conv1, 4) + self.b_conv1)
         h_conv2 = tf.nn.relu(_conv2d(h_conv1, self.W_conv2, 2) + self.b_conv2)
@@ -223,8 +223,7 @@ class _GameACLSTMNetworkShared(_GameACNetwork):
             time_major=False
         )
 
-    def get_vars(self):
-        return [
+        self.values = [
             self.W_conv1    , self.b_conv1  ,
             self.W_conv2    , self.b_conv2  ,
             self.W_fc1      , self.b_fc1    ,
@@ -232,6 +231,22 @@ class _GameACLSTMNetworkShared(_GameACNetwork):
             self.W_fc2      , self.b_fc2    ,
             self.W_fc3      , self.b_fc3
         ]
+
+        self._placeholders = [tf.placeholder(v.dtype, v.get_shape()) for v in self.values]
+        self._assign_values = tf.group(*[
+            tf.assign(v, p) for v, p in zip(self.values, self._placeholders)
+            ])
+
+        self.gradients = [tf.placeholder(v.dtype, v.get_shape()) for v in self.values]
+        self.learning_rate_input = tf.placeholder(tf.float32)
+
+    def assign_values(self, session, values):
+        session.run(self._assign_values, feed_dict={
+            p: v for p, v in zip(self._placeholders, values)
+            })
+
+    def get_vars(self):
+        return self.values
 
 
 # Actor-Critic LSTM Network
@@ -264,7 +279,7 @@ class _GameACLSTMNetwork(_GameACLSTMNetworkShared):
                                                                  self.initial_lstm_state: self.lstm_state_out,
                                                                  self.step_size: [1]})
         # pi_out: (1,3), v_out: (1)
-        return (pi_out[0], v_out[0])
+        return pi_out[0], v_out[0]
 
     def run_policy(self, sess, s_t):
         # This run_policy() is used for displaying the result with display tool.
