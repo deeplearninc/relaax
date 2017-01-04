@@ -7,6 +7,9 @@ class Config(object):
         # local loop size for one episode
         self.episode_len = config.get('episode_len', 5)
 
+        # number of consecutive observations to stack in state
+        self.history_len = config.get('history_len', 4)
+
         # to use GPU, set to the True
         self.use_GPU = config.get('gpu', False)
 
@@ -16,6 +19,7 @@ class Config(object):
         # amount of maximum global steps to pass through the training
         self.max_global_step = config.get('max_global_step', 10 * 10 ** 7)
 
+        # learning rate from which we start to annealing
         self.INITIAL_LEARNING_RATE = config.get('initial_learning_rate', 7e-4)
 
         # discount factor for rewards
