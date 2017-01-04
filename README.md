@@ -160,7 +160,7 @@ For example, launch command to run a client from a directory located near
 It's minimal set. It also allows to add `--seed` argument to specify initialization of the environment
 (it sets to random by default).
 
-Please find sample configuration to run ALE there:
+Please find sample of configuration to run ALE there:
 `relaax/config/da3c_ale_boxing.yaml`
 
 This sample is setup for `Atari Boxing` game, which has a discrete set of actions.
@@ -176,7 +176,7 @@ action_size: 18                 # action size for given game rom (18 fits ale bo
 state_size: [84, 84]            # dimensions of input screen frame of an Atari game
 ```
 You should check / change these parameter if you want to use another environment.
-<br><br><br><br>
+<br><br>
 
 #### [OpenAI Gym](#contents)
 
@@ -203,7 +203,7 @@ For example, launch command to run a client from a directory located near
 It also allows to add `--seed` argument to specify initialization of the environment
 (it sets to random by default).
 
-Please find sample configuration to run OpenAI Gym there:
+Please find sample of configuration to run OpenAI Gym there:
 `relaax/config/da3cc_gym_walker.yaml`
 
 This sample is setup for `BipedalWalker-v2` environment, which operates with continuous action space.
@@ -285,7 +285,7 @@ on which `relaax-rlx-server` was running. It's minimal set of arguments.
 
     `--fps 60` - frame per second rate (integer)
 
-Please find sample configuration to run DeepMind Lab there:
+Please find sample of configuration to run DeepMind Lab there:
 `relaax/config/da3c_lab_demo.yaml`
 
 The full set for `action_size` consists of 11-types of interactions:
