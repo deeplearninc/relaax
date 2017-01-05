@@ -35,8 +35,9 @@ class Agent(object):
         self.terminal_end = False   # auxiliary parameter to compute R in update_global and obsQueue
         self.start_lstm_state = None
 
+        self.obs_size = int(np.prod(np.array(config.state_size)))
         self.obsQueue = None        # observation accumulator, cuz state = history_len * consecutive observations
-        self.obfilter = ZFilter(tuple(config.state_size), clip=5)
+        self.obfilter = ZFilter(tuple([self.obs_size]), clip=5)
 
         episode_score = tf.placeholder(tf.int32)
         summary = tf.scalar_summary('episode score', episode_score)
@@ -143,20 +144,11 @@ class Agent(object):
         return (np.random.randn(1, self._config.action_size).astype(np.float32) * sig + mu)[0]
 
     def update_state(self, observation):
-        if self._config.history_len == 1:
-            self.obsQueue = self.obfilter(observation)
-            return
-
         obs = self.obfilter(observation)
         if not self.terminal_end and self.local_t != 0:
-            np.delete(self.obsQueue, 0, len(self._config.state_size))
-            np.append(self.obsQueue,
-                      np.reshape(obs, obs.shape + (1,)),
-                      axis=len(self._config.state_size))
+            np.append(self.obsQueue[self.obs_size:], obs)
         else:
-            self.obsQueue = np.repeat(np.reshape(obs, obs.shape + (1,)),
-                                      self._config.history_len,
-                                      axis=len(self._config.state_size))
+            self.obsQueue = np.repeat(obs, self._config.history_len)
 
     def _update_global(self):
         R = 0.0
