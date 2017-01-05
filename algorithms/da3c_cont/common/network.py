@@ -90,10 +90,11 @@ class _GameACFFNetworkShared(_GameACNetwork):
         fc_size_1 = 300  # Size of the 1st fully connected layer
         fc_size_2 = 200  # Size of the 2nd fully connected layer
         fc_size_3 = 100  # Size of the 3rd fully connected layer
+        input_size = np.prod(np.array(config.state_size))
 
         # set of weights for fully connected layers (from input to heads)
-        self.W_fc1 = _fc_weight_variable([config.state_size[0], fc_size_1])
-        self.b_fc1 = _fc_bias_variable([fc_size_1], config.state_size[0])
+        self.W_fc1 = _fc_weight_variable([input_size, fc_size_1])
+        self.b_fc1 = _fc_bias_variable([fc_size_1], input_size)
 
         self.W_fc2 = _fc_weight_variable([fc_size_1, fc_size_2])
         self.b_fc2 = _fc_bias_variable([fc_size_2], fc_size_1)
