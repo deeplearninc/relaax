@@ -176,10 +176,11 @@ class _GameACLSTMNetworkShared(_GameACNetwork):
     def __init__(self, config):
         super(_GameACLSTMNetworkShared, self).__init__()
         lstm_size = 128  # Size of the LSTM layer
+        input_size = np.prod(np.array(config.state_size))
 
         # set of weights for fully connected layers (from input to lstm)
-        self.W_fc1 = _fc_weight_variable([config.state_size[0], lstm_size])
-        self.b_fc1 = _fc_bias_variable([lstm_size], config.state_size[0])
+        self.W_fc1 = _fc_weight_variable([input_size, lstm_size])
+        self.b_fc1 = _fc_bias_variable([lstm_size], input_size)
 
         # lstm
         self.lstm = CustomBasicLSTMCell(lstm_size)
