@@ -144,7 +144,7 @@ class Agent(object):
         return (np.random.randn(1, self._config.action_size).astype(np.float32) * sig + mu)[0]
 
     def update_state(self, observation):
-        obs = self.obfilter(observation)
+        obs = self.obfilter(observation.flatten())
         if not self.terminal_end and self.local_t != 0:
             np.append(self.obsQueue[self.obs_size:], obs)
         else:
