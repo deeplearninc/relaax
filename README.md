@@ -143,12 +143,12 @@ and separates the details of emulation from agent design.
 
 2. Run Client:
 
-    Our version of ALE's client is located here:
+    RELAAX version of ALE environment is located here:
 
     `relaax/environments/ALE/`
 
     To launch the client it needs to run `main` file from this directory.
-For example, launch command to run a client from a directory located near
+For example, launch command to run a client from a directory located next to
 `relaax` repository at the same level should looks like as follows:
     ```
     python ../relaax/environments/ALE/main --rlx-server localhost:7001 --rom ../atari-games/boxing.bin
@@ -187,12 +187,12 @@ that you can use to work out your reinforcement learning algorithms.
 
 2. Run Client:
 
-    Our version of OpenAI Gym's client is located there:
+    RELAAX version of OpenAI Gym environment is located here:
 
     `relaax/environments/OpenAI_Gym/`
 
     To launch the client it needs to run `main` file from this directory.
-For example, launch command to run a client from a directory located near
+For example, launch command to run a client from a directory located next to
 `relaax` repository at the same level should looks like as follows
     ```
     python ../relaax/environments/OpenAI_Gym/main --rlx-server localhost:7001 --env BipedalWalker-v2
@@ -254,7 +254,7 @@ headless software rendering mode `--define headless=osmesa` or non-headless mode
     ```
 6. Replace default agent by ours:
 
-    DeepMind's `random_agent.py` is created there after building:
+    DeepMind's `random_agent.py` is created there (after build):
 
     `lab/bazel-bin/random_agent.runfiles/org_deepmind_lab/python/`
 
@@ -279,7 +279,7 @@ in this file:
     This command provides `--rlx_server` parameter with appropriate `host:port`
 on which `relaax-rlx-server` was running. It's minimal set of arguments.
 
-    It also allows to pass to the client:
+    Other options are:
 
     `--level_script tests/demo_map` - path to DeepMind's maps (string)
 
