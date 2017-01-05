@@ -18,7 +18,7 @@ class Agent(object):
             kernel = "/gpu:0"
 
         with tf.device(kernel):
-            self._local_network = network.make(config, 0)
+            self._local_network = network.make(config)
 
         self.local_t = 0            # steps count for current agent's thread
         self.episode_reward = 0     # score accumulator for current game
@@ -31,7 +31,7 @@ class Agent(object):
         self.episode_t = 0          # episode counter through episode_len = 0..5
         self.terminal_end = False   # auxiliary parameter to compute R in update_global and frameQueue
 
-        self.frameQueue = None      # frame accumulator for state, cuz state = 4 consecutive frames
+        self.obsQueue = None        # observation accumulator for state = history_len * consecutive frames
 
         episode_score = tf.placeholder(tf.int32)
         summary = tf.scalar_summary('episode score', episode_score)
@@ -50,7 +50,7 @@ class Agent(object):
         )
 
     def act(self, state):
-        self.update_state(state)
+        self._update_state(state)
 
         if self.episode_t == self._config.episode_len:
             self._update_global()
@@ -72,10 +72,10 @@ class Agent(object):
             if self._config.use_LSTM:
                 self.start_lstm_state = self._local_network.lstm_state_out
 
-        pi_, value_ = self._local_network.run_policy_and_value(self._session, self.frameQueue)
+        pi_, value_ = self._local_network.run_policy_and_value(self._session, self.obsQueue)
         action = self._choose_action(pi_)
 
-        self.states.append(self.frameQueue)
+        self.states.append(self.obsQueue)
         self.actions.append(action)
         self.values.append(value_)
 
@@ -140,18 +140,29 @@ class Agent(object):
 
     def update_state(self, frame):
         if not self.terminal_end and self.local_t != 0:
-            self.frameQueue = np.append(
-                self.frameQueue[:, :, 1:],
+            self.obsQueue = np.append(
+                self.obsQueue[:, :, 1:],
                 np.reshape(frame, frame.shape + (1, )),
                 axis=2
             )
         else:
-            self.frameQueue = np.stack((frame, frame, frame, frame), axis=2)
+            self.obsQueue = np.stack((frame, frame, frame, frame), axis=2)
+
+    def _update_state(self, obs):
+        if not self.terminal_end and self.local_t != 0:
+            np.delete(self.obsQueue, 0, len(self._config.state_size))
+            np.append(self.obsQueue,
+                      np.reshape(obs, obs.shape + (1,)),
+                      axis=len(self._config.state_size))
+        else:
+            self.obsQueue = np.repeat(np.reshape(obs, obs.shape + (1,)),
+                                      self._config.history_len,
+                                      axis=len(self._config.state_size))
 
     def _update_global(self):
         R = 0.0
         if not self.terminal_end:
-            R = self._local_network.run_value(self._session, self.frameQueue)
+            R = self._local_network.run_value(self._session, self.obsQueue)
 
         self.actions.reverse()
         self.states.reverse()
