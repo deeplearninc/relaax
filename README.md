@@ -1,8 +1,11 @@
 # REinforcement Learning Algorithms, Autoscaling and eXchange (RELAAX)
 
 RELAAX framework designed to:
+
 1. Simplify research and development of Reinforcement Learning applications and algorithms by taking care of underlaying infrastructure
+
 2. Provide implementation of the state of art Reinforcement Learning Algorithms in easy to use and scalable way
+
 3. Simplify deploying of Agents and Environment for training and exploitation of the trained Agents at scale on the most of the popular Cloud Platforms
 
 Major RELAAX components:
