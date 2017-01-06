@@ -7,7 +7,7 @@ import socket
 import time
 
 from . import env_process
-from relaax import client
+from relaax.client import client
 
 
 def run(rlx_server, level, fps):

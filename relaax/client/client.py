@@ -2,7 +2,7 @@ from __future__ import print_function
 
 import threading
 
-from .common.protocol import socket_protocol
+from ..common.protocol import socket_protocol
 
 
 class Client(object):

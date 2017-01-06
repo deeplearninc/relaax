@@ -8,7 +8,7 @@ import time
 import signal
 
 from . import game_process
-from relaax import client
+from relaax.client import client
 
 
 def run(rlx_server, env, seed):
