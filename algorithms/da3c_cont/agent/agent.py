@@ -1,8 +1,8 @@
 from __future__ import print_function
 
-import time
 import numpy as np
 import tensorflow as tf
+import time
 
 from . import network
 from .stats import ZFilter
@@ -24,7 +24,7 @@ class Agent(object):
         self.global_t = 0           # counter for global steps between all agents
         self.local_t = 0            # steps count for current agent's process
         self.episode_reward = 0     # score accumulator for current episode
-        self.act_latency = .0       # latency summarizer
+        self.act_latency = 0        # latency summarizer
 
         self.states = []            # auxiliary states accumulator through episode_len = 0..5
         self.actions = []           # auxiliary actions accumulator through episode_len = 0..5
@@ -35,8 +35,8 @@ class Agent(object):
         self.terminal_end = False   # auxiliary parameter to compute R in update_global and obsQueue
         self.start_lstm_state = None
 
-        self.obs_size = int(np.prod(np.array(config.state_size)))
         self.obsQueue = None        # observation accumulator, cuz state = history_len * consecutive observations
+        self.obs_size = int(np.prod(np.array(config.state_size)))
         self.obfilter = ZFilter(tuple([self.obs_size]), clip=5)
 
         episode_score = tf.placeholder(tf.int32)
@@ -63,8 +63,8 @@ class Agent(object):
         )
 
     def act(self, state):
-        self.act_latency = time.time()
-        self.update_state(state)
+        start = time.time()
+        self._update_state(state)
 
         if self.episode_t == self._config.episode_len:
             self._update_global()
@@ -98,7 +98,7 @@ class Agent(object):
             print("sigma=", sig_)
             print(" V=", value_)
 
-        self.act_latency = time.time() - self.act_latency
+        self.act_latency = time.time() - start
         self._log_latency()
 
         return action
@@ -143,7 +143,7 @@ class Agent(object):
     def _choose_action(self, mu, sig):
         return (np.random.randn(1, self._config.action_size).astype(np.float32) * sig + mu)[0]
 
-    def update_state(self, observation):
+    def _update_state(self, observation):
         obs = self.obfilter(observation.flatten())
         if not self.terminal_end and self.local_t != 0:
             np.append(self.obsQueue[self.obs_size:], obs)

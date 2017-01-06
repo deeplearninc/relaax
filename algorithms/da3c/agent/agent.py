@@ -3,6 +3,7 @@ from __future__ import print_function
 import numpy as np
 import random
 import tensorflow as tf
+import time
 
 from . import network
 
@@ -20,21 +21,27 @@ class Agent(object):
         with tf.device(kernel):
             self._local_network = network.make(config)
 
+        self.global_t = 0           # counter for global steps between all agents
         self.local_t = 0            # steps count for current agent's thread
         self.episode_reward = 0     # score accumulator for current game
+        self.act_latency = 0        # latency summarizer
 
         self.states = []            # auxiliary states accumulator through episode_len = 0..5
         self.actions = []           # auxiliary actions accumulator through episode_len = 0..5
         self.rewards = []           # auxiliary rewards accumulator through episode_len = 0..5
         self.values = []            # auxiliary values accumulator through episode_len = 0..5
-        self.start_lstm_state = None
+
         self.episode_t = 0          # episode counter through episode_len = 0..5
         self.terminal_end = False   # auxiliary parameter to compute R in update_global and frameQueue
+        self.start_lstm_state = None
 
         self.obsQueue = None        # observation accumulator for state = history_len * consecutive frames
 
         episode_score = tf.placeholder(tf.int32)
         summary = tf.scalar_summary('episode score', episode_score)
+
+        act_latency = tf.placeholder(tf.float32)
+        act_summary = tf.scalar_summary('act_latency', act_latency)
 
         initialize_all_variables = tf.initialize_all_variables()
 
@@ -48,8 +55,13 @@ class Agent(object):
             self._session.run(summary, feed_dict={episode_score: self.episode_reward}),
             self.global_t
         )
+        self._log_latency = lambda: summary_writer.add_summary(
+            self._session.run(act_summary, feed_dict={act_latency: self.act_latency}),
+            self.global_t
+        )
 
     def act(self, state):
+        start = time.time()
         self._update_state(state)
 
         if self.episode_t == self._config.episode_len:
@@ -82,6 +94,9 @@ class Agent(object):
         if (self.local_t % 100) == 0:
             print("pi=", pi_)
             print(" V=", value_)
+
+        self.act_latency = time.time() - start
+        self._log_latency()
 
         return action
 
