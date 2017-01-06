@@ -30,9 +30,8 @@ def run(rlx_server, rom, seed):
                         n_game += 1
                         print('Score at game', n_game, '=', episode_score)
                         game.reset()
-                        action = c.send(None, game.state())
-                    else:
-                        action = c.send(reward, game.state())
+                        assert reward is None
+                    action = c.send(reward, game.state())
             finally:
                 s.close()
         except client.Failure as e:
