@@ -125,12 +125,20 @@ TODO: links to actual files
 ```
 relaax
   client.py
-    class Client                               - agent interface for environment
-      def act(self, state):                    - environment calls this method to start training
-      def reward_and_reset(self, reward):      - if training episode is over environment sends reward
-                                                 for current action and requests agent to reset episode
-      def reward_and_act(self, reward, state): - otherwise environment sends reward for current action
-                                                 and state for next action
+    class Client               - agent interface for environment
+      def init(state)          - start training sending initial state to agent,
+                                 returns first action from agent
+      def send(reward, state)  - send reward for previous action and current environment state,
+                                 returns next action from agent
+      def reset(reward)        - send reward for previous action and resets agent
+                                 returns cumulative reward for last episode
+      def disconnect()         - disconnect environment from agent
+
+    class Failure              - raised in case of failure on agent's side
+
+    class SocketClient(Client) - socket implementation for agent interface
+      def __init__(socket)     - creates the object
+      ...
 ```
 
 
