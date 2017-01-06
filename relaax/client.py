@@ -22,7 +22,7 @@ class Client(object):
 Failure = socket_protocol.Failure
 
 
-class SyncSocketClient(Client):
+class SocketClient(Client):
     def __init__(self, socket):
         self._socket = socket
         self._agent_service = socket_protocol.AgentStub(socket)

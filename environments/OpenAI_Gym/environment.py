@@ -31,7 +31,7 @@ def run(rlx_server, env, seed):
             try:
                 s.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
                 _connectf(s, _parse_address(server_address))
-                c = client.SyncSocketClient(s)
+                c = client.SocketClient(s)
                 action = c.init(game.state())
                 while True:
                     reward, reset = game.act(action)
