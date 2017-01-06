@@ -1,14 +1,21 @@
 # REinforcement Learning Algorithms, Autoscaling and eXchange (RELAAX)
 
-We expose state-of-the-art reinforcement learning algorithms in easy to use RELAAX framework. RELAAX allows your to scale training dinamically by running cluster of RL Agents on any of the popular clouds and connecting RL Environments over [Reinforcement Learning eXchange (RLX) protocol](#reinforcement-learning-exchange-protocol).
+RELAAX framework designed to:
+1. Simplify research and development of Reinforcement Learning applications and algorithms by taking care of underlaying infrastructure
+2. Provide implementation of the state of art Reinforcement Learning Algorithms in easy to use and scalable way
+3. Simplify deploying of Agents and Environment for training and exploitation of the trained Agents at scale on the most of the popular Cloud Platforms
 
-* [RELAAX Client](#relaax-clients) is wrapping details of the [RLX Protocol](#reinforcement-learning-exchange-protocol) implementation and exposes simple API to be used to exchange States, Rewards, and Actions between scalable RL Server and Environment.
+Major RELAAX components:
 
-* [RELAAX Server](#relaax-server) allow developers to run RL Agents locally or at scale on popular cloud platforms. See more details below.
+* [Reinforcement Learning eXchange (RLX) protocol](#reinforcement-learning-exchange-protocol) connects RL Agents with RL Environment
 
-* RELAAX provides implementations of the popular [RL algorithms](#algorithms) to simplify RL application(s) development and research.
+* [RELAAX Client](#relaax-clients) wraps details of the [RLX Protocol](#reinforcement-learning-exchange-protocol) implementation and exposes simple API to be used to exchange States, Rewards, and Actions between scalable RL Server and Environment. 
 
-* RELAAX comes with set of Terraform scripts which allow you to build your cluster on AWS, GCP, and Azure
+* [RELAAX Server](#relaax-server) allows developers to run RL Agents locally or at scale on popular cloud platforms. See more details below.
+
+* RELAAX provides implementations of the popular [RL algorithms](#algorithms) to simplify RL application(s) development and research. 
+
+* RELAAX comes with an online service which allow you to build your RL cluster on AWS, GCP, and Azure in just a few clicks
 
 ## Contents
 - [Quick start](#quick-start)
@@ -30,7 +37,7 @@ We expose state-of-the-art reinforcement learning algorithms in easy to use RELA
         - [Parameter Server structure](#parameter-server-structure)
         - [Parameter Server command line](#parameter-server-command-line)
     - [Algorithm](#algorithm)
-        - [Algorithm structure](#algorithm-structure)
+        - [Algorithm package structure](#algorithm-package-structure)
         - [Worker-to-Parameter Server Bridge](#worker-to-parameter-server-bridge)
     - [Visualization](#visualization)
     - [RELAAX Installation](#relaax-installation)
@@ -106,19 +113,19 @@ relaax-rlx-server --config ../relaax/config/da3c_ale_boxing.yaml
 ![img](resources/RELAAX_Architecture.jpg)
 
 * Environment - computer simulation, game, or "hardware" in real world (say industrial manipulator, robot, car, etc.). To accelerate learning number of Environment(s) could be run in parallel.
-* RELAAX Client - simple library which is embedded into Environment. It collects the State and Revard in Environmet, sends it to the RELAAX Server, recieves back Action(s) and communicates it to the Environment.
-* RLX Server - listens on a port for a connection from the RELAAX Clients. After connection is accepted it starts Worker and passes control over comuniation with the client to that Worker.
+* RELAAX Client - simple library which is embedded into Environment. It collects the State and Reward in Environment, sends it to the RELAAX Server, receives back Action(s) and communicates it to the Environment.
+* RLX Server - listens on a port for a connection from the RELAAX Clients. After connection is accepted it starts Worker and passes control over communication with the client to that Worker.
 * Worker - communicates with the client and runs Agent's NN. Each parallel replica of Environment/Client will have corresponding replica of the Agent.
-* Parameter Server - one or several nodes which run Global Function NN (Q, value, or policy function). Parameter Server node(s) communicates with Workers over GRPC bridge to synchronise state of the Global Function NN with Agents.
-* CheckPoints - storage where Parameter Server saves state of the Global Function NN; when syetem is re-stared, it may restore Global Function NN state from the stored previously checkpoint and continue learning.
+* Parameter Server - one or several nodes which run Global Function NN (Q, value, or policy function). Parameter Server node(s) communicates with Workers over GRPC bridge to synchronize state of the Global Function NN with Agents.
+* CheckPoints - storage where Parameter Server saves state of the Global Function NN; when system is re-stared, it may restore Global Function NN state from the stored previously checkpoint and continue learning.
 * Metrics - Workers and Parameter Server send various metrics to the Metrics node; developer may see these metrics in Web Browser by connecting to the Metrics node.
 
 ## [RELAAX Clients](#contents)
-Client is small library used to communicate with RL Agents. It could be used with the Environment implemented in many popular programming languages or embedded into specialised hardware systems. Currently client support Arcade Learning Environments (ALE), OpenAI Gym, and OpenAI Universe Environments. At the moment client implemented in Python, later on we are planning to implement client code in C/C++, Ruby, GO, etc. to simplify integration of other environments.
+Client is small library used to communicate with RL Agents. It could be used with the Environment implemented in many popular programming languages or embedded into specialized hardware systems. Currently client support Arcade Learning Environments (ALE), OpenAI Gym, and OpenAI Universe Environments. At the moment client implemented in Python, later on we are planning to implement client code in C/C++, Ruby, GO, etc. to simplify integration of other environments.
 
 ###  [Reinforcement Learning eXchange protocol](#contents)
 
-Reinforcement Learning eXchange protocol is a simple protocol implemented over TCP using JSON (later will be moved to Protobuf). It allows to send State of the Environment and Revard to the Server and deliver Action from the Agent to the Environment.
+Reinforcement Learning eXchange protocol is a simple protocol implemented over TCP using JSON (later will be moved to Protobuf). It allows to send State of the Environment and Reward to the Server and deliver Action from the Agent to the Environment.
 
 TODO: links to actual files
 
@@ -315,11 +322,11 @@ The full set for `action_size` consists of 11-types of interactions:
 
 Main purpose of RLX Server is to run agents exploring and exploiting environments. You can run several RLX Servers on several computers. Run one RLX Server per computer. RLX Server starts, opens specified port and start listening it. When next client connects to the port, RLX Server accepts connection, forks itself as new process, starts new worker to process connection from client. Accepting connection means opening new connection on other port. So relax firewall rules on RLX Server node to allow connections on arbitrary ports.
 
-RLX Server implements dynamic loading of algorithm code. Several examples of algorithms are in <relaax_repo>/algotithms. Feel free to copy and modify them according your needs.
+RLX Server implements dynamic loading of algorithm code. Several examples of algorithms are in <relaax_repo>/algorithms. Feel free to copy and modify them according your needs.
 
-RLX Server denies starting new worker in case of insufficient memory. To implement this feature on new connection RLX Server calculates mean memory consumption per child (worker) process and compares it with amount of available memory. Swap memory is not taken in account during comparison. If available memory is not enough RLX Server immediately closes new connection. Please note that typical client is trying to reconnect again in case of any network issue. This way load balancing is implemented. When load balancer routes new connection with overloaded RLX Server node RLX Server closes connection and client repeates connection attempt. Eventually connection is routed to node with enough memory and training starts. Appropriate configuration of cluster autoscaler (low memory treshould) is required to utilize this feature.
+RLX Server denies starting new worker in case of insufficient memory. To implement this feature on new connection RLX Server calculates mean memory consumption per child (worker) process and compares it with amount of available memory. Swap memory is not taken in account during comparison. If available memory is not enough RLX Server immediately closes new connection. Please note that typical client is trying to reconnect again in case of any network issue. This way load balancing and autoscaling is implemented. When load balancer routes new connection with overloaded RLX Server node RLX Server closes connection and client repeats connection attempt. Eventually, connection is routed to node with enough memory and training starts. Appropriate configuration of cluster autoscaler (based on low memory threshold) is required to utilize this feature.
 
-Another balancing feature is regular connection drop on worker side. After specified timeout worker drops connection with client on next learning episode reset. Client automaticaly reconnects to load balancer allowing even load between working RLX Server nodes.
+Another balancing feature is regular connection drop on worker side. After specified timeout worker drops connection with client on next learning episode reset. Client automatically reconnects to load balancer allowing even load between working RLX Server nodes.
 
 #### [RLX Server structure](#contents)
 
@@ -440,10 +447,10 @@ Parameter Server stores Global Function NN on local file system (convenient for 
 
 Global Function NN states are stored in form of checkpoints. Each checkpoint is marked with training step number. This allows to store multiple checkpoints for the same training to investigate training progress. When Parameter Server starts it searches specified checkpoint location and loads last saved checkpoint.
 
-Parameter Server saves checkpoint if
-- it is stopped by SIGINT signal (Ctrl-C in terminal running Parameter Server for example);
-- it is idle for 10s;
-- the training is over - algorithm reports that required number of training steps are done.
+Parameter Server saves checkpoint:
+- on regular intervals, default 15 min, but it is possible to change in config.yaml
+- if the training is over - algorithm reports that required number of training steps are done
+- if it is stopped by SIGINT signal (Ctrl-C in terminal running Parameter Server for example)
 
 #### [Parameter Server structure](#contents)
 
@@ -508,10 +515,10 @@ secret: your+secret+key+your+secret+key+your+sec
 
 ### [Algorithm](#contents)
 
-The structure of algorithm may vary. But generic layout is same for all algorithms. DA3C algorithm is an example.
-Algorithm is an usual Python package. But RELAAX server loads algorithms dynamically. Dynamic loading simplifies algorithm developement outside Python package structure. The path to algorithm to load is defined in config.yaml or in command line.
+Implementation and structure of algorithm vary. However, generic layout is about same for all algorithms. DA3C algorithm is an example.
+Algorithm is an usual Python package. RELAAX server loads algorithms dynamically. Dynamic loading simplifies algorithm development outside RELAAX package structure. The path to algorithm to load is defined in config.yaml or in command line.
 
-Algorithm package exports following symbols:
+Algorithm package should exports following symbols:
 
 ```
 class Config                       - algorithm configuration
@@ -550,7 +557,7 @@ class ParameterServerStub          - Parameter server interface stup for Agent
 def start_parameter_server():      - start parameter server with bind address and ParameterServerService object
 ```
 
-#### [Algorithm structure](#contents)
+#### [Algorithm package structure](#contents)
 
 TODO: links to actual files
 TODO: complete
@@ -558,7 +565,7 @@ TODO: complete
 relaax
   algorithms
     da3c
-      __init__.py                            - alrogithm API (see previous section)
+      __init__.py                            - algorithm API (see previous section)
       common
         lstm.py                              - long short-term memory NN
         network.py                           - algorithm NN
@@ -582,8 +589,8 @@ relaax
               def apply_gradients():         - apply gradients to Global Function NN
               def get_values():              - get Global Function NN
 
-            class ParameterServerStub        - Parameter server interface stup for Agent
-                                               incapsulates GRPC service to communicate with parameter server.
+            class ParameterServerStub        - Parameter server interface setup for Agent
+                                               encapsulates GRPC service to communicate with parameter server.
               def increment_global_t():      - increment current global learning step
               def apply_gradients():         - apply gradients to Global Function NN
               def get_values():              - get Global Function NN
@@ -619,7 +626,7 @@ relaax
 
 #### [Worker-to-Parameter Server Bridge](#contents)
 
-The purpose of the bridge is to provide data transport between workers and Parameter Server. Each worker and Parameter Server has it's own copy of Global Function NN. The bridge provides means of synchronzation of these Global Functions and allows to distribute training process across different processes on different computational nodes.
+The purpose of the bridge is to provide data transport between workers and Parameter Server. Each worker and Parameter Server has it's own copy of Global Function NN. The bridge provides means of synchronization of these Global Functions and allows to distribute training process across different processes on different computational nodes.
 
 Bridge is part of algorithm. Bridge is implemented as thin wrapper on GRPC service.
 
@@ -632,7 +639,7 @@ service ParameterServer {
 }
 ```
 
-Corresponding Parameter Server API looks like (relaax/algorithms/da3c/common/bridge/__init__.py):
+Corresponding Parameter Server API looks like (relaax/algorithms/da3c/common/bridge/bridge.py):
 ```
 class PsService(object):
     def increment_global_t(self):
@@ -654,8 +661,8 @@ Metrics could be gathered from Parameter Server, workers (agents) and environmen
 ```
 relaax.store_metrics('average_training_reward', average_training_reward)
 ```
-This call stores metrics with given name and value. All metrices are stored as mappings from training global step to given values.
-All metrices could be browsed in realtime during training by TensorBoard attached to training cluster or to local training.
+This call stores metrics with given name and value. All metrics are stored as mappings from training global step to given values.
+All metrics could be browsed in real time during training by TensorBoard attached to training cluster or to local training.
 
 DA3C gathers following metrics:
 * episode reward
