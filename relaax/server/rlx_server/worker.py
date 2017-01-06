@@ -5,7 +5,6 @@ import os
 import time
 
 from ...common.protocol import socket_protocol
-from ... import client
 
 
 class Worker(object):
@@ -29,7 +28,7 @@ class Worker(object):
             logging.warning('{}: {}: {}'.format(os.getpid(), self._address, e.message))
 
 
-class _AgentService(client.Client):
+class _AgentService(socket_protocol.AgentService):
     def __init__(self, environment_service, agent, timeout):
         self._environment_service = environment_service
         self._agent = agent

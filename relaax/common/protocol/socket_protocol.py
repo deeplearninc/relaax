@@ -11,15 +11,24 @@ import socket
 import struct
 import time
 
-from ... import client
-
 
 class Failure(Exception):
     def __init__(self, message):
         self.message = message
 
 
-class AgentStub(client.Client):
+class AgentService(object):
+    def act(self, state):
+        raise NotImplementedError
+
+    def reward_and_reset(self, reward):
+        raise NotImplementedError
+
+    def reward_and_act(self, reward, state):
+        raise NotImplementedError
+
+
+class AgentStub(AgentService):
     def __init__(self, socket):
         self._socket = socket
 

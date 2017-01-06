@@ -7,14 +7,13 @@ import socket
 import time
 
 from . import game_process
-from relaax.common.protocol import socket_protocol
+from relaax import client
 
 
 def run(rlx_server, rom, seed):
     server_address=rlx_server
-    environment = _Environment(
-        game_process.GameProcessFactory(rom).new_env(_seed(seed))
-    )
+    n_game = 0
+    game = game_process.GameProcessFactory(rom).new_env(_seed(seed))
 
     while True:
         s = socket.socket()
@@ -22,54 +21,25 @@ def run(rlx_server, rom, seed):
             try:
                 s.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
                 _connectf(s, _parse_address(server_address))
-                environment_service = _EnvironmentService(
-                    agent_service=socket_protocol.AgentStub(s),
-                    environment=environment
-                )
+                c = client.SyncSocketClient(s)
+                action = c.init(game.state())
                 while True:
-                    socket_protocol.environment_dispatch(s, environment_service)
+                    reward, reset = game.act(action)
+                    if reset:
+                        episode_score = c.reset(reward)
+                        n_game += 1
+                        print('Score at game', n_game, '=', episode_score)
+                        game.reset()
+                        action = c.send(None, game.state())
+                    else:
+                        action = c.send(reward, game.state())
             finally:
                 s.close()
-        except socket_protocol.Failure as e:
+        except client.Failure as e:
             _warning('{} : {}'.format(server_address, e.message))
             delay = random.randint(1, 10)
             _info('waiting for %ds...', delay)
             time.sleep(delay)
-
-
-class _EnvironmentService(socket_protocol.EnvironmentService):
-    def __init__(self, agent_service, environment):
-        self._agent_service = agent_service
-        self._environment = environment
-        agent_service.act(environment.get_state())
-
-    def act(self, action):
-        reward, reset = self._environment.act(action)
-        if reset:
-            self._agent_service.reward_and_reset(reward)
-        else:
-            self._agent_service.reward_and_act(reward, self._environment.get_state())
-
-    def reset(self, episode_score):
-        self._environment.reset(episode_score)
-        self._agent_service.act(self._environment.get_state())
-
-
-class _Environment(object):
-    def __init__(self, game):
-        self._game = game
-        self._n_game = 0
-
-    def get_state(self):
-        return self._game.state()
-
-    def act(self, action):
-        return self._game.act(action)
-
-    def reset(self, score):
-        self._n_game += 1
-        print('Score at game', self._n_game, '=', score)
-        self._game.reset()
 
 
 def _seed(value):
@@ -87,7 +57,7 @@ def _connectf(s, server_address):
     try:
         s.connect(server_address)
     except socket.error as e:
-        raise socket_protocol.Failure("socket error({}): {}".format(e.errno, e.strerror))
+        raise client.Failure("socket error({}): {}".format(e.errno, e.strerror))
 
 
 def _info(message, *args):
