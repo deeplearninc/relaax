@@ -42,40 +42,6 @@ class AgentStub(AgentService):
         _sendf(self._socket, 'reward_and_act', reward, json.dumps(state, cls=_NDArrayEncoder))
 
 
-class EnvironmentService(object):
-    def act(self, action):
-        raise NotImplementedError
-
-    def reset(self, episode_score):
-        raise NotImplementedError
-
-
-class EnvironmentServiceFactory(object):
-    def __call__(self, agent_service):
-        raise NotImplementedError
-
-
-class EnvironmentStub(EnvironmentService):
-    def __init__(self, socket):
-        self._socket = socket
-
-    def act(self, action):
-        _send(self._socket, 'act', action)
-
-    def reset(self, episode_score):
-        _send(self._socket, 'reset', episode_score)
-
-
-def environment_dispatch(socket, environment_service):
-    message = _receivef(socket)
-    _debug('receive message %s', str(message)[:64])
-    verb, arg = message
-    if verb == 'act':
-        environment_service.act(arg)
-    if verb == 'reset':
-        environment_service.reset(arg)
-
-
 def agent_dispatch(socket, agent_service):
     message = _receivef(socket)
     _debug('receive message %s', str(message)[:64])
@@ -83,15 +49,43 @@ def agent_dispatch(socket, agent_service):
     if verb == 'act':
         assert len(args) == 1
         agent_service.act(json.loads(args[0], object_hook=_ndarray_decoder))
+        return
     if verb == 'reward_and_reset':
         assert len(args) == 1
         agent_service.reward_and_reset(args[0])
+        return
     if verb == 'reward_and_act':
         assert len(args) == 2
         agent_service.reward_and_act(
             args[0],
             json.loads(args[1], object_hook=_ndarray_decoder)
         )
+        return
+    assert False
+
+
+def environment_send_act(socket, action):
+    _send(socket, 'act', action)
+
+
+def environment_send_reset(socket, episode_score):
+    _send(socket, 'reset', episode_score)
+
+
+def environment_receive_act(socket):
+    return _environment_receive(socket, 'act')
+
+
+def environment_receive_reset(socket):
+    return _environment_receive(socket, 'reset')
+
+
+def _environment_receive(socket, verb):
+    message = _receivef(socket)
+    _debug('receive message %s', str(message)[:64])
+    verb_, arg = message
+    assert verb_ == verb
+    return arg
 
 
 def _socket_failure(socket_error):
