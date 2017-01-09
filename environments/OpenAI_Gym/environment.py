@@ -31,18 +31,18 @@ def run(rlx_server, env, seed):
             try:
                 s.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
                 _connectf(s, _parse_address(server_address))
-                c = rlx_client.SocketClient(s)
-                action = c.init(game.state())
+                client = rlx_client.Client(s)
+                action = client.init(game.state())
                 while True:
                     reward, reset = game.act(action)
                     if reset:
-                        episode_score = c.reset(reward)
+                        episode_score = client.reset(reward)
                         n_game += 1
                         print('Score at game', n_game, '=', episode_score)
                         game.reset()
-                        action = c.send(None, game.state())
+                        action = client.send(None, game.state())
                     else:
-                        action = c.send(reward, game.state())
+                        action = client.send(reward, game.state())
             finally:
                 s.close()
         except rlx_client.Failure as e:
