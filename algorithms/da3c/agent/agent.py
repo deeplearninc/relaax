@@ -6,11 +6,12 @@ import tensorflow as tf
 import time
 
 import relaax.common.metrics
+import relaax.common.protocol.socket_protocol
 
 from . import network
 
 
-class Agent(object):
+class Agent(relaax.common.protocol.socket_protocol.AgentService):
     def __init__(self, config, parameter_server):
         self._config = config
         self._parameter_server = parameter_server
@@ -26,7 +27,6 @@ class Agent(object):
         self.global_t = 0           # counter for global steps between all agents
         self.local_t = 0            # steps count for current agent's thread
         self.episode_reward = 0     # score accumulator for current game
-        self.act_latency = 0        # latency summarizer
 
         self.states = []            # auxiliary states accumulator through episode_len = 0..5
         self.actions = []           # auxiliary actions accumulator through episode_len = 0..5
@@ -44,9 +44,6 @@ class Agent(object):
         self._session = tf.Session()
 
         self._session.run(initialize_all_variables)
-
-        self._log_reward = lambda: self._metrics.scalar('episode score', self.episode_reward, x=self.global_t)
-        self._log_latency = lambda: self._metrics.scalar('act latency', self.act_latency, x=self.global_t)
 
     def act(self, state):
         start = time.time()
@@ -83,8 +80,7 @@ class Agent(object):
             print("pi=", pi_)
             print(" V=", value_)
 
-        self.act_latency = time.time() - start
-        self._log_latency()
+        self.scalar_metric('act latency', time.time() - start, x=self.global_t)
 
         return action
 
@@ -102,7 +98,7 @@ class Agent(object):
 
         score = self.episode_reward
 
-        self._log_reward()
+        self.scalar_metric('episode score', self.episode_reward, x=self.global_t)
 
         self.episode_reward = 0
 
@@ -112,6 +108,9 @@ class Agent(object):
         self.episode_t = self._config.episode_len
 
         return score
+
+    def scalar_metric(self, name, y, x=None):
+        self._metrics.scalar(name, y, x)
 
     def _reward(self, reward):
         self.episode_reward += reward

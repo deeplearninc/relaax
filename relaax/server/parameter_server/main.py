@@ -57,7 +57,7 @@ def main():
         yaml=yaml['algorithm'],
         bind=args.bind,
         saver=_saver(args),
-        metrics=_TensorFlowMetrics(args.metrics_dir)
+        metrics=_Metrics(args.metrics_dir)
     )
 
 
@@ -86,7 +86,7 @@ def _saver(args):
         )
 
 
-class _TensorFlowMetrics(relaax.common.metrics.Metrics):
+class _Metrics(relaax.common.metrics.Metrics):
     def __init__(self, metrics_dir):
         self._summaries = {}
         self._graph = tf.Graph()

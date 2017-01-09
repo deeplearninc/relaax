@@ -48,6 +48,9 @@ class _Client(object):
         self._agent_service.reward_and_reset(reward)
         return socket_protocol.environment_receive_reset(self._socket)
 
+    def store_scalar_metric(self, name, y, x=None):
+        self._agent_service.scalar_metric(name, y, x)
+
     def disconnect(self):
         raise NotImplementedError
 

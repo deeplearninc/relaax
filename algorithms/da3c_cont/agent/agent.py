@@ -4,15 +4,18 @@ import numpy as np
 import tensorflow as tf
 import time
 
+import relaax.common.metrics
+import relaax.common.protocol.socket_protocol
+
 from . import network
 from .stats import ZFilter
 
 
-class Agent(object):
-    def __init__(self, config, parameter_server, log_dir):
+class Agent(relaax.common.protocol.socket_protocol.AgentService):
+    def __init__(self, config, parameter_server):
         self._config = config
         self._parameter_server = parameter_server
-        self._log_dir = log_dir
+        self._metrics = _Metrics(parameter_server)
 
         kernel = "/cpu:0"
         if config.use_GPU:
@@ -24,7 +27,6 @@ class Agent(object):
         self.global_t = 0           # counter for global steps between all agents
         self.local_t = 0            # steps count for current agent's process
         self.episode_reward = 0     # score accumulator for current episode
-        self.act_latency = 0        # latency summarizer
 
         self.states = []            # auxiliary states accumulator through episode_len = 0..5
         self.actions = []           # auxiliary actions accumulator through episode_len = 0..5
@@ -39,12 +41,6 @@ class Agent(object):
         self.obs_size = int(np.prod(np.array(config.state_size)))
         self.obfilter = ZFilter(tuple([self.obs_size]), clip=5)
 
-        episode_score = tf.placeholder(tf.int32)
-        summary = tf.scalar_summary('episode score', episode_score)
-
-        act_latency = tf.placeholder(tf.float32)
-        act_summary = tf.scalar_summary('act_latency', act_latency)
-
         initialize_all_variables = tf.initialize_all_variables()
 
         self._session = tf.Session()
@@ -52,15 +48,6 @@ class Agent(object):
         summary_writer = tf.train.SummaryWriter(self._log_dir, self._session.graph)
 
         self._session.run(initialize_all_variables)
-
-        self._log_reward = lambda: summary_writer.add_summary(
-            self._session.run(summary, feed_dict={episode_score: self.episode_reward}),
-            self.global_t
-        )
-        self._log_latency = lambda: summary_writer.add_summary(
-            self._session.run(act_summary, feed_dict={act_latency: self.act_latency}),
-            self.global_t
-        )
 
     def act(self, state):
         start = time.time()
@@ -98,8 +85,7 @@ class Agent(object):
             print("sigma=", sig_)
             print(" V=", value_)
 
-        self.act_latency = time.time() - start
-        self._log_latency()
+        self.scalar_metric('act latency', time.time() - start, x=self.global_t)
 
         return action
 
@@ -117,7 +103,7 @@ class Agent(object):
 
         score = self.episode_reward
 
-        self._log_reward()
+        self.scalar_metric('episode score', self.episode_reward, x=self.global_t)
 
         self.episode_reward = 0
 
@@ -127,6 +113,9 @@ class Agent(object):
         self.episode_t = self._config.episode_len
 
         return score
+
+    def scalar_metric(self, name, y, x=None):
+        self._metrics.scalar(name, y, x)
 
     def _reward(self, reward):
         self.episode_reward += reward
@@ -206,3 +195,11 @@ class Agent(object):
 
         if (self.local_t % 100) == 0:
             print("TIMESTEP", self.local_t)
+
+
+class _Metrics(relaax.common.metrics.Metrics):
+    def __init__(self, parameter_server):
+        self._parameter_server = parameter_server
+
+    def scalar(self, name, y, x=None):
+        self._parameter_server.store_scalar_metric(name, y, x)

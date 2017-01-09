@@ -25,9 +25,13 @@ def run(rlx_server, rom, seed):
                         n_game += 1
                         print('Score at game', n_game, '=', episode_score)
                         game.reset()
+                        start = time.time()
                         action = client.send(None, game.state())
+                        client.store_scalar_metric('act latency on client', time.time() - start)
                     else:
+                        start = time.time()
                         action = client.send(reward, game.state())
+                        client.store_scalar_metric('act latency on client', time.time() - start)
         except rlx_client.Failure as e:
             _warning('{} : {}'.format(rlx_server, e.message))
             delay = random.randint(1, 10)

@@ -44,6 +44,8 @@ class ParameterServer(object):
         return self._session.run(self._network.values)
 
     def store_scalar_metric(self, name, y, x=None):
+        if x is None:
+            x = self.global_t()
         self._metrics.scalar(name, y, x=x)
 
     def service(self):
