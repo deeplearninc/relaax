@@ -1,24 +1,24 @@
 # REinforcement Learning Algorithms, Autoscaling and eXchange (RELAAX)
 
-RELAAX framework designed to:
+RELAAX is a framework designed to:
 
-1. Simplify research and development of Reinforcement Learning applications and algorithms by taking care of underlaying infrastructure
+1. Simplify research and development of Reinforcement Learning applications and algorithms by taking care of underlying infrastructure
 
-2. Provide implementation of the state of art Reinforcement Learning Algorithms in easy to use and scalable way
+2. Provide a usable and scalable implementation of state of art Reinforcement Learning Algorithms
 
-3. Simplify deploying of Agents and Environment for training and exploitation of the trained Agents at scale on the most of the popular Cloud Platforms
+3. Simplify deploying of Agents and Environments for training and exploitation of the trained Agents at scale on popular cloud platforms
 
-Major RELAAX components:
+RELAAX components:
 
 * [Reinforcement Learning eXchange (RLX) protocol](#reinforcement-learning-exchange-protocol) connects RL Agents with RL Environment
 
-* [RELAAX Client](#relaax-clients) wraps details of the [RLX Protocol](#reinforcement-learning-exchange-protocol) implementation and exposes simple API to be used to exchange States, Rewards, and Actions between scalable RL Server and Environment. 
+* [RELAAX Client](#relaax-clients) wraps details of the [RLX Protocol](#reinforcement-learning-exchange-protocol) implementation and exposes simple API to be used to exchange States, Rewards, and Actions between the scalable RL Server and Environment. 
 
 * [RELAAX Server](#relaax-server) allows developers to run RL Agents locally or at scale on popular cloud platforms. See more details below.
 
-* RELAAX provides implementations of the popular [RL algorithms](#algorithms) to simplify RL application(s) development and research. 
+* RELAAX provides implementations of popular [RL algorithms](#algorithms) to simplify RL application development and research. 
 
-* RELAAX comes with an online service which allow you to build your RL cluster on AWS, GCP, and Azure in just a few clicks
+* RELAAX is integrated into a hosted service where you can deploy your RL cluster on AWS, GCP, and Azure in just a few steps.
 
 ## Contents
 - [Quick start](#quick-start)
@@ -57,23 +57,23 @@ Major RELAAX components:
 - [Deployment in Cloud](#deployment-in-cloud)
 
 
-## [Quick start](#contents)
+## [Quick start](#quick-start)
 
-It's recommended to use isolated Python environment to run RELAAX. Virtualenv or Anaconda are examples. If you are not going to use isolated environment use `sudo` on `pip install` commands.
+We recommended you use an isolated Python environment to run RELAAX. Virtualenv or Anaconda are examples. If you're using the system's python environment, you may need to run `pip install` commands with `sudo`. On OSX / macOS, we recommend using [Homebrew](http://brew.sh/) to install a current python version.
 
 * Clone RELAAX repo.
-```
+```bash
 git clone git@github.com:deeplearninc/relaax.git
 ```
 
 * Install RELAAX
-```
+```bash
 cd relaax
 pip install -e .
 ```
 
 * Build DA3C bridge.
-```
+```bash
 algorithms/da3c/common/bridge/bridge.sh
 ```
 
@@ -82,31 +82,31 @@ algorithms/da3c/common/bridge/bridge.sh
 * Install <a href="https://github.com/mgbellemare/Arcade-Learning-Environment" target="_blank">Arcade Learning Environment</a>
 
 * Download Atari ROM file boxing.bin to atari-games directory (TODO link)
-```
+```bash
 cd ..
 mkdir atari-games
 cd atari-games
 ```
 
 * Create training directory
-```
+```bash
 cd ..
 mkdir training
 cd training
 ```
 
 * Open new terminal window, navigate to training directory and run parameter server
-```
+```bash
 relaax-parameter-server --config ../relaax/config/da3c_ale_boxing.yaml
 ```
 
 * Open new terminal window, navigate to training directory and run RLX server
-```
+```bash
 relaax-rlx-server --config ../relaax/config/da3c_ale_boxing.yaml
 ```
 
 * Open new terminal window, navigate to training directory and run environment
-```
+```bash
 ../relaax/environments/ALE/main --rlx-server localhost:7001 --rom ../atari-games/boxing.bin
 ```
 
@@ -167,7 +167,7 @@ and separates the details of emulation from agent design.
     To launch the client it needs to run `main` file from this directory.
 For example, launch command to run a client from a directory located next to
 `relaax` repository at the same level should looks like as follows:
-    ```
+    ```bash
     python ../relaax/environments/ALE/main --rlx-server localhost:7001 --rom ../atari-games/boxing.bin
     ```
 
@@ -182,7 +182,7 @@ Please find sample of configuration to run ALE there:
 
 This sample is setup for `Atari Boxing` game, which has a discrete set of actions.
 Therefore you may use discrete version of our `Distributed A3C` or set another algorithm there:
-```
+```yml
 algorithm:
   path: ../relaax/algorithms/da3c
 ```
@@ -211,7 +211,7 @@ that you can use to work out your reinforcement learning algorithms.
     To launch the client it needs to run `main` file from this directory.
 For example, launch command to run a client from a directory located next to
 `relaax` repository at the same level should looks like as follows
-    ```
+    ```bash
     python ../relaax/environments/OpenAI_Gym/main --rlx-server localhost:7001 --env BipedalWalker-v2
     ```
 
@@ -225,7 +225,7 @@ Please find sample of configuration to run OpenAI Gym there:
 
 This sample is setup for `BipedalWalker-v2` environment, which operates with continuous action space.
 Therefore you may use continuous version of our `Distributed A3C` or set another algorithm there:
-```
+```yml
 algorithm:
   path: ../relaax/algorithms/da3c_cont
 ```
@@ -256,18 +256,18 @@ on other Linux systems, please follow some [more detailed build documentation](h
 3. Clone or download [DeepMind Lab](https://github.com/deepmind/lab).
 
 4. Build _DeepMind Lab_:
-    ```
-    $ cd lab
+    ```bash
+    cd lab
     # Build the Python interface to DeepMind Lab with OpenGL
-    lab$ bazel build :deepmind_lab.so --define headless=glx
+    bazel build :deepmind_lab.so --define headless=glx
     ```
     It can be build in headless hardware rendering mode `--define headless=glx`,
 headless software rendering mode `--define headless=osmesa` or non-headless mode `--define headless=false`.
 
 5. Check your build:
-    ```
+    ```bash
     # Build and run the tests for it
-    lab$ bazel run :python_module_test --define headless=glx
+    bazel run :python_module_test --define headless=glx
     ```
 6. Replace default agent by ours:
 
@@ -289,9 +289,9 @@ in this file:
     `main_filename = os.path.join(module_space, 'org_deepmind_lab/python/random_agent.py')`
 
 7. Run the agent:
-    ```
-    lab$ cd bazel-bin/random_agent.runfiles/org_deepmind_lab
-    ...$ python random_agent --rlx_server host:port
+    ```bash
+    cd bazel-bin/random_agent.runfiles/org_deepmind_lab
+    python random_agent --rlx_server host:port
     ```
     This command provides `--rlx_server` parameter with appropriate `host:port`
 on which `relaax-rlx-server` was running. It's minimal set of arguments.
@@ -361,17 +361,17 @@ relaax
 When you install RELAAX on your node you've got `relaax-rlx-server` command.
 
 If you're going to run training locally use following command line:
-```
+```bash
 relaax-rlx-server --config config.yaml --bind localhost:7001 --parameter-server localhost:7000 --log-level WARNING
 ```
 
 If you're going to run training on cluster use following command line. There are differences in parameter-server IP and timeout to enable load balancer:
-```
+```bash
 relaax-rlx-server --config config.yaml --bind 0.0.0.0:7001 --parameter-server parameter-server:7000 --log-level WARNING --timeout 120
 ```
 
 Available options are:
-```
+```bash
   -h, --help                    show help message and exit
   --rlx-server                  run RLX server
   --config FILE                 configuration YAML file, see below
@@ -386,7 +386,7 @@ Available options are:
 Both RLX Server (read workers) and Parameter server shares the same configuration file. The file describes algorithm to use and algorithm specific parameters.
 
 Configuration file example (relaax/config/da3c_ale_boxing.yaml):
-```
+```yml
 ---
 # relaax-parameter-server command line
 relaax-parameter-server:
@@ -481,17 +481,17 @@ relaax
 When you install RELAAX on your node you've got `relaax-parameter-server` command.
 
 If you're going to run training locally use following command line:
-```
+```bash
 relaax-parameter-server --config config.yaml --bind localhost:7000 --log-level WARNING --checkpoint-dir training/checkpoints --metrics-dir training/metrics
 ```
 
 If you're going to run training on cluster use following command line. There are differences in parameter-server IP and checkpoint and metrics locations:
-```
+```bash
 relaax-parameter-server --config config.yaml --bind 0.0.0.0:7000 --log-level WARNING --checkpoint-aws-s3 my_bucket training/checkpoints --aws-keys aws-keys.yaml --metrics-dir training/metrics --metrics-aws-s3 my_bucket training/metrics
 ```
 
 Available options are:
-```
+```bash
   -h, --help            show help message and exit
   --log-level LEVEL     set logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
   --config FILE         configuration YAML file
@@ -510,10 +510,10 @@ Do not use both --checkpoint-dir and --checkpoint-aws-s3 flags in the same comma
 Configuration file is the same as for RLX Server. Please use the same configuration for Parameter Server and for RLX Server. Otherwise training will fail.
 
 You need to supply credentials to allow Parameter Server to use AWS S3. aws-keys.yaml file provides them:
-```
+```yml
 ---
-access: YOUR_ACCESS_KEY_YOUR
-secret: your+secret+key+your+secret+key+your+sec
+access: YOUR_ACCESS_KEY_HERE
+secret: YOUR_SECRET_ACCESS_KEY_HERE
 ```
 
 ### [Algorithm](#contents)
@@ -523,7 +523,7 @@ Algorithm is an usual Python package. RELAAX server loads algorithms dynamically
 
 Algorithm package should exports following symbols:
 
-```
+```python
 class Config                       - algorithm configuration
   def __init__(..., config):       - initializes configuration from loaded config.yaml
 
@@ -643,7 +643,7 @@ service ParameterServer {
 ```
 
 Corresponding Parameter Server API looks like (relaax/algorithms/da3c/common/bridge/bridge.py):
-```
+```python
 class PsService(object):
     def increment_global_t(self):
         # increments learning step on Parameter Server
@@ -661,7 +661,7 @@ class PsService(object):
 
 Metrics is a way to gather information about training process in time. RELAAX uses TensorFlow to gather metrics and TensorBoard to present them.
 Metrics could be gathered from Parameter Server, workers (agents) and environments (clients). The API is the same in all three cases:
-```
+```python
 relaax.store_metrics('average_training_reward', average_training_reward)
 ```
 This call stores metrics with given name and value. All metrics are stored as mappings from training global step to given values.
@@ -691,11 +691,11 @@ It's recommended to use isolated Python environment to run RELAAX. Virtualenv or
 
 * To install training environment clone RELAAX Git repository:
 ```
-git clone TODO: add repo path
+git clone git@github.com:deeplearninc/relaax.git
 ```
 
 * Then navigate repository root and install relaax package and all depended packages:
-```
+```bash
 cd <relaax_repo>
 pip install .
 ```
@@ -714,13 +714,15 @@ git clone TODO: add repo path
 ```
 
 * Then navigate repository root and install relaax package and all depended packages:
-```
+```bash
 cd <relaax_repo>
 pip install -e .
 ```
 
 * Build algorithm bridges
-`<relaax_repo>/relaax/algorithms/bridge.sh`
+```bash
+<relaax_repo>/relaax/algorithms/bridge.sh
+```
 
 
 
