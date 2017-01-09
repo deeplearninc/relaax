@@ -32,7 +32,7 @@ We expose state-of-the-art reinforcement learning algorithms in easy to use RELA
     - [Algorithm](#algorithm)
         - [Algorithm structure](#algorithm-structure)
         - [Worker-to-Parameter Server Bridge](#worker-to-parameter-server-bridge)
-    - [Visualization](#visualization)
+    - [Metrics](#metrics)
     - [RELAAX Installation](#relaax-installation)
         - [Installation for training on cluster and for algorithm development](#installation-for-training-on-cluster-and-for-algorithm-development)
         - [Installation for RELAAX development](#installation-for-relaax-development)
@@ -665,7 +665,7 @@ class ParameterServerService(object):
         # store scalar metric value y(x)
 ```
 
-### [Visualization](#contents)
+### [Metrics](#contents)
 
 Metrics is a way to gather information about training process in time. RELAAX uses TensorFlow to gather metrics and TensorBoard to present them. Metrics could be gathered from Parameter Server, workers (agents) and environments (clients).
 
