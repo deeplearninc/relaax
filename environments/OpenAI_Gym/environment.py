@@ -8,7 +8,7 @@ import time
 import signal
 
 from . import game_process
-from relaax.client import client
+from relaax.client import rlx_client
 
 
 def run(rlx_server, env, seed):
@@ -31,7 +31,7 @@ def run(rlx_server, env, seed):
             try:
                 s.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
                 _connectf(s, _parse_address(server_address))
-                c = client.SocketClient(s)
+                c = rlx_client.SocketClient(s)
                 action = c.init(game.state())
                 while True:
                     reward, reset = game.act(action)
@@ -45,7 +45,7 @@ def run(rlx_server, env, seed):
                         action = c.send(reward, game.state())
             finally:
                 s.close()
-        except client.Failure as e:
+        except rlx_client.Failure as e:
             _warning('{} : {}'.format(server_address, e.message))
             delay = random.randint(1, 10)
             _info('waiting for %ds...', delay)
@@ -67,7 +67,7 @@ def _connectf(s, server_address):
     try:
         s.connect(server_address)
     except socket.error as e:
-        raise client.Failure("socket error({}): {}".format(e.errno, e.strerror))
+        raise rlx_client.Failure("socket error({}): {}".format(e.errno, e.strerror))
 
 
 def _info(message, *args):
