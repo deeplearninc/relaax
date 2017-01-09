@@ -3,16 +3,16 @@ from __future__ import print_function
 import logging
 import os
 import random
-import socket
 import time
 import signal
 
-from . import game_process
 from relaax.client import rlx_client
+
+from . import game_process
 
 
 def run(rlx_server, env, seed):
-    server_address = rlx_server
+    n_game = 0
     game = game_process.GameProcessFactory(env).new_env(_seed(seed))
 
     def toggle_rendering():
@@ -26,12 +26,8 @@ def run(rlx_server, env, seed):
     signal.siginterrupt(signal.SIGUSR1, False)
 
     while True:
-        s = socket.socket()
         try:
-            try:
-                s.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-                _connectf(s, _parse_address(server_address))
-                client = rlx_client.Client(s)
+            with rlx_client.Client(rlx_server) as client:
                 action = client.init(game.state())
                 while True:
                     reward, reset = game.act(action)
@@ -43,10 +39,8 @@ def run(rlx_server, env, seed):
                         action = client.send(None, game.state())
                     else:
                         action = client.send(reward, game.state())
-            finally:
-                s.close()
         except rlx_client.Failure as e:
-            _warning('{} : {}'.format(server_address, e.message))
+            _warning('{} : {}'.format(rlx_server, e.message))
             delay = random.randint(1, 10)
             _info('waiting for %ds...', delay)
             time.sleep(delay)
@@ -56,18 +50,6 @@ def _seed(value):
     if value is None:
         return random.randrange(1000000)
     return value
-
-
-def _parse_address(address):
-    host, port = address.split(':')
-    return host, int(port)
-
-
-def _connectf(s, server_address):
-    try:
-        s.connect(server_address)
-    except socket.error as e:
-        raise rlx_client.Failure("socket error({}): {}".format(e.errno, e.strerror))
 
 
 def _info(message, *args):
