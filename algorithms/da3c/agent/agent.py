@@ -5,6 +5,8 @@ import random
 import tensorflow as tf
 import time
 
+import relaax.common.metrics
+
 from . import network
 
 
@@ -12,7 +14,7 @@ class Agent(object):
     def __init__(self, config, parameter_server, log_dir):
         self._config = config
         self._parameter_server = parameter_server
-        self._log_dir = log_dir
+        self._metrics = relaax.common.metrics.TensorFlowMetrics(log_dir)
 
         kernel = "/cpu:0"
         if config.use_GPU:
@@ -37,28 +39,14 @@ class Agent(object):
 
         self.obsQueue = None        # observation accumulator for state = history_len * consecutive frames
 
-        episode_score = tf.placeholder(tf.int32)
-        summary = tf.scalar_summary('episode score', episode_score)
-
-        act_latency = tf.placeholder(tf.float32)
-        act_summary = tf.scalar_summary('act_latency', act_latency)
-
         initialize_all_variables = tf.initialize_all_variables()
 
         self._session = tf.Session()
 
-        summary_writer = tf.train.SummaryWriter(self._log_dir, self._session.graph)
-
         self._session.run(initialize_all_variables)
 
-        self._log_reward = lambda: summary_writer.add_summary(
-            self._session.run(summary, feed_dict={episode_score: self.episode_reward}),
-            self.global_t
-        )
-        self._log_latency = lambda: summary_writer.add_summary(
-            self._session.run(act_summary, feed_dict={act_latency: self.act_latency}),
-            self.global_t
-        )
+        self._log_reward = lambda: self._metrics.scalar('episode score', self.episode_reward, x=self.global_t)
+        self._log_latency = lambda: self._metrics.scalar('act latency', self.act_latency, x=self.global_t)
 
     def act(self, state):
         start = time.time()
