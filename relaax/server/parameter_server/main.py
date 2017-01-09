@@ -2,8 +2,9 @@ from __future__ import print_function
 
 import argparse
 import logging
-import ruamel.yaml
 import os
+import ruamel.yaml
+import tensorflow as tf
 
 import relaax.common.metrics
 import relaax.server.common.saver.fs_saver
@@ -56,7 +57,7 @@ def main():
         yaml=yaml['algorithm'],
         bind=args.bind,
         saver=_saver(args),
-        metrics=relaax.common.metrics.TensorFlowMetrics(args.metrics_dir)
+        metrics=_TensorFlowMetrics(args.metrics_dir)
     )
 
 
@@ -83,3 +84,25 @@ def _saver(args):
             aws_access_key=aws_access_key,
             aws_secret_key=aws_secret_key
         )
+
+
+class _TensorFlowMetrics(relaax.common.metrics.Metrics):
+    def __init__(self, metrics_dir):
+        self._summaries = {}
+        self._graph = tf.Graph()
+        self._writer = tf.train.SummaryWriter(metrics_dir, self._graph)
+        self._session = tf.Session(graph=self._graph)
+
+    def scalar(self, name, y, x=None):
+        with self._graph.as_default():
+            if name not in self._summaries:
+                placeholder = tf.placeholder(tf.float64)
+                self._summaries[name] = (
+                    placeholder,
+                    tf.scalar_summary(name, placeholder)
+                )
+            placeholder, summary = self._summaries[name]
+            self._writer.add_summary(
+                self._session.run(summary, feed_dict={placeholder: y}),
+                global_step=x
+            )
