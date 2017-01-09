@@ -51,7 +51,7 @@ class _AgentService(socket_protocol.AgentService):
             raise socket_protocol.Failure('no answer from agent')
         socket_protocol.environment_send_act(self._connection, action)
 
-    def scalar_metric(self, name, y, x=None):
-        self._agent.scalar_metric(name, y, x)
+    def store_scalar_metric(self, name, y, x=None):
+        self._agent.store_scalar_metric(name, y, x)
 
 

@@ -27,7 +27,7 @@ class AgentService(object):
     def reward_and_act(self, reward, state):
         raise NotImplementedError
 
-    def scalar_metric(self, name, y, x=None):
+    def store_scalar_metric(self, name, y, x=None):
         raise NotImplementedError
 
 
@@ -44,7 +44,7 @@ class AgentStub(AgentService):
     def reward_and_act(self, reward, state):
         _sendf(self._socket, 'reward_and_act', reward, json.dumps(state, cls=_NDArrayEncoder))
 
-    def scalar_metric(self, name, y, x=None):
+    def store_scalar_metric(self, name, y, x=None):
         args = ['scalar_metric', name, y]
         if x is not None:
             args.append(x)
@@ -71,7 +71,7 @@ def agent_dispatch(socket, agent_service):
         )
         return
     if verb == 'scalar_metric':
-        agent_service.scalar_metric(*args)
+        agent_service.store_scalar_metric(*args)
         return
     assert False
 

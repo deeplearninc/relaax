@@ -80,7 +80,7 @@ class Agent(relaax.common.protocol.socket_protocol.AgentService):
             print("pi=", pi_)
             print(" V=", value_)
 
-        self.scalar_metric('act latency', time.time() - start, x=self.global_t)
+        self.store_scalar_metric('act latency', time.time() - start, x=self.global_t)
 
         return action
 
@@ -98,7 +98,7 @@ class Agent(relaax.common.protocol.socket_protocol.AgentService):
 
         score = self.episode_reward
 
-        self.scalar_metric('episode score', self.episode_reward, x=self.global_t)
+        self.store_scalar_metric('episode score', self.episode_reward, x=self.global_t)
 
         self.episode_reward = 0
 
@@ -109,7 +109,7 @@ class Agent(relaax.common.protocol.socket_protocol.AgentService):
 
         return score
 
-    def scalar_metric(self, name, y, x=None):
+    def store_scalar_metric(self, name, y, x=None):
         self._metrics.scalar(name, y, x)
 
     def _reward(self, reward):

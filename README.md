@@ -126,16 +126,17 @@ TODO: links to actual files
 relaax
   client
     rlx_client.py
-      class Client               - agent interface for environment
-        def init(state)          - start training sending initial state to agent,
-                                   returns first action from agent
-        def send(reward, state)  - send reward for previous action and current environment state,
-                                   returns next action from agent
-        def reset(reward)        - send reward for previous action and resets agent
-                                   returns cumulative reward for last episode
-        def disconnect()         - disconnect environment from agent
+      class Client                          - agent interface for environment
+        def init(state)                     - start training sending initial state to agent,
+                                              returns first action from agent
+        def send(reward, state)             - send reward for previous action and current environment state,
+                                              returns next action from agent
+        def reset(reward)                   - send reward for previous action and resets agent
+                                              returns cumulative reward for last episode
+        def store_scalar_metric(name, y, x) - store scalar metric value y(x)
+        def disconnect()                    - disconnect environment from agent
 
-      class Failure              - raised in case of failure on agent's side
+      class Failure                         - raised in case of failure on agent's side
 ```
 
 
@@ -368,7 +369,6 @@ relaax-rlx-server --config config.yaml --bind 0.0.0.0:7001 --parameter-server pa
 Available options are:
 ```
   -h, --help                    show help message and exit
-  --rlx-server                  run RLX server
   --config FILE                 configuration YAML file, see below
   --log-level LEVEL             set logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
   --bind HOST:PORT              address to serve (host:port)
@@ -388,13 +388,13 @@ relaax-parameter-server:
   --bind: localhost:7000
   --checkpoint-dir: checkpoints/boxing_a3c
   --log-level: WARNING
+  --metrics-dir: metrics_ale_demo
 
 # relaax-rlx-server command line
 relaax-rlx-server:
   --bind: localhost:7001
   --parameter-server: localhost:7000
   --log-level: WARNING
-  --log-dir: logs
 
 # Number and meaning of these keys depends on specific algorithm.
 # path to algorithm directory. In this case we use one from RELAAX repo. Feel free to create your own algorithm and use it for training.
@@ -532,6 +532,7 @@ class ParameterServer              - implement parameter server for algorithm
   def increment_global_t():        - increment current global learning step
   def apply_gradients():           - apply gradients to Global Function NN
   def get_values():                - get Global Function NN
+  def store_scalar_metric():       - store scalar metrics value
 
 TODO: simplify API
 class Agent                        - learning agent of algorithm
@@ -539,11 +540,13 @@ class Agent                        - learning agent of algorithm
   def act():                       - take state and get action
   def reward_and_act():            - take reward and state and get action
   def reward_and_reset():          - take reward and reset training
+  def store_scalar_metric():       - store scalar metrics value
 
 class ParameterServerService       - Parameter server interface to Agent
   def increment_global_t():        - increment current global learning step
   def apply_gradients():           - apply gradients to Global Function NN
   def get_values():                - get Global Function NN
+  def store_scalar_metric():       - store scalar metrics value
 
 class ParameterServerStub          - Parameter server interface stup for Agent
                                      incapsulates GRPC service to communicate with parameter server.
@@ -551,6 +554,7 @@ class ParameterServerStub          - Parameter server interface stup for Agent
   def increment_global_t():        - increment current global learning step
   def apply_gradients():           - apply gradients to Global Function NN
   def get_values():                - get Global Function NN
+  def store_scalar_metric():       - store scalar metrics value
 
 def start_parameter_server():      - start parameter server with bind address and ParameterServerService object
 ```
@@ -579,6 +583,7 @@ relaax
               rpc IncrementGlobalT()         - increment and get current global learning step
               rpc ApplyGradients()           - apply gradients to Global Function NN
               rpc GetValues()                - get Global Function NN
+              rpc StoreScalarMetric()        - store scalar metric value
 
           bridge.py                          - data bridge between rlx_server and parameter server
                                                wrap GRPC service defined in bridge.proto
@@ -586,12 +591,14 @@ relaax
               def increment_global_t():      - increment current global learning step
               def apply_gradients():         - apply gradients to Global Function NN
               def get_values():              - get Global Function NN
+              def store_scalar_metric():     - store scalar metrics value
 
             class ParameterServerStub        - Parameter server interface stup for Agent
                                                incapsulates GRPC service to communicate with parameter server.
               def increment_global_t():      - increment current global learning step
               def apply_gradients():         - apply gradients to Global Function NN
               def get_values():              - get Global Function NN
+              def store_scalar_metric():     - store scalar metrics value
 
             def start_parameter_server():    - start parameter server with bind address and ParameterServerService object
 
@@ -601,6 +608,7 @@ relaax
             def act():                       - take state and get action
             def reward_and_act():            - take reward and state and get action
             def reward_and_reset():          - take reward and reset training
+            def store_scalar_metric():       - store scalar metrics value
 
         network.py                           - agent's facet of algorithm NN
           def make():                        - make agent's part of algorithm NN
@@ -619,6 +627,7 @@ relaax
             def increment_global_t():        - increment current global learning step
             def apply_gradients():           - apply gradients to Global Function NN
             def get_values():                - get Global Function NN
+            def store_scalar_metric():       - store scalar metrics value
 
 ```
 
@@ -634,12 +643,13 @@ service ParameterServer {
     rpc IncrementGlobalT(NullMessage) returns (Step) {}
     rpc ApplyGradients(NdArrays) returns (NullMessage) {}
     rpc GetValues(NullMessage) returns (NdArrays) {}
+    rpc StoreScalarMetric(ScalarMetric) returns (NullMessage) {}
 }
 ```
 
 Corresponding Parameter Server API looks like (relaax/algorithms/da3c/common/bridge/__init__.py):
 ```
-class PsService(object):
+class ParameterServerService(object):
     def increment_global_t(self):
         # increments learning step on Parameter Server
         return global_t
@@ -650,15 +660,30 @@ class PsService(object):
     def get_values(self):
         # pulls Global Function NN from Parameter Server to Agent
         return values
+
+    def store_scalar_metric(self, name, y, x=None):
+        # store scalar metric value y(x)
 ```
 
 ### [Visualization](#contents)
 
-Metrics is a way to gather information about training process in time. RELAAX uses TensorFlow to gather metrics and TensorBoard to present them.
-Metrics could be gathered from Parameter Server, workers (agents) and environments (clients). The API is the same in all three cases:
+Metrics is a way to gather information about training process in time. RELAAX uses TensorFlow to gather metrics and TensorBoard to present them. Metrics could be gathered from Parameter Server, workers (agents) and environments (clients).
+
+Parameter server:
 ```
-relaax.store_metrics('average_training_reward', average_training_reward)
+parameter_server.store_scalar_metric('training_velocity', velocity, x=parameter_server.global_t())
 ```
+
+Agent:
+```
+agent.store_scalar_metric('act latency', latency, x=agent.global_t)
+```
+
+Environment:
+```
+client.store_scalar_metric('act latency on client', latency)
+```
+
 This call stores metrics with given name and value. All metrices are stored as mappings from training global step to given values.
 All metrices could be browsed in realtime during training by TensorBoard attached to training cluster or to local training.
 
