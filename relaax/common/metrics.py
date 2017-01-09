@@ -9,10 +9,10 @@ class Metrics(object):
 
 
 class TensorFlowMetrics(Metrics):
-    def __init__(self, log_dir):
+    def __init__(self, metrics_dir):
         self._summaries = {}
         self._graph = tf.Graph()
-        self._writer = tf.train.SummaryWriter(log_dir, self._graph)
+        self._writer = tf.train.SummaryWriter(metrics_dir, self._graph)
         self._session = tf.Session(graph=self._graph)
 
     def scalar(self, name, y, x=None):

@@ -11,10 +11,10 @@ from . import network
 
 
 class Agent(object):
-    def __init__(self, config, parameter_server, log_dir):
+    def __init__(self, config, parameter_server):
         self._config = config
         self._parameter_server = parameter_server
-        self._metrics = relaax.common.metrics.TensorFlowMetrics(log_dir)
+        self._metrics = _Metrics(parameter_server)
 
         kernel = "/cpu:0"
         if config.use_GPU:
@@ -221,3 +221,11 @@ class Agent(object):
 
         if (self.local_t % 100) == 0:
             print("TIMESTEP", self.local_t)
+
+
+class _Metrics(relaax.common.metrics.Metrics):
+    def __init__(self, parameter_server):
+        self._parameter_server = parameter_server
+
+    def scalar(self, name, y, x=None):
+        self._parameter_server.store_scalar_metric(name, y, x)

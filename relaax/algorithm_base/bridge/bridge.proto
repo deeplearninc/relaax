@@ -16,8 +16,18 @@ message NdArrays {
     repeated NdArray arrays = 1;
 }
 
+message ScalarMetric {
+    string name = 1;
+    double y = 2;
+    message Arg {
+        double value = 1;
+    }
+    Arg x = 3;
+}
+
 service ParameterServer {
     rpc IncrementGlobalT(NullMessage) returns (Step) {}
     rpc ApplyGradients(NdArrays) returns (NullMessage) {}
     rpc GetValues(NullMessage) returns (NdArrays) {}
+    rpc StoreScalarMetric(ScalarMetric) returns (NullMessage) {}
 }

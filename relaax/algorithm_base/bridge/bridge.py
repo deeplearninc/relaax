@@ -17,6 +17,9 @@ class ParameterServerService(object):
     def get_values(self):
         raise NotImplementedError
 
+    def store_scalar_metric(self, name, y, x=None):
+        raise NotImplementedError
+
 
 def start_parameter_server(address, service):
     server = grpc.server(concurrent.futures.ThreadPoolExecutor(max_workers=1))
@@ -39,6 +42,20 @@ class ParameterServerStub(ParameterServerService):
     def get_values(self):
         return _parse_ndarrays_message(self._stub.GetValues(bridge_pb2.NullMessage()))
 
+    def store_scalar_metric(self, name, y, x=None):
+        if x is None:
+            sm = bridge_pb2.ScalarMetric(
+                name=name,
+                y=y
+            )
+        else:
+            sm = bridge_pb2.ScalarMetric(
+                name=name,
+                y=y,
+                x=bridge_pb2.ScalarMetric.Arg(value=x)
+            )
+        self._stub.StoreScalarMetric(sm)
+
 
 class _Servicer(bridge_pb2.ParameterServerServicer):
     def __init__(self, service):
@@ -53,6 +70,13 @@ class _Servicer(bridge_pb2.ParameterServerServicer):
 
     def GetValues(self, request, context):
         return _build_ndarrays_message(self._service.get_values())
+
+    def StoreScalarMetric(self, request, context):
+        x = None
+        if request.HasField('x'):
+            x = request.x.value
+        self._service.store_scalar_metric(name=request.name, y=request.y, x=x)
+        return bridge_pb2.NullMessage()
 
 
 def _build_ndarrays_message(arrays):

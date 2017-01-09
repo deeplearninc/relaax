@@ -10,26 +10,24 @@ from .worker import Worker
 from ..common import algorithm_loader
 
 
-def run(bind_address, yaml, parameter_server, log_dir, timeout):
+def run(bind_address, yaml, parameter_server, timeout):
     algorithm = algorithm_loader.load(yaml['path'])
     _run_agents(
         bind_address=bind_address,
         agent_factory=_get_factory(
             algorithm=algorithm,
             yaml=yaml,
-            parameter_server=parameter_server,
-            log_dir=log_dir
+            parameter_server=parameter_server
         ),
         timeout=timeout
     )
 
 
-def _get_factory(algorithm, yaml, parameter_server, log_dir):
+def _get_factory(algorithm, yaml, parameter_server):
     config = algorithm.Config(yaml)
     return lambda n_agent: algorithm.Agent(
         config=config,
-        parameter_server=algorithm.ParameterServerStub(parameter_server),
-        log_dir='%s/worker_%d' % (log_dir, n_agent)
+        parameter_server=algorithm.ParameterServerStub(parameter_server)
     )
 
 
