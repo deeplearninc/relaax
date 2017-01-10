@@ -133,7 +133,7 @@ relaax
                                               returns next action from agent
         def reset(reward)                   - send reward for previous action and resets agent
                                               returns cumulative reward for last episode
-        def store_scalar_metric(name, y, x) - store scalar metric value y(x)
+        def metrics()                       - get metrics object
         def disconnect()                    - disconnect environment from agent
 
       class Failure                         - raised in case of failure on agent's side
@@ -532,7 +532,7 @@ class ParameterServer              - implement parameter server for algorithm
   def increment_global_t():        - increment current global learning step
   def apply_gradients():           - apply gradients to Global Function NN
   def get_values():                - get Global Function NN
-  def store_scalar_metric():       - store scalar metrics value
+  def metrics():                   - get metrics object
 
 TODO: simplify API
 class Agent                        - learning agent of algorithm
@@ -540,13 +540,13 @@ class Agent                        - learning agent of algorithm
   def act():                       - take state and get action
   def reward_and_act():            - take reward and state and get action
   def reward_and_reset():          - take reward and reset training
-  def store_scalar_metric():       - store scalar metrics value
+  def metrics():                   - get metrics object
 
 class ParameterServerService       - Parameter server interface to Agent
   def increment_global_t():        - increment current global learning step
   def apply_gradients():           - apply gradients to Global Function NN
   def get_values():                - get Global Function NN
-  def store_scalar_metric():       - store scalar metrics value
+  def metrics():                   - get metrics object
 
 class ParameterServerStub          - Parameter server interface stup for Agent
                                      incapsulates GRPC service to communicate with parameter server.
@@ -554,7 +554,7 @@ class ParameterServerStub          - Parameter server interface stup for Agent
   def increment_global_t():        - increment current global learning step
   def apply_gradients():           - apply gradients to Global Function NN
   def get_values():                - get Global Function NN
-  def store_scalar_metric():       - store scalar metrics value
+  def metrics():                   - get metrics object
 
 def start_parameter_server():      - start parameter server with bind address and ParameterServerService object
 ```
@@ -583,7 +583,7 @@ relaax
               rpc IncrementGlobalT()         - increment and get current global learning step
               rpc ApplyGradients()           - apply gradients to Global Function NN
               rpc GetValues()                - get Global Function NN
-              rpc StoreScalarMetric()        - store scalar metric value
+              rpc StoreScalarMetric()        - store scalar metrics value
 
           bridge.py                          - data bridge between rlx_server and parameter server
                                                wrap GRPC service defined in bridge.proto
@@ -591,14 +591,14 @@ relaax
               def increment_global_t():      - increment current global learning step
               def apply_gradients():         - apply gradients to Global Function NN
               def get_values():              - get Global Function NN
-              def store_scalar_metric():     - store scalar metrics value
+              def metrics():                 - get metrics object
 
             class ParameterServerStub        - Parameter server interface stup for Agent
                                                incapsulates GRPC service to communicate with parameter server.
               def increment_global_t():      - increment current global learning step
               def apply_gradients():         - apply gradients to Global Function NN
               def get_values():              - get Global Function NN
-              def store_scalar_metric():     - store scalar metrics value
+              def metrics():                 - get metrics object
 
             def start_parameter_server():    - start parameter server with bind address and ParameterServerService object
 
@@ -608,7 +608,7 @@ relaax
             def act():                       - take state and get action
             def reward_and_act():            - take reward and state and get action
             def reward_and_reset():          - take reward and reset training
-            def store_scalar_metric():       - store scalar metrics value
+            def metrics():                   - get metrics object
 
         network.py                           - agent's facet of algorithm NN
           def make():                        - make agent's part of algorithm NN
@@ -627,7 +627,7 @@ relaax
             def increment_global_t():        - increment current global learning step
             def apply_gradients():           - apply gradients to Global Function NN
             def get_values():                - get Global Function NN
-            def store_scalar_metric():       - store scalar metrics value
+            def metrics():                   - get metrics object
 
 ```
 
@@ -661,8 +661,9 @@ class ParameterServerService(object):
         # pulls Global Function NN from Parameter Server to Agent
         return values
 
-    def store_scalar_metric(self, name, y, x=None):
-        # store scalar metric value y(x)
+    def metrics():
+        # get metrics object
+        return metrics_object
 ```
 
 ### [Metrics](#contents)
@@ -671,17 +672,17 @@ Metrics is a way to gather information about training process in time. RELAAX us
 
 Parameter server:
 ```
-parameter_server.store_scalar_metric('training_velocity', velocity, x=parameter_server.global_t())
+self.metrics().scalar('training_velocity', velocity, x=parameter_server.global_t())
 ```
 
 Agent:
 ```
-agent.store_scalar_metric('act latency', latency, x=agent.global_t)
+self.metrics().scalar('act latency', latency, x=agent.global_t)
 ```
 
 Environment:
 ```
-client.store_scalar_metric('act latency on client', latency)
+client.metrics().scalar('act latency on client', latency)
 ```
 
 This call stores metrics with given name and value. All metrices are stored as mappings from training global step to given values.
