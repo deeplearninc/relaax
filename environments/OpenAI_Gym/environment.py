@@ -11,7 +11,7 @@ from relaax.client import rlx_client
 from . import game_process
 
 
-def run(rlx_server, env, seed):
+def run(rlx_server_url, env, seed):
     n_game = 0
     game = game_process.GameProcessFactory(env).new_env(_seed(seed))
 
@@ -27,7 +27,8 @@ def run(rlx_server, env, seed):
 
     while True:
         try:
-            with rlx_client.Client(rlx_server) as client:
+            client = rlx_client.Client(rlx_server_url)
+            try:
                 action = client.init(game.state())
                 while True:
                     reward, reset = game.act(action)
@@ -36,14 +37,22 @@ def run(rlx_server, env, seed):
                         n_game += 1
                         print('Score at game', n_game, '=', episode_score)
                         game.reset()
-                        action = client.send(None, game.state())
+                        _send(client, None, game.state())
                     else:
-                        action = client.send(reward, game.state())
+                        _send(client, reward, game.state())
+            finally:
+                client.disconnect()
         except rlx_client.Failure as e:
-            _warning('{} : {}'.format(rlx_server, e.message))
+            _warning('{} : {}'.format(rlx_server_url, e.message))
             delay = random.randint(1, 10)
             _info('waiting for %ds...', delay)
             time.sleep(delay)
+
+
+def _send(client, reward, state):
+    start = time.time()
+    action = client.send(reward, state)
+    client.store_scalar_metric('act latency on client', time.time() - start)
 
 
 def _seed(value):

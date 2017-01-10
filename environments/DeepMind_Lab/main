@@ -45,7 +45,7 @@ def main():
         deepmind_lab.set_runfiles_path(args.runfiles_path)
 
     run(
-        rlx_server=args.rlx_server,
+        rlx_server_url=args.rlx_server,
         level=args.level_script,
         fps=args.fps
     )

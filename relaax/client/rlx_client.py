@@ -9,29 +9,26 @@ Failure = socket_protocol.Failure
 
 
 class Client(object):
-    def __init__(self, rlx_server):
-        self._host, self._port = _parse_address(rlx_server)
+    def __init__(self, rlx_server_url):
         self._socket = None
+        self._agent_service = None
 
-    def __enter__(self):
-        self._socket = socket.socket()
         try:
+            self._socket = socket.socket()
             self._socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-            self._socket.connect((self._host, self._port))
+            self._socket.connect(_parse_address(rlx_server_url))
         except socket.error as e:
-            self._socket.close()
+            if self._socket is not None:
+                self._socket.close()
             raise Failure("socket error({}): {}".format(e.errno, e.strerror))
-        return _Client(self._socket)
+        assert self._socket is not None
 
-    def __exit__(self, exc_type, exc_value, traceback):
-        if self._socket is not None:
+        try:
+            self._agent_service = socket_protocol.AgentStub(self._socket)
+        except:
             self._socket.close()
-
-
-class _Client(object):
-    def __init__(self, socket):
-        self._socket = socket
-        self._agent_service = socket_protocol.AgentStub(socket)
+            raise
+        assert self._agent_service is not None
 
     def init(self, state):
         self._agent_service.act(state)
@@ -52,7 +49,7 @@ class _Client(object):
         self._agent_service.store_scalar_metric(name, y, x)
 
     def disconnect(self):
-        raise NotImplementedError
+        self._socket.close()
 
 
 def _parse_address(address):
