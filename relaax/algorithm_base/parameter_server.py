@@ -1,8 +1,9 @@
 import tensorflow as tf
 
+from .parameter_server_base import ParameterServerBase
 from .bridge import bridge
 
-class ParameterServer(object):
+class ParameterServer(ParameterServerBase):
     def __init__(self, config, network, saver, metrics):
         self._config = config
         self._network = network

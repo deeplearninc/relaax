@@ -1,4 +1,7 @@
-class Config(object):
+import relaax.algorithm_base.config_base
+
+
+class Config(relaax.algorithm_base.config_base.ConfigBase):
     def __init__(self, config):
 
         # action size for the given environment (4 fits to bipedal_walker)
