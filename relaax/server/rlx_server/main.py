@@ -52,6 +52,6 @@ def main():
     relaax.server.rlx_server.server.run(
         bind_address=args.bind,
         yaml=yaml['algorithm'],
-        parameter_server=args.parameter_server,
+        parameter_server_url=args.parameter_server,
         timeout=args.timeout
     )

@@ -4,32 +4,25 @@ import concurrent
 import grpc
 import numpy
 
+import relaax.algorithm_base.parameter_server_base
+import relaax.algorithm_base.bridge_base
+
 from . import bridge_pb2
 
 
-class ParameterServerService(object):
-    def increment_global_t(self):
-        raise NotImplementedError
+class Bridge(relaax.algorithm_base.bridge_base.BridgeBase):
+    def parameter_server_stub(self, parameter_server_url):
+        return _ParameterServerStub(parameter_server_url)
 
-    def apply_gradients(self, gradients):
-        raise NotImplementedError
-
-    def get_values(self):
-        raise NotImplementedError
-
-    def store_scalar_metric(self, name, y, x=None):
-        raise NotImplementedError
+    def start_parameter_server(self, address, service):
+        server = grpc.server(concurrent.futures.ThreadPoolExecutor(max_workers=1))
+        bridge_pb2.add_ParameterServerServicer_to_server(_Servicer(service), server)
+        server.add_insecure_port(address)
+        server.start()
+        return server
 
 
-def start_parameter_server(address, service):
-    server = grpc.server(concurrent.futures.ThreadPoolExecutor(max_workers=1))
-    bridge_pb2.add_ParameterServerServicer_to_server(_Servicer(service), server)
-    server.add_insecure_port(address)
-    server.start()
-    return server
-
-
-class ParameterServerStub(ParameterServerService):
+class _ParameterServerStub(relaax.algorithm_base.parameter_server_base.ParameterServerBase):
     def __init__(self, parameter_server):
         self._stub = bridge_pb2.ParameterServerStub(grpc.insecure_channel(parameter_server))
 

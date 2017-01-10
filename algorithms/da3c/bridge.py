@@ -1,1 +1,1 @@
-from relaax.algorithm_base.bridge.bridge import ParameterServerService, ParameterServerStub, start_parameter_server
+from relaax.algorithm_base.da3c.bridge.bridge import Bridge

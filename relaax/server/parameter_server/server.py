@@ -30,7 +30,7 @@ def run(yaml, bind, saver, metrics):
     signal.signal(signal.SIGINT, stop_server)
 
     # keep the server or else GC will stop it
-    server = algorithm.start_parameter_server(bind, parameter_server.service())
+    server = algorithm.Bridge().start_parameter_server(bind, parameter_server)
 
     last_global_t = parameter_server.global_t()
     last_activity_time = None

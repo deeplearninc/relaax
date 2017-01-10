@@ -1,6 +1,6 @@
 import tensorflow as tf
 
-from .parameter_server_base import ParameterServerBase
+from ..parameter_server_base import ParameterServerBase
 from .bridge import bridge
 
 class ParameterServer(ParameterServerBase):
@@ -49,20 +49,9 @@ class ParameterServer(ParameterServerBase):
             x = self.global_t()
         self._metrics.scalar(name, y, x=x)
 
-    def service(self):
-        return _Service(self)
-
     def _anneal_learning_rate(self, global_time_step):
         factor = (self._config.max_global_step - global_time_step) / self._config.max_global_step
         learning_rate = self._config.INITIAL_LEARNING_RATE * factor
         if learning_rate < 0.0:
             learning_rate = 0.0
         return learning_rate
-
-
-class _Service(bridge.ParameterServerService):
-    def __init__(self, parameter_server):
-        self.increment_global_t = parameter_server.increment_global_t
-        self.apply_gradients = parameter_server.apply_gradients
-        self.get_values = parameter_server.get_values
-        self.store_scalar_metric = parameter_server.store_scalar_metric
