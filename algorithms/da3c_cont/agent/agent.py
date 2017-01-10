@@ -4,6 +4,7 @@ import numpy as np
 import tensorflow as tf
 import time
 
+import relaax.algorithm_base.agent_base
 import relaax.common.metrics
 import relaax.common.protocol.socket_protocol
 
@@ -11,7 +12,7 @@ from . import network
 from .stats import ZFilter
 
 
-class Agent(relaax.common.protocol.socket_protocol.AgentService):
+class Agent(relaax.algorithm_base.agent_base.AgentBase):
     def __init__(self, config, parameter_server):
         self._config = config
         self._parameter_server = parameter_server

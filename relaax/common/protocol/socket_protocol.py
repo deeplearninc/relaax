@@ -11,27 +11,15 @@ import socket
 import struct
 import time
 
+import relaax.algorithm_base.agent_base
+
 
 class Failure(Exception):
     def __init__(self, message):
         self.message = message
 
 
-class AgentService(object):
-    def act(self, state):
-        raise NotImplementedError
-
-    def reward_and_reset(self, reward):
-        raise NotImplementedError
-
-    def reward_and_act(self, reward, state):
-        raise NotImplementedError
-
-    def store_scalar_metric(self, name, y, x=None):
-        raise NotImplementedError
-
-
-class AgentStub(AgentService):
+class AgentStub(relaax.algorithm_base.agent_base.AgentBase):
     def __init__(self, socket):
         self._socket = socket
 

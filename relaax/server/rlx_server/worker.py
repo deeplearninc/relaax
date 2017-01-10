@@ -4,6 +4,7 @@ import logging
 import os
 import time
 
+import relaax.algorithm_base.agent_base
 from ...common.protocol import socket_protocol
 
 
@@ -28,7 +29,7 @@ class Worker(object):
             logging.warning('{}: {}: {}'.format(os.getpid(), self._address, e.message))
 
 
-class _AgentService(socket_protocol.AgentService):
+class _AgentService(relaax.algorithm_base.agent_base.AgentBase):
     def __init__(self, connection, agent, timeout):
         self._connection = connection
         self._agent = agent
