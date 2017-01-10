@@ -12,7 +12,7 @@ from . import bridge_pb2
 
 class Bridge(relaax.algorithm_base.bridge_base.BridgeBase):
     def parameter_server_stub(self, parameter_server_url):
-        return _ParameterServerStub(parameter_server_url)
+        return _Stub(parameter_server_url)
 
     def start_parameter_server(self, address, service):
         server = grpc.server(concurrent.futures.ThreadPoolExecutor(max_workers=1))
@@ -22,7 +22,7 @@ class Bridge(relaax.algorithm_base.bridge_base.BridgeBase):
         return server
 
 
-class _ParameterServerStub(relaax.algorithm_base.parameter_server_base.ParameterServerBase):
+class _Stub(relaax.algorithm_base.parameter_server_base.ParameterServerBase):
     def __init__(self, parameter_server):
         self._stub = bridge_pb2.ParameterServerStub(grpc.insecure_channel(parameter_server))
 
