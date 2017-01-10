@@ -52,7 +52,5 @@ class _AgentService(relaax.algorithm_base.agent_base.AgentBase):
             raise socket_protocol.Failure('no answer from agent')
         socket_protocol.environment_send_act(self._connection, action)
 
-    def store_scalar_metric(self, name, y, x=None):
-        self._agent.store_scalar_metric(name, y, x)
-
-
+    def metrics(self):
+        return self._agent.metrics()

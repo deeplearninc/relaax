@@ -45,8 +45,8 @@ class Client(object):
         self._agent_service.reward_and_reset(reward)
         return socket_protocol.environment_receive_reset(self._socket)
 
-    def store_scalar_metric(self, name, y, x=None):
-        self._agent_service.store_scalar_metric(name, y, x)
+    def metrics(self):
+        return self._agent_service.metrics()
 
     def disconnect(self):
         self._socket.close()

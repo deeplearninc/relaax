@@ -46,10 +46,8 @@ class ParameterServer(relaax.algorithm_base.parameter_server_base.ParameterServe
     def get_values(self):
         return self._session.run(self._network.values)
 
-    def store_scalar_metric(self, name, y, x=None):
-        if x is None:
-            x = self.global_t()
-        self._metrics.scalar(name, y, x=x)
+    def metrics(self):
+        return self._metrics
 
     def _anneal_learning_rate(self, global_time_step):
         factor = (self._config.max_global_step - global_time_step) / self._config.max_global_step

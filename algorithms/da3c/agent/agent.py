@@ -16,7 +16,6 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
     def __init__(self, config, parameter_server):
         self._config = config
         self._parameter_server = parameter_server
-        self._metrics = _Metrics(parameter_server)
 
         kernel = "/cpu:0"
         if config.use_GPU:
@@ -81,7 +80,7 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
             print("pi=", pi_)
             print(" V=", value_)
 
-        self.store_scalar_metric('act latency', time.time() - start, x=self.global_t)
+        self.metrics().scalar('act latency', time.time() - start, x=self.global_t)
 
         return action
 
@@ -99,7 +98,7 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
 
         score = self.episode_reward
 
-        self.store_scalar_metric('episode score', self.episode_reward, x=self.global_t)
+        self.metrics().scalar('episode score', self.episode_reward, x=self.global_t)
 
         self.episode_reward = 0
 
@@ -110,8 +109,8 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
 
         return score
 
-    def store_scalar_metric(self, name, y, x=None):
-        self._metrics.scalar(name, y, x)
+    def metrics(self):
+        return self._parameter_server.metrics()
 
     def _reward(self, reward):
         self.episode_reward += reward
@@ -221,11 +220,3 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
 
         if (self.local_t % 100) == 0:
             print("TIMESTEP", self.local_t)
-
-
-class _Metrics(relaax.common.metrics.Metrics):
-    def __init__(self, parameter_server):
-        self._parameter_server = parameter_server
-
-    def scalar(self, name, y, x=None):
-        self._parameter_server.store_scalar_metric(name, y, x)

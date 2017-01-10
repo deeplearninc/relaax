@@ -12,6 +12,7 @@ import struct
 import time
 
 import relaax.algorithm_base.agent_base
+import relaax.common.metrics
 
 
 class Failure(Exception):
@@ -22,6 +23,7 @@ class Failure(Exception):
 class AgentStub(relaax.algorithm_base.agent_base.AgentBase):
     def __init__(self, socket):
         self._socket = socket
+        self._metrics = _Metrics(self._socket, 'scalar_metric')
 
     def act(self, state):
         _sendf(self._socket, 'act', json.dumps(state, cls=_NDArrayEncoder))
@@ -32,11 +34,8 @@ class AgentStub(relaax.algorithm_base.agent_base.AgentBase):
     def reward_and_act(self, reward, state):
         _sendf(self._socket, 'reward_and_act', reward, json.dumps(state, cls=_NDArrayEncoder))
 
-    def store_scalar_metric(self, name, y, x=None):
-        args = ['scalar_metric', name, y]
-        if x is not None:
-            args.append(x)
-        _sendf(self._socket, *args)
+    def metrics(self):
+        return self._metrics
 
 
 def agent_dispatch(socket, agent_service):
@@ -59,7 +58,7 @@ def agent_dispatch(socket, agent_service):
         )
         return
     if verb == 'scalar_metric':
-        agent_service.store_scalar_metric(*args)
+        agent_service.metrics().scalar(*args)
         return
     assert False
 
@@ -172,3 +171,15 @@ def _ndarray_decoder(dct):
 
 def _debug(message, *args):
     logging.debug('%d:' + message, os.getpid(), *args)
+
+
+class _Metrics(relaax.common.metrics.Metrics):
+    def __init__(self, socket, verb):
+        self._socket = socket
+        self._verb = verb
+
+    def scalar(self, name, y, x=None):
+        args = [self._verb, name, y]
+        if x is not None:
+            args.append(x)
+        _sendf(self._socket, *args)

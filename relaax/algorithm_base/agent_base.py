@@ -10,5 +10,5 @@ class AgentBase(object):
     def reward_and_act(self, reward, state):
         raise NotImplementedError
 
-    def store_scalar_metric(self, name, y, x=None):
+    def metrics(self):
         raise NotImplementedError

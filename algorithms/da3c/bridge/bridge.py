@@ -25,6 +25,7 @@ class Bridge(relaax.algorithm_base.bridge_base.BridgeBase):
 class _Stub(relaax.algorithm_base.parameter_server_base.ParameterServerBase):
     def __init__(self, parameter_server):
         self._stub = bridge_pb2.ParameterServerStub(grpc.insecure_channel(parameter_server))
+        self._metrics = _Metrics(self._stub)
 
     def increment_global_t(self):
         return self._stub.IncrementGlobalT(bridge_pb2.NullMessage()).n
@@ -35,7 +36,15 @@ class _Stub(relaax.algorithm_base.parameter_server_base.ParameterServerBase):
     def get_values(self):
         return _parse_ndarrays_message(self._stub.GetValues(bridge_pb2.NullMessage()))
 
-    def store_scalar_metric(self, name, y, x=None):
+    def metrics(self):
+        return self._metrics
+
+
+class _Metrics(relaax.common.metrics.Metrics):
+    def __init__(self, stub):
+        self._stub = stub
+
+    def scalar(self, name, y, x=None):
         if x is None:
             sm = bridge_pb2.ScalarMetric(
                 name=name,
@@ -68,7 +77,7 @@ class _Servicer(bridge_pb2.ParameterServerServicer):
         x = None
         if request.HasField('x'):
             x = request.x.value
-        self._service.store_scalar_metric(name=request.name, y=request.y, x=x)
+        self._service.metrics().scalar(name=request.name, y=request.y, x=x)
         return bridge_pb2.NullMessage()
 
 

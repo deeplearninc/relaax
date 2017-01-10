@@ -10,5 +10,5 @@ class ParameterServerBase(object):
     def get_values(self):
         raise NotImplementedError
 
-    def store_scalar_metric(self, name, y, x=None):
+    def metrics(self):
         raise NotImplementedError
