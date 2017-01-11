@@ -6,21 +6,18 @@ import relaax.algorithm_base.parameter_server_base
 from . import network
 
 
-class ParameterServer(
-    relaax.algorithm_base.parameter_server_base.ParameterServerBase,
-    relaax.algorithm_base.bridge_base.BridgeBase
-):
+class ParameterServer(relaax.algorithm_base.parameter_server_base.ParameterServerBase):
     def __init__(self, config, saver, metrics):
-        self._config = config
         self._network = network.make(config)
         self._saver = saver
-        self._metrics = metrics
 
         initialize = tf.initialize_all_variables()
 
         self._session = tf.Session()
 
         self._session.run(initialize)
+
+        self._bridge = _Bridge(config, metrics, self._network, self._session)
 
     def close(self):
         self._session.close()
@@ -36,6 +33,17 @@ class ParameterServer(
 
     def global_t(self):
         return self._session.run(self._network.global_t)
+
+    def bridge(self):
+        return self._bridge
+
+
+class _Bridge(relaax.algorithm_base.bridge_base.BridgeBase):
+    def __init__(self, config, metrics, network, session):
+        self._config = config
+        self._metrics = metrics
+        self._network = network
+        self._session = session
 
     def increment_global_t(self):
         return self._session.run(self._network.increment_global_t)

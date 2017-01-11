@@ -18,3 +18,6 @@ class ParameterServerBase(object):
 
     def global_t(self):
         raise NotImplementedError
+
+    def bridge(self):
+        raise NotImplementedError

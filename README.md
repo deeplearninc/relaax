@@ -525,12 +525,9 @@ relaax
         def close():                                     - close parameter server
         def restore_latest_checkpoint():                 - restore latest checkpoint
         def save_checkpoint():                           - save new checkpoint
-        def checkpoint_location():                          - return human readable checkpoint location
+        def checkpoint_location():                       - return human readable checkpoint location
         def global_t():                                  - return current global learning step
-        def increment_global_t():                        - increment current global learning step
-        def apply_gradients(gradients):                  - apply gradients to Global Function NN
-        def get_values():                                - get Global Function NN
-        def metrics():                                   - get metrics object
+        def bridge():                                    - return bridge interface
 
     agent_base.py
       class AgentBase
@@ -560,13 +557,15 @@ Algorithm package exports following symbols:
 ```
 class Config(ConfigBase)                    - algorithm configuration
 
-class ParameterServer(BridgeBase, ParameterServerBase)
+class ParameterServer(ParameterServerBase)
                                             - implement parameter server for algorithm
 
 TODO: simplify API
 class Agent(AgentBase)                      - learning agent of algorithm
 
-class BridgeControl(BridgeControlBase)      - implements bridge between agent and parameter server
+class Bridge(BridgeBase)                    - implement bridge between agent and parameter server
+
+class BridgeControl(BridgeControlBase)      - control bridge between agent and parameter server
 ```
 
 #### [Algorithm structure](#contents)
@@ -618,15 +617,13 @@ relaax
 
         parameter_server.py
           class ParameterServer              - implement parameter server for algorithm
-            def increment_global_t():        - increment current global learning step
-            def apply_gradients():           - apply gradients to Global Function NN
-            def get_values():                - get Global Function NN
-            def metrics():                   - get metrics object
+            def __init__():                  - create new server
             def close():                     - close server
             def restore_latest_checkpoint(): - restore latest checkpoint using given checkpoint saver
             def save_checkpoint():           - save checkpoint using given checkpoint saver
             def checkpoint_location():       - get human readable checkpoint storage location
             def global_t():                  - get current global learning step
+            def bridge():                    - return bridge interface
 
 ```
 
