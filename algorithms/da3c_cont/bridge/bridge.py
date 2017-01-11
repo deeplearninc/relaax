@@ -10,7 +10,7 @@ import relaax.algorithm_base.bridge_base
 from . import bridge_pb2
 
 
-class Bridge(relaax.algorithm_base.bridge_base.BridgeBase):
+class BridgeControl(relaax.algorithm_base.bridge_base.BridgeControlBase):
     def parameter_server_stub(self, parameter_server_url):
         return _Stub(parameter_server_url)
 

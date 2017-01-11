@@ -1,6 +1,6 @@
 
 
-class BridgeBase(object):
+class BridgeControlBase(object):
     def parameter_server_stub(self, parameter_server_url):
         raise NotImplementedError
 

@@ -546,7 +546,7 @@ relaax
         def metrics():                                   - get metrics object
 
     bridge_base.py
-      class BridgeBase
+      class BridgeControlBase
         def parameter_server_stub(parameter_server_url): - return parameter server stub object
         def start_parameter_server(address, service):    - start parameter server with bind address and ParameterServerService object
 
@@ -566,7 +566,7 @@ class ParameterServer(ParameterServerBase, ParameterServerBase2)
 TODO: simplify API
 class Agent(AgentBase)                      - learning agent of algorithm
 
-class Bridge(BridgeBase)                    - implements bridge between agent and parameter server
+class BridgeControl(BridgeControlBase)      - implements bridge between agent and parameter server
 ```
 
 #### [Algorithm structure](#contents)
@@ -597,7 +597,7 @@ relaax
 
           bridge.py                          - data bridge between rlx_server and parameter server
                                                wrap GRPC service defined in bridge.proto
-            class Bridge
+            class BridgeControl
               def parameter_server_stub():   - return parameter server stub object (ParameterServerBase)
               def start_parameter_server():  - start parameter server with bind address and ParameterServerBase object
 

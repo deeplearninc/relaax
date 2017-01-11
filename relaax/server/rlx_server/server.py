@@ -27,7 +27,7 @@ def _get_factory(algorithm, yaml, parameter_server_url):
     config = algorithm.Config(yaml)
     return lambda n_agent: algorithm.Agent(
         config=config,
-        parameter_server=algorithm.Bridge().parameter_server_stub(parameter_server_url)
+        parameter_server=algorithm.BridgeControl().parameter_server_stub(parameter_server_url)
     )
 
 
