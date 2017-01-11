@@ -520,7 +520,7 @@ All algorithms follow structure defined in relaax/algorithm_base directory:
 relaax
   algorithm_base
     parameter_server_base.py
-      class ParameterServerBase2
+      class ParameterServerBase
         def __init__(config, saver, metrics)             - initialize parameter server
         def close():                                     - close parameter server
         def restore_latest_checkpoint():                 - restore latest checkpoint
@@ -560,7 +560,7 @@ Algorithm package exports following symbols:
 ```
 class Config(ConfigBase)                    - algorithm configuration
 
-class ParameterServer(BridgeBase, ParameterServerBase2)
+class ParameterServer(BridgeBase, ParameterServerBase)
                                             - implement parameter server for algorithm
 
 TODO: simplify API

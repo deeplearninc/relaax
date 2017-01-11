@@ -1,6 +1,6 @@
 
 
-class ParameterServerBase2(object):
+class ParameterServerBase(object):
     def __init__(self, config, saver, metrics):
         raise NotImplementedError
 
