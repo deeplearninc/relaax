@@ -513,50 +513,59 @@ secret: your+secret+key+your+secret+key+your+sec
 
 ### [Algorithm](#contents)
 
-The structure of algorithm may vary. But generic layout is same for all algorithms. DA3C algorithm is an example.
-Algorithm is an usual Python package. But RELAAX server loads algorithms dynamically. Dynamic loading simplifies algorithm developement outside Python package structure. The path to algorithm to load is defined in config.yaml or in command line.
+An algorithm is an usual Python package. But RELAAX server loads algorithms dynamically. Dynamic loading simplifies algorithm developement outside Python package structure. The path to selected algorithm is defined in config.yaml or in command line.
+All algorithms follow structure defined in relaax/algorithm_base directory:
+
+```
+relaax
+  algorithm_base
+    parameter_server_base.py
+      class ParameterServerBase
+        def increment_global_t():                        - increment current global learning step
+        def apply_gradients(gradients):                  - apply gradients to Global Function NN
+        def get_values():                                - get Global Function NN
+        def metrics():                                   - get metrics object
+
+      class ParameterServerBase2(ParameterServerBase)
+        def __init__(config, saver, metrics)             - initialize parameter server
+        def close():                                     - close parameter server
+        def restore_latest_checkpoint():                 - restore latest checkpoint
+        def save_checkpoint():                           - save new checkpoint
+        def checkpoint_place():                          - return human readable checkpoint location
+        def global_t():                                  - return current global learning step
+        def increment_global_t():                        - increment current global learning step
+        def apply_gradients(gradients):                  - apply gradients to Global Function NN
+        def get_values():                                - get Global Function NN
+        def metrics():                                   - get metrics object
+
+    agent_base.py
+      class AgentBase
+        def act(state):                                  - take state and get action
+        def reward_and_reset(reward):                    - take reward and reset training
+        def reward_and_act(reward, state):               - take reward and state and get action
+        def metrics():                                   - get metrics object
+
+    bridge_base.py
+      class BridgeBase
+        def parameter_server_stub(parameter_server_url): - return parameter server stub object
+        def start_parameter_server(address, service):    - start parameter server with bind address and ParameterServerService object
+
+    config_base.py
+      class ConfigBase
+        def __init__(config):                            - initializes configuration from loaded config.yaml
+```
 
 Algorithm package exports following symbols:
 
 ```
-class Config                       - algorithm configuration
-  def __init__(..., config):       - initializes configuration from loaded config.yaml
+class Config(ConfigBase)                    - algorithm configuration
 
-class ParameterServer              - implement parameter server for algorithm
-  def __init__():                  - initialize server with Config object and checkpoint saver
-  def close():                     - close server
-  def restore_latest_checkpoint(): - restore latest checkpoint using given checkpoint saver
-  def save_checkpoint():           - save checkpoint using given checkpoint saver
-  def checkpoint_place():          - get human readable checkpoint storage location
-  def global_t():                  - get current global learning step
-  def increment_global_t():        - increment current global learning step
-  def apply_gradients():           - apply gradients to Global Function NN
-  def get_values():                - get Global Function NN
-  def metrics():                   - get metrics object
+class ParameterServer(ParameterServerBase2) - implement parameter server for algorithm
 
 TODO: simplify API
-class Agent                        - learning agent of algorithm
-  def __init__():                  - initialize agent with Config and ParameterServerService objects
-  def act():                       - take state and get action
-  def reward_and_act():            - take reward and state and get action
-  def reward_and_reset():          - take reward and reset training
-  def metrics():                   - get metrics object
+class Agent(AgentBase)                      - learning agent of algorithm
 
-class ParameterServerService       - Parameter server interface to Agent
-  def increment_global_t():        - increment current global learning step
-  def apply_gradients():           - apply gradients to Global Function NN
-  def get_values():                - get Global Function NN
-  def metrics():                   - get metrics object
-
-class ParameterServerStub          - Parameter server interface stup for Agent
-                                     incapsulates GRPC service to communicate with parameter server.
-  def __init__():                  - initialize the stub with parameter server URL
-  def increment_global_t():        - increment current global learning step
-  def apply_gradients():           - apply gradients to Global Function NN
-  def get_values():                - get Global Function NN
-  def metrics():                   - get metrics object
-
-def start_parameter_server():      - start parameter server with bind address and ParameterServerService object
+class Bridge(BridgeBase)                    - implements bridge between agent and parameter server
 ```
 
 #### [Algorithm structure](#contents)
@@ -573,7 +582,7 @@ relaax
         network.py                           - algorithm NN
         config.py
           class Config                       - algorithm configuration
-            def __init__(..., config):       - initializes configuration from loaded config.yaml
+            def __init__(config):            - initializes configuration from loaded config.yaml
 
         bridge
           bridge.sh                          - script to compile GRPC bridge
@@ -587,20 +596,9 @@ relaax
 
           bridge.py                          - data bridge between rlx_server and parameter server
                                                wrap GRPC service defined in bridge.proto
-            class ParameterServerService     - Parameter server interface to Agent
-              def increment_global_t():      - increment current global learning step
-              def apply_gradients():         - apply gradients to Global Function NN
-              def get_values():              - get Global Function NN
-              def metrics():                 - get metrics object
-
-            class ParameterServerStub        - Parameter server interface stup for Agent
-                                               incapsulates GRPC service to communicate with parameter server.
-              def increment_global_t():      - increment current global learning step
-              def apply_gradients():         - apply gradients to Global Function NN
-              def get_values():              - get Global Function NN
-              def metrics():                 - get metrics object
-
-            def start_parameter_server():    - start parameter server with bind address and ParameterServerService object
+            class Bridge
+              def parameter_server_stub():   - return parameter server stub object (ParameterServerBase)
+              def start_parameter_server():  - start parameter server with bind address and ParameterServerBase object
 
       agent
         agent.py
@@ -619,15 +617,15 @@ relaax
 
         parameter_server.py
           class ParameterServer              - implement parameter server for algorithm
+            def increment_global_t():        - increment current global learning step
+            def apply_gradients():           - apply gradients to Global Function NN
+            def get_values():                - get Global Function NN
+            def metrics():                   - get metrics object
             def close():                     - close server
             def restore_latest_checkpoint(): - restore latest checkpoint using given checkpoint saver
             def save_checkpoint():           - save checkpoint using given checkpoint saver
             def checkpoint_place():          - get human readable checkpoint storage location
             def global_t():                  - get current global learning step
-            def increment_global_t():        - increment current global learning step
-            def apply_gradients():           - apply gradients to Global Function NN
-            def get_values():                - get Global Function NN
-            def metrics():                   - get metrics object
 
 ```
 

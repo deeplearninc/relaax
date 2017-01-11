@@ -12,3 +12,23 @@ class ParameterServerBase(object):
 
     def metrics(self):
         raise NotImplementedError
+
+
+class ParameterServerBase2(ParameterServerBase):
+    def __init__(self, config, saver, metrics):
+        raise NotImplementedError
+
+    def close(self):
+        raise NotImplementedError
+
+    def restore_latest_checkpoint(self):
+        raise NotImplementedError
+
+    def save_checkpoint(self):
+        raise NotImplementedError
+
+    def checkpoint_place(self):
+        raise NotImplementedError
+
+    def global_t(self):
+        raise NotImplementedError
