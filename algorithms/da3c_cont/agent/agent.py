@@ -45,8 +45,6 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
 
         self._session = tf.Session()
 
-        summary_writer = tf.train.SummaryWriter(self._log_dir, self._session.graph)
-
         self._session.run(initialize_all_variables)
 
     def act(self, state):
