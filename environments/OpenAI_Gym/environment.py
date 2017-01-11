@@ -52,7 +52,7 @@ def run(rlx_server_url, env, seed):
 def _send(client, reward, state):
     start = time.time()
     action = client.send(reward, state)
-    client.metrics().scalar('act latency on client', time.time() - start)
+    client.metrics().scalar('act/latency on client', time.time() - start)
 
 
 def _seed(value):

@@ -26,7 +26,9 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
 
         self.global_t = 0           # counter for global steps between all agents
         self.local_t = 0            # steps count for current agent's thread
+        self.episode_length = 0
         self.episode_reward = 0     # score accumulator for current game
+        self.episode_start = time.time()
 
         self.states = []            # auxiliary states accumulator through episode_len = 0..5
         self.actions = []           # auxiliary actions accumulator through episode_len = 0..5
@@ -80,7 +82,7 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
             print("pi=", pi_)
             print(" V=", value_)
 
-        self.metrics().scalar('act latency', time.time() - start, x=self.global_t)
+        self.metrics().scalar('act/latency on rlx-server', time.time() - start)
 
         return action
 
@@ -98,9 +100,15 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
 
         score = self.episode_reward
 
-        self.metrics().scalar('episode score', self.episode_reward, x=self.global_t)
+        duration = time.time() - self.episode_start
+        self.metrics().scalar('episode/length', self.episode_length)
+        self.metrics().scalar('episode/reward', self.episode_reward)
+        self.metrics().scalar('episode/duration', duration)
+        self.metrics().scalar('episode/reward per duration', reward / duration)
 
+        self.episode_length = 0
         self.episode_reward = 0
+        self.episode_start = time.time()
 
         if self._config.use_LSTM:
             self._local_network.reset_state()
@@ -113,6 +121,7 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
         return self._parameter_server.metrics()
 
     def _reward(self, reward):
+        self.episode_length += 1
         self.episode_reward += reward
 
         # clip reward
