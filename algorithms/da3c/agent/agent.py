@@ -104,7 +104,7 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
         self.metrics().scalar('episode/length', self.episode_length)
         self.metrics().scalar('episode/reward', self.episode_reward)
         self.metrics().scalar('episode/duration', duration)
-        self.metrics().scalar('episode/reward per duration', reward / duration)
+        self.metrics().scalar('episode/reward per duration', self.episode_reward / duration)
 
         self.episode_length = 0
         self.episode_reward = 0
