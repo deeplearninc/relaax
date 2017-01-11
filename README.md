@@ -526,7 +526,7 @@ relaax
         def get_values():                                - get Global Function NN
         def metrics():                                   - get metrics object
 
-      class ParameterServerBase2(ParameterServerBase)
+      class ParameterServerBase2
         def __init__(config, saver, metrics)             - initialize parameter server
         def close():                                     - close parameter server
         def restore_latest_checkpoint():                 - restore latest checkpoint
@@ -560,7 +560,8 @@ Algorithm package exports following symbols:
 ```
 class Config(ConfigBase)                    - algorithm configuration
 
-class ParameterServer(ParameterServerBase2) - implement parameter server for algorithm
+class ParameterServer(ParameterServerBase, ParameterServerBase2)
+                                            - implement parameter server for algorithm
 
 TODO: simplify API
 class Agent(AgentBase)                      - learning agent of algorithm

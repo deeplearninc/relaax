@@ -5,7 +5,10 @@ import relaax.algorithm_base.parameter_server_base
 from . import network
 
 
-class ParameterServer(relaax.algorithm_base.parameter_server_base.ParameterServerBase2):
+class ParameterServer(
+    relaax.algorithm_base.parameter_server_base.ParameterServerBase,
+    relaax.algorithm_base.parameter_server_base.ParameterServerBase2
+):
     def __init__(self, config, saver, metrics):
         self._config = config
         self._network = network.make(config)
