@@ -4,6 +4,8 @@ import signal
 import sys
 import time
 
+import relaax.common.metrics
+
 from ..common import algorithm_loader
 
 
@@ -13,7 +15,7 @@ def run(yaml, bind, saver, metrics):
     parameter_server = algorithm.ParameterServer(
         config=algorithm.Config(yaml),
         saver=saver,
-        metrics=metrics
+        metrics=_Metrics(metrics, lambda: parameter_server.global_t())
     )
 
     print('looking for checkpoint in %s ...' % parameter_server.checkpoint_location())
@@ -63,3 +65,14 @@ def _save(parameter_server):
     )
     parameter_server.save_checkpoint()
     print('done')
+
+
+class _Metrics(relaax.common.metrics.Metrics):
+    def __init__(self, metrics, global_t):
+        self._metrics = metrics
+        self._global_t = global_t
+
+    def scalar(self, name, y, x=None):
+        if x is None:
+            x = self._global_t()
+        self._metrics.scalar(name, y, x=x)
