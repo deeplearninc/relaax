@@ -16,9 +16,9 @@ def run(yaml, bind, saver, metrics):
         metrics=metrics
     )
 
-    print('looking for checkpoint in %s ...' % parameter_server.checkpoint_place())
+    print('looking for checkpoint in %s ...' % parameter_server.checkpoint_location())
     if parameter_server.restore_latest_checkpoint():
-        print('checkpoint restored from %s' % parameter_server.checkpoint_place())
+        print('checkpoint restored from %s' % parameter_server.checkpoint_location())
         print("global_t is %d" % parameter_server.global_t())
 
     def stop_server(_1, _2):
@@ -59,7 +59,7 @@ def _log_uniform(lo, hi, rate):
 def _save(parameter_server):
     print(
         'checkpoint %d is saving to %s ...' %
-        (parameter_server.global_t(), parameter_server.checkpoint_place())
+        (parameter_server.global_t(), parameter_server.checkpoint_location())
     )
     parameter_server.save_checkpoint()
     print('done')

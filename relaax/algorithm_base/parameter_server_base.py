@@ -27,7 +27,7 @@ class ParameterServerBase2(ParameterServerBase):
     def save_checkpoint(self):
         raise NotImplementedError
 
-    def checkpoint_place(self):
+    def checkpoint_location(self):
         raise NotImplementedError
 
     def global_t(self):
