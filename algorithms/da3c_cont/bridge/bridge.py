@@ -4,7 +4,6 @@ import concurrent
 import grpc
 import numpy
 
-import relaax.algorithm_base.parameter_server_base
 import relaax.algorithm_base.bridge_base
 
 from . import bridge_pb2
@@ -22,7 +21,7 @@ class BridgeControl(relaax.algorithm_base.bridge_base.BridgeControlBase):
         return server
 
 
-class _Stub(relaax.algorithm_base.parameter_server_base.ParameterServerBase):
+class _Stub(relaax.algorithm_base.bridge_base.BridgeBase):
     def __init__(self, parameter_server):
         self._stub = bridge_pb2.ParameterServerStub(grpc.insecure_channel(parameter_server))
         self._metrics = _Metrics(self._stub)

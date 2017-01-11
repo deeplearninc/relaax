@@ -1,13 +1,14 @@
 import tensorflow as tf
 
+import relaax.algorithm_base.bridge_base
 import relaax.algorithm_base.parameter_server_base
 
 from . import network
 
 
 class ParameterServer(
-    relaax.algorithm_base.parameter_server_base.ParameterServerBase,
-    relaax.algorithm_base.parameter_server_base.ParameterServerBase2
+    relaax.algorithm_base.parameter_server_base.ParameterServerBase2,
+    relaax.algorithm_base.bridge_base.BridgeBase
 ):
     def __init__(self, config, saver, metrics):
         self._config = config

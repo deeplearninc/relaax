@@ -1,19 +1,5 @@
 
 
-class ParameterServerBase(object):
-    def increment_global_t(self):
-        raise NotImplementedError
-
-    def apply_gradients(self, gradients):
-        raise NotImplementedError
-
-    def get_values(self):
-        raise NotImplementedError
-
-    def metrics(self):
-        raise NotImplementedError
-
-
 class ParameterServerBase2(object):
     def __init__(self, config, saver, metrics):
         raise NotImplementedError

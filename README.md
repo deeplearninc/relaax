@@ -520,12 +520,6 @@ All algorithms follow structure defined in relaax/algorithm_base directory:
 relaax
   algorithm_base
     parameter_server_base.py
-      class ParameterServerBase
-        def increment_global_t():                        - increment current global learning step
-        def apply_gradients(gradients):                  - apply gradients to Global Function NN
-        def get_values():                                - get Global Function NN
-        def metrics():                                   - get metrics object
-
       class ParameterServerBase2
         def __init__(config, saver, metrics)             - initialize parameter server
         def close():                                     - close parameter server
@@ -546,6 +540,12 @@ relaax
         def metrics():                                   - get metrics object
 
     bridge_base.py
+      class BridgeBase
+        def increment_global_t():                        - increment current global learning step
+        def apply_gradients(gradients):                  - apply gradients to Global Function NN
+        def get_values():                                - get Global Function NN
+        def metrics():                                   - get metrics object
+
       class BridgeControlBase
         def parameter_server_stub(parameter_server_url): - return parameter server stub object
         def start_parameter_server(address, service):    - start parameter server with bind address and ParameterServerService object
@@ -560,7 +560,7 @@ Algorithm package exports following symbols:
 ```
 class Config(ConfigBase)                    - algorithm configuration
 
-class ParameterServer(ParameterServerBase, ParameterServerBase2)
+class ParameterServer(BridgeBase, ParameterServerBase2)
                                             - implement parameter server for algorithm
 
 TODO: simplify API
@@ -598,8 +598,8 @@ relaax
           bridge.py                          - data bridge between rlx_server and parameter server
                                                wrap GRPC service defined in bridge.proto
             class BridgeControl
-              def parameter_server_stub():   - return parameter server stub object (ParameterServerBase)
-              def start_parameter_server():  - start parameter server with bind address and ParameterServerBase object
+              def parameter_server_stub():   - return parameter server stub object (BridgeBase)
+              def start_parameter_server():  - start parameter server with bind address and BridgeBase object
 
       agent
         agent.py
