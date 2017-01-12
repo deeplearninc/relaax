@@ -26,7 +26,7 @@ RUN apt-get update \
         ratpoison \
         libvncserver-dev \
         net-tools \
-        nano
+        nano \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /root/.cache/pip/
 
