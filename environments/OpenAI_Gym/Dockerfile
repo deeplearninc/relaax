@@ -31,17 +31,18 @@ RUN pip install -U pip
 WORKDIR /opt
 RUN git clone https://github.com/openai/gym.git && pip install -e './gym[all]'
 
-# Add client's files to the image
-ADD __init__.py /opt/relaax/__init__.py
-ADD client.py /opt/relaax/client.py
-ADD environment.py /opt/relaax/environment.py
-ADD game_process.py /opt/relaax/game_process.py
-ADD main /opt/relaax/main
-ADD socket_protocol.py /opt/relaax/socket_protocol.py
-WORKDIR /opt/relaax
-#COPY ../../../relaax/ /opt/relaax
-#RUN ls -la /opt/relaax/*
-#WORKDIR /opt/relaax/environments/OpenAI_Gym
+RUN mkdir /opt/relaax
 
-# Xvnc
-EXPOSE 5900
+# Add RELAAX to the image
+COPY algorithms /opt/relaax/algorithms
+COPY bin /opt/relaax/bin
+COPY config /opt/relaax/config
+COPY environments /opt/relaax/environments
+COPY relaax /opt/relaax/relaax
+COPY resources /opt/relaax/resources
+COPY README.md /opt/relaax/
+COPY setup.py /opt/relaax/
+
+WORKDIR /opt/relaax/environments/OpenAI_Gym
+RUN chmod +x "start.sh"
+ENTRYPOINT ["/opt/relaax/environments/OpenAI_Gym/start.sh"]
