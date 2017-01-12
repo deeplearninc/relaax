@@ -22,6 +22,11 @@ RUN apt-get update \
         git \
         xvfb \
         x11vnc \
+        # aux below
+        ratpoison \
+        libvncserver-dev \
+        net-tools \
+        nano
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /root/.cache/pip/
 
@@ -43,6 +48,10 @@ COPY resources /opt/relaax/resources
 COPY README.md /opt/relaax/
 COPY setup.py /opt/relaax/
 
+# Xvnc
+EXPOSE 5900
+
 WORKDIR /opt/relaax/environments/OpenAI_Gym
 RUN chmod +x "start.sh"
+RUN chmod +x "x.sh"
 ENTRYPOINT ["/opt/relaax/environments/OpenAI_Gym/start.sh"]
