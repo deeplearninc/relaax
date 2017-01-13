@@ -39,6 +39,10 @@ def main():
                         help='Set the runfiles path to find DeepMind Lab data')
     parser.add_argument('--level-script', type=str, default='nav_maze_staic_01',  # 'tests/demo_map'
                         help='The environment level script to load')
+    parser.add_argument('--display', type=bool, default=False,
+                        help='Activate display screen size')
+    parser.add_argument('--frame-skip', type=int, default=4,
+                        help='The number of frames to skip between successive observations')
 
     args = parser.parse_args()
     if args.runfiles_path:
@@ -47,7 +51,11 @@ def main():
     run(
         rlx_server_url=args.rlx_server,
         level=args.level_script,
-        fps=args.fps
+        width=args.width,
+        height=args.height,
+        display=args.display,
+        fps=args.fps,
+        frame_skip=args.frame_skip
     )
 
 
