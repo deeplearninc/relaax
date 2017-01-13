@@ -35,9 +35,9 @@ def main():
                         help='Vertical size of the observations')
     parser.add_argument('--fps', type=int, default=60,
                         help='Number of frames per second')
-    parser.add_argument('--runfiles_path', type=str, default=None,
+    parser.add_argument('--runfiles-path', type=str, default=None,
                         help='Set the runfiles path to find DeepMind Lab data')
-    parser.add_argument('--level_script', type=str, default='tests/demo_map',
+    parser.add_argument('--level-script', type=str, default='nav_maze_staic_01',  # 'tests/demo_map'
                         help='The environment level script to load')
 
     args = parser.parse_args()
