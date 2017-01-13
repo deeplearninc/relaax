@@ -3,54 +3,53 @@ from __future__ import print_function
 import numpy as np
 import random
 import tensorflow as tf
+import time
+
+import relaax.algorithm_base.agent_base
+import relaax.common.metrics
+import relaax.common.protocol.socket_protocol
 
 from . import network
 
 
-class Agent(object):
-    def __init__(self, config, parameter_server, log_dir):
+class Agent(relaax.algorithm_base.agent_base.AgentBase):
+    def __init__(self, config, parameter_server):
         self._config = config
         self._parameter_server = parameter_server
-        self._log_dir = log_dir
 
         kernel = "/cpu:0"
         if config.use_GPU:
             kernel = "/gpu:0"
 
         with tf.device(kernel):
-            self._local_network = network.make(config, 0)
+            self._local_network = network.make(config)
 
+        self.global_t = 0           # counter for global steps between all agents
         self.local_t = 0            # steps count for current agent's thread
+        self.episode_length = 0
         self.episode_reward = 0     # score accumulator for current game
+        self.episode_start = time.time()
 
         self.states = []            # auxiliary states accumulator through episode_len = 0..5
         self.actions = []           # auxiliary actions accumulator through episode_len = 0..5
         self.rewards = []           # auxiliary rewards accumulator through episode_len = 0..5
         self.values = []            # auxiliary values accumulator through episode_len = 0..5
-        self.start_lstm_state = None
+
         self.episode_t = 0          # episode counter through episode_len = 0..5
         self.terminal_end = False   # auxiliary parameter to compute R in update_global and frameQueue
+        self.start_lstm_state = None
 
-        self.frameQueue = None      # frame accumulator for state, cuz state = 4 consecutive frames
-
-        episode_score = tf.placeholder(tf.int32)
-        summary = tf.scalar_summary('episode score', episode_score)
+        self.obsQueue = None        # observation accumulator for state = history_len * consecutive frames
 
         initialize_all_variables = tf.initialize_all_variables()
 
         self._session = tf.Session()
 
-        summary_writer = tf.train.SummaryWriter(self._log_dir, self._session.graph)
-
         self._session.run(initialize_all_variables)
 
-        self._log_reward = lambda: summary_writer.add_summary(
-            self._session.run(summary, feed_dict={episode_score: self.episode_reward}),
-            self.global_t
-        )
-
     def act(self, state):
-        self.update_state(state)
+        start = time.time()
+        self._update_state(state)
 
         if self.episode_t == self._config.episode_len:
             self._update_global()
@@ -72,16 +71,18 @@ class Agent(object):
             if self._config.use_LSTM:
                 self.start_lstm_state = self._local_network.lstm_state_out
 
-        pi_, value_ = self._local_network.run_policy_and_value(self._session, self.frameQueue)
+        pi_, value_ = self._local_network.run_policy_and_value(self._session, self.obsQueue)
         action = self._choose_action(pi_)
 
-        self.states.append(self.frameQueue)
+        self.states.append(self.obsQueue)
         self.actions.append(action)
         self.values.append(value_)
 
         if (self.local_t % 100) == 0:
             print("pi=", pi_)
             print(" V=", value_)
+
+        self.metrics().scalar('act/latency on rlx-server', time.time() - start)
 
         return action
 
@@ -99,9 +100,15 @@ class Agent(object):
 
         score = self.episode_reward
 
-        self._log_reward()
+        duration = time.time() - self.episode_start
+        self.metrics().scalar('episode/length', self.episode_length)
+        self.metrics().scalar('episode/reward', self.episode_reward)
+        self.metrics().scalar('episode/duration', duration)
+        self.metrics().scalar('episode/reward per duration', self.episode_reward / duration)
 
+        self.episode_length = 0
         self.episode_reward = 0
+        self.episode_start = time.time()
 
         if self._config.use_LSTM:
             self._local_network.reset_state()
@@ -110,7 +117,11 @@ class Agent(object):
 
         return score
 
+    def metrics(self):
+        return self._parameter_server.metrics()
+
     def _reward(self, reward):
+        self.episode_length += 1
         self.episode_reward += reward
 
         # clip reward
@@ -140,18 +151,29 @@ class Agent(object):
 
     def update_state(self, frame):
         if not self.terminal_end and self.local_t != 0:
-            self.frameQueue = np.append(
-                self.frameQueue[:, :, 1:],
+            self.obsQueue = np.append(
+                self.obsQueue[:, :, 1:],
                 np.reshape(frame, frame.shape + (1, )),
                 axis=2
             )
         else:
-            self.frameQueue = np.stack((frame, frame, frame, frame), axis=2)
+            self.obsQueue = np.stack((frame, frame, frame, frame), axis=2)
+
+    def _update_state(self, obs):
+        if not self.terminal_end and self.local_t != 0:
+            np.delete(self.obsQueue, 0, len(self._config.state_size))
+            np.append(self.obsQueue,
+                      np.reshape(obs, obs.shape + (1,)),
+                      axis=len(self._config.state_size))
+        else:
+            self.obsQueue = np.repeat(np.reshape(obs, obs.shape + (1,)),
+                                      self._config.history_len,
+                                      axis=len(self._config.state_size))
 
     def _update_global(self):
         R = 0.0
         if not self.terminal_end:
-            R = self._local_network.run_value(self._session, self.frameQueue)
+            R = self._local_network.run_value(self._session, self.obsQueue)
 
         self.actions.reverse()
         self.states.reverse()

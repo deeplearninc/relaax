@@ -1,25 +1,23 @@
 import tensorflow as tf
 
+import relaax.algorithm_base.bridge_base
+import relaax.algorithm_base.parameter_server_base
+
 from . import network
 
 
-class ParameterServer(object):
-    def __init__(self, config, saver):
-        self._config = config
+class ParameterServer(relaax.algorithm_base.parameter_server_base.ParameterServerBase):
+    def __init__(self, config, saver, metrics):
+        self._network = network.make(config)
         self._saver = saver
-
-        kernel = "/cpu:0"
-        if config.use_GPU:
-            kernel = "/gpu:0"
-
-        with tf.device(kernel):
-            self._network = network.make(config, -1)
 
         initialize = tf.initialize_all_variables()
 
         self._session = tf.Session()
 
         self._session.run(initialize)
+
+        self._bridge = _Bridge(config, metrics, self._network, self._session)
 
     def close(self):
         self._session.close()
@@ -30,11 +28,22 @@ class ParameterServer(object):
     def save_checkpoint(self):
         self._saver.save_checkpoint(self._session, self.global_t())
 
-    def checkpoint_place(self):
-        return self._saver.place()
+    def checkpoint_location(self):
+        return self._saver.location()
 
     def global_t(self):
         return self._session.run(self._network.global_t)
+
+    def bridge(self):
+        return self._bridge
+
+
+class _Bridge(relaax.algorithm_base.bridge_base.BridgeBase):
+    def __init__(self, config, metrics, network, session):
+        self._config = config
+        self._metrics = metrics
+        self._network = network
+        self._session = session
 
     def increment_global_t(self):
         return self._session.run(self._network.increment_global_t)
@@ -48,6 +57,9 @@ class ParameterServer(object):
 
     def get_values(self):
         return self._session.run(self._network.values)
+
+    def metrics(self):
+        return self._metrics
 
     def _anneal_learning_rate(self, global_time_step):
         factor = (self._config.max_global_step - global_time_step) / self._config.max_global_step

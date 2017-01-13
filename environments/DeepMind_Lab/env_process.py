@@ -2,16 +2,21 @@ import deepmind_lab
 import numpy as np
 import random
 
+from scipy.misc import imresize
+
 
 class GameProcessFactory(object):
-    def __init__(self, level):
+    def __init__(self, level, width, height, display):
         self._level = level
+        self._width = width
+        self._height = height
+        self._display = display
 
-    def new_env(self, seed):
-        return _GameProcess(seed, self._level)
+    def new_env(self, seed, frame_skip):
+        return _GameProcess(seed, self._level, self._width, self._height, frame_skip, self._display)
 
-    def new_display_env(self, seed):
-        return _GameProcess(seed, self._level, display=True, no_op_max=0)
+    def new_display_env(self, seed, frame_skip):
+        return _GameProcess(seed, self._level, self._width, self._height, frame_skip, display=True, no_op_max=0)
 
 
 def _action(*entries):
@@ -34,11 +39,15 @@ class _GameProcess(object):
     }
     ACTION_LIST = ACTIONS.values()
 
-    def __init__(self, fps, level, display=False, frame_skip=4, no_op_max=7):
+    def __init__(self, fps, level, width, height, frame_skip, display=False, no_op_max=7):
         self._frame_skip = frame_skip
         self._no_op_max = no_op_max
-        width = 84
-        height = 84
+        self._width = width
+        self._height = height
+        self._display = display
+        if display:
+            width = 640
+            height = 480
 
         self.env = deepmind_lab.Lab(
             level, ['RGB_INTERLACED'],
@@ -65,9 +74,11 @@ class _GameProcess(object):
         if terminal:
             return reward, terminal, None
 
-        # screen shape is (84, 84)
+        # train screen shape is (84, 84) by default
         screen = self.env.observations()['RGB_INTERLACED']
         x_t = np.dot(screen[..., :3], [0.299, 0.587, 0.114])
+        if self._display:
+            x_t = imresize(x_t, (self._width, self._height))
 
         x_t = x_t.astype(np.float32)
         x_t *= (1.0 / 255.0)

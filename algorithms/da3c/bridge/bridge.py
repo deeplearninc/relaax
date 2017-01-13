@@ -4,31 +4,27 @@ import concurrent
 import grpc
 import numpy
 
+import relaax.algorithm_base.bridge_base
+
 from . import bridge_pb2
 
 
-class ParameterServerService(object):
-    def increment_global_t(self):
-        raise NotImplementedError
+class BridgeControl(relaax.algorithm_base.bridge_base.BridgeControlBase):
+    def parameter_server_stub(self, parameter_server_url):
+        return _Stub(parameter_server_url)
 
-    def apply_gradients(self, gradients):
-        raise NotImplementedError
-
-    def get_values(self):
-        raise NotImplementedError
-
-
-def start_parameter_server(address, service):
-    server = grpc.server(concurrent.futures.ThreadPoolExecutor(max_workers=1))
-    bridge_pb2.add_ParameterServerServicer_to_server(_Servicer(service), server)
-    server.add_insecure_port(address)
-    server.start()
-    return server
+    def start_parameter_server(self, address, service):
+        server = grpc.server(concurrent.futures.ThreadPoolExecutor(max_workers=1))
+        bridge_pb2.add_ParameterServerServicer_to_server(_Servicer(service), server)
+        server.add_insecure_port(address)
+        server.start()
+        return server
 
 
-class ParameterServerStub(ParameterServerService):
+class _Stub(relaax.algorithm_base.bridge_base.BridgeBase):
     def __init__(self, parameter_server):
         self._stub = bridge_pb2.ParameterServerStub(grpc.insecure_channel(parameter_server))
+        self._metrics = _Metrics(self._stub)
 
     def increment_global_t(self):
         return self._stub.IncrementGlobalT(bridge_pb2.NullMessage()).n
@@ -38,6 +34,28 @@ class ParameterServerStub(ParameterServerService):
 
     def get_values(self):
         return _parse_ndarrays_message(self._stub.GetValues(bridge_pb2.NullMessage()))
+
+    def metrics(self):
+        return self._metrics
+
+
+class _Metrics(relaax.common.metrics.Metrics):
+    def __init__(self, stub):
+        self._stub = stub
+
+    def scalar(self, name, y, x=None):
+        if x is None:
+            sm = bridge_pb2.ScalarMetric(
+                name=name,
+                y=y
+            )
+        else:
+            sm = bridge_pb2.ScalarMetric(
+                name=name,
+                y=y,
+                x=bridge_pb2.ScalarMetric.Arg(value=x)
+            )
+        self._stub.StoreScalarMetric(sm)
 
 
 class _Servicer(bridge_pb2.ParameterServerServicer):
@@ -53,6 +71,13 @@ class _Servicer(bridge_pb2.ParameterServerServicer):
 
     def GetValues(self, request, context):
         return _build_ndarrays_message(self._service.get_values())
+
+    def StoreScalarMetric(self, request, context):
+        x = None
+        if request.HasField('x'):
+            x = request.x.value
+        self._service.metrics().scalar(name=request.name, y=request.y, x=x)
+        return bridge_pb2.NullMessage()
 
 
 def _build_ndarrays_message(arrays):

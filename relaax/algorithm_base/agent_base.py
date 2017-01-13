@@ -1,7 +1,6 @@
-from __future__ import print_function
 
 
-class Client(object):
+class AgentBase(object):
     def act(self, state):
         raise NotImplementedError
 
@@ -9,4 +8,7 @@ class Client(object):
         raise NotImplementedError
 
     def reward_and_act(self, reward, state):
+        raise NotImplementedError
+
+    def metrics(self):
         raise NotImplementedError

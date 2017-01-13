@@ -1,8 +1,17 @@
-class Config(object):
+import relaax.algorithm_base.config_base
+
+
+class Config(relaax.algorithm_base.config_base.ConfigBase):
     def __init__(self, config):
 
         # action size for given game rom (18 fits ale boxing)
         self.action_size = config.get('action_size', 18)
+
+        # size of the input observation (image to pass through 2D Convolution)
+        self.state_size = config.get('state_size', [84, 84])
+
+        # number of consecutive observations to stack in state
+        self.history_len = config.get('history_len', 4)
 
         # local loop size for one episode
         self.episode_len = config.get('episode_len', 5)
@@ -16,6 +25,7 @@ class Config(object):
         # amount of maximum global steps to pass through the training
         self.max_global_step = config.get('max_global_step', 10 * 10 ** 7)
 
+        # learning rate from which we start to annealing
         self.INITIAL_LEARNING_RATE = config.get('initial_learning_rate', 7e-4)
 
         # discount factor for rewards

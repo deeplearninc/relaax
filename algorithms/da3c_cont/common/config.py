@@ -1,8 +1,17 @@
-class Config(object):
+import relaax.algorithm_base.config_base
+
+
+class Config(relaax.algorithm_base.config_base.ConfigBase):
     def __init__(self, config):
 
         # action size for the given environment (4 fits to bipedal_walker)
         self.action_size = config.get('action_size', 4)
+
+        # size of the input observation
+        self.state_size = config.get('state_size', [24])
+
+        # number of consecutive observations to stack in state
+        self.history_len = config.get('history_len', 1)
 
         # local loop size for one episode
         self.episode_len = config.get('episode_len', 5)

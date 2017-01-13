@@ -25,7 +25,7 @@ def main():
     )
 
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--rlx_server', type=str, default=None,
+    parser.add_argument('--rlx-server', type=str, default=None,
                         help='agent server address (host:port)')
     parser.add_argument('--length', type=int, default=8 * 10 ** 7,
                         help='Number of steps to run the agent')
@@ -35,19 +35,27 @@ def main():
                         help='Vertical size of the observations')
     parser.add_argument('--fps', type=int, default=60,
                         help='Number of frames per second')
-    parser.add_argument('--runfiles_path', type=str, default=None,
+    parser.add_argument('--runfiles-path', type=str, default=None,
                         help='Set the runfiles path to find DeepMind Lab data')
-    parser.add_argument('--level_script', type=str, default='tests/demo_map',
+    parser.add_argument('--level-script', type=str, default='nav_maze_static_01',  # 'tests/demo_map'
                         help='The environment level script to load')
+    parser.add_argument('--display', type=bool, default=False,
+                        help='Activate display screen size')
+    parser.add_argument('--frame-skip', type=int, default=4,
+                        help='The number of frames to skip between successive observations')
 
     args = parser.parse_args()
     if args.runfiles_path:
         deepmind_lab.set_runfiles_path(args.runfiles_path)
 
     run(
-        rlx_server=args.rlx_server,
+        rlx_server_url=args.rlx_server,
         level=args.level_script,
-        fps=args.fps
+        width=args.width,
+        height=args.height,
+        display=args.display,
+        fps=args.fps,
+        frame_skip=args.frame_skip
     )
 
 

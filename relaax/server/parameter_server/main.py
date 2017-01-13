@@ -2,9 +2,11 @@ from __future__ import print_function
 
 import argparse
 import logging
-import ruamel.yaml
 import os
+import ruamel.yaml
+import tensorflow as tf
 
+import relaax.common.metrics
 import relaax.server.common.saver.fs_saver
 import relaax.server.common.saver.s3_saver
 import relaax.server.parameter_server.server
@@ -23,6 +25,7 @@ def main():
     parser.add_argument('--bind', type=str, default=None, help='address to serve (host:port)')
     parser.add_argument('--checkpoint-dir', type=str, default=None, help='TensorFlow checkpoint directory')
     parser.add_argument('--checkpoint-aws-s3', nargs=2, type=str, default=None, help='AWS S3 bucket and key for TensorFlow checkpoint')
+    parser.add_argument('--metrics-dir', type=str, default=None, help='TensorBoard metrics directory')
     parser.add_argument('--aws-keys', type=str, default=None, help='YAML file containing AWS access and secret keys')
     args = parser.parse_args()
 
@@ -45,13 +48,16 @@ def main():
             args.bind = cmdl['--bind']
         if args.checkpoint_dir is None and '--checkpoint-dir' in cmdl:
             args.checkpoint_dir = cmdl['--checkpoint-dir']
+        if args.metrics_dir is None and '--metrics-dir' in cmdl:
+            args.metrics_dir = cmdl['--metrics-dir']
         if args.checkpoint_aws_s3 is None and '--checkpoint-aws-s3' in cmdl:
             args.checkpoint_aws_s3 = cmdl['--checkpoint-aws-s3']
 
     relaax.server.parameter_server.server.run(
         yaml=yaml['algorithm'],
         bind=args.bind,
-        saver=_saver(args)
+        saver=_saver(args),
+        metrics=_Metrics(args.metrics_dir)
     )
 
 
@@ -78,3 +84,25 @@ def _saver(args):
             aws_access_key=aws_access_key,
             aws_secret_key=aws_secret_key
         )
+
+
+class _Metrics(relaax.common.metrics.Metrics):
+    def __init__(self, metrics_dir):
+        self._summaries = {}
+        self._graph = tf.Graph()
+        self._writer = tf.train.SummaryWriter(metrics_dir, self._graph)
+        self._session = tf.Session(graph=self._graph)
+
+    def scalar(self, name, y, x=None):
+        with self._graph.as_default():
+            if name not in self._summaries:
+                placeholder = tf.placeholder(tf.float64)
+                self._summaries[name] = (
+                    placeholder,
+                    tf.scalar_summary(name, placeholder)
+                )
+            placeholder, summary = self._summaries[name]
+            self._writer.add_summary(
+                self._session.run(summary, feed_dict={placeholder: y}),
+                global_step=x
+            )

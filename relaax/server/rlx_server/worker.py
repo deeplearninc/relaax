@@ -4,8 +4,8 @@ import logging
 import os
 import time
 
+import relaax.algorithm_base.agent_base
 from ...common.protocol import socket_protocol
-from ... import client
 
 
 class Worker(object):
@@ -18,7 +18,7 @@ class Worker(object):
 
     def run(self):
         agent_service = _AgentService(
-            environment_service=socket_protocol.EnvironmentStub(self._connection),
+            connection=self._connection,
             agent=self._agent_factory(self._n_agent),
             timeout=self._timeout
         )
@@ -29,20 +29,20 @@ class Worker(object):
             logging.warning('{}: {}: {}'.format(os.getpid(), self._address, e.message))
 
 
-class _AgentService(client.Client):
-    def __init__(self, environment_service, agent, timeout):
-        self._environment_service = environment_service
+class _AgentService(relaax.algorithm_base.agent_base.AgentBase):
+    def __init__(self, connection, agent, timeout):
+        self._connection = connection
         self._agent = agent
         self._stop = time.time() + timeout
 
     def act(self, state):
-        self._environment_service.act(self._agent.act(state))
+        socket_protocol.environment_send_act(self._connection, self._agent.act(state))
 
     def reward_and_reset(self, reward):
         score = self._agent.reward_and_reset(reward)
         if score is None:
             raise socket_protocol.Failure('no answer from agent')
-        self._environment_service.reset(score)
+        socket_protocol.environment_send_reset(self._connection, score)
         if time.time() >= self._stop:
             raise socket_protocol.Failure('timeout')
 
@@ -50,6 +50,7 @@ class _AgentService(client.Client):
         action = self._agent.reward_and_act(reward, state)
         if action is None:
             raise socket_protocol.Failure('no answer from agent')
-        self._environment_service.act(action)
+        socket_protocol.environment_send_act(self._connection, action)
 
-
+    def metrics(self):
+        return self._agent.metrics()

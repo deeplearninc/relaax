@@ -4,20 +4,23 @@ import signal
 import sys
 import time
 
+import relaax.common.metrics
+
 from ..common import algorithm_loader
 
 
-def run(yaml, bind, saver):
+def run(yaml, bind, saver, metrics):
     algorithm = algorithm_loader.load(yaml['path'])
 
     parameter_server = algorithm.ParameterServer(
         config=algorithm.Config(yaml),
-        saver=saver
+        saver=saver,
+        metrics=_Metrics(metrics, lambda: parameter_server.global_t())
     )
 
-    print('looking for checkpoint in %s ...' % parameter_server.checkpoint_place())
+    print('looking for checkpoint in %s ...' % parameter_server.checkpoint_location())
     if parameter_server.restore_latest_checkpoint():
-        print('checkpoint restored from %s' % parameter_server.checkpoint_place())
+        print('checkpoint restored from %s' % parameter_server.checkpoint_location())
         print("global_t is %d" % parameter_server.global_t())
 
     def stop_server(_1, _2):
@@ -29,7 +32,7 @@ def run(yaml, bind, saver):
     signal.signal(signal.SIGINT, stop_server)
 
     # keep the server or else GC will stop it
-    server = algorithm.start_parameter_server(bind, _Service(parameter_server))
+    server = algorithm.BridgeControl().start_parameter_server(bind, parameter_server.bridge())
 
     last_global_t = parameter_server.global_t()
     last_activity_time = None
@@ -48,13 +51,6 @@ def run(yaml, bind, saver):
             print("global_t is %d" % global_t)
 
 
-class _Service(object):
-    def __init__(self, parameter_server):
-        self.increment_global_t = parameter_server.increment_global_t
-        self.apply_gradients = parameter_server.apply_gradients
-        self.get_values = parameter_server.get_values
-
-
 def _log_uniform(lo, hi, rate):
     log_lo = math.log(lo)
     log_hi = math.log(hi)
@@ -65,7 +61,18 @@ def _log_uniform(lo, hi, rate):
 def _save(parameter_server):
     print(
         'checkpoint %d is saving to %s ...' %
-        (parameter_server.global_t(), parameter_server.checkpoint_place())
+        (parameter_server.global_t(), parameter_server.checkpoint_location())
     )
     parameter_server.save_checkpoint()
     print('done')
+
+
+class _Metrics(relaax.common.metrics.Metrics):
+    def __init__(self, metrics, global_t):
+        self._metrics = metrics
+        self._global_t = global_t
+
+    def scalar(self, name, y, x=None):
+        if x is None:
+            x = self._global_t()
+        self._metrics.scalar(name, y, x=x)

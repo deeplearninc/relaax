@@ -4,17 +4,17 @@ import numpy as np
 from lstm import CustomBasicLSTMCell
 
 
-def make_shared_network(config, thread_index):
+def make_shared_network(config):
     if config.use_LSTM:
-        network = _GameACLSTMNetworkShared(config.action_size, thread_index)
+        network = _GameACLSTMNetworkShared(config)
     else:
         network = _GameACFFNetworkShared(config)
     return network.apply_gradients(config)
 
 
-def make_full_network(config, thread_index):
+def make_full_network(config):
     if config.use_LSTM:
-        network = _GameACLSTMNetwork(config.action_size, thread_index)
+        network = _GameACLSTMNetwork(config)
     else:
         network = _GameACFFNetwork(config)
     return network.prepare_loss(config).compute_gradients(config)
@@ -103,10 +103,6 @@ class _GameACFFNetworkShared(_GameACNetwork):
         self.W_fc3 = _fc_weight_variable([256, 1])
         self.b_fc3 = _fc_bias_variable([1], 256)
 
-        self.W_fc3_copy = tf.Variable(self.W_fc3.initialized_value())
-        self.diff = tf.reduce_sum(self.W_fc3 - self.W_fc3_copy)
-        self.copy_W_fc3 = tf.assign(self.W_fc3_copy, self.W_fc3)
-
         self.values = [
             self.W_conv1,
             self.b_conv1,
@@ -144,7 +140,7 @@ class _GameACFFNetwork(_GameACFFNetworkShared):
         super(_GameACFFNetwork, self).__init__(config)
 
         # state (input)
-        self.s = tf.placeholder("float", [None, 84, 84, 4])
+        self.s = tf.placeholder("float", [None] + config.state_size + [config.history_len])
 
         h_conv1 = tf.nn.relu(_conv2d(self.s, self.W_conv1, 4) + self.b_conv1)
         h_conv2 = tf.nn.relu(_conv2d(h_conv1, self.W_conv2, 2) + self.b_conv2)
@@ -173,7 +169,7 @@ class _GameACFFNetwork(_GameACFFNetworkShared):
 
 class _GameACLSTMNetworkShared(_GameACNetwork):
 
-    def __init__(self, action_size, thread_index):
+    def __init__(self, config):
         super(_GameACLSTMNetworkShared, self).__init__()
 
         self.W_conv1 = _conv_weight_variable([8, 8, 4, 16])  # stride=4
@@ -189,15 +185,15 @@ class _GameACLSTMNetworkShared(_GameACNetwork):
         self.lstm = CustomBasicLSTMCell(256)
 
         # weight for policy output layer
-        self.W_fc2 = _fc_weight_variable([256, action_size])
-        self.b_fc2 = _fc_bias_variable([action_size], 256)
+        self.W_fc2 = _fc_weight_variable([256, config.action_size])
+        self.b_fc2 = _fc_bias_variable([config.action_size], 256)
 
         # weight for value output layer
         self.W_fc3 = _fc_weight_variable([256, 1])
         self.b_fc3 = _fc_bias_variable([1], 256)
 
         # state (input)
-        self.s = tf.placeholder("float", [None, 84, 84, 4])
+        self.s = tf.placeholder("float", [None] + config.state_size + [config.history_len])
 
         h_conv1 = tf.nn.relu(_conv2d(self.s, self.W_conv1, 4) + self.b_conv1)
         h_conv2 = tf.nn.relu(_conv2d(h_conv1, self.W_conv2, 2) + self.b_conv2)
@@ -224,12 +220,10 @@ class _GameACLSTMNetworkShared(_GameACNetwork):
             h_fc1_reshaped,
             initial_state=self.initial_lstm_state,
             sequence_length=self.step_size,
-            time_major=False,
-            scope="net_%d" % thread_index
+            time_major=False
         )
 
-    def get_vars(self):
-        return [
+        self.values = [
             self.W_conv1    , self.b_conv1  ,
             self.W_conv2    , self.b_conv2  ,
             self.W_fc1      , self.b_fc1    ,
@@ -238,12 +232,28 @@ class _GameACLSTMNetworkShared(_GameACNetwork):
             self.W_fc3      , self.b_fc3
         ]
 
+        self._placeholders = [tf.placeholder(v.dtype, v.get_shape()) for v in self.values]
+        self._assign_values = tf.group(*[
+            tf.assign(v, p) for v, p in zip(self.values, self._placeholders)
+            ])
+
+        self.gradients = [tf.placeholder(v.dtype, v.get_shape()) for v in self.values]
+        self.learning_rate_input = tf.placeholder(tf.float32)
+
+    def assign_values(self, session, values):
+        session.run(self._assign_values, feed_dict={
+            p: v for p, v in zip(self._placeholders, values)
+            })
+
+    def get_vars(self):
+        return self.values
+
 
 # Actor-Critic LSTM Network
 class _GameACLSTMNetwork(_GameACLSTMNetworkShared):
 
-    def __init__(self, action_size, thread_index):
-        super(_GameACLSTMNetwork, self).__init__(action_size, thread_index)
+    def __init__(self, config):
+        super(_GameACLSTMNetwork, self).__init__(config)
 
         # lstm_outputs: (1,5,256) for back prop, (1,1,256) for forward prop.
 
@@ -269,7 +279,7 @@ class _GameACLSTMNetwork(_GameACLSTMNetworkShared):
                                                                  self.initial_lstm_state: self.lstm_state_out,
                                                                  self.step_size: [1]})
         # pi_out: (1,3), v_out: (1)
-        return (pi_out[0], v_out[0])
+        return pi_out[0], v_out[0]
 
     def run_policy(self, sess, s_t):
         # This run_policy() is used for displaying the result with display tool.
@@ -336,4 +346,3 @@ def _fc_bias_variable(shape, input_channels):
 
 def _conv2d(x, W, stride):
     return tf.nn.conv2d(x, W, strides=[1, stride, stride, 1], padding="VALID")
-

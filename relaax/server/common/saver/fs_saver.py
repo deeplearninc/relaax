@@ -19,5 +19,5 @@ class FsSaver(saver.Saver):
             os.makedirs(self._dir)
         self._save(self._dir, session, global_step)
 
-    def place(self):
+    def location(self):
         return "'%s' dir" % self._dir

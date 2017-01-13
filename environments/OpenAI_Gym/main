@@ -31,7 +31,7 @@ def main():
     args = parser.parse_args()
 
     run(
-        rlx_server=args.rlx_server,
+        rlx_server_url=args.rlx_server,
         env=args.env,
         seed=args.seed
     )

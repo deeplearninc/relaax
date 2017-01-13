@@ -1,14 +1,24 @@
 # REinforcement Learning Algorithms, Autoscaling and eXchange (RELAAX)
 
-We expose state-of-the-art reinforcement learning algorithms in easy to use RELAAX framework. RELAAX allows your to scale training dinamically by running cluster of RL Agents on any of the popular clouds and connecting RL Environments over [Reinforcement Learning eXchange (RLX) protocol](#reinforcement-learning-exchange-protocol).
+RELAAX is a framework designed to:
 
-* [RELAAX Client](#relaax-clients) is wrapping details of the [RLX Protocol](#reinforcement-learning-exchange-protocol) implementation and exposes simple API to be used to exchange States, Rewards, and Actions between scalable RL Server and Environment.
+1. Simplify research and development of Reinforcement Learning applications and algorithms by taking care of underlying infrastructure
 
-* [RELAAX Server](#relaax-server) allow developers to run RL Agents locally or at scale on popular cloud platforms. See more details below.
+2. Provide a usable and scalable implementation of state of art Reinforcement Learning Algorithms
 
-* RELAAX provides implementations of the popular [RL algorithms](#algorithms) to simplify RL application(s) development and research.
+3. Simplify deploying of Agents and Environments for training and exploitation of the trained Agents at scale on popular cloud platforms
 
-* RELAAX comes with set of Terraform scripts which allow you to build your cluster on AWS, GCP, and Azure
+RELAAX components:
+
+* [Reinforcement Learning eXchange (RLX) protocol](#reinforcement-learning-exchange-protocol) connects RL Agents with RL Environment
+
+* [RELAAX Client](#relaax-clients) wraps details of the [RLX Protocol](#reinforcement-learning-exchange-protocol) implementation and exposes simple API to be used to exchange States, Rewards, and Actions between the scalable RL Server and Environment. 
+
+* [RELAAX Server](#relaax-server) allows developers to run RL Agents locally or at scale on popular cloud platforms. See more details below.
+
+* RELAAX provides implementations of popular [RL algorithms](#algorithms) to simplify RL application development and research. 
+
+* RELAAX is integrated into a hosted service where you can deploy your RL cluster on AWS, GCP, and Azure in just a few steps.
 
 ## Contents
 - [Quick start](#quick-start)
@@ -30,9 +40,9 @@ We expose state-of-the-art reinforcement learning algorithms in easy to use RELA
         - [Parameter Server structure](#parameter-server-structure)
         - [Parameter Server command line](#parameter-server-command-line)
     - [Algorithm](#algorithm)
-        - [Algorithm structure](#algorithm-structure)
+        - [Algorithm package structure](#algorithm-package-structure)
         - [Worker-to-Parameter Server Bridge](#worker-to-parameter-server-bridge)
-    - [Visualization](#visualization)
+    - [Metrics](#metrics)
     - [RELAAX Installation](#relaax-installation)
         - [Installation for training on cluster and for algorithm development](#installation-for-training-on-cluster-and-for-algorithm-development)
         - [Installation for RELAAX development](#installation-for-relaax-development)
@@ -47,61 +57,65 @@ We expose state-of-the-art reinforcement learning algorithms in easy to use RELA
 - [Deployment in Cloud](#deployment-in-cloud)
 
 
-## [Quick start](#contents)
+## [Quick start](#quick-start)
 
-It's recommended to use isolated Python environment to run RELAAX. Virtualenv or Anaconda are examples. If you are not going to use isolated environment use `sudo` on `pip install` commands.
+We recommended you use an isolated Python environment to run RELAAX. Virtualenv or Anaconda are examples. If you're using the system's python environment, you may need to run `pip install` commands with `sudo`. On OSX / macOS, we recommend using [Homebrew](http://brew.sh/) to install a current python version.
+
+* Install <a href="https://docs.docker.com/engine/installation/" target="_blank">Docker</a>
 
 * Clone RELAAX repo.
-```
+```bash
 git clone git@github.com:deeplearninc/relaax.git
 ```
 
 * Install RELAAX
-```
+```bash
 cd relaax
 pip install -e .
 ```
 
 * Build DA3C bridge.
-```
-algorithms/da3c/common/bridge/bridge.sh
-```
-
-* Install TensorFlow
-```
-pip install --upgrade https://storage.googleapis.com/tensorflow/linux/cpu/tensorflow-0.11.0-cp27-none-linux_x86_64.whl
+```bash
+algorithms/da3c/bridge/bridge.sh
 ```
 
-* Install [Arcade Learning Environment](https://github.com/mgbellemare/Arcade-Learning-Environment)
-
-* Download Atari ROM file boxing.bin to atari-games directory (TODO link)
-```
-cd ..
-mkdir atari-games
-cd atari-games
-```
+* Install <a href="https://www.tensorflow.org/get_started/os_setup" target="_blank">TensorFlow</a>
 
 * Create training directory
-```
+```bash
 cd ..
 mkdir training
 cd training
 ```
 
-* Open new terminal window, navigate to training directory and run parameter server
+* Build Docker image named gym (use sudo if needed):
+```bash
+docker build -f ../relaax/environments/OpenAI_Gym/Dockerfile -t gym ../relaax
 ```
-relaax-parameter-server --config ../relaax/config/da3c_ale_boxing.yaml
+
+* Open new terminal window, navigate to training directory and run parameter server
+```bash
+relaax-parameter-server --config ../relaax/config/da3c_gym_boxing.yaml
 ```
 
 * Open new terminal window, navigate to training directory and run RLX server
-```
-relaax-rlx-server --config ../relaax/config/da3c_ale_boxing.yaml
+```bash
+relaax-rlx-server --config ../relaax/config/da3c_gym_boxing.yaml --bind 0.0.0.0:7001
 ```
 
-* Open new terminal window, navigate to training directory and run environment
+* Use `ifconfig` command to find IP of your localhost. Remember it.
+
+* Open new terminal window, navigate to training directory and run environment inside gym docker image. Use sudo if needed.
+```bash
+docker run -ti gym <LOCALHOST_IP>:7001 Boxing-v0
 ```
-../relaax/environments/ALE/main --rlx-server localhost:7001 --rom ../atari-games/boxing.bin
+
+* Open new terminal window, navigate to trainin directory and run Tensorboard:
+```bash
+tensorboard --logdir metrics_gym_boxing
 ```
+
+* Tensorboard prints URL to use. Open it in browser to exemain training progress.
 
 
 ## [System Architecture](#contents)
@@ -109,58 +123,133 @@ relaax-rlx-server --config ../relaax/config/da3c_ale_boxing.yaml
 ![img](resources/RELAAX_Architecture.jpg)
 
 * Environment - computer simulation, game, or "hardware" in real world (say industrial manipulator, robot, car, etc.). To accelerate learning number of Environment(s) could be run in parallel.
-* RELAAX Client - simple library which is embedded into Environment. It collects the State and Revard in Environmet, sends it to the RELAAX Server, recieves back Action(s) and communicates it to the Environment.
-* RLX Server - listens on a port for a connection from the RELAAX Clients. After connection is accepted it starts Worker and passes control over comuniation with the client to that Worker.
+* RELAAX Client - simple library which is embedded into Environment. It collects the State and Reward in Environment, sends it to the RELAAX Server, receives back Action(s) and communicates it to the Environment.
+* RLX Server - listens on a port for a connection from the RELAAX Clients. After connection is accepted it starts Worker and passes control over communication with the client to that Worker.
 * Worker - communicates with the client and runs Agent's NN. Each parallel replica of Environment/Client will have corresponding replica of the Agent.
-* Parameter Server - one or several nodes which run Global Function NN (Q, value, or policy function). Parameter Server node(s) communicates with Workers over GRPC bridge to synchronise state of the Global Function NN with Agents.
-* CheckPoints - storage where Parameter Server saves state of the Global Function NN; when syetem is re-stared, it may restore Global Function NN state from the stored previously checkpoint and continue learning.
+* Parameter Server - one or several nodes which run Global Function NN (Q, value, or policy function). Parameter Server node(s) communicates with Workers over GRPC bridge to synchronize state of the Global Function NN with Agents.
+* CheckPoints - storage where Parameter Server saves state of the Global Function NN; when system is re-stared, it may restore Global Function NN state from the stored previously checkpoint and continue learning.
 * Metrics - Workers and Parameter Server send various metrics to the Metrics node; developer may see these metrics in Web Browser by connecting to the Metrics node.
 
 ## [RELAAX Clients](#contents)
-Client is small library used to communicate with RL Agents. It could be used with the Environment implemented in many popular programming languages or embedded into specialised hardware systems. Currently client support Arcade Learning Environments (ALE), OpenAI Gym, and OpenAI Universe Environments. At the moment client implemented in Python, later on we are planning to implement client code in C/C++, Ruby, GO, etc. to simplify integration of other environments.
+Client is small library used to communicate with RL Agents. It could be used with the Environment implemented in many popular programming languages or embedded into specialized hardware systems. Currently client support Arcade Learning Environments (ALE), OpenAI Gym, and OpenAI Universe Environments. At the moment client implemented in Python, later on we are planning to implement client code in C/C++, Ruby, GO, etc. to simplify integration of other environments.
 
 ###  [Reinforcement Learning eXchange protocol](#contents)
 
-Reinforcement Learning eXchange protocol is a simple protocol implemented over TCP using JSON (later will be moved to Protobuf). It allows to send State of the Environment and Revard to the Server and deliver Action from the Agent to the Environment.
+Reinforcement Learning eXchange protocol is a simple protocol implemented over TCP using JSON (later will be moved to Protobuf). It allows to send State of the Environment and Reward to the Server and deliver Action from the Agent to the Environment.
 
 TODO: links to actual files
 
 ```
 relaax
-  client.py
-    class Client                               - agent interface for environment
-      def act(self, state):                    - environment calls this method to start training
-      def reward_and_reset(self, reward):      - if training episode is over environment sends reward
-                                                 for current action and requests agent to reset episode
-      def reward_and_act(self, reward, state): - otherwise environment sends reward for current action
-                                                 and state for next action
+  client
+    rlx_client.py
+      class Client                          - agent interface for environment
+        def init(state)                     - start training sending initial state to agent,
+                                              returns first action from agent
+        def send(reward, state)             - send reward for previous action and current environment state,
+                                              returns next action from agent
+        def reset(reward)                   - send reward for previous action and resets agent
+                                              returns cumulative reward for last episode
+        def metrics()                       - get metrics object
+        def disconnect()                    - disconnect environment from agent
+
+      class Failure                         - raised in case of failure on agent's side
 ```
 
 
 ![img](resources/protocol-flow.png)
+<br><br>
 
 ### [Supported Environments](#contents)
 
-* [ALE](/clients/rl-client-ale)
-* [OpenAI Gym](/clients/rl-client-gym)
-* [OpenAI Universe](https://universe.openai.com/)
-* [DeepMind Lab](https://github.com/deepmind/lab)
-
 #### [Arcade-Learning-Environment](#contents)
 
-TODO: description
+The [Arcade Learning Environment (ALE)](http://www.arcadelearningenvironment.org/)
+is a framework that allows to develop AI agents for Atari 2600 games.
+It is built on top of the Atari 2600 emulator [Stella](http://stella.sourceforge.net/)
+and separates the details of emulation from agent design.
+
+1. [Install ALE.](https://github.com/mgbellemare/Arcade-Learning-Environment#quick-start)
+
+2. Run Client:
+
+    RELAAX version of ALE environment is located here:
+
+    `relaax/environments/ALE/`
+
+    To launch the client it needs to run `main` file from this directory.
+For example, launch command to run a client from a directory located next to
+`relaax` repository at the same level should looks like as follows:
+    ```bash
+    python ../relaax/environments/ALE/main --rlx-server localhost:7001 --rom ../atari-games/boxing.bin
+    ```
+
+    This command provides `--rlx_server` parameter with appropriate `host:port`
+(on which `relaax-rlx-server` was running) and a path to Atari game rom
+(some details about [roms](https://groups.google.com/forum/#!forum/arcade-learning-environment)).
+It's minimal set. It also allows to add `--seed` argument to specify initialization of the environment
+(it sets to random by default).
+
+Please find sample of configuration to run ALE there:
+`relaax/config/da3c_ale_boxing.yaml`
+
+This sample is setup for `Atari Boxing` game, which has a discrete set of actions.
+Therefore you may use discrete version of our `Distributed A3C` or set another algorithm there:
+```yml
+algorithm:
+  path: ../relaax/algorithms/da3c
+```
+
+`action_size` and `state_size` parameters for `Atari Boxing` is equal to:
+```yml
+action_size: 18                 # action size for given game rom (18 fits ale boxing)
+state_size: [84, 84]            # dimensions of input screen frame of an Atari game
+```
+You should check / change these parameter if you want to use another environment.
+<br><br>
 
 #### [OpenAI Gym](#contents)
 
 [OpenAI Gym](https://gym.openai.com/) is open-source library: a collection of test problems environments,
 that you can use to work out your reinforcement learning algorithms.
 
-1. [Installation](https://github.com/openai/gym#installation)
+1. [Install OpenAI Gym.](https://github.com/openai/gym#installation)
 
-2. TODO
+2. Run Client:
 
-3. TODO
+    RELAAX version of OpenAI Gym environment is located here:
 
+    `relaax/environments/OpenAI_Gym/`
+
+    To launch the client it needs to run `main` file from this directory.
+For example, launch command to run a client from a directory located next to
+`relaax` repository at the same level should looks like as follows
+    ```bash
+    python ../relaax/environments/OpenAI_Gym/main --rlx-server localhost:7001 --env BipedalWalker-v2
+    ```
+
+    This command provides `--rlx_server` parameter with appropriate `host:port`
+(on which `relaax-rlx-server` was running) and an environment name. It's minimal set.
+It also allows to add `--seed` argument to specify initialization of the environment
+(it sets to random by default).
+
+Please find sample of configuration to run OpenAI Gym there:
+`relaax/config/da3cc_gym_walker.yaml`
+
+This sample is setup for `BipedalWalker-v2` environment, which operates with continuous action space.
+Therefore you may use continuous version of our `Distributed A3C` or set another algorithm there:
+```yml
+algorithm:
+  path: ../relaax/algorithms/da3c_cont
+```
+
+`action_size` and `state_size` parameters for `BipedalWalker-v2` is equal to:
+```yml
+action_size: 4                  # action size for the given environment
+state_size: [24]                # array of dimensions for the input observation
+```
+You should check / change these parameter if you want to use another environment.
+<br><br>
 
 #### [DeepMind Lab](#contents)
 
@@ -173,37 +262,37 @@ on other Linux systems, please follow some [more detailed build documentation](h
 1. Install _Bazel_ by adding a custom APT repository, as described on the [Bazel homepage](https://bazel.build/versions/master/docs/install.html#ubuntu) or using an [installer](https://github.com/bazelbuild/bazel/releases).
 
 2. Install _DeepMind Lab's_ dependencies:
-    ```
+    ```bash
     $ sudo apt-get install lua5.1 liblua5.1-0-dev libffi-dev gettext \
     freeglut3-dev libsdl2-dev libosmesa6-dev python-dev python-numpy realpath
     ```
 3. Clone or download [DeepMind Lab](https://github.com/deepmind/lab).
 
 4. Build _DeepMind Lab_:
-    ```
-    $ cd lab
+    ```bash
+    cd lab
     # Build the Python interface to DeepMind Lab with OpenGL
-    lab$ bazel build :deepmind_lab.so --define headless=glx
+    bazel build :deepmind_lab.so --define headless=glx
     ```
     It can be build in headless hardware rendering mode `--define headless=glx`,
 headless software rendering mode `--define headless=osmesa` or non-headless mode `--define headless=false`.
 
 5. Check your build:
-    ```
+    ```bash
     # Build and run the tests for it
-    lab$ bazel run :python_module_test --define headless=glx
+    bazel run :python_module_test --define headless=glx
     ```
 6. Replace default agent by ours:
 
-    You can find DeepMind's `random_agent.py` there:
+    DeepMind's `random_agent.py` is created there (after build):
 
     `lab/bazel-bin/random_agent.runfiles/org_deepmind_lab/python/`
 
-    You can copy our version of `random_agent.py` from:
+    Our version of `random_agent.py` is located there:
 
-    `relaax/environments/lab/`
+    `relaax/environments/DeepMind_Lab/`
 
-    You can also replace default agent's name (`random_agent.py`)
+    You can replace the first one by ours or change default agent's name (`random_agent.py`)
 in this file:
 
     `lab/bazel-bin/random_agent.runfiles/org_deepmind_lab/random_agent`
@@ -213,26 +302,35 @@ in this file:
     `main_filename = os.path.join(module_space, 'org_deepmind_lab/python/random_agent.py')`
 
 7. Run the agent:
+    ```bash
+    cd bazel-bin/random_agent.runfiles/org_deepmind_lab
+    python random_agent --rlx_server host:port
     ```
-    lab$ cd bazel-bin/random_agent.runfiles/org_deepmind_lab
-    ...$ python random_agent --rlx_server host:port
-    ```
-    You have to pass `--rlx_server` parameter with appropriate `host:port`
-on which you run `relaax-rlx-server`. It's minimal set of what you need.
+    This command provides `--rlx_server` parameter with appropriate `host:port`
+on which `relaax-rlx-server` was running. It's minimal set of arguments.
 
-    You can also pass to the client:
+    Other options are:
 
     `--level_script tests/demo_map` - path to DeepMind's maps (string)
 
     `--fps 60` - frame per second rate (integer)
 
-We have some preconfigured (*.yaml) files to run experiments.
-
-You can find one to run DeepMind Lab there:
+Please find sample of configuration to run DeepMind Lab there:
 `relaax/config/da3c_lab_demo.yaml`
 
-You should check the `action_size` parameter, which is environment dependent.
-
+The full set for `action_size` consists of 11-types of interactions:
+- look_left
+- look_right
+- look_up
+- look_down
+- strafe_left
+- strafe_right
+- forward
+- backward
+- fire
+- jump
+- crouch
+<br><br>
 
 ## [RELAAX Server](#contents)
 
@@ -240,11 +338,11 @@ You should check the `action_size` parameter, which is environment dependent.
 
 Main purpose of RLX Server is to run agents exploring and exploiting environments. You can run several RLX Servers on several computers. Run one RLX Server per computer. RLX Server starts, opens specified port and start listening it. When next client connects to the port, RLX Server accepts connection, forks itself as new process, starts new worker to process connection from client. Accepting connection means opening new connection on other port. So relax firewall rules on RLX Server node to allow connections on arbitrary ports.
 
-RLX Server implements dynamic loading of algorithm code. Several examples of algorithms are in <relaax_repo>/algotithms. Feel free to copy and modify them according your needs.
+RLX Server implements dynamic loading of algorithm code. Several examples of algorithms are in <relaax_repo>/algorithms. Feel free to copy and modify them according your needs.
 
-RLX Server denies starting new worker in case of insufficient memory. To implement this feature on new connection RLX Server calculates mean memory consumption per child (worker) process and compares it with amount of available memory. Swap memory is not taken in account during comparison. If available memory is not enough RLX Server immediately closes new connection. Please note that typical client is trying to reconnect again in case of any network issue. This way load balancing is implemented. When load balancer routes new connection with overloaded RLX Server node RLX Server closes connection and client repeates connection attempt. Eventually connection is routed to node with enough memory and training starts. Appropriate configuration of cluster autoscaler (low memory treshould) is required to utilize this feature.
+RLX Server denies starting new worker in case of insufficient memory. To implement this feature on new connection RLX Server calculates mean memory consumption per child (worker) process and compares it with amount of available memory. Swap memory is not taken in account during comparison. If available memory is not enough RLX Server immediately closes new connection. Please note that typical client is trying to reconnect again in case of any network issue. This way load balancing and autoscaling is implemented. When load balancer routes new connection with overloaded RLX Server node RLX Server closes connection and client repeats connection attempt. Eventually, connection is routed to node with enough memory and training starts. Appropriate configuration of cluster autoscaler (based on low memory threshold) is required to utilize this feature.
 
-Another balancing feature is regular connection drop on worker side. After specified timeout worker drops connection with client on next learning episode reset. Client automaticaly reconnects to load balancer allowing even load between working RLX Server nodes.
+Another balancing feature is regular connection drop on worker side. After specified timeout worker drops connection with client on next learning episode reset. Client automatically reconnects to load balancer allowing even load between working RLX Server nodes.
 
 #### [RLX Server structure](#contents)
 
@@ -276,19 +374,18 @@ relaax
 When you install RELAAX on your node you've got `relaax-rlx-server` command.
 
 If you're going to run training locally use following command line:
-```
+```bash
 relaax-rlx-server --config config.yaml --bind localhost:7001 --parameter-server localhost:7000 --log-level WARNING
 ```
 
 If you're going to run training on cluster use following command line. There are differences in parameter-server IP and timeout to enable load balancer:
-```
+```bash
 relaax-rlx-server --config config.yaml --bind 0.0.0.0:7001 --parameter-server parameter-server:7000 --log-level WARNING --timeout 120
 ```
 
 Available options are:
-```
+```bash
   -h, --help                    show help message and exit
-  --rlx-server                  run RLX server
   --config FILE                 configuration YAML file, see below
   --log-level LEVEL             set logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
   --bind HOST:PORT              address to serve (host:port)
@@ -301,20 +398,20 @@ Available options are:
 Both RLX Server (read workers) and Parameter server shares the same configuration file. The file describes algorithm to use and algorithm specific parameters.
 
 Configuration file example (relaax/config/da3c_ale_boxing.yaml):
-```
+```yml
 ---
 # relaax-parameter-server command line
 relaax-parameter-server:
   --bind: localhost:7000
   --checkpoint-dir: checkpoints/boxing_a3c
   --log-level: WARNING
+  --metrics-dir: metrics_ale_demo
 
 # relaax-rlx-server command line
 relaax-rlx-server:
   --bind: localhost:7001
   --parameter-server: localhost:7000
   --log-level: WARNING
-  --log-dir: logs
 
 # Number and meaning of these keys depends on specific algorithm.
 # path to algorithm directory. In this case we use one from RELAAX repo. Feel free to create your own algorithm and use it for training.
@@ -365,10 +462,10 @@ Parameter Server stores Global Function NN on local file system (convenient for 
 
 Global Function NN states are stored in form of checkpoints. Each checkpoint is marked with training step number. This allows to store multiple checkpoints for the same training to investigate training progress. When Parameter Server starts it searches specified checkpoint location and loads last saved checkpoint.
 
-Parameter Server saves checkpoint if
-- it is stopped by SIGINT signal (Ctrl-C in terminal running Parameter Server for example);
-- it is idle for 10s;
-- the training is over - algorithm reports that required number of training steps are done.
+Parameter Server saves checkpoint:
+- on regular intervals, default 15 min, but it is possible to change in config.yaml
+- if the training is over - algorithm reports that required number of training steps are done
+- if it is stopped by SIGINT signal (Ctrl-C in terminal running Parameter Server for example)
 
 #### [Parameter Server structure](#contents)
 
@@ -396,17 +493,17 @@ relaax
 When you install RELAAX on your node you've got `relaax-parameter-server` command.
 
 If you're going to run training locally use following command line:
-```
+```bash
 relaax-parameter-server --config config.yaml --bind localhost:7000 --log-level WARNING --checkpoint-dir training/checkpoints --metrics-dir training/metrics
 ```
 
 If you're going to run training on cluster use following command line. There are differences in parameter-server IP and checkpoint and metrics locations:
-```
+```bash
 relaax-parameter-server --config config.yaml --bind 0.0.0.0:7000 --log-level WARNING --checkpoint-aws-s3 my_bucket training/checkpoints --aws-keys aws-keys.yaml --metrics-dir training/metrics --metrics-aws-s3 my_bucket training/metrics
 ```
 
 Available options are:
-```
+```bash
   -h, --help            show help message and exit
   --log-level LEVEL     set logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
   --config FILE         configuration YAML file
@@ -425,57 +522,68 @@ Do not use both --checkpoint-dir and --checkpoint-aws-s3 flags in the same comma
 Configuration file is the same as for RLX Server. Please use the same configuration for Parameter Server and for RLX Server. Otherwise training will fail.
 
 You need to supply credentials to allow Parameter Server to use AWS S3. aws-keys.yaml file provides them:
-```
+```yml
 ---
-access: YOUR_ACCESS_KEY_YOUR
-secret: your+secret+key+your+secret+key+your+sec
+access: YOUR_ACCESS_KEY_HERE
+secret: YOUR_SECRET_ACCESS_KEY_HERE
 ```
 
 ### [Algorithm](#contents)
 
-The structure of algorithm may vary. But generic layout is same for all algorithms. DA3C algorithm is an example.
-Algorithm is an usual Python package. But RELAAX server loads algorithms dynamically. Dynamic loading simplifies algorithm developement outside Python package structure. The path to algorithm to load is defined in config.yaml or in command line.
-
-Algorithm package exports following symbols:
+An algorithm is an usual Python package. But RELAAX server loads algorithms dynamically. Dynamic loading simplifies algorithm developement outside Python package structure. The path to selected algorithm is defined in config.yaml or in command line.
+All algorithms follow structure defined in relaax/algorithm_base directory:
 
 ```
-class Config                       - algorithm configuration
-  def __init__(..., config):       - initializes configuration from loaded config.yaml
+relaax
+  algorithm_base
+    parameter_server_base.py
+      class ParameterServerBase
+        def __init__(config, saver, metrics)             - initialize parameter server
+        def close():                                     - close parameter server
+        def restore_latest_checkpoint():                 - restore latest checkpoint
+        def save_checkpoint():                           - save new checkpoint
+        def checkpoint_location():                       - return human readable checkpoint location
+        def global_t():                                  - return current global learning step
+        def bridge():                                    - return bridge interface
 
-class ParameterServer              - implement parameter server for algorithm
-  def __init__():                  - initialize server with Config object and checkpoint saver
-  def close():                     - close server
-  def restore_latest_checkpoint(): - restore latest checkpoint using given checkpoint saver
-  def save_checkpoint():           - save checkpoint using given checkpoint saver
-  def checkpoint_place():          - get human readable checkpoint storage location
-  def global_t():                  - get current global learning step
-  def increment_global_t():        - increment current global learning step
-  def apply_gradients():           - apply gradients to Global Function NN
-  def get_values():                - get Global Function NN
+    agent_base.py
+      class AgentBase
+        def act(state):                                  - take state and get action
+        def reward_and_reset(reward):                    - take reward and reset training
+        def reward_and_act(reward, state):               - take reward and state and get action
+        def metrics():                                   - get metrics object
 
+    bridge_base.py
+      class BridgeBase
+        def increment_global_t():                        - increment current global learning step
+        def apply_gradients(gradients):                  - apply gradients to Global Function NN
+        def get_values():                                - get Global Function NN
+        def metrics():                                   - get metrics object
+
+      class BridgeControlBase
+        def parameter_server_stub(parameter_server_url): - return parameter server stub object
+        def start_parameter_server(address, service):    - start parameter server with bind address and ParameterServerService object
+
+    config_base.py
+      class ConfigBase
+        def __init__(config):                            - initializes configuration from loaded config.yaml
+```
+
+Algorithm package should exports following symbols:
+
+```python
+class Config(ConfigBase)                    - algorithm configuration
+
+class ParameterServer(ParameterServerBase)  - implement parameter server for algorithm
 TODO: simplify API
-class Agent                        - learning agent of algorithm
-  def __init__():                  - initialize agent with Config and ParameterServerService objects
-  def act():                       - take state and get action
-  def reward_and_act():            - take reward and state and get action
-  def reward_and_reset():          - take reward and reset training
+class Agent(AgentBase)                      - learning agent of algorithm
 
-class ParameterServerService       - Parameter server interface to Agent
-  def increment_global_t():        - increment current global learning step
-  def apply_gradients():           - apply gradients to Global Function NN
-  def get_values():                - get Global Function NN
+class Bridge(BridgeBase)                    - implement bridge between agent and parameter server
 
-class ParameterServerStub          - Parameter server interface stup for Agent
-                                     incapsulates GRPC service to communicate with parameter server.
-  def __init__():                  - initialize the stub with parameter server URL
-  def increment_global_t():        - increment current global learning step
-  def apply_gradients():           - apply gradients to Global Function NN
-  def get_values():                - get Global Function NN
-
-def start_parameter_server():      - start parameter server with bind address and ParameterServerService object
+class BridgeControl(BridgeControlBase)      - control bridge between agent and parameter server
 ```
 
-#### [Algorithm structure](#contents)
+#### [Algorithm package structure](#contents)
 
 TODO: links to actual files
 TODO: complete
@@ -483,13 +591,13 @@ TODO: complete
 relaax
   algorithms
     da3c
-      __init__.py                            - alrogithm API (see previous section)
+      __init__.py                            - algorithm API (see previous section)
       common
         lstm.py                              - long short-term memory NN
         network.py                           - algorithm NN
         config.py
           class Config                       - algorithm configuration
-            def __init__(..., config):       - initializes configuration from loaded config.yaml
+            def __init__(config):            - initializes configuration from loaded config.yaml
 
         bridge
           bridge.sh                          - script to compile GRPC bridge
@@ -499,21 +607,13 @@ relaax
               rpc IncrementGlobalT()         - increment and get current global learning step
               rpc ApplyGradients()           - apply gradients to Global Function NN
               rpc GetValues()                - get Global Function NN
+              rpc StoreScalarMetric()        - store scalar metrics value
 
           bridge.py                          - data bridge between rlx_server and parameter server
                                                wrap GRPC service defined in bridge.proto
-            class ParameterServerService     - Parameter server interface to Agent
-              def increment_global_t():      - increment current global learning step
-              def apply_gradients():         - apply gradients to Global Function NN
-              def get_values():              - get Global Function NN
-
-            class ParameterServerStub        - Parameter server interface stup for Agent
-                                               incapsulates GRPC service to communicate with parameter server.
-              def increment_global_t():      - increment current global learning step
-              def apply_gradients():         - apply gradients to Global Function NN
-              def get_values():              - get Global Function NN
-
-            def start_parameter_server():    - start parameter server with bind address and ParameterServerService object
+            class BridgeControl
+              def parameter_server_stub():   - return parameter server stub object (BridgeBase)
+              def start_parameter_server():  - start parameter server with bind address and BridgeBase object
 
       agent
         agent.py
@@ -521,6 +621,7 @@ relaax
             def act():                       - take state and get action
             def reward_and_act():            - take reward and state and get action
             def reward_and_reset():          - take reward and reset training
+            def metrics():                   - get metrics object
 
         network.py                           - agent's facet of algorithm NN
           def make():                        - make agent's part of algorithm NN
@@ -531,20 +632,19 @@ relaax
 
         parameter_server.py
           class ParameterServer              - implement parameter server for algorithm
+            def __init__():                  - create new server
             def close():                     - close server
             def restore_latest_checkpoint(): - restore latest checkpoint using given checkpoint saver
             def save_checkpoint():           - save checkpoint using given checkpoint saver
-            def checkpoint_place():          - get human readable checkpoint storage location
+            def checkpoint_location():       - get human readable checkpoint storage location
             def global_t():                  - get current global learning step
-            def increment_global_t():        - increment current global learning step
-            def apply_gradients():           - apply gradients to Global Function NN
-            def get_values():                - get Global Function NN
+            def bridge():                    - return bridge interface
 
 ```
 
 #### [Worker-to-Parameter Server Bridge](#contents)
 
-The purpose of the bridge is to provide data transport between workers and Parameter Server. Each worker and Parameter Server has it's own copy of Global Function NN. The bridge provides means of synchronzation of these Global Functions and allows to distribute training process across different processes on different computational nodes.
+The purpose of the bridge is to provide data transport between workers and Parameter Server. Each worker and Parameter Server has it's own copy of Global Function NN. The bridge provides means of synchronization of these Global Functions and allows to distribute training process across different processes on different computational nodes.
 
 Bridge is part of algorithm. Bridge is implemented as thin wrapper on GRPC service.
 
@@ -554,12 +654,13 @@ service ParameterServer {
     rpc IncrementGlobalT(NullMessage) returns (Step) {}
     rpc ApplyGradients(NdArrays) returns (NullMessage) {}
     rpc GetValues(NullMessage) returns (NdArrays) {}
+    rpc StoreScalarMetric(ScalarMetric) returns (NullMessage) {}
 }
 ```
 
 Corresponding Parameter Server API looks like (relaax/algorithms/da3c/common/bridge/__init__.py):
-```
-class PsService(object):
+```python
+class ParameterServerService(object):
     def increment_global_t(self):
         # increments learning step on Parameter Server
         return global_t
@@ -570,15 +671,31 @@ class PsService(object):
     def get_values(self):
         # pulls Global Function NN from Parameter Server to Agent
         return values
+
+    def metrics():
+        # get metrics object
+        return metrics_object
 ```
 
-### [Visualization](#contents)
+### [Metrics](#contents)
 
-Metrics is a way to gather information about training process in time. RELAAX uses TensorFlow to gather metrics and TensorBoard to present them.
-Metrics could be gathered from Parameter Server, workers (agents) and environments (clients). The API is the same in all three cases:
+Metrics is a way to gather information about training process in time. RELAAX uses TensorFlow to gather metrics and TensorBoard to present them. Metrics could be gathered from Parameter Server, workers (agents) and environments (clients).
+
+Parameter server:
+```python
+self.metrics().scalar('training_velocity', velocity, x=parameter_server.global_t())
 ```
-relaax.store_metrics('average_training_reward', average_training_reward)
+
+Agent:
+```python
+self.metrics().scalar('act latency', latency, x=agent.global_t)
 ```
+
+Environment:
+```python
+client.metrics().scalar('act latency on client', latency)
+```
+
 This call stores metrics with given name and value. All metrices are stored as mappings from training global step to given values.
 All metrices could be browsed in realtime during training by TensorBoard attached to training cluster or to local training.
 
@@ -605,12 +722,12 @@ It's recommended to use isolated Python environment to run RELAAX. Virtualenv or
 * Install TensorFlow (TODO: link)
 
 * To install training environment clone RELAAX Git repository:
-```
-git clone TODO: add repo path
+```bash
+git clone git@github.com:deeplearninc/relaax.git
 ```
 
 * Then navigate repository root and install relaax package and all depended packages:
-```
+```bash
 cd <relaax_repo>
 pip install .
 ```
@@ -624,18 +741,20 @@ If you are going to modify RELAAX code itself then install it in "develop mode".
 * Install TensorFlow (TODO: link)
 
 * clone RELAAX Git repository:
-```
+```bash
 git clone TODO: add repo path
 ```
 
 * Then navigate repository root and install relaax package and all depended packages:
-```
+```bash
 cd <relaax_repo>
 pip install -e .
 ```
 
 * Build algorithm bridges
-`<relaax_repo>/relaax/algorithms/bridge.sh`
+```bash
+<relaax_repo>/relaax/algorithms/bridge.sh
+```
 
 
 

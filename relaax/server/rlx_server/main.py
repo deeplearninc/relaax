@@ -20,7 +20,6 @@ def main():
     parser.add_argument('--config', type=str, default=None, help='parameters YAML file')
     parser.add_argument('--bind', type=str, default=None, help='address to serve (host:port)')
     parser.add_argument('--parameter-server', type=str, default=None, help='parameter server address (host:port)')
-    parser.add_argument('--log-dir', type=str, default=None, help='TensorBoard log directory')
     parser.add_argument('--timeout', type=float, default=None, help='Agent stops on game reset after given timeout')
     args = parser.parse_args()
 
@@ -44,8 +43,6 @@ def main():
             args.bind = cmdl['--bind']
         if args.parameter_server is None and '--parameter-server' in cmdl:
             args.parameter_server = cmdl['--parameter-server']
-        if args.log_dir is None and '--log-dir' in cmdl:
-            args.log_dir = cmdl['--log-dir']
         if args.timeout is None:
             if '--timeout' in cmdl:
                 args.timeout = cmdl['--timeout']
@@ -55,7 +52,6 @@ def main():
     relaax.server.rlx_server.server.run(
         bind_address=args.bind,
         yaml=yaml['algorithm'],
-        parameter_server=args.parameter_server,
-        log_dir=args.log_dir,
+        parameter_server_url=args.parameter_server,
         timeout=args.timeout
     )
