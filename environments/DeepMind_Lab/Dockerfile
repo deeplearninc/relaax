@@ -131,6 +131,7 @@ COPY resources /opt/relaax/resources
 COPY README.md /opt/relaax/
 COPY setup.py /opt/relaax/
 
+WORKDIR /opt/relaax
 RUN pip install -e .
 RUN mv opt/relaax/environments/DeepMind_Lab/random_agent.py /opt/lab/bazel-bin/random_agent.runfiles/org_deepmind_lab/python/random_agent.py
 
