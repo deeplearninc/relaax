@@ -19,6 +19,10 @@ RUN apt-get update \
         python-software-properties \
         # my add
         git \
+        libjpeg-dev \
+        libblas-dev \
+        liblapack-dev \
+        gfortran \
     # lab ======= end
     && apt-get install -y --force-yes --no-install-recommends \
         supervisor \
@@ -41,6 +45,7 @@ RUN apt-get update \
 # Install the fcwu
 WORKDIR /opt
 RUN git clone https://github.com/fcwu/docker-ubuntu-vnc-desktop.git
+RUN pip install -U pip
 # my end
 
 #ADD web /web/
@@ -114,6 +119,7 @@ RUN bazel build :deepmind_lab.so --define headless=osmesa
 #RUN bazel run :random_agent --define headless=false
 
 RUN mkdir /opt/relaax
+RUN pip install Cython
 
 # Add RELAAX to the image
 COPY algorithms /opt/relaax/algorithms
@@ -124,6 +130,9 @@ COPY relaax /opt/relaax/relaax
 COPY resources /opt/relaax/resources
 COPY README.md /opt/relaax/
 COPY setup.py /opt/relaax/
+
+RUN pip install -e .
+RUN mv opt/relaax/environments/DeepMind_Lab/random_agent.py /opt/lab/bazel-bin/random_agent.runfiles/org_deepmind_lab/python/random_agent.py
 
 EXPOSE 6080
 WORKDIR /root
