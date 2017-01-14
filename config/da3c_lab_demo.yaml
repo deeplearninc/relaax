@@ -15,7 +15,7 @@ relaax-parameter-server:
   --metrics-dir: metrics_lab_demo
 
 relaax-rlx-server:
-  --bind: localhost:7001
+  --bind: 0.0.0.0:7001
   --parameter-server: localhost:7000
   --log-level: WARNING
 

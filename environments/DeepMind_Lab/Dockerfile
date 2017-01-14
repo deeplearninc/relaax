@@ -63,13 +63,13 @@ RUN cp -R noVNC/ /noVNC/
 #ADD nginx.conf /etc/nginx/sites-enabled/default
 RUN cp nginx.conf /etc/nginx/sites-enabled/default
 #ADD startup.sh /
-RUN cp startup.sh /
+#RUN cp startup.sh /
 #ADD supervisord.conf /etc/supervisor/conf.d/
 RUN cp supervisord.conf /etc/supervisor/conf.d/
 #ADD doro-lxde-wallpapers /usr/share/doro-lxde-wallpapers/
 RUN cp -R doro-lxde-wallpapers/ /usr/share/doro-lxde-wallpapers/
 #ADD gtkrc-2.0 /home/ubuntu/.gtkrc-2.0
-RUN mkdir /home/ubuntu
+#RUN mkdir /home/ubuntu
 RUN mv gtkrc-2.0 /home/ubuntu/.gtkrc-2.0
 
 # lab ======= beg
@@ -115,7 +115,7 @@ RUN git clone https://github.com/deepmind/lab.git
 
 WORKDIR /opt/lab
 RUN bazel build :deepmind_lab.so --define headless=osmesa
-# headless=glx
+# headless=glx or osmesa for random
 #RUN bazel run :random_agent --define headless=false
 
 RUN mkdir /opt/relaax
@@ -133,8 +133,11 @@ COPY setup.py /opt/relaax/
 
 WORKDIR /opt/relaax
 RUN pip install -e .
-RUN mv opt/relaax/environments/DeepMind_Lab/random_agent.py /opt/lab/bazel-bin/random_agent.runfiles/org_deepmind_lab/python/random_agent.py
+#RUN mv /opt/relaax/environments/DeepMind_Lab/random_agent.py /opt/lab/bazel-bin/random_agent.runfiles/org_deepmind_lab/python/random_agent.py
 
+RUN cp /opt/relaax/environments/DeepMind_Lab/startup.sh /
 EXPOSE 6080
 WORKDIR /root
 ENTRYPOINT ["/startup.sh"]
+#RUN chmod +x "/x.sh"
+#RUN /x.sh

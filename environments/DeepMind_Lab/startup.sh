@@ -1,5 +1,9 @@
 #!/bin/bash
 
+echo "Initialization...please wait 1 minute"
+cd /opt/lab && bazel run :random_agent --define headless=false &>/dev/null
+mv /opt/relaax/environments/DeepMind_Lab/random_agent.py /opt/lab/bazel-bin/random_agent.runfiles/org_deepmind_lab/python/random_agent.py
+
 mkdir -p /var/run/sshd
 
 # create an ubuntu user
@@ -11,6 +15,16 @@ echo "ubuntu:$PASS" | chpasswd
 sudo -u ubuntu -i bash -c "mkdir -p /home/ubuntu/.config/pcmanfm/LXDE/ \
     && cp /usr/share/doro-lxde-wallpapers/desktop-items-0.conf /home/ubuntu/.config/pcmanfm/LXDE/"
 
+#echo "Run the AGENT......."
+#cd /opt/lab/bazel-bin/random_agent.runfiles/org_deepmind_lab
+#if [ -z "$2" ]
+#  then
+#    ./random_agent --rlx-server $1
+#else
+#    ./random_agent --rlx-server $1 --display $2
+#fi
+
+echo "Initialize Web UI"
 cd /web && ./run.py > /var/log/web.log 2>&1 &
 nginx -c /etc/nginx/nginx.conf
 exec /bin/tini -- /usr/bin/supervisord -n
