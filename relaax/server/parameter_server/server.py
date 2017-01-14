@@ -30,6 +30,7 @@ def run(yaml, bind, saver, metrics):
         sys.exit(0)
 
     signal.signal(signal.SIGINT, stop_server)
+    signal.signal(signal.SIGTERM, stop_server)
 
     # keep the server or else GC will stop it
     server = algorithm.BridgeControl().start_parameter_server(bind, parameter_server.bridge())
