@@ -22,6 +22,11 @@ algorithms/da3c/bridge/bridge.sh
 
 * Install <a href="https://www.tensorflow.org/get_started/os_setup" target="_blank">TensorFlow</a>
 
+* Install Honcho
+```bash
+pip install honcho
+```
+
 * Create training directory
 ```bash
 cd ..
@@ -29,31 +34,27 @@ mkdir training
 cd training
 ```
 
-* Build Docker image named gym (use sudo if needed):
+* Pull DeepMind Lab demo docker
 ```bash
-docker build -f ../relaax/environments/OpenAI_Gym/Dockerfile -t gym ../relaax
+docker pull 4skynet/lab-rlx
 ```
 
-* Open new terminal window, navigate to training directory and run parameter server
+* Open new terminal window, navigate to training directory and run honcho:
 ```bash
-relaax-parameter-server --config ../relaax/config/da3c_gym_boxing.yaml
-```
-
-* Open new terminal window, navigate to training directory and run RLX server
-```bash
-relaax-rlx-server --config ../relaax/config/da3c_gym_boxing.yaml --bind 0.0.0.0:7001
+honcho -f ../relaax/config/da3c_lab_demo.Procfile start
 ```
 
 * Use `ifconfig` command to find IP of your localhost. Remember it.
 
 * Open new terminal window, navigate to training directory and run environment inside gym docker image. Use sudo if needed.
 ```bash
-docker run -ti gym <LOCALHOST_IP>:7001 Boxing-v0
+docker run -ti -p 6080:6080 4skynet/lab-rlx
 ```
 
-* Open new terminal window, navigate to trainin directory and run Tensorboard:
-```bash
-tensorboard --logdir metrics_gym_boxing
-```
+* Open http://127.0.0.1:6080/vnc.html URL in browser.
+You will see web form to enter your credentials. Leave all fields intact and press 'Connect'.
+You will see LXDE Linux desktop.
+Press "Start" button -> "Accessories" -> "LXTerminal".
+Run `(cd /opt/lab/bazel-bin/random_agent.runfiles/org_deepmind_lab && ./random_agent --rlx-server <LOCALHOST_IP>:7001 --display true)`.
 
-* Tensorboard prints URL to use. Open it in browser to exemain training progress.
+* Browse TensorBoard output using `http://localhost:6006` URL.
