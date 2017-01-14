@@ -83,7 +83,7 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
             print("sigma=", sig_)
             print(" V=", value_)
 
-        self.metrics().scalar('act latency', time.time() - start, x=self.global_t)
+        self.metrics().scalar('server latency', time.time() - start, x=self.global_t)
 
         return action
 

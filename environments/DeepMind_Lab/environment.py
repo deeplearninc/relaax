@@ -41,7 +41,7 @@ def run(rlx_server_url, level, width, height, display, fps, frame_skip):
 def _send(client, reward, state):
     start = time.time()
     action = client.send(reward, state)
-    client.metrics().scalar('act/latency on client', time.time() - start)
+    client.metrics().scalar('client latency', time.time() - start)
     return action
 
 
