@@ -49,7 +49,12 @@ docker run -ti -p 6080:6080 4skynet/lab-rlx
 * Open http://127.0.0.1:6080/vnc.html URL in browser.
 You will see web form to enter your credentials. Leave all fields intact and press 'Connect'.
 You will see LXDE Linux desktop.
-Press "Start" button -> "Accessories" -> "LXTerminal".
-Run `(cd /opt/lab/bazel-bin/random_agent.runfiles/org_deepmind_lab && ./random_agent --rlx-server <LOCALHOST_IP>:7001 --display true)`.
+Press "Start" button -> "Accessories" -> "LXTerminal". Then run:
+
+  ```bash
+  cd /opt/lab/bazel-bin/random_agent.runfiles/org_deepmind_lab && \
+    ./random_agent --rlx-server LOCALHOST_IP:7001 --display true
+  ```
+Replacing `LOCALHOST_IP` with your localhost IP from above.
 
 * Browse TensorBoard output using `http://localhost:6006` URL.
