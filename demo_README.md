@@ -34,6 +34,8 @@ cd training
 docker pull 4skynet/lab-rlx
 ```
 
+* If you are going to use trained checkpoint downloaded it from here: <a href="https://s3.amazonaws.com/dl-checkpoints/lab_demo_checkpoints.tar.gz" target="_blank">lab_demo_checkpoints.tar.gz</a>. Unpack it to training directory.
+
 * Open new terminal window, navigate to training directory and run honcho:
 ```bash
 honcho -f ../relaax/config/da3c_lab_demo.Procfile start
