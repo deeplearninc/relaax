@@ -18,7 +18,8 @@ setup(
         'boto3',
         'pillow',
         'scipy',
-        'psutil'
+        'psutil',
+        'honcho'
     ],
     provides=['relaax'],
     scripts=[

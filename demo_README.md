@@ -22,11 +22,6 @@ algorithms/da3c/bridge/bridge.sh
 
 * Install <a href="https://www.tensorflow.org/get_started/os_setup" target="_blank">TensorFlow</a>
 
-* Install Honcho
-```bash
-pip install honcho
-```
-
 * Create training directory
 ```bash
 cd ..
