@@ -90,7 +90,7 @@ class _Metrics(relaax.common.metrics.Metrics):
     def __init__(self, metrics_dir):
         self._summaries = {}
         self._graph = tf.Graph()
-        self._writer = tf.train.SummaryWriter(metrics_dir, self._graph)
+        self._writer = tf.summary.FileWriter(metrics_dir, self._graph)
         self._session = tf.Session(graph=self._graph)
 
     def scalar(self, name, y, x=None):
@@ -99,7 +99,7 @@ class _Metrics(relaax.common.metrics.Metrics):
                 placeholder = tf.placeholder(tf.float64)
                 self._summaries[name] = (
                     placeholder,
-                    tf.scalar_summary(name, placeholder)
+                    tf.summary.scalar(name, placeholder)
                 )
             placeholder, summary = self._summaries[name]
             self._writer.add_summary(
