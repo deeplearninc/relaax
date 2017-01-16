@@ -1,0 +1,6 @@
+#!/bin/bash
+
+rlx_url=$(cat /run_env.rlx-server-url)
+
+(cd /opt/lab/bazel-bin/random_agent.runfiles/org_deepmind_lab && ./random_agent --rlx-server $rlx_url:7001 --display true)
+

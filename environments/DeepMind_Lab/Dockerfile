@@ -136,6 +136,9 @@ RUN pip install -e .
 #RUN mv /opt/relaax/environments/DeepMind_Lab/random_agent.py /opt/lab/bazel-bin/random_agent.runfiles/org_deepmind_lab/python/random_agent.py
 
 RUN cp /opt/relaax/environments/DeepMind_Lab/startup.sh /
+RUN cp /opt/relaax/environments/DeepMind_Lab/run_env /
+RUN mkdir -p /home/ubuntu/.config/autostart
+RUN cp /opt/relaax/environments/DeepMind_Lab/run_env.desktop /home/ubuntu/.config/autostart/run_env.desktop
 EXPOSE 6080
 WORKDIR /root
 ENTRYPOINT ["/startup.sh"]
