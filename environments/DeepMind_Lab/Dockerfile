@@ -65,7 +65,7 @@ RUN cp nginx.conf /etc/nginx/sites-enabled/default
 #ADD startup.sh /
 #RUN cp startup.sh /
 #ADD supervisord.conf /etc/supervisor/conf.d/
-RUN cp supervisord.conf /etc/supervisor/conf.d/
+#RUN cp supervisord.conf /etc/supervisor/conf.d/
 #ADD doro-lxde-wallpapers /usr/share/doro-lxde-wallpapers/
 RUN cp -R doro-lxde-wallpapers/ /usr/share/doro-lxde-wallpapers/
 #ADD gtkrc-2.0 /home/ubuntu/.gtkrc-2.0
@@ -136,6 +136,7 @@ RUN pip install -e .
 #RUN mv /opt/relaax/environments/DeepMind_Lab/random_agent.py /opt/lab/bazel-bin/random_agent.runfiles/org_deepmind_lab/python/random_agent.py
 
 RUN cp /opt/relaax/environments/DeepMind_Lab/startup.sh /
+RUN cp /opt/relaax/environments/DeepMind_Lab/supervisord.conf /etc/supervisor/conf.d/
 EXPOSE 6080
 WORKDIR /root
 ENTRYPOINT ["/startup.sh"]
