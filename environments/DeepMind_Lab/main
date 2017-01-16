@@ -43,6 +43,8 @@ def main():
                         help='Activate display screen size')
     parser.add_argument('--frame-skip', type=int, default=4,
                         help='The number of frames to skip between successive observations')
+    parser.add_argument('--shrink', type=bool, default=True,
+                        help='Shrink the action size to reduce the exploration (labyrinth)')
 
     args = parser.parse_args()
     if args.runfiles_path:
@@ -55,7 +57,8 @@ def main():
         height=args.height,
         display=args.display,
         fps=args.fps,
-        frame_skip=args.frame_skip
+        frame_skip=args.frame_skip,
+        shrink=args.shrink
     )
 
 

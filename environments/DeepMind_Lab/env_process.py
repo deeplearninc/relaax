@@ -6,14 +6,15 @@ from scipy.misc import imresize
 
 
 class GameProcessFactory(object):
-    def __init__(self, level, width, height, display):
+    def __init__(self, level, width, height, display, shrink):
         self._level = level
         self._width = width
         self._height = height
         self._display = display
+        self._shrink = shrink
 
     def new_env(self, seed, frame_skip):
-        return _GameProcess(seed, self._level, self._width, self._height, frame_skip, self._display)
+        return _GameProcess(seed, self._level, self._width, self._height, frame_skip, self._display, self._shrink)
 
     def new_display_env(self, seed, frame_skip):
         return _GameProcess(seed, self._level, self._width, self._height, frame_skip, display=True, no_op_max=0)
@@ -39,12 +40,15 @@ class _GameProcess(object):
     }
     ACTION_LIST = ACTIONS.values()
 
-    def __init__(self, fps, level, width, height, frame_skip, display=False, no_op_max=7):
+    CONVERT = {0: 0, 1: 9, 2: 10, 3: 3, 4: 9, 5: 0, 6: 6, 7: 6, 8: 8, 9: 9, 10: 10}
+
+    def __init__(self, fps, level, width, height, frame_skip, display=False, shrink=True, no_op_max=7):
         self._frame_skip = frame_skip
         self._no_op_max = no_op_max
         self._width = width
         self._height = height
         self._display = display
+        self._shrink = shrink
         if display:
             width = 640
             height = 480
@@ -64,6 +68,8 @@ class _GameProcess(object):
         return self.s_t
 
     def act(self, action):
+        if self._shrink:
+            action = _GameProcess.CONVERT[action]
         reward, terminal, self.s_t = self._process_frame(_GameProcess.ACTION_LIST[action])
         return reward, terminal
 
