@@ -33,7 +33,7 @@ def main():
                         help='Horizontal size of the observations')
     parser.add_argument('--height', type=int, default=84,
                         help='Vertical size of the observations')
-    parser.add_argument('--fps', type=int, default=60,
+    parser.add_argument('--fps', type=int, default=20,
                         help='Number of frames per second')
     parser.add_argument('--runfiles-path', type=str, default=None,
                         help='Set the runfiles path to find DeepMind Lab data')

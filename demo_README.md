@@ -31,7 +31,7 @@ cd training
 
 * Pull DeepMind Lab demo docker
 ```bash
-docker pull 4skynet/lab-rlx
+docker pull 4skynet/lab
 ```
 
 * If you are going to use trained checkpoint downloaded it from here: <a href="https://s3.amazonaws.com/dl-checkpoints/lab_demo_checkpoints.tar.gz" target="_blank">lab_demo_checkpoints.tar.gz</a>. Unpack it to training directory.
@@ -45,7 +45,7 @@ honcho -f ../relaax/config/da3c_lab_demo.Procfile start
 
 * Open new terminal window and run environment inside docker image. Use sudo if needed.
 ```bash
-docker run -ti -p 6080:6080 4skynet/lab-rlx LOCALHOST_IP
+docker run -ti -p 6080:6080 4skynet/lab LOCALHOST_IP
 ```
 Replacing `LOCALHOST_IP` with your localhost IP from above.
 
