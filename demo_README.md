@@ -41,13 +41,10 @@ docker pull 4skynet/lab
 honcho -f ../relaax/config/da3c_lab_demo.Procfile start
 ```
 
-* Use `ifconfig` command to find IP of your localhost. Remember it.
-
 * Open new terminal window and run environment inside docker image. Use sudo if needed.
 ```bash
-docker run -ti -p 6080:6080 4skynet/lab LOCALHOST_IP
+docker run --net="host" -ti 4skynet/lab localhost
 ```
-Replacing `LOCALHOST_IP` with your localhost IP from above.
 
 * Open http://127.0.0.1:6080/vnc.html URL in browser.
 You will see web form to enter your credentials. Leave all fields intact and press 'Connect'.
