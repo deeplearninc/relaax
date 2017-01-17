@@ -137,6 +137,10 @@ RUN pip install -e .
 
 RUN cp /opt/relaax/environments/DeepMind_Lab/startup.sh /
 RUN cp /opt/relaax/environments/DeepMind_Lab/supervisord.conf /etc/supervisor/conf.d/
+RUN cp /opt/relaax/environments/DeepMind_Lab/run_env /
+RUN mkdir -p /home/ubuntu/.config/autostart
+RUN cp /opt/relaax/environments/DeepMind_Lab/run_env.desktop /home/ubuntu/.config/autostart/run_env.desktop
+
 EXPOSE 6080
 WORKDIR /root
 ENTRYPOINT ["/startup.sh"]

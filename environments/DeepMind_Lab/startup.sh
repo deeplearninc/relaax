@@ -24,6 +24,8 @@ sudo -u ubuntu -i bash -c "mkdir -p /home/ubuntu/.config/pcmanfm/LXDE/ \
 #    ./random_agent --rlx-server $1 --display $2
 #fi
 
+echo $1 > /run_env.rlx-server-url
+
 echo "Initialize Web UI"
 cd /web && ./run.py > /var/log/web.log 2>&1 &
 nginx -c /etc/nginx/nginx.conf
