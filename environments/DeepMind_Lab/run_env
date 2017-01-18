@@ -18,5 +18,5 @@ then
     (cd /opt/lab/bazel-bin/random_agent.runfiles/org_deepmind_lab && ./random_agent --rlx-server $rlx_url:7001 &)
     done
 else
-    echo "Your pass a wrong arguments... please, relaunch the docker with the right one"
+    echo "You've passed a wrong arguments... Please, relaunch the docker with the right one"
 fi
