@@ -1,6 +1,22 @@
 #!/bin/bash
 
 rlx_url=$(cat /run_env.rlx-server-url)
+regime=$(cat /run_env.regime)
+number='^[0-9]+$'
 
-(cd /opt/lab/bazel-bin/random_agent.runfiles/org_deepmind_lab && ./random_agent --rlx-server $rlx_url:7001 --display true)
-
+if [ -z "$regime" ]
+then
+    (cd /opt/lab/bazel-bin/random_agent.runfiles/org_deepmind_lab && ./random_agent --rlx-server $rlx_url:7001)
+elif [ "$regime" == "display" ]
+then
+    (cd /opt/lab/bazel-bin/random_agent.runfiles/org_deepmind_lab && ./random_agent --rlx-server $rlx_url:7001 --display true)
+#elif [[ $regime =~ $number ]]
+elif [ "$regime" -eq "$regime" ]
+then
+    for i in `seq 0 $((regime - 1))`;
+    do
+    (cd /opt/lab/bazel-bin/random_agent.runfiles/org_deepmind_lab && ./random_agent --rlx-server $rlx_url:7001 &)
+    done
+else
+    echo "Your pass a wrong arguments... please, relaunch the docker with the right one"
+fi
