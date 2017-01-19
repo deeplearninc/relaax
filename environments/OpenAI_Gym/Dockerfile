@@ -22,21 +22,17 @@ RUN apt-get update \
         git \
         xvfb \
         x11vnc \
-        # aux below
+        # additional things
         ratpoison \
         libvncserver-dev \
-        net-tools \
-        nano \
+    && pip install -U pip \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /root/.cache/pip/
 
-RUN pip install -U pip
-
 # Install the OpenAI Gym
 WORKDIR /opt
-RUN git clone https://github.com/openai/gym.git && pip install -e './gym[all]'
-
-RUN mkdir /opt/relaax
+RUN git clone https://github.com/openai/gym.git && pip install -e './gym[all]' \
+    && mkdir /opt/relaax
 
 # Add RELAAX to the image
 COPY algorithms /opt/relaax/algorithms
@@ -44,14 +40,12 @@ COPY bin /opt/relaax/bin
 COPY config /opt/relaax/config
 COPY environments /opt/relaax/environments
 COPY relaax /opt/relaax/relaax
-COPY resources /opt/relaax/resources
-COPY README.md /opt/relaax/
 COPY setup.py /opt/relaax/
 
 # Xvnc
 EXPOSE 5900
 
 WORKDIR /opt/relaax/environments/OpenAI_Gym
-RUN chmod +x "start.sh"
-RUN chmod +x "x.sh"
+RUN chmod +x "start.sh" \
+    && chmod +x "x.sh"
 ENTRYPOINT ["/opt/relaax/environments/OpenAI_Gym/start.sh"]

@@ -6,7 +6,7 @@
 # open three terminals there and run:
 # relaax-parameter-server --config ../relaax/config/da3c_lab_demo.yaml
 # relaax-rlx-server --config ../relaax/config/da3c_lab_demo.yaml
-
+# ./random_agent --rlx-server localhost:7001
 
 relaax-parameter-server:
   --bind: localhost:7000

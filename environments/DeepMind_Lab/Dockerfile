@@ -10,20 +10,19 @@ RUN apt-get update \
     && curl -SL http://download.opensuse.org/repositories/home:Horst3180/xUbuntu_16.04/Release.key | sudo apt-key add - \
     && add-apt-repository ppa:fcwu-tw/ppa \
     && apt-get update \
-    # lab ======= beg
     && apt-get install -y \
+        # additional dependencies
         curl \
         zip \
         unzip \
         software-properties-common \
         python-software-properties \
-        # my add
+        # relaax dependencies
         git \
         libjpeg-dev \
         libblas-dev \
         liblapack-dev \
         gfortran \
-    # lab ======= end
     && apt-get install -y --force-yes --no-install-recommends \
         supervisor \
         openssh-server pwgen sudo vim-tiny \
@@ -37,47 +36,30 @@ RUN apt-get update \
         python-pip python-dev build-essential \
         mesa-utils libgl1-mesa-dri \
         gnome-themes-standard gtk2-engines-pixbuf gtk2-engines-murrine pinta arc-theme \
-    && apt-get autoclean \
-    && apt-get autoremove \
-    && rm -rf /var/lib/apt/lists/*
+    && pip install -U pip \
+    && pip install Cython
 
-# my add
-# Install the fcwu
+# Install the fcwu (vnc desktop)
 WORKDIR /opt
 RUN git clone https://github.com/fcwu/docker-ubuntu-vnc-desktop.git
-RUN pip install -U pip
-# my end
 
-#ADD web /web/
 WORKDIR /opt/docker-ubuntu-vnc-desktop
-RUN cp -R web/ /web/
-RUN pip install setuptools wheel && pip install -r /web/requirements.txt
+RUN cp -R web/ /web/ \
+    && pip install setuptools wheel \
+    && pip install -r /web/requirements.txt
 
 # tini for subreap
 ENV TINI_VERSION v0.9.0
 ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini /bin/tini
-RUN chmod +x /bin/tini
+RUN chmod +x /bin/tini \
+    && cp -R noVNC/ /noVNC/ \
+    && cp nginx.conf /etc/nginx/sites-enabled/default \
+    && cp -R doro-lxde-wallpapers/ /usr/share/doro-lxde-wallpapers/ \
+    && mv gtkrc-2.0 /home/ubuntu/.gtkrc-2.0
 
-#ADD noVNC /noVNC/
-RUN cp -R noVNC/ /noVNC/
-#ADD nginx.conf /etc/nginx/sites-enabled/default
-RUN cp nginx.conf /etc/nginx/sites-enabled/default
-#ADD startup.sh /
-#RUN cp startup.sh /
-#ADD supervisord.conf /etc/supervisor/conf.d/
-#RUN cp supervisord.conf /etc/supervisor/conf.d/
-#ADD doro-lxde-wallpapers /usr/share/doro-lxde-wallpapers/
-RUN cp -R doro-lxde-wallpapers/ /usr/share/doro-lxde-wallpapers/
-#ADD gtkrc-2.0 /home/ubuntu/.gtkrc-2.0
-#RUN mkdir /home/ubuntu
-RUN mv gtkrc-2.0 /home/ubuntu/.gtkrc-2.0
-
-# lab ======= beg
+# install java for bazel
 RUN add-apt-repository -y ppa:openjdk-r/ppa && \
-    apt-get update && \
     apt-get install -y openjdk-8-jdk openjdk-8-jre-headless && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/* && \
     which java && \
     java -version && \
     update-ca-certificates -f
@@ -94,32 +76,30 @@ RUN mkdir /bazel && \
     rm -f /bazel/bazel-$BAZEL_VERSION-installer-linux-x86_64.sh
 
 # Install deepmind-lab dependencies
-RUN apt-get update && apt-get install -y \
-  lua5.1 \
-  liblua5.1-0-dev \
-  libffi-dev \
-  gettext \
-  freeglut3-dev \
-  libsdl2-dev \
-  libosmesa6-dev \
-  python-dev \
-  python-numpy \
-  realpath \
-  build-essential
-# lab ======= end
+RUN apt-get install -y \
+        lua5.1 \
+        liblua5.1-0-dev \
+        libffi-dev \
+        gettext \
+        freeglut3-dev \
+        libsdl2-dev \
+        libosmesa6-dev \
+        python-dev \
+        python-numpy \
+        realpath \
+        build-essential \
+    && apt-get clean \
+    && apt-get autoremove \
+    && rm -rf /var/lib/apt/lists/* /root/.cache/pip/
 
-# my add
 # Install the DeepMind Lab
 WORKDIR /opt
 RUN git clone https://github.com/deepmind/lab.git
 
 WORKDIR /opt/lab
-RUN bazel build :deepmind_lab.so --define headless=osmesa
-# headless=glx or osmesa for random
-#RUN bazel run :random_agent --define headless=false
-
-RUN mkdir /opt/relaax
-RUN pip install Cython
+# headless=glx | headless=false
+RUN bazel build :deepmind_lab.so --define headless=osmesa \
+    && mkdir /opt/relaax
 
 # Add RELAAX to the image
 COPY algorithms /opt/relaax/algorithms
@@ -127,22 +107,16 @@ COPY bin /opt/relaax/bin
 COPY config /opt/relaax/config
 COPY environments /opt/relaax/environments
 COPY relaax /opt/relaax/relaax
-COPY resources /opt/relaax/resources
-COPY README.md /opt/relaax/
 COPY setup.py /opt/relaax/
 
 WORKDIR /opt/relaax
-RUN pip install -e .
-#RUN mv /opt/relaax/environments/DeepMind_Lab/random_agent.py /opt/lab/bazel-bin/random_agent.runfiles/org_deepmind_lab/python/random_agent.py
-
-RUN cp /opt/relaax/environments/DeepMind_Lab/startup.sh /
-RUN cp /opt/relaax/environments/DeepMind_Lab/supervisord.conf /etc/supervisor/conf.d/
-RUN cp /opt/relaax/environments/DeepMind_Lab/run_env /
-RUN mkdir -p /home/ubuntu/.config/autostart
-RUN cp /opt/relaax/environments/DeepMind_Lab/run_env.desktop /home/ubuntu/.config/autostart/run_env.desktop
+RUN pip install -e . \
+    && cp /opt/relaax/environments/DeepMind_Lab/startup.sh / \
+    && cp /opt/relaax/environments/DeepMind_Lab/supervisord.conf /etc/supervisor/conf.d/ \
+    && cp /opt/relaax/environments/DeepMind_Lab/run_env / \
+    && mkdir -p /home/ubuntu/.config/autostart \
+    && cp /opt/relaax/environments/DeepMind_Lab/run_env.desktop /home/ubuntu/.config/autostart/run_env.desktop
 
 EXPOSE 6080
 WORKDIR /root
 ENTRYPOINT ["/startup.sh"]
-#RUN chmod +x "/x.sh"
-#RUN /x.sh
