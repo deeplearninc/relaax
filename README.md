@@ -169,7 +169,11 @@ is a framework that allows to develop AI agents for Atari 2600 games.
 It is built on top of the Atari 2600 emulator [Stella](http://stella.sourceforge.net/)
 and separates the details of emulation from agent design.
 
-1. [Install ALE.](https://github.com/mgbellemare/Arcade-Learning-Environment#quick-start)
+1. Pull Docker Image:
+
+```bash
+$ docker pull deeplearninc/relaax-ale
+```
 
 2. Run Client:
 
