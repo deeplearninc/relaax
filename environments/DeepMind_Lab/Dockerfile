@@ -59,6 +59,7 @@ RUN chmod +x /bin/tini \
 
 # install java for bazel
 RUN add-apt-repository -y ppa:openjdk-r/ppa && \
+    apt-get update && \
     apt-get install -y openjdk-8-jdk openjdk-8-jre-headless && \
     which java && \
     java -version && \
