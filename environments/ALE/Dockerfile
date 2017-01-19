@@ -19,6 +19,8 @@ RUN apt-get update \
         git \
         xvfb \
         x11vnc \
+        ratpoison \
+        libvncserver-dev \
     && pip install -U pip && pip install Cython \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /root/.cache/pip/
@@ -37,13 +39,13 @@ COPY bin /opt/relaax/bin
 COPY config /opt/relaax/config
 COPY environments /opt/relaax/environments
 COPY relaax /opt/relaax/relaax
-COPY resources /opt/relaax/resources
 COPY setup.py /opt/relaax/
 
 # Install RELAAX framework
 WORKDIR /opt/relaax
 RUN pip install -e . \
-    && chmod +x "/opt/relaax/environments/ALE/start.sh"
+    && chmod +x "/opt/relaax/environments/ALE/start.sh" \
+    && chmod +x "/opt/relaax/environments/ALE/x.sh"
 
 # Xvnc
 EXPOSE 5900

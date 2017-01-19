@@ -8,11 +8,12 @@ import ale_python_interface
 
 
 class GameProcessFactory(object):
-    def __init__(self, rom):
+    def __init__(self, rom, display):
         self._rom = rom
+        self._display = display
 
     def new_env(self, seed):
-        return _GameProcess(seed, self._rom)
+        return _GameProcess(seed, self._rom, self._display)
 
     def new_display_env(self, seed):
         return _GameProcess(seed, self._rom, display=True, no_op_max=0)
