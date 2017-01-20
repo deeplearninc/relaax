@@ -169,30 +169,82 @@ is a framework that allows to develop AI agents for Atari 2600 games.
 It is built on top of the Atari 2600 emulator [Stella](http://stella.sourceforge.net/)
 and separates the details of emulation from agent design.
 
-1. Pull Docker Image:
+1. Pull the Docker Image:
 
-```bash
-$ docker pull deeplearninc/relaax-ale
-```
-
-2. Run Client:
-
-    RELAAX version of ALE environment is located here:
-
-    `relaax/environments/ALE/`
-
-    To launch the client it needs to run `main` file from this directory.
-For example, launch command to run a client from a directory located next to
-`relaax` repository at the same level should looks like as follows:
     ```bash
-    python ../relaax/environments/ALE/main --rlx-server localhost:7001 --rom ../atari-games/boxing.bin
+    $ docker pull deeplearninc/relaax-ale
     ```
 
-    This command provides `--rlx_server` parameter with appropriate `host:port`
-(on which `relaax-rlx-server` was running) and a path to Atari game rom
-(some details about [roms](https://groups.google.com/forum/#!forum/arcade-learning-environment)).
-It's minimal set. It also allows to add `--seed` argument to specify initialization of the environment
-(it sets to random by default).
+2. Run the Server:
+
+    Open new terminal window, navigate to training directory and run `honcho`:
+    ```bash
+    $ honcho -f ../relaax/config/da3c_lab_demo.Procfile start
+    ```
+    Supposed for the above command, that the training directory located next to
+    `relaax` repository at the same level. It allows to create it anywhere and
+    needs to write the right path to the appropriate `*.Procfile` within `relaax` repo.
+
+3. Run a Client:
+
+    It provides 3 predefined run-cases for the pulled docker image:
+    ```bash
+    # For example, the first one case
+    $ docker run --rm -ti \
+        -v /path_to_atari_roms_folder:/roms \
+        --name ale deeplearninc/relaax-ale \
+        SERVER_IP:7001 boxing
+    ```
+    It runs the docker in interactive mode by `ti` and automatically removed
+    the container when it stops with `--rm`. It also has name `ale` for convenience.
+
+    You have to provide shared folder on your computer, where atari game roms are
+    stored. As you can see it defines by the `-v` parameter of the docker.
+
+    Use `ifconfig` command to find IP of your relaax SERVER (localhost).
+
+    It launches one sample of environment within the docker with `Atari Boxing`
+    game, which is defined by the last parameter `boxing`
+
+    ```bash
+    # For example, the second run-case
+    $ docker run --rm -ti \
+        -v /path_to_atari_roms_folder:/roms \
+        --name ale deeplearninc/relaax-ale \
+        SERVER_IP:7001 boxing 4
+    ```
+    It adds the third parameter which is equal to `4` since it allows to
+    define amount of game samples within the docker for parallel training.
+
+    ```bash
+    # And the third one use-case
+    $ docker run --rm -ti \
+        -p IP:PORT:5900 \
+        -v /path_to_atari_roms_folder:/roms \
+        --name ale deeplearninc/relaax-ale \
+        SERVER_IP:7001 boxing display
+    ```
+    It maps some ports on your computer to use `VNC` connection for visual session,
+    since it passes the last argument as `display` to run game in display mode.
+
+    For example, the full command to run the clients and a server on
+    a single machine under the NAT should looks like as follows:
+    ```bash
+    $ docker run --rm -ti \
+        -p 192.168.2.103:15900:5900 \
+        -v /opt/atari-game-roms:/roms \
+        --name ale deeplearninc/relaax-ale \
+        192.168.2.103:7001 boxing display
+    ```
+
+    You can connect to client's visual output via your VNC client with:
+    ```
+    For example:
+
+    Server: 192.168.2.103:15900
+    Passwd: relaax
+    Color depth: True color (24 bit)
+    ```
 
 Please find sample of configuration to run ALE there:
 `relaax/config/da3c_ale_boxing.yaml`
@@ -210,6 +262,24 @@ action_size: 18                 # action size for given game rom (18 fits ale bo
 state_size: [84, 84]            # dimensions of input screen frame of an Atari game
 ```
 You should check / change these parameter if you want to use another environment.
+
+*How to build your own Docker Image*
+
+Navigate to the ALE's folder within `relaax` repo firstly:
+```bash
+$ cd path_to_relaax_repo/environments/ALE
+```
+
+Build the docker image by follows:
+```bash
+# docker build -f Dockerfile -t your_docker_hub_name/image_name ../..
+# or you can build without your docker hub username, for example:
+
+$ docker build -f Dockerfile -t relaax-ale-vnc ../..
+```
+
+It allows to hold your changes and contributions for the `relaax`
+and use all of this changes in your own docker image.
 <br><br>
 
 #### [OpenAI Gym](#contents)
