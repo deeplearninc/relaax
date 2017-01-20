@@ -181,16 +181,16 @@ and separates the details of emulation from agent design.
     ```bash
     $ honcho -f ../relaax/config/da3c_ale_boxing.Procfile start
     ```
-    It is assumed that (for above command) the training directory located next to
-    `relaax` repository at the same level. It also allows to create it anywhere and
-    it needs to write the right path to the appropriate `*.Procfile` within `relaax` repo.
+    It is assumed that the training directory located next to `relaax` repository
+    at the same level. It also allows to create it anywhere and it needs
+    to write the right path to the appropriate `*.Procfile` within `relaax` repo.
 
 3. Run a Client:
 
     It provides 3 predefined run-cases for the pulled docker image:
     ```bash
     # For example, the first one case
-    ---
+
     $ docker run --rm -ti \
         -v /path_to_atari_roms_folder:/roms \
         --name ale deeplearninc/relaax-ale \
@@ -209,7 +209,7 @@ and separates the details of emulation from agent design.
 
     ```bash
     # For example, the second run-case
-    ---
+
     $ docker run --rm -ti \
         -v /path_to_atari_roms_folder:/roms \
         --name ale deeplearninc/relaax-ale \
@@ -220,14 +220,14 @@ and separates the details of emulation from agent design.
 
     ```bash
     # And the third one use-case
-    ---
+
     $ docker run --rm -ti \
         -p IP:PORT:5900 \
         -v /path_to_atari_roms_folder:/roms \
         --name ale deeplearninc/relaax-ale \
         SERVER_IP:7001 boxing display
     ```
-    It passes the last argument as `display` to run game in display mode, therefor
+    It passes the last argument as `display` to run game in display mode, therefore
     it maps some ports on your computer to use `VNC` connection for visual session.
 
     For example, the full command to run the clients and a server on
