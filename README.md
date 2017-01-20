@@ -407,8 +407,9 @@ and use all of this in your own docker image.
 #### [DeepMind Lab](#contents)
 
 [DeepMind Lab](https://github.com/deepmind/lab) is a 3D learning environment based on
-id Software's Quake III Arena. It provides a suite of challenging 3D navigation and
-puzzle-solving tasks for learning agents especially with deep reinforcement learning.
+id Software's [Quake III Arena](https://github.com/id-Software/Quake-III-Arena).
+It provides a suite of challenging 3D navigation and puzzle-solving tasks
+for learning agents especially with deep reinforcement learning.
 
 1. Pull the Docker Image:
 
@@ -479,24 +480,33 @@ puzzle-solving tasks for learning agents especially with deep reinforcement lear
     ```
 
     You can connect to client's visual output via your browser by opening http://127.0.0.1:6080/vnc.html URL.
-    You will see web form to enter your credentials. Leave all fields intact and press 'Connect'.
+    You will see web form to enter your credentials. Leave all fields intact and press `'Connect'`.
     You will see a running game.
 
-Please find sample of configuration to run DeepMind Lab there:
+Please find sample of configuration to perform experiments with DeepMind Lab there:
+
 `relaax/config/da3c_lab_demo.yaml`
 
+`action_size` and `state_size` parameters for this configuration is equal to:
+```yml
+action_size: 11                 # the full action size for the lab's environment
+state_size: [84, 84]            # dimensions of the environment's input screen
+```
 The full set for `action_size` consists of 11-types of interactions:
-- look_left
-- look_right
+- *look_left*
+- *look_right*
 - look_up
 - look_down
-- strafe_left
-- strafe_right
-- forward
-- backward
+- *strafe_left*
+- *strafe_right*
+- *forward*
+- *backward*
 - fire
 - jump
 - crouch
+
+It shrinks these actions to the `6` (italic) while training
+by `--shrink` parameter, which is set to `true` by default.
 <br><br>
 
 **How to build your own Docker Image**
