@@ -271,21 +271,18 @@ You should check / change these parameter if you want to use another environment
 
 **How to build your own Docker Image**
 
-Firstly, navigate to the ALE's folder within `relaax` repo:
+* Navigate to the ALE's folder within `relaax` repo:
 ```bash
 $ cd path_to_relaax_repo/environments/ALE
 ```
 
-Build the docker image by the following commands:
+* Build the docker image by the following commands:
 ```bash
 # docker build -f Dockerfile -t your_docker_hub_name/image_name ../..
 # or you can build without your docker hub username, for example:
 
 $ docker build -f Dockerfile -t relaax-ale-vnc ../..
 ```
-
-It allows to hold your changes and contributions for the `relaax`
-and use all of this in your own docker image.
 <br><br>
 
 #### [OpenAI Gym](#contents)
@@ -387,21 +384,18 @@ You should check / change these parameter if you want to use another environment
 
 **How to build your own Docker Image**
 
-Firstly, navigate to the OpenAI Gym's folder within `relaax` repo:
+* Navigate to the OpenAI Gym's folder within `relaax` repo:
 ```bash
 $ cd path_to_relaax_repo/environments/OpenAI_Gym
 ```
 
-Build the docker image by the following commands:
+* Build the docker image by the following commands:
 ```bash
 # docker build -f Dockerfile -t your_docker_hub_name/image_name ../..
 # or you can build without your docker hub username, for example:
 
 $ docker build -f Dockerfile -t relaax-gym-vnc ../..
 ```
-
-It allows to hold your changes and contributions for the `relaax`
-and use all of this in your own docker image.
 <br><br>
 
 #### [DeepMind Lab](#contents)
@@ -511,21 +505,18 @@ by `--shrink` parameter, which is set to `true` by default.
 
 **How to build your own Docker Image**
 
-Firstly, navigate to the ALE's folder within `relaax` repo:
+* Navigate to the DeepMind Lab's folder within `relaax` repo:
 ```bash
 $ cd path_to_relaax_repo/environments/DeepMind_Lab
 ```
 
-Build the docker image by the following commands:
+* Build the docker image by the following commands:
 ```bash
 # docker build -f Dockerfile -t your_docker_hub_name/image_name ../..
 # or you can build without your docker hub username, for example:
 
 $ docker build -f Dockerfile -t relaax-lab-vnc ../..
 ```
-
-It allows to hold your changes and contributions for the `relaax`
-and use all of this in your own docker image.
 <br><br>
 
 ## [RELAAX Server](#contents)
