@@ -167,7 +167,8 @@ relaax
 The [Arcade Learning Environment (ALE)](http://www.arcadelearningenvironment.org/)
 is a framework that allows to develop AI agents for Atari 2600 games.
 It is built on top of the Atari 2600 emulator [Stella](http://stella.sourceforge.net/)
-and separates the details of emulation from agent design.
+and separates the details of emulation from agent design. Additional information
+about ALE and Atari games you can find in official [Google group.](https://groups.google.com/forum/#!forum/arcade-learning-environment)
 
 1. Pull the Docker Image:
 
@@ -405,67 +406,81 @@ and use all of this in your own docker image.
 
 #### [DeepMind Lab](#contents)
 
-_DeepMind Lab_ uses [Bazel](https://www.bazel.io/) as its build system. It works out of the box on Debian (Jessie or newer)
-and Ubuntu (version 14.04 or newer), provided the required packages are installed. If you want to build _DeepMind Lab_
-on other Linux systems, please follow some [more detailed build documentation](https://github.com/deepmind/lab/blob/master/docs/build.md).
+[DeepMind Lab](https://github.com/deepmind/lab) is a 3D learning environment based on
+id Software's Quake III Arena. It provides a suite of challenging 3D navigation and
+puzzle-solving tasks for learning agents especially with deep reinforcement learning.
 
-**Instructions for Debian or Ubuntu**
+1. Pull the Docker Image:
 
-1. Install _Bazel_ by adding a custom APT repository, as described on the [Bazel homepage](https://bazel.build/versions/master/docs/install.html#ubuntu) or using an [installer](https://github.com/bazelbuild/bazel/releases).
-
-2. Install _DeepMind Lab's_ dependencies:
     ```bash
-    $ sudo apt-get install lua5.1 liblua5.1-0-dev libffi-dev gettext \
-    freeglut3-dev libsdl2-dev libosmesa6-dev python-dev python-numpy realpath
+    $ docker pull deeplearninc/relaax-lab
     ```
-3. Clone or download [DeepMind Lab](https://github.com/deepmind/lab).
 
-4. Build _DeepMind Lab_:
+2. Run the Server:
+
+    Open new terminal window, navigate to training directory and run `honcho`:
     ```bash
-    cd lab
-    # Build the Python interface to DeepMind Lab with OpenGL
-    bazel build :deepmind_lab.so --define headless=glx
+    $ honcho -f ../relaax/config/da3c_lab_demo.Procfile start
     ```
-    It can be build in headless hardware rendering mode `--define headless=glx`,
-headless software rendering mode `--define headless=osmesa` or non-headless mode `--define headless=false`.
+    It is assumed that the training directory located next to `relaax` repository
+    at the same level. It also allows to create it anywhere and it needs
+    to write the right path to the appropriate `*.Procfile` within `relaax` repo.
 
-5. Check your build:
+3. Run a Client:
+
+    It provides 3 predefined run-cases for the pulled docker image:
     ```bash
-    # Build and run the tests for it
-    bazel run :python_module_test --define headless=glx
+    # For example, the first one case
+
+    $ docker run --rm -ti \
+        --name lab deeplearninc/relaax-lab \
+        SERVER_IP
     ```
-6. Replace default agent by ours:
+    It runs the docker in interactive mode by `-ti` and automatically removes this
+    container when it stops with `--rm`. It also has `--name lab` for convenience.
 
-    DeepMind's `random_agent.py` is created there (after build):
+    Use `ifconfig` command to find IP of your relaax SERVER, which is run by `honcho`
 
-    `lab/bazel-bin/random_agent.runfiles/org_deepmind_lab/python/`
+    It launches one sample of the lab's environment within the docker with a `nav_maze_static_01` map
+    which is predefined by default (list of the default lab's [maps](https://github.com/deepmind/lab/tree/master/assets/maps))
 
-    Our version of `random_agent.py` is located there:
-
-    `relaax/environments/DeepMind_Lab/`
-
-    You can replace the first one by ours or change default agent's name (`random_agent.py`)
-in this file:
-
-    `lab/bazel-bin/random_agent.runfiles/org_deepmind_lab/random_agent`
-
-    You just need to rewrite `main_filename` at `112` line:
-
-    `main_filename = os.path.join(module_space, 'org_deepmind_lab/python/random_agent.py')`
-
-7. Run the agent:
     ```bash
-    cd bazel-bin/random_agent.runfiles/org_deepmind_lab
-    python random_agent --rlx_server host:port
+    # For example, the second run-case
+
+    $ docker run --rm -ti \
+        --name lab deeplearninc/relaax-lab \
+        SERVER_IP 4 nav_maze_static_02
     ```
-    This command provides `--rlx_server` parameter with appropriate `host:port`
-on which `relaax-rlx-server` was running. It's minimal set of arguments.
+    It adds the second parameter which is equal to `4` since it allows to define
+    number of environments to launch within the docker for parallel training.
 
-    Other options are:
+    It also allows to define a map by the third parameter or it uses `nav_maze_static_01` by default.
 
-    `--level_script tests/demo_map` - path to DeepMind's maps (string)
+    ```bash
+    # And the third one use-case
 
-    `--fps 60` - frame per second rate (integer)
+    $ docker run --rm -ti \
+        -p IP:PORT:6080 \
+        --name lab deeplearninc/relaax-lab \
+        SERVER_IP display
+    ```
+    It passes the last argument as `display` to run environment in display mode, therefore
+    it maps some ports on your computer to use `VNC` connection for visual session.
+
+    It also allows to define a map by the third parameter.
+
+    For example, the full command to run the clients and a server on
+    a single machine (under the NAT) should looks like as follows:
+    ```bash
+    $ docker run --rm -ti \
+        -p 6080:6080 \
+        --name lab deeplearninc/relaax-lab \
+        192.168.2.103 display nav_maze_static_03
+    ```
+
+    You can connect to client's visual output via your browser by opening http://127.0.0.1:6080/vnc.html URL.
+    You will see web form to enter your credentials. Leave all fields intact and press 'Connect'.
+    You will see a running game.
 
 Please find sample of configuration to run DeepMind Lab there:
 `relaax/config/da3c_lab_demo.yaml`
@@ -482,6 +497,25 @@ The full set for `action_size` consists of 11-types of interactions:
 - fire
 - jump
 - crouch
+<br><br>
+
+**How to build your own Docker Image**
+
+Firstly, navigate to the ALE's folder within `relaax` repo:
+```bash
+$ cd path_to_relaax_repo/environments/DeepMind_Lab
+```
+
+Build the docker image by the following commands:
+```bash
+# docker build -f Dockerfile -t your_docker_hub_name/image_name ../..
+# or you can build without your docker hub username, for example:
+
+$ docker build -f Dockerfile -t relaax-lab-vnc ../..
+```
+
+It allows to hold your changes and contributions for the `relaax`
+and use all of this in your own docker image.
 <br><br>
 
 ## [RELAAX Server](#contents)
