@@ -652,8 +652,8 @@ Minimal bridge GRPC service includes methods to update Global Function on Parame
 ```
 service ParameterServer {
     rpc IncrementGlobalT(NullMessage) returns (Step) {}
-    rpc ApplyGradients(NdArrays) returns (NullMessage) {}
-    rpc GetValues(NullMessage) returns (NdArrays) {}
+    rpc ApplyGradients(stream NdArray) returns (NullMessage) {}
+    rpc GetValues(NullMessage) returns (stream NdArray) {}
     rpc StoreScalarMetric(ScalarMetric) returns (NullMessage) {}
 }
 ```

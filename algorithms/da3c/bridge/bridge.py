@@ -2,6 +2,7 @@ from __future__ import print_function
 
 import concurrent
 import grpc
+import itertools
 import numpy
 
 import relaax.algorithm_base.bridge_base
@@ -30,10 +31,13 @@ class _Stub(relaax.algorithm_base.bridge_base.BridgeBase):
         return self._stub.IncrementGlobalT(bridge_pb2.NullMessage()).n
 
     def apply_gradients(self, gradients):
-        self._stub.ApplyGradients(_build_ndarrays_message(gradients))
+        self._stub.ApplyGradients(itertools.imap(_build_ndarray_message, gradients))
 
     def get_values(self):
-        return _parse_ndarrays_message(self._stub.GetValues(bridge_pb2.NullMessage()))
+        return [
+            _parse_ndarray_message(message)
+            for message in self._stub.GetValues(bridge_pb2.NullMessage())
+        ]
 
     def metrics(self):
         return self._metrics
@@ -65,12 +69,16 @@ class _Servicer(bridge_pb2.ParameterServerServicer):
     def IncrementGlobalT(self, request, context):
         return bridge_pb2.Step(n=long(self._service.increment_global_t()))
 
-    def ApplyGradients(self, request, context):
-        self._service.apply_gradients(_parse_ndarrays_message(request))
+    def ApplyGradients(self, request_iterator, context):
+        self._service.apply_gradients([
+            _parse_ndarray_message(message)
+            for message in request_iterator
+        ])
         return bridge_pb2.NullMessage()
 
     def GetValues(self, request, context):
-        return _build_ndarrays_message(self._service.get_values())
+        for value in self._service.get_values():
+            yield _build_ndarray_message(value)
 
     def StoreScalarMetric(self, request, context):
         x = None
@@ -80,23 +88,17 @@ class _Servicer(bridge_pb2.ParameterServerServicer):
         return bridge_pb2.NullMessage()
 
 
-def _build_ndarrays_message(arrays):
-    return bridge_pb2.NdArrays(arrays=[
-        bridge_pb2.NdArrays.NdArray(
-            dtype=str(a.dtype),
-            shape=a.shape,
-            data=a.tobytes()
-        )
-        for a in arrays
-    ])
+def _build_ndarray_message(array):
+    return bridge_pb2.NdArray(
+        dtype=str(array.dtype),
+        shape=array.shape,
+        data=array.tobytes()
+    )
 
 
-def _parse_ndarrays_message(message):
-    return [
-        numpy.ndarray(
-            shape=a.shape,
-            dtype=numpy.dtype(a.dtype),
-            buffer=a.data
-        )
-        for a in message.arrays
-    ]
+def _parse_ndarray_message(message):
+    return numpy.ndarray(
+        shape=message.shape,
+        dtype=numpy.dtype(message.dtype),
+        buffer=message.data
+    )
