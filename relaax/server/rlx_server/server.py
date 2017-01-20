@@ -38,6 +38,7 @@ def _run_agents(bind_address, agent_factory, timeout):
     try:
         _info('listening %s', bind_address)
 
+        socket_.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         socket_.bind(_parse_address(bind_address))
         socket_.listen(100)
 
