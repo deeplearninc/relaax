@@ -324,7 +324,7 @@ that you can use to work out your reinforcement learning algorithms.
     Use `ifconfig` command to find IP of your relaax SERVER, which is run by `honcho`
 
     It launches one sample of the environment within the docker, which is defined
-    by the last parameter `BipedalWalker-v2` (name of the `gym` [environment](https://gym.openai.com/envs))
+    by the last parameter `BipedalWalker-v2` (name of the gym's [environment](https://gym.openai.com/envs))
 
     ```bash
     # For example, the second run-case
@@ -386,7 +386,7 @@ You should check / change these parameter if you want to use another environment
 
 **How to build your own Docker Image**
 
-Firstly, navigate to the ALE's folder within `relaax` repo:
+Firstly, navigate to the OpenAI Gym's folder within `relaax` repo:
 ```bash
 $ cd path_to_relaax_repo/environments/OpenAI_Gym
 ```
