@@ -99,19 +99,12 @@ def _memory_per_child():
     process = psutil.Process(os.getpid())
     mem = sum(itertools.imap(
         _process_memory,
-        _process_children(process, recursive=True)
+        process.children(recursive=True)
     ))
-    n = len(_process_children(process, recursive=False))
+    n = len(process.children(recursive=False))
     if n == 0:
         return None
     return mem / n
-
-
-def _process_tree_memory(process):
-    return sum(itertools.imap(
-        _process_memory,
-        itertools.chain([process], _process_children(process, recursive=True))
-    ))
 
 
 def _process_memory(process):
@@ -119,13 +112,6 @@ def _process_memory(process):
         return process.memory_percent()
     except psutil.NoSuchProcess:
         return 0
-
-
-def _process_children(process, recursive):
-    try:
-        return process.children(recursive=recursive)
-    except psutil.NoSuchProcess:
-        return []
 
 
 def _warning(message, *args):
