@@ -382,6 +382,24 @@ state_size: [24]                # array of dimensions for the input observation
 You should check / change these parameter if you want to use another environment.
 <br><br>
 
+**How to check action & state sizes by environment name**
+Run the `get_info.py` script from `/relaax/environments/OpenAI_Gym`, for example:
+```bash
+$ python get_info.py Boxing-v0
+
+Action Space: Discrete(18)
+Observation Space: Box(210, 160, 3)
+Timestep Limit: 10000
+
+$ python get_info.py BipedalWalker-v2
+
+Action Space: Box(4,)
+Observation Space: Box(24,)
+Timestep Limit: 1600
+```
+`Timestep Limit` is necessary argument for `trpo-gae` algorithm
+<br><br>
+
 **How to build your own Docker Image**
 
 * Navigate to the OpenAI Gym's folder within `relaax` repo
