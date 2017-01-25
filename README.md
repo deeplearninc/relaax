@@ -173,7 +173,7 @@ about ALE and Atari games you can find in official [Google group.](https://group
 1. Pull the Docker Image:
 
     ```bash
-    $ docker pull deeplearninc/relaax-ale
+    $ docker pull deeplearninc/relaax-ale:v0.1.0
     ```
 
 2. Run the Server:
@@ -194,7 +194,7 @@ about ALE and Atari games you can find in official [Google group.](https://group
 
     $ docker run --rm -ti \
         -v /path_to_atari_roms_folder:/roms \
-        --name ale deeplearninc/relaax-ale \
+        --name ale deeplearninc/relaax-ale:v0.1.0 \
         SERVER_IP:7001 boxing
     ```
     It runs the docker in interactive mode by `-ti` and automatically removes this
@@ -213,7 +213,7 @@ about ALE and Atari games you can find in official [Google group.](https://group
 
     $ docker run --rm -ti \
         -v /path_to_atari_roms_folder:/roms \
-        --name ale deeplearninc/relaax-ale \
+        --name ale deeplearninc/relaax-ale:v0.1.0 \
         SERVER_IP:7001 boxing 4
     ```
     It adds the third parameter which is equal to `4` since it allows to
@@ -225,7 +225,7 @@ about ALE and Atari games you can find in official [Google group.](https://group
     $ docker run --rm -ti \
         -p IP:PORT:5900 \
         -v /path_to_atari_roms_folder:/roms \
-        --name ale deeplearninc/relaax-ale \
+        --name ale deeplearninc/relaax-ale:v0.1.0 \
         SERVER_IP:7001 boxing display
     ```
     It passes the last argument as `display` to run game in display mode, therefore
@@ -237,7 +237,7 @@ about ALE and Atari games you can find in official [Google group.](https://group
     $ docker run --rm -ti \
         -p 192.168.2.103:15900:5900 \
         -v /opt/atari-game-roms:/roms \
-        --name ale deeplearninc/relaax-ale \
+        --name ale deeplearninc/relaax-ale:v0.1.0 \
         192.168.2.103:7001 boxing display
     ```
 
@@ -293,7 +293,7 @@ that you can use to work out your reinforcement learning algorithms.
 1. Pull the Docker Image:
 
     ```bash
-    $ docker pull deeplearninc/relaax-gym
+    $ docker pull deeplearninc/relaax-gym:v0.1.0
     ```
 
 2. Run the Server:
@@ -313,7 +313,7 @@ that you can use to work out your reinforcement learning algorithms.
     # For example, the first one case
 
     $ docker run --rm -ti \
-        --name gym deeplearninc/relaax-gym \
+        --name gym deeplearninc/relaax-gym:v0.1.0 \
         SERVER_IP:7001 BipedalWalker-v2
     ```
     It runs the docker in interactive mode by `-ti` and automatically removes this
@@ -328,7 +328,7 @@ that you can use to work out your reinforcement learning algorithms.
     # For example, the second run-case
 
     $ docker run --rm -ti \
-        --name gym deeplearninc/relaax-gym \
+        --name gym deeplearninc/relaax-gym:v0.1.0 \
         SERVER_IP:7001 BipedalWalker-v2 4
     ```
     It adds the third parameter which is equal to `4` since it allows to define
@@ -339,7 +339,7 @@ that you can use to work out your reinforcement learning algorithms.
 
     $ docker run --rm -ti \
         -p IP:PORT:5900 \
-        --name gym deeplearninc/relaax-gym \
+        --name gym deeplearninc/relaax-gym:v0.1.0 \
         SERVER_IP:7001 BipedalWalker-v2 display
     ```
     It passes the last argument as `display` to run environment in display mode, therefore
@@ -350,7 +350,7 @@ that you can use to work out your reinforcement learning algorithms.
     ```bash
     $ docker run --rm -ti \
         -p 192.168.2.103:15900:5900 \
-        --name gym deeplearninc/relaax-gym \
+        --name gym deeplearninc/relaax-gym:v0.1.0 \
         192.168.2.103:7001 BipedalWalker-v2 display
     ```
 
@@ -408,7 +408,7 @@ for learning agents especially with deep reinforcement learning.
 1. Pull the Docker Image:
 
     ```bash
-    $ docker pull deeplearninc/relaax-lab
+    $ docker pull deeplearninc/relaax-lab:v0.1.0
     ```
 
 2. Run the Server:
@@ -428,7 +428,7 @@ for learning agents especially with deep reinforcement learning.
     # For example, the first one case
 
     $ docker run --rm -ti \
-        --name lab deeplearninc/relaax-lab \
+        --name lab deeplearninc/relaax-lab:v0.1.0 \
         SERVER_IP
     ```
     It runs the docker in interactive mode by `-ti` and automatically removes this
@@ -443,7 +443,7 @@ for learning agents especially with deep reinforcement learning.
     # For example, the second run-case
 
     $ docker run --rm -ti \
-        --name lab deeplearninc/relaax-lab \
+        --name lab deeplearninc/relaax-lab:v0.1.0 \
         SERVER_IP 4 nav_maze_static_02
     ```
     It adds the second parameter which is equal to `4` since it allows to define
@@ -456,7 +456,7 @@ for learning agents especially with deep reinforcement learning.
 
     $ docker run --rm -ti \
         -p IP:PORT:6080 \
-        --name lab deeplearninc/relaax-lab \
+        --name lab deeplearninc/relaax-lab:v0.1.0 \
         SERVER_IP display
     ```
     It passes the last argument as `display` to run environment in display mode, therefore
@@ -469,7 +469,7 @@ for learning agents especially with deep reinforcement learning.
     ```bash
     $ docker run --rm -ti \
         -p 6080:6080 \
-        --name lab deeplearninc/relaax-lab \
+        --name lab deeplearninc/relaax-lab:v0.1.0 \
         192.168.2.103 display nav_maze_static_03
     ```
 
