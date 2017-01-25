@@ -14,7 +14,7 @@ then
 fi
 if [ -z "$action_size" ]
 then
-    action_size="full"
+    action_size="medium"
 fi
 
 if [ -z "$regime" ]

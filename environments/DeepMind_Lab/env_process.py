@@ -22,7 +22,7 @@ class GameProcessFactory(object):
 
 class _GameProcess(object):
 
-    def __init__(self, fps, level, width, height, frame_skip, display=False, action_size='f', no_op_max=0):
+    def __init__(self, fps, level, width, height, frame_skip, display=False, action_size='m', no_op_max=0):
         self._frame_skip = frame_skip
         self._no_op_max = no_op_max
         self._width = width

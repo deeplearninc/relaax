@@ -43,7 +43,7 @@ def main():
                         help='Activate display screen size')
     parser.add_argument('--frame-skip', type=int, default=4,
                         help='The number of frames to skip between successive observations')
-    parser.add_argument('--action-size', type=str, default='full',
+    parser.add_argument('--action-size', type=str, default='medium',
                         help='You can choose between: full action size - 11 actions, medium - just \
                              6 actions for movement only and small - 3 actions for forward | left | right \
                              by: \'f\', \'full\', \'b\', \'big\', \'m\', \'medium\', \'s\', \'small\' respectively')
