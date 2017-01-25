@@ -489,6 +489,7 @@ state_size: [84, 84]            # dimensions of the environment's input screen
 ```
 
 The full set for `action_size` consists of 11-types of interactions.
+
 It allows to define number of desired actions by the 4th parameter.
 
 | Small `action_size`   | Medium `action_size`   | Full `action_size`   |
@@ -505,7 +506,9 @@ It allows to define number of desired actions by the 4th parameter.
 |                       |                        | jump                 |
 |                       |                        | crouch               |
 `s` or `small` to set small `action_size`
+
 `m` or `medium` to set medium `action_size` (movement only)
+
 `f` or `full` (`b` or `big`) to set full `action_size`
 <br><br>
 
