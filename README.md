@@ -398,10 +398,11 @@ Action Space: Box(4,)
 Observation Space: Box(24,)
 Timestep Limit: 1600
 ```
-`state_size` for Atari games is equal to `[210, 160, 3]` represents an RGB
-3-channel image with `210x160` pixels, but it automatically converts to `[84, 84]`
-(1-channel grayscale image of square size) wrt DeepMind's articles.
 `Timestep Limit` is necessary argument for `trpo-gae` algorithm
+
+`state_size` for Atari games is equal to `[210, 160, 3]`, which represents an 3-channel
+RGB image with `210x160` pixels, but it automatically converts to `[84, 84]`
+(1-channel grayscale image of square size) wrt DeepMind's articles.
 <br><br>
 
 **How to build your own Docker Image**
