@@ -23,7 +23,7 @@ algorithm:
   path: ../relaax/algorithms/da3c
 
   action_size: 4                  # action size for the given environment
-  state_size: [84, 84]                # array of dimensions for the input observation
+  state_size: [84, 84]            # array of dimensions for the input observation
   history_len: 4                  # number of observations to stack in state
   episode_len: 5                  # local loop size for one episode
   gpu: false                      # to use GPU, set to the True
