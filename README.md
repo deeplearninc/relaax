@@ -398,7 +398,7 @@ Action Space: Box(4,)
 Observation Space: Box(24,)
 Timestep Limit: 1600
 ```
-`Timestep Limit` is necessary argument for `trpo-gae` algorithm
+`Timestep Limit` is necessary argument for `trpo-gae` algorithm.
 
 `state_size` for Atari games is equal to `[210, 160, 3]`, which represents an 3-channel
 RGB image with `210x160` pixels, but it automatically converts to `[84, 84]`
