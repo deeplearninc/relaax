@@ -12,7 +12,7 @@ import relaax.common.metrics
 from relaax.common.protocol import socket_protocol
 
 
-class TestSocketProtocol_AgentStub_agent_dispatch(unittest.TestCase):
+class TestSocketProtocol_agent(unittest.TestCase):
     def setUp(self):
         self.socket = _MockSocket()
         self.stub = socket_protocol.AgentStub(self.socket)
@@ -106,6 +106,37 @@ class TestSocketProtocol_AgentStub_agent_dispatch(unittest.TestCase):
             ('scalar_metric'   , 'reward', 24.2, None),
             ('reward_and_act'  , 118.1, state4       )
         ], self.calls))
+
+
+class TestSocketProtocol_environment(unittest.TestCase):
+    def setUp(self):
+        self.socket = _MockSocket()
+
+    def tearDown(self):
+        pass
+
+    def test_act(self):
+        action = {
+            'boolean': False,
+            'int': 116,
+            'float': 2.5,
+            'string': 'sS',
+            'array': [117, 118],
+            'nparray': numpy.array([119, 120])
+        }
+        socket_protocol.environment_send_act(self.socket, action)
+        self.assertTrue(eq(
+            action,
+            socket_protocol.environment_receive_act(self.socket)
+        ))
+
+    def test_reset(self):
+        socket_protocol.environment_send_reset(self.socket, 14.1)
+        self.assertEquals(
+            14.1,
+            socket_protocol.environment_receive_reset(self.socket)
+        )
+
 
 class _MockSocket(object):
     def __init__(self):
