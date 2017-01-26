@@ -1,7 +1,7 @@
 from keras.models import Sequential
 from keras.layers.core import Dense, Lambda
 
-from . import core
+from core import *
 
 
 def make_mlps(config):
@@ -13,7 +13,7 @@ def make_mlps(config):
     if not config.discrete:
         policy_net.add(Dense(config.action_size))
         policy_net.add(Lambda(lambda x: x * 0.1))
-        policy_net.add(core.ConcatFixedStd())
+        policy_net.add(ConcatFixedStd())
     else:
         policy_net.add(Dense(config.action_size, activation="softmax"))
         policy_net.add(Lambda(lambda x: x * 0.1))
@@ -31,6 +31,11 @@ def make_mlps(config):
 def make_wrappers(config, policy_net, value_net, session):
 
     if not config.discrete:
-        probtype = core.DiagGauss(config.action_size)
+        probtype = DiagGauss(config.action_size)
     else:
-        probtype = core.Categorical(config.action_size)
+        probtype = Categorical(config.action_size)
+
+    policy = StochPolicyKeras(policy_net, probtype, session)
+    baseline = NnVf(value_net, config.timestep_limit, dict(mixfrac=0.1), session)
+
+    return policy, baseline
