@@ -16,6 +16,9 @@ class Config(relaax.algorithm_base.config_base.ConfigBase):
         # activation function, which is used for each layer of MLP
         self.activation = config.get('activation', 'tanh')
 
+        # switch between continuous and discrete action spaces (Box is continuous)
+        self.discrete = config.get('discrete', False)
+
         # whether to do a running average filter of the incoming observations and rewards
         self.use_filter = config.get('use_filter', True)
 

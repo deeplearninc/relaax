@@ -27,6 +27,7 @@ algorithm:
   hidden_layers_sizes: [64, 64]   # number of hidden units for MLP
   activation: tanh                # activation function for MLP
   use_filter: true                # use average filter of the incoming observations and rewards
+  discrete: false                 # switch between continuous and discrete action spaces
 
   PG_OPTIONS:
     timestep_limit: 2000          # length in steps for one round in environment
