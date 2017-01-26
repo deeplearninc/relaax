@@ -1,7 +1,6 @@
 import base64
 import io
 import json
-import mock
 import numpy
 import struct
 import unittest
@@ -16,8 +15,7 @@ class TestSocketProtocol_agent(unittest.TestCase):
     def setUp(self):
         self.socket = _MockSocket()
         self.stub = socket_protocol.AgentStub(self.socket)
-        self.calls = []
-        self.service = _MockService(self.calls)
+        self.service = _MockService()
 
     def tearDown(self):
         pass
@@ -33,12 +31,12 @@ class TestSocketProtocol_agent(unittest.TestCase):
         }
         self.stub.act(state)
         socket_protocol.agent_dispatch(self.socket, self.service)
-        self.assertTrue(eq([('act', state)], self.calls))
+        self.assertTrue(eq([('act', state)], self.service.calls))
 
     def test_reward_and_reset(self):
         self.stub.reward_and_reset(16.1)
         socket_protocol.agent_dispatch(self.socket, self.service)
-        self.assertTrue(eq([('reward_and_reset', 16.1)], self.calls))
+        self.assertTrue(eq([('reward_and_reset', 16.1)], self.service.calls))
 
     def test_reward_and_act(self):
         state = {
@@ -51,7 +49,7 @@ class TestSocketProtocol_agent(unittest.TestCase):
         }
         self.stub.reward_and_act(115.1, state)
         socket_protocol.agent_dispatch(self.socket, self.service)
-        self.assertTrue(eq([('reward_and_act', 115.1, state)], self.calls))
+        self.assertTrue(eq([('reward_and_act', 115.1, state)], self.service.calls))
 
     def test_metrics(self):
         self.stub.metrics().scalar('key', 21.2)
@@ -61,7 +59,7 @@ class TestSocketProtocol_agent(unittest.TestCase):
         self.assertTrue(eq([
             ('scalar_metric', 'key', 21.2, None),
             ('scalar_metric', 'key', 21.3, 17.1)
-        ], self.calls))
+        ], self.service.calls))
 
     def test_loop(self):
         state1 = numpy.array([3.1, 4.2])
@@ -105,7 +103,7 @@ class TestSocketProtocol_agent(unittest.TestCase):
             ('reward_and_reset', 117.1               ),
             ('scalar_metric'   , 'reward', 24.2, None),
             ('reward_and_act'  , 118.1, state4       )
-        ], self.calls))
+        ], self.service.calls))
 
 
 class TestSocketProtocol_environment(unittest.TestCase):
@@ -155,18 +153,18 @@ class _MockSocket(object):
 
 
 class _MockService(relaax.algorithm_base.agent_base.AgentBase):
-    def __init__(self, calls):
-        self._calls = calls
-        self._metrics = _MockMetrics(calls, 'scalar_metric')
+    def __init__(self):
+        self.calls = []
+        self._metrics = _MockMetrics(self.calls, 'scalar_metric')
 
     def act(self, state):
-        self._calls.append(('act', state))
+        self.calls.append(('act', state))
 
     def reward_and_reset(self, reward):
-        self._calls.append(('reward_and_reset', reward))
+        self.calls.append(('reward_and_reset', reward))
 
     def reward_and_act(self, reward, state):
-        self._calls.append(('reward_and_act', reward, state))
+        self.calls.append(('reward_and_act', reward, state))
 
     def metrics(self):
         return self._metrics
