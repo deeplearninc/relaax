@@ -29,7 +29,6 @@ class TestRlxClient(unittest.TestCase):
 
         self.assertTrue(eq([('act', state)], self.service.calls))
 
-
     def test_send(self):
         state = numpy.array([6.1, 7.2, 8.3])
         action = numpy.array([9.4, 10.5])
@@ -73,6 +72,11 @@ class TestRlxClient(unittest.TestCase):
             ('scalar_metric', 'another name', 11.4, None)
         ], self.service.calls))
 
+    def test_disconnect(self):
+        self.client.disconnect()
+        self.assertFalse(self.socket.opened)
+
+
 def _socket_factory(rlx_server_url):
     socket = mock.Mock()
     return _Socket
@@ -82,12 +86,19 @@ class _Socket(object):
     def __init__(self):
         self.output = _MockSocket()
         self.input = _MockSocket()
+        self.opened = True
 
     def sendall(self, data):
+        assert self.opened
         self.output.sendall(data)
 
     def recv(self, n):
+        assert self.opened
         return self.input.recv(n)
+
+    def close(self):
+        assert self.opened
+        self.opened = False
 
 
 class _MockSocket(object):
