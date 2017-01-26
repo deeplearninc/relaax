@@ -13,5 +13,5 @@ class ParameterServer(relaax.algorithm_base.parameter_server_base.ParameterServe
         initialize = tf.variables_initializer(tf.global_variables())
         self._session = tf.Session()
 
-        ret = network.make_head(config, policy_net, value_net, self._session)
+        policy, baseline = network.make_head(config, policy_net, value_net, self._session)
         self._session.run(initialize)

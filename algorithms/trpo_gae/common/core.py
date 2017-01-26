@@ -1,9 +1,13 @@
 import tensorflow as tf
+import scipy.optimize
 from keras.layers.core import Layer
+from collections import OrderedDict
 
 from distributions import *
 from misc_utils import *
+
 dtype = tf.float32
+concat = np.concatenate
 
 
 # ================================================================
@@ -204,6 +208,154 @@ class StochPolicyKeras(StochPolicy, EzPickle):
 # Value functions
 # ================================================================
 
+def var_shape(x):
+    out = [k.value for k in x.get_shape()]
+    assert all(isinstance(a, int) for a in out), \
+        "shape function assumes that shape is fully known"
+    return out
+
+
+def numel(x):
+    return np.prod(var_shape(x))
+
+
+def flatgrad(loss, var_list):
+    grads = tf.gradients(loss, var_list)
+    return tf.concat(0, [tf.reshape(grad, [numel(v)]) for (v, grad) in zip(var_list, grads)])
+
+
+class GetFlat(object):
+    def __init__(self, var_list, session):
+        self.session = session
+        self.op = tf.concat(0, [tf.reshape(v, [numel(v)]) for v in var_list])
+
+    def __call__(self):
+        return self.op.eval(session=self.session)
+
+
+class SetFromFlat(object):
+    def __init__(self, var_list, session):
+        self.session = session
+
+        shapes = map(var_shape, var_list)
+        total_size = sum(np.prod(shape) for shape in shapes)
+        self.theta = theta = tf.placeholder(dtype, [total_size])
+        start = 0
+        updates = []
+        # for v in var_list:
+        for (shape, v) in zip(shapes, var_list):
+            size = np.prod(shape)
+            updates.append(tf.assign(v, tf.reshape(theta[start:start + size], shape)))
+            start += size
+        self.op = tf.group(*updates)
+
+    def __call__(self, theta):
+        self.session.run(self.op, feed_dict={self.theta: theta})
+
+
+class EzFlat(object):
+    def __init__(self, var_list, session):
+        self.gf = GetFlat(var_list, session)
+        self.sff = SetFromFlat(var_list, session)
+
+    def set_params_flat(self, theta):
+        self.sff(theta)
+
+    def get_params_flat(self):
+        return self.gf()
+
+
+class LbfgsOptimizer(EzFlat):
+    def __init__(self, session, loss,  params, symb_args, extra_losses=None, maxiter=25):
+        EzFlat.__init__(self, params, session)
+
+        self.all_losses = OrderedDict()
+        self.all_losses["loss"] = loss
+        if extra_losses is not None:
+            self.all_losses.update(extra_losses)
+
+        self.f_lossgrad = TensorFlowLazyFunction(list(symb_args), [loss, flatgrad(loss, params)], session)
+        self.f_losses = TensorFlowLazyFunction(symb_args, self.all_losses.values(), session)
+        self.maxiter = maxiter
+
+    def update(self, *args):
+        thprev = self.get_params_flat()
+
+        def lossandgrad(th):
+            self.set_params_flat(th)
+            l, g = self.f_lossgrad(*args)
+            g = g.astype('float64')
+            return l, g
+
+        losses_before = self.f_losses(*args)
+        theta, _, opt_info = scipy.optimize.fmin_l_bfgs_b(lossandgrad, thprev, maxiter=self.maxiter)
+        del opt_info['grad']
+        print(opt_info)
+
+        self.set_params_flat(theta)
+        losses_after = self.f_losses(*args)
+        info = OrderedDict()
+
+        for (name, lossbefore, lossafter) in zip(self.all_losses.keys(), losses_before, losses_after):
+            info[name+"_before"] = lossbefore
+            info[name+"_after"] = lossafter
+        return info
+
+
+class NnRegression(EzPickle):
+    def __init__(self, net, session, mixfrac=1.0, maxiter=25):
+        EzPickle.__init__(self, net, mixfrac, maxiter)
+        self.net = net
+        self.mixfrac = mixfrac
+
+        x_nx = net.input
+        self.predict = TensorFlowLazyFunction([x_nx], net.output, session)
+
+        ypred_ny = net.output
+        ytarg_ny = tf.placeholder(dtype, name='ytarg')
+
+        var_list = net.trainable_weights
+        l2 = 1e-3 * tf.add_n([tf.reduce_sum(tf.square(v)) for v in var_list])
+
+        mse = tf.reduce_mean(tf.square(ytarg_ny - ypred_ny))
+        symb_args = [x_nx, ytarg_ny]
+
+        loss = mse + l2
+        self.opt = LbfgsOptimizer(session, loss, var_list, symb_args,
+                                  maxiter=maxiter, extra_losses={"mse": mse, "l2": l2})
+
+    def fit(self, x_nx, ytarg_ny):
+        nY = ytarg_ny.shape[1]
+
+        ypredold_ny = self.predict(x_nx)
+        out = self.opt.update(x_nx, ytarg_ny*self.mixfrac + ypredold_ny*(1-self.mixfrac))
+        yprednew_ny = self.predict(x_nx)
+
+        out["PredStdevBefore"] = ypredold_ny.std()
+        out["PredStdevAfter"] = yprednew_ny.std()
+        out["TargStdev"] = ytarg_ny.std()
+
+        if nY == 1:
+            out["EV_before"] = explained_variance_2d(ypredold_ny, ytarg_ny)[0]
+            out["EV_after"] = explained_variance_2d(yprednew_ny, ytarg_ny)[0]
+        else:
+            out["EV_avg"] = explained_variance(yprednew_ny.ravel(), ytarg_ny.ravel())
+        return out
+
+
 class NnVf(object):
     def __init__(self, vnet, timestep_limit, regression_params, session):
-        pass
+        self.reg = NnRegression(vnet, session, **regression_params)
+        self.timestep_limit = timestep_limit
+
+    def predict(self, path):
+        ob_no = self.preproc(path["observation"])
+        return self.reg.predict(ob_no)[:, 0]
+
+    def fit(self, paths):
+        ob_no = concat([self.preproc(path["observation"]) for path in paths], axis=0)
+        vtarg_n1 = concat([path["return"] for path in paths]).reshape(-1, 1)
+        return self.reg.fit(ob_no, vtarg_n1)
+
+    def preproc(self, ob_no):
+        return concat([ob_no, np.arange(len(ob_no)).reshape(-1, 1) / float(self.timestep_limit)], axis=1)
