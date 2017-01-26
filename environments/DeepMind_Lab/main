@@ -43,8 +43,10 @@ def main():
                         help='Activate display screen size')
     parser.add_argument('--frame-skip', type=int, default=4,
                         help='The number of frames to skip between successive observations')
-    parser.add_argument('--shrink', type=bool, default=True,
-                        help='Shrink the action size to reduce the exploration (labyrinth)')
+    parser.add_argument('--action-size', type=str, default='medium',
+                        help='You can choose between: full action size - 11 actions, medium - just \
+                             6 actions for movement only and small - 3 actions for forward | left | right \
+                             by: \'f\', \'full\', \'b\', \'big\', \'m\', \'medium\', \'s\', \'small\' respectively')
 
     args = parser.parse_args()
     if args.runfiles_path:
@@ -58,7 +60,7 @@ def main():
         display=args.display,
         fps=args.fps,
         frame_skip=args.frame_skip,
-        shrink=args.shrink
+        action_size=args.action_size
     )
 
 
