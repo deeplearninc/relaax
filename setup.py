@@ -17,9 +17,11 @@ setup(
         'grpcio',
         'boto3',
         'pillow',
+        'numpy',
         'scipy',
         'psutil',
-        'honcho'
+        'honcho',
+        'mock'
     ],
     provides=['relaax'],
     scripts=[
