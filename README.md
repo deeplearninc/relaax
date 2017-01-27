@@ -726,7 +726,7 @@ secret: YOUR_SECRET_ACCESS_KEY_HERE
 
 ### [Algorithm](#contents)
 
-An algorithm is an usual Python package. But RELAAX server loads algorithms dynamically. Dynamic loading simplifies algorithm developement outside Python package structure. The path to selected algorithm is defined in config.yaml or in command line.
+An algorithm is an usual Python package. But RELAAX server loads algorithms dynamically. Dynamic loading simplifies algorithm development outside Python package structure. The path to selected algorithm is defined in config.yaml or in command line.
 All algorithms follow structure defined in relaax/algorithm_base directory:
 
 ```
@@ -892,8 +892,8 @@ Environment:
 client.metrics().scalar('act latency on client', latency)
 ```
 
-This call stores metrics with given name and value. All metrices are stored as mappings from training global step to given values.
-All metrices could be browsed in realtime during training by TensorBoard attached to training cluster or to local training.
+This call stores metrics with given name and value. All metrics are stored as mappings from training global step to given values.
+All metrics could be browsed in realtime during training by TensorBoard attached to training cluster or to local training.
 
 DA3C gathers following metrics:
 * episode reward
@@ -1070,7 +1070,7 @@ You can also specify hyperparameters for training in provided `params.yaml` file
 Breakout with DA3C-FF and 8 parallel agents: score performance is similar to DeepMind [paper](https://arxiv.org/pdf/1602.01783v2.pdf#19)
 ![img](resources/Breakout-8th-80mil.png "Breakout")
 
-Breakout with DA3C-FF and 8 parallel agents: ih this case we outperforms significantly DeepMind, but
+Boxing with DA3C-FF and 8 parallel agents: ih this case we outperforms significantly DeepMind, but
 we have some instability in training process (anyway DeepMind shows only 34 points after 80mil steps)
 ![img](resources/Boxing-8th-35mil.png "Boxing")
 
@@ -1132,8 +1132,8 @@ Measure how fast Agent returns Action in response to the State sent by the Clien
 | Node Type  | Number of clients | Latency  |
 | ---------- |:-----------------:|:--------:|
 | m4.xlarge  |          32       | 323.23ms |
-| m4.xlarge  |          64       | ???ms    |
 | m4.xlarge  |          48       | ???ms    |
+| m4.xlarge  |          64       | ???ms    |
 | c4.xlarge  |          48       | ???ms    |
 | c4.xlarge  |          64       | ???ms    |
 | c4.xlarge-m4.xlarge | 64       | ???ms    |
@@ -1150,8 +1150,8 @@ TBD - Latency chart (Show latency of the agents over time)
 | Node Type  | Number of clients | Performance       |
 | ---------- |:-----------------:| -----------------:|
 | m4.xlarge  |          32       | 99 steps per sec  |
-| m4.xlarge  |          64       | 171 steps per sec |
 | m4.xlarge  |          48       | 167 steps per sec |
+| m4.xlarge  |          64       | 171 steps per sec |
 | c4.xlarge  |          48       | 169 steps per sec |
 | c4.xlarge  |          64       | 207 steps per sec |
 | c4.xlarge-m4.xlarge | 64       | 170 steps per sec |

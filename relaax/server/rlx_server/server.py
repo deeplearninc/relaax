@@ -1,5 +1,6 @@
 from __future__ import print_function
 
+import itertools
 import logging
 import os
 import psutil
@@ -96,21 +97,21 @@ def _available_memory():
 
 def _memory_per_child():
     process = psutil.Process(os.getpid())
-    n = 0
-    mem = 0
-    for child in process.children(recursive=False):
-        n += 1
-        mem += _process_tree_memory(child)
+    mem = sum(itertools.imap(
+        _process_memory,
+        process.children(recursive=True)
+    ))
+    n = len(process.children(recursive=False))
     if n == 0:
         return None
     return mem / n
 
 
-def _process_tree_memory(process):
-    mem = process.memory_percent()
-    for child in process.children(recursive=True):
-        mem += child.memory_percent()
-    return mem
+def _process_memory(process):
+    try:
+        return process.memory_percent()
+    except psutil.NoSuchProcess:
+        return 0
 
 
 def _warning(message, *args):
