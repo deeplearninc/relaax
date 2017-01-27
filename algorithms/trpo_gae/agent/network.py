@@ -5,7 +5,7 @@ def make(config):
     return network.make_mlps(config)
 
 
-def make_filters(config):   # agent only
+def make_filters(config):
     return network.make_filters(config)
 
 
@@ -13,5 +13,5 @@ def make_head(config, pnet, vnet, sess):
     return network.make_wrappers(config, pnet, vnet, sess)
 
 
-def make_trpo(config, policy, sess):
+def make_trpo(config, policy, sess):    # ps only
     return network.TrpoUpdater(config, policy, sess)
