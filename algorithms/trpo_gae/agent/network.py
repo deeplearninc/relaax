@@ -11,7 +11,3 @@ def make_filters(config):
 
 def make_head(config, pnet, vnet, sess):
     return network.make_wrappers(config, pnet, vnet, sess)
-
-
-def make_trpo(config, policy, sess):    # ps only
-    return network.TrpoUpdater(config, policy, sess)

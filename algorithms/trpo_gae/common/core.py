@@ -291,7 +291,7 @@ class LbfgsOptimizer(EzFlat):
         losses_before = self.f_losses(*args)
         theta, _, opt_info = scipy.optimize.fmin_l_bfgs_b(lossandgrad, thprev, maxiter=self.maxiter)
         del opt_info['grad']
-        print(opt_info)
+        print(opt_info)     # future
 
         self.set_params_flat(theta)
         losses_after = self.f_losses(*args)

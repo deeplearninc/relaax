@@ -7,16 +7,13 @@ from . import network
 
 class ParameterServer(relaax.algorithm_base.parameter_server_base.ParameterServerBase):
     def __init__(self, config, saver, metrics):
-        self.stochastic = True
-
         self.policy_net, self.value_net = network.make(config)
-        self.obs_filter, self.reward_filter = network.make_filters(config)
 
         initialize = tf.variables_initializer(tf.global_variables())
         self._session = tf.Session()
 
-        policy, baseline = network.make_head(config, self.policy_net, self.value_net, self._session)
-        trpo_updater = network.make_trpo(policy, config, self._session)
+        self.policy, self.baseline = network.make_head(config, self.policy_net, self.value_net, self._session)
+        trpo_updater = network.make_trpo(self.policy, config, self._session)
 
         self._session.run(initialize)
         #self._bridge = _Bridge(config, metrics, self._network, self._session)
