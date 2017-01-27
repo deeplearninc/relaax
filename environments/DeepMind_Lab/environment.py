@@ -10,9 +10,9 @@ from relaax.client import rlx_client
 from . import env_process
 
 
-def run(rlx_server_url, level, width, height, display, fps, frame_skip, shrink):
+def run(rlx_server_url, level, width, height, display, fps, frame_skip, action_size):
     n_game = 0
-    game = env_process.GameProcessFactory(level, width, height, display, shrink).new_env(_seed(fps), frame_skip)
+    game = env_process.GameProcessFactory(level, width, height, display, action_size).new_env(_seed(fps), frame_skip)
 
     while True:
         try:

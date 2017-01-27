@@ -27,6 +27,7 @@ sudo -u ubuntu -i bash -c "mkdir -p /home/ubuntu/.config/pcmanfm/LXDE/ \
 echo $1 > /run_env.rlx-server-url
 echo $2 > /run_env.regime
 echo $3 > /run_env.level
+echo $4 > /run_env.action-size
 
 echo "Initialize Web UI"
 cd /web && ./run.py > /var/log/web.log 2>&1 &

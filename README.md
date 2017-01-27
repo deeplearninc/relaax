@@ -467,12 +467,13 @@ for learning agents especially with deep reinforcement learning.
 
     $ docker run --rm -ti \
         --name lab deeplearninc/relaax-lab \
-        SERVER_IP 4 nav_maze_static_02
+        SERVER_IP 4 nav_maze_static_02 full
     ```
     It adds the second parameter which is equal to `4` since it allows to define
     number of environments to launch within the docker for parallel training.
 
-    It also allows to define a map by the third parameter or it uses `nav_maze_static_01` by default.
+    It also allows to define a `map` by the third parameter or it uses `nav_maze_static_01` by default;
+    and an `action size`, which set to `full` in this case (see explanation below, `m` by default).
 
     ```bash
     # And the third one use-case
@@ -485,7 +486,7 @@ for learning agents especially with deep reinforcement learning.
     It passes the last argument as `display` to run environment in display mode, therefore
     it maps some ports on your computer to use `VNC` connection for visual session.
 
-    It also allows to define a map by the third parameter.
+    It also allows to define a `map` and `action size` by the 3rd and 4th parameter respectively.
 
     For example, the full command to run the clients and a server on
     a single machine (under the NAT) should looks like as follows:
@@ -493,7 +494,7 @@ for learning agents especially with deep reinforcement learning.
     $ docker run --rm -ti \
         -p 6080:6080 \
         --name lab deeplearninc/relaax-lab \
-        192.168.2.103 display nav_maze_static_03
+        192.168.2.103 display nav_maze_static_03 s
     ```
 
     You can connect to client's visual output via your browser by opening http://127.0.0.1:6080/vnc.html URL.
@@ -506,24 +507,32 @@ Please find sample of configuration to perform experiments with DeepMind Lab the
 
 `action_size` and `state_size` parameters for this configuration is equal to:
 ```yml
-action_size: 11                 # the full action size for the lab's environment
+action_size: 3                  # the small action size for the lab's environment
 state_size: [84, 84]            # dimensions of the environment's input screen
 ```
-The full set for `action_size` consists of 11-types of interactions:
-- *look_left*
-- *look_right*
-- look_up
-- look_down
-- *strafe_left*
-- *strafe_right*
-- *forward*
-- *backward*
-- fire
-- jump
-- crouch
 
-It shrinks these actions to the `6` (italic) while training
-by `--shrink` parameter, which is set to `true` by default.
+The full set for `action_size` consists of 11-types of interactions.
+
+It allows to define number of desired actions by the 4th parameter.
+
+| Small `action_size`   | Medium `action_size`   | Full `action_size`   |
+| ----------------------|:----------------------:| --------------------:|
+| look_left             | look_left              | look_left            |
+| look_right            | look_right             | look_right           |
+| forward               | forward                | forward              |
+|                       | strafe_left            | strafe_left          |
+|                       | strafe_right           | strafe_right         |
+|                       | backward               | backward             |
+|                       |                        | look_up              |
+|                       |                        | look_down            |
+|                       |                        | fire                 |
+|                       |                        | jump                 |
+|                       |                        | crouch               |
+`s` or `small` to set small `action_size`
+
+`m` or `medium` to set medium `action_size` (movement only)
+
+`f` or `full` (`b` or `big`) to set full `action_size`
 <br><br>
 
 **How to build your own Docker Image**
@@ -740,7 +749,7 @@ secret: YOUR_SECRET_ACCESS_KEY_HERE
 
 ### [Algorithm](#contents)
 
-An algorithm is an usual Python package. But RELAAX server loads algorithms dynamically. Dynamic loading simplifies algorithm developement outside Python package structure. The path to selected algorithm is defined in config.yaml or in command line.
+An algorithm is an usual Python package. But RELAAX server loads algorithms dynamically. Dynamic loading simplifies algorithm development outside Python package structure. The path to selected algorithm is defined in config.yaml or in command line.
 All algorithms follow structure defined in relaax/algorithm_base directory:
 
 ```
@@ -906,8 +915,8 @@ Environment:
 client.metrics().scalar('act latency on client', latency)
 ```
 
-This call stores metrics with given name and value. All metrices are stored as mappings from training global step to given values.
-All metrices could be browsed in realtime during training by TensorBoard attached to training cluster or to local training.
+This call stores metrics with given name and value. All metrics are stored as mappings from training global step to given values.
+All metrics could be browsed in realtime during training by TensorBoard attached to training cluster or to local training.
 
 DA3C gathers following metrics:
 * episode reward
@@ -1084,7 +1093,7 @@ You can also specify hyperparameters for training in provided `params.yaml` file
 Breakout with DA3C-FF and 8 parallel agents: score performance is similar to DeepMind [paper](https://arxiv.org/pdf/1602.01783v2.pdf#19)
 ![img](resources/Breakout-8th-80mil.png "Breakout")
 
-Breakout with DA3C-FF and 8 parallel agents: ih this case we outperforms significantly DeepMind, but
+Boxing with DA3C-FF and 8 parallel agents: ih this case we outperforms significantly DeepMind, but
 we have some instability in training process (anyway DeepMind shows only 34 points after 80mil steps)
 ![img](resources/Boxing-8th-35mil.png "Boxing")
 
@@ -1146,8 +1155,8 @@ Measure how fast Agent returns Action in response to the State sent by the Clien
 | Node Type  | Number of clients | Latency  |
 | ---------- |:-----------------:|:--------:|
 | m4.xlarge  |          32       | 323.23ms |
-| m4.xlarge  |          64       | ???ms    |
 | m4.xlarge  |          48       | ???ms    |
+| m4.xlarge  |          64       | ???ms    |
 | c4.xlarge  |          48       | ???ms    |
 | c4.xlarge  |          64       | ???ms    |
 | c4.xlarge-m4.xlarge | 64       | ???ms    |
@@ -1164,8 +1173,8 @@ TBD - Latency chart (Show latency of the agents over time)
 | Node Type  | Number of clients | Performance       |
 | ---------- |:-----------------:| -----------------:|
 | m4.xlarge  |          32       | 99 steps per sec  |
-| m4.xlarge  |          64       | 171 steps per sec |
 | m4.xlarge  |          48       | 167 steps per sec |
+| m4.xlarge  |          64       | 171 steps per sec |
 | c4.xlarge  |          48       | 169 steps per sec |
 | c4.xlarge  |          64       | 207 steps per sec |
 | c4.xlarge-m4.xlarge | 64       | 170 steps per sec |

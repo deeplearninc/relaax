@@ -3,31 +3,33 @@
 rlx_url=$(cat /run_env.rlx-server-url)
 regime=$(cat /run_env.regime)
 level=$(cat /run_env.level)
+action_size=$(cat /run_env.action-size)
+
 number='^[0-9]+$'
+cd /opt/lab/bazel-bin/random_agent.runfiles/org_deepmind_lab
+
+if [ -z "$level" ]
+then
+    level="nav_maze_static_01"
+fi
+if [ -z "$action_size" ]
+then
+    action_size="medium"
+fi
 
 if [ -z "$regime" ]
 then
-    (cd /opt/lab/bazel-bin/random_agent.runfiles/org_deepmind_lab && ./random_agent --rlx-server $rlx_url:7001)
+    (./random_agent --rlx-server $rlx_url:7001)
 elif [ "$regime" == "display" ]
 then
-    if [ -z "$level" ]
-    then
-        (cd /opt/lab/bazel-bin/random_agent.runfiles/org_deepmind_lab && ./random_agent --rlx-server $rlx_url:7001 --display true)
-    else
-        (cd /opt/lab/bazel-bin/random_agent.runfiles/org_deepmind_lab && ./random_agent --rlx-server $rlx_url:7001 --display true --level-script "$level")
-    fi
+    (./random_agent --rlx-server $rlx_url:7001 --display true --level-script "$level" --action-size "$action_size")
 elif [ "$regime" -eq "$regime" ]
 #elif [[ $regime =~ $number ]]
 then
     for i in `seq 0 $((regime - 1))`;
     do
-    if [ -z "$level" ]
-    then
-        (cd /opt/lab/bazel-bin/random_agent.runfiles/org_deepmind_lab && ./random_agent --rlx-server $rlx_url:7001 &)
-    else
-        (cd /opt/lab/bazel-bin/random_agent.runfiles/org_deepmind_lab && ./random_agent --rlx-server $rlx_url:7001 --level-script "$level" &)
-    fi
+    (./random_agent --rlx-server $rlx_url:7001 --level-script "$level" --action-size "$action_size" &)
     done
 else
-    echo "You've passed a wrong arguments... Please, relaunch the docker with the right one"
+    echo "You've passed wrong arguments... Please, relaunch the docker with the right one"
 fi
