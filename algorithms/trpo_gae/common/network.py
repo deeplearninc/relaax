@@ -28,6 +28,16 @@ def make_mlps(config):
     return policy_net, value_net
 
 
+def make_filters(config):
+    if config.use_filers:
+        obfilter = ZFilter(config.state_size, clip=5)
+        rewfilter = ZFilter((), demean=False, clip=10)
+    else:
+        obfilter = IDENTITY
+        rewfilter = IDENTITY
+    return obfilter, rewfilter
+
+
 def make_wrappers(config, policy_net, value_net, session):
 
     if not config.discrete:

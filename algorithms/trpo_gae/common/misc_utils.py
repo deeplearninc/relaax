@@ -1,6 +1,10 @@
 import numpy as np
 
 
+def IDENTITY(x):
+    return x
+
+
 class TensorFlowLazyFunction(object):
     def __init__(self, inputs, outputs, session):
         self._inputs = inputs

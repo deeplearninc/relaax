@@ -5,6 +5,7 @@ from collections import OrderedDict
 
 from distributions import *
 from misc_utils import *
+from filters import *
 
 dtype = tf.float32
 concat = np.concatenate

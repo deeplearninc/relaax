@@ -10,6 +10,8 @@ class ParameterServer(relaax.algorithm_base.parameter_server_base.ParameterServe
     def __init__(self, config, saver, metrics):
         policy_net, value_net = network.make(config)
 
+        obs_filter, reward_filter = network.make_filters(config)
+
         initialize = tf.variables_initializer(tf.global_variables())
         self._session = tf.Session()
 
