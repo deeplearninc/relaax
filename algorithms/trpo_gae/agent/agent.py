@@ -42,8 +42,6 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
         action, agentinfo = self.policy.act(obs)
 
         self.data["action"].append(action)
-        for (k, v) in agentinfo.iteritems():
-            self.data[k].append(v)
 
         self.metrics().scalar('server latency', time.time() - start)
 
@@ -64,10 +62,10 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
     def _reward(self, reward):
         self.episode_reward += reward
 
-        self.local_t += 1
-        self.global_t = self._parameter_server.increment_global_t()
+        self.local_t += 1   # poll (batch id == global_step == n_iter)
+        # poll every 100 <-- self.global_t = self._parameter_server.increment_global_t()
 
-        return self.global_t < self._config.max_global_step
+        return self.global_t < self._config.n_iter
 
     def metrics(self):
         return self._parameter_server.metrics()
