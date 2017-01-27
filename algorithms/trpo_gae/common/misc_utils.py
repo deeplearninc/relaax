@@ -91,3 +91,9 @@ class EzPickle(object):
     def __setstate__(self, d):
         out = type(self)(*d["_ezpickle_args"], **d["_ezpickle_kwargs"])
         self.__dict__.update(out.__dict__)
+
+
+def zipsame(*seqs):
+    L = len(seqs[0])
+    assert all(len(seq) == L for seq in seqs[1:])
+    return zip(*seqs)
