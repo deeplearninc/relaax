@@ -9,19 +9,26 @@ from ...common.protocol import socket_protocol
 
 
 class Worker(object):
-    def __init__(self, agent_factory, timeout, n_agent, connection, address):
-        self._agent_factory = agent_factory
-        self._timeout = timeout
-        self._n_agent = n_agent
+    def __init__(
+        self,
+        agent_factory,
+        timeout,
+        n_agent,
+        connection,
+        address,
+        agent_service_factory=lambda connection, agent, timeout:
+            _AgentService(connection, agent, timeout)
+    ):
         self._connection = connection
         self._address = address
+        self._agent_service_factory = lambda: agent_service_factory(
+            connection=connection,
+            agent=agent_factory(n_agent),
+            timeout=timeout
+        )
 
     def run(self):
-        agent_service = _AgentService(
-            connection=self._connection,
-            agent=self._agent_factory(self._n_agent),
-            timeout=self._timeout
-        )
+        agent_service = self._agent_service_factory()
         try:
             while True:
                 socket_protocol.agent_dispatch(self._connection, agent_service)
