@@ -77,11 +77,6 @@ class TestRlxClient(unittest.TestCase):
         self.assertFalse(self.socket.opened)
 
 
-def _socket_factory(rlx_server_url):
-    socket = mock.Mock()
-    return _Socket
-
-
 class _Socket(object):
     def __init__(self):
         self.output = _MockSocket()
