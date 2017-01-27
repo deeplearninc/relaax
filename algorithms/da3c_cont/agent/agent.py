@@ -34,7 +34,7 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
         self.values = []            # auxiliary values accumulator through episode_len = 0..5
 
         self.episode_t = 0          # episode counter through episode_len = 0..5
-        self.terminal_end = False   # auxiliary parameter to compute R in update_global and obsQueue
+        self._terminal_end = False   # auxiliary parameter to compute R in update_global and obsQueue
         self.start_lstm_state = None
 
         self.obsQueue = None        # observation accumulator, cuz state = history_len * consecutive observations
@@ -54,8 +54,8 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
         if self.episode_t == self._config.episode_len:
             self._update_global()
 
-            if self.terminal_end:
-                self.terminal_end = False
+            if self._terminal_end:
+                self._terminal_end = False
 
             self.episode_t = 0
 
@@ -96,7 +96,7 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
         if not self._reward(reward):
             return None
 
-        self.terminal_end = True
+        self._terminal_end = True
         print("score=", self.episode_reward)
 
         score = self.episode_reward
@@ -132,14 +132,14 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
 
     def _update_state(self, observation):
         obs = self.obfilter(observation.flatten())
-        if not self.terminal_end and self.local_t != 0:
+        if not self._terminal_end and self.local_t != 0:
             np.append(self.obsQueue[self.obs_size:], obs)
         else:
             self.obsQueue = np.repeat(obs, self._config.history_len)
 
     def _update_global(self):
         R = 0.0
-        if not self.terminal_end:
+        if not self._terminal_end:
             R = self._local_network.run_value(self._session, self.obsQueue)
 
         self.actions.reverse()

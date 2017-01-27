@@ -140,16 +140,6 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
         # fail safe
         return len(values) - 1
 
-    def update_state(self, frame):
-        if not self.terminal_end and self.local_t != 0:
-            self.obsQueue = np.append(
-                self.obsQueue[:, :, 1:],
-                np.reshape(frame, frame.shape + (1, )),
-                axis=2
-            )
-        else:
-            self.obsQueue = np.stack((frame, frame, frame, frame), axis=2)
-
     def _update_state(self, obs):
         if not self.terminal_end and self.local_t != 0:
             np.delete(self.obsQueue, 0, len(self._config.state_size))
