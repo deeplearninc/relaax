@@ -1,5 +1,4 @@
 import io
-import mock
 import numpy
 import unittest
 
