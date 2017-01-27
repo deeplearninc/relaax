@@ -7,6 +7,7 @@ import time
 import relaax.algorithm_base.agent_base
 from ...common.protocol import socket_protocol
 
+_logger = logging.getLogger(__name__)
 
 class Worker(object):
     def __init__(
@@ -15,13 +16,11 @@ class Worker(object):
         timeout,
         n_agent,
         connection,
-        address,
-        agent_service_factory=lambda connection, agent, timeout:
-            _AgentService(connection, agent, timeout)
+        address
     ):
         self._connection = connection
         self._address = address
-        self._agent_service_factory = lambda: agent_service_factory(
+        self._agent_service_factory = lambda: _AgentService(
             connection=connection,
             agent=agent_factory(n_agent),
             timeout=timeout
@@ -33,7 +32,7 @@ class Worker(object):
             while True:
                 socket_protocol.agent_dispatch(self._connection, agent_service)
         except socket_protocol.Failure as e:
-            logging.warning('{}: {}: {}'.format(os.getpid(), self._address, e.message))
+            _logger.warning('{}: {}: {}'.format(os.getpid(), self._address, e.message))
 
 
 class _AgentService(relaax.algorithm_base.agent_base.AgentBase):
