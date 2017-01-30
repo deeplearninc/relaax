@@ -23,7 +23,6 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
         self.obs_filter, self.reward_filter = network.make_filters(config)
 
         self.data = defaultdict(list)
-        self.collection_time = None  # timer for experience collection
 
         initialize_all_variables = tf.variables_initializer(tf.global_variables())
         self._session = tf.Session()
@@ -31,6 +30,7 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
         self.policy, _ = network.make_head(config, self.policy_net, value_net, self._session)
 
         self._session.run(initialize_all_variables)
+        self.collecting_time = time.time()  # timer for collecting experience
 
     def act(self, state):
         start = time.time()
@@ -73,7 +73,7 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
 
     def _send_experience(self, terminated=False):
         self.data["terminated"] = terminated
-        self._parameter_server.send_experience(self._n_iter, self.data)
+        self._parameter_server.send_experience(self._n_iter, self.data, self._episode_timestep)
 
         self.data.clear()
         self._episode_timestep = 0
@@ -87,9 +87,9 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
             return
 
         if old_n_iter < self._n_iter:
-            print('Collection time:', time.time() - self.collection_time)   # +update waiting
+            print('Collection time:', time.time() - self.collecting_time)   # +update waiting
             self.policy.set_weights(self._parameter_server.receive_weights(self._n_iter))
-            self.collection_time = time.time()
+            self.collecting_time = time.time()
 
     def metrics(self):
         return self._parameter_server.metrics()

@@ -1,6 +1,7 @@
 import tensorflow as tf
 import numpy as np
-from time import sleep
+from scipy.signal import lfilter
+from time import time, sleep
 
 import relaax.algorithm_base.parameter_server_base
 
@@ -10,7 +11,11 @@ from . import network
 class ParameterServer(relaax.algorithm_base.parameter_server_base.ParameterServerBase):
     def __init__(self, config, saver, metrics):
         self.n_iter = tf.Variable(0)
-        self.is_collect = True
+        self.config = config
+
+        self.is_collect = True      # set to False if TRPO is under update procedure
+        self.paths = []             # experience accumulator
+        self.paths_len = 0          # length of experience
 
         self.policy_net, self.value_net = network.make(config)
 
@@ -18,7 +23,7 @@ class ParameterServer(relaax.algorithm_base.parameter_server_base.ParameterServe
         self._session = tf.Session()
 
         self.policy, self.baseline = network.make_head(config, self.policy_net, self.value_net, self._session)
-        trpo_updater = network.make_trpo(self.policy, config, self._session)
+        self.trpo_updater = network.make_trpo(self.policy, config, self._session)
 
         self._session.run(initialize)
         self._bridge = _Bridge(config, metrics, self)
@@ -27,19 +32,53 @@ class ParameterServer(relaax.algorithm_base.parameter_server_base.ParameterServe
         self._session.close()
 
     def restore_latest_checkpoint(self):
-        pass
+        raise NotImplemented
         #return self._saver.restore_latest_checkpoint(self._session)
 
     def save_checkpoint(self):
-        pass
+        raise NotImplemented    # len(paths["actions"] + 2 NNs
         #self._saver.save_checkpoint(self._session, self.global_t())
 
     def checkpoint_location(self):
-        pass
+        raise NotImplemented
         #return self._saver.location()
 
     def bridge(self):
         return self._bridge
+
+    def update_paths(self, paths, length):
+        self.paths_len += length
+        self.paths.append(paths)
+        if self.paths_len >= self.config.timesteps_per_batch:
+            self.trpo_update()
+
+    def trpo_update(self):
+        self.is_collect = False
+        start = time()
+
+        self.compute_advantage()
+        # Value Update
+        vf_stats = self.baseline.fit(self.paths)
+        # Policy Update
+        pol_stats = self.trpo_updater(self.paths)
+
+        print('Update time:', time() - start)
+        self.is_collect = True
+
+    def compute_advantage(self):
+        # Compute & Add to paths: return, baseline, advantage
+        for path in self.paths:
+            path["return"] = discount(path["reward"], self.config.GAMMA)
+            b = path["baseline"] = self.baseline.predict(path)
+            b1 = np.append(b, 0 if path["terminated"] else b[-1])
+            deltas = path["reward"] + self.config.GAMMA * b1[1:] - b1[:-1]
+            path["advantage"] = discount(deltas, self.config.GAMMA * self.config.LAMBDA)
+        alladv = np.concatenate([path["advantage"] for path in self.paths])
+        # Standardize advantage
+        std = alladv.std()
+        mean = alladv.mean()
+        for path in self.paths:
+            path["advantage"] = (path["advantage"] - mean) / std
 
 
 class _Bridge(object):
@@ -53,17 +92,33 @@ class _Bridge(object):
             sleep(1)
         return self._ps.n_iter
 
-    def send_experience(self, n_iter, paths):
+    def send_experience(self, n_iter, paths, length):
         if n_iter == self._ps.n_iter:
-            raise NotImplemented
-            # call later (every 100)
-            # save 2 nets & paths
-            # iter for experience
-            # self._ps.trpo_updater(paths)
+            self._ps.update_paths(paths, length)
 
     def receive_weights(self, n_iter):
-        assert n_iter == self._ps.n_iter    # check
+        assert n_iter == self._ps.n_iter    # check iteration
         return self._ps.policy_net.get_trainable_weights()
 
     def metrics(self):
         return self._metrics
+
+
+def discount(x, gamma):
+    """
+    computes discounted sums along 0th dimension of x.
+
+    inputs
+    ------
+    x: ndarray
+    gamma: float
+
+    outputs
+    -------
+    y: ndarray with same shape as x, satisfying
+
+        y[t] = x[t] + gamma*x[t+1] + gamma^2*x[t+2] + ... + gamma^k x[t+k],
+                where k = len(x) - t - 1
+    """
+    assert x.ndim >= 1
+    return lfilter([1], [1, -gamma], x[::-1], axis=0)[::-1]

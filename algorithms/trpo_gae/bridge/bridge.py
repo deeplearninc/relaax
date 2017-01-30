@@ -28,13 +28,14 @@ class _Stub(object):
     def wait_for_iteration(self):
         return self._stub.WaitForIteration(bridge_pb2.NullMessage()).n_iter
 
-    def send_experience(self, n_iter, paths):
+    def send_experience(self, n_iter, paths, length):
         self._stub.SendExperience(bridge_pb2.Experience(
             n_iter=n_iter,
             observation=itertools.imap(_build_ndarray_message, paths["observation"]),
             action=itertools.imap(_build_ndarray_message, paths["action"]),
             reward=paths["reward"],
-            terminated=paths["terminated"]
+            terminated=paths["terminated"],
+            length=length
         ))
 
     def receive_weights(self, n_iter):
@@ -79,7 +80,7 @@ class _Servicer(bridge_pb2.ParameterServerServicer):
             'action': itertools.imap(_parse_ndarray_message, request.action),
             'reward': request.reward,
             'terminated': request.terminated
-        })
+        }, request.length)
         return bridge_pb2.NullMessage()
 
     def ReceiveWeights(self, request, context):

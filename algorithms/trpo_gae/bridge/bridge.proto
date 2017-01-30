@@ -19,6 +19,7 @@ message Experience {
     repeated NdArray action = 3;
     repeated double reward = 4;
     bool terminated = 5;
+    fixed32 length = 6;
 }
 
 message ScalarMetric {
