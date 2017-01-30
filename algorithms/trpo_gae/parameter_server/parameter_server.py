@@ -63,8 +63,7 @@ class _Bridge(object):
 
     def receive_weights(self, n_iter):
         assert n_iter == self._ps.n_iter    # check
-        return np.concatenate(self._ps.policy_net.get_trainable_weights(),
-                              self._ps.value_net.get_trainable_weights())
+        return self._ps.policy_net.get_trainable_weights()
 
     def metrics(self):
         return self._metrics
