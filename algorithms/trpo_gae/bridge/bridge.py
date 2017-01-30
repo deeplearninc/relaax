@@ -86,7 +86,7 @@ class _Servicer(bridge_pb2.ParameterServerServicer):
         return bridge_pb2.NullMessage()
 
     def ReceiveWeights(self, request, context):
-        for weights in self._service.receive_weights():
+        for weights in self._service.receive_weights(request.n_iter):
             yield _build_ndarray_message(weights)
 
     def StoreScalarMetric(self, request, context):

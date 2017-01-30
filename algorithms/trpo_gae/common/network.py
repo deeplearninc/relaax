@@ -5,7 +5,8 @@ from keras.layers.core import Dense, Lambda
 from core import *
 
 
-def make_mlps(config):
+def make_mlps(config, session):
+    K.set_session(session)
 
     policy_net = Sequential()
     for (i, layeroutsize) in enumerate(config.hidden_layers_sizes):

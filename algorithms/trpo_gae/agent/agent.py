@@ -19,13 +19,14 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
         self._episode_reward = 0     # score accumulator for current episode (round)
         self._stop_training = False
 
-        self.policy_net, value_net = network.make(config)
-        self.obs_filter, self.reward_filter = network.make_filters(config)
-
         self.data = defaultdict(list)
 
-        initialize_all_variables = tf.variables_initializer(tf.global_variables())
         self._session = tf.Session()
+
+        self.policy_net, value_net = network.make(config, self._session)
+        self.obs_filter, self.reward_filter = network.make_filters(config)
+
+        initialize_all_variables = tf.variables_initializer(tf.global_variables())
 
         self.policy, _ = network.make_head(config, self.policy_net, value_net, self._session)
 
@@ -91,8 +92,8 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
             return
 
         if old_n_iter < self._n_iter:
-            print('Collection time:', time.time() - self.collecting_time)   # +update waiting
-            self.policy.set_weights(self._parameter_server.receive_weights(self._n_iter))
+            print('Collecting time:', time.time() - self.collecting_time)   # +update waiting
+            self.policy.net.set_weights(list(self._parameter_server.receive_weights(self._n_iter)))
             self.collecting_time = time.time()
 
     def metrics(self):

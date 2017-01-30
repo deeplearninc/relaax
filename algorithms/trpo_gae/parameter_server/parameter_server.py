@@ -10,18 +10,19 @@ from . import network
 
 class ParameterServer(relaax.algorithm_base.parameter_server_base.ParameterServerBase):
     def __init__(self, config, saver, metrics):
-        self.n_iter = 0
+        self.n_iter = 0             # number of updates within training process
         self.config = config
 
         self.is_collect = True      # set to False if TRPO is under update procedure
         self.paths = []             # experience accumulator
         self.paths_len = 0          # length of experience
-        self.global_step = 0
+        self.global_step = 0        # step accumulator of whole experience through all updates
 
-        self.policy_net, self.value_net = network.make(config)
+        self._session = tf.Session()
+
+        self.policy_net, self.value_net = network.make(config, self._session)
 
         initialize = tf.variables_initializer(tf.global_variables())
-        self._session = tf.Session()
 
         self.policy, self.baseline = network.make_head(config, self.policy_net, self.value_net, self._session)
         self.trpo_updater = network.make_trpo(config, self.policy, self._session)
@@ -64,6 +65,7 @@ class ParameterServer(relaax.algorithm_base.parameter_server_base.ParameterServe
         self.is_collect = False
         start = time()
 
+        self.n_iter += 1
         self.compute_advantage()
         # Value Update
         vf_stats = self.baseline.fit(self.paths)
@@ -109,7 +111,7 @@ class _Bridge(object):
 
     def receive_weights(self, n_iter):
         assert n_iter == self._ps.n_iter    # check iteration
-        return self._ps.policy_net.get_trainable_weights()
+        return self._ps.policy_net.get_weights()
 
     def metrics(self):
         return self._metrics
