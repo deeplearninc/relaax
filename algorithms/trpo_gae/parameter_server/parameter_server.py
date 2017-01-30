@@ -23,7 +23,7 @@ class ParameterServer(relaax.algorithm_base.parameter_server_base.ParameterServe
         self._session = tf.Session()
 
         self.policy, self.baseline = network.make_head(config, self.policy_net, self.value_net, self._session)
-        self.trpo_updater = network.make_trpo(self.policy, config, self._session)
+        self.trpo_updater = network.make_trpo(config, self.policy, self._session)
 
         self._session.run(initialize)
         self._bridge = _Bridge(config, metrics, self)

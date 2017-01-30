@@ -20,7 +20,7 @@ relaax-rlx-server:
   --log-level: WARNING
 
 algorithm:
-  path: ../relaax/algorithms/trpo-gae
+  path: ../relaax/algorithms/trpo_gae
 
   action_size: 4                  # action size for the given environment
   state_size: [24]                # array of dimensions for the input observation
