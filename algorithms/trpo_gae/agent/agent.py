@@ -23,6 +23,7 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
         self.obs_filter, self.reward_filter = network.make_filters(config)
 
         self.data = defaultdict(list)
+        self.collection_time = None  # timer for experience collection
 
         initialize_all_variables = tf.variables_initializer(tf.global_variables())
         self._session = tf.Session()
@@ -86,7 +87,9 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
             return
 
         if old_n_iter < self._n_iter:
+            print('Collection time:', time.time() - self.collection_time)   # +update waiting
             self.policy.set_weights(self._parameter_server.receive_weights(self._n_iter))
+            self.collection_time = time.time()
 
     def metrics(self):
         return self._parameter_server.metrics()
