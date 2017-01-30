@@ -57,10 +57,12 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
         if self._reward(reward):
             return None
 
-        print("Episode reward =", self._episode_reward)
-        self.metrics().scalar('episode reward', self._episode_reward)
+        score = self._episode_reward
+        print("Episode reward =", score)
+        self.metrics().scalar('episode reward', score)
 
         self._send_experience(terminated=True)
+        return score
 
     def _reward(self, reward):
         self._episode_reward += reward

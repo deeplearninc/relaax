@@ -30,7 +30,7 @@ def make_mlps(config):
 
 
 def make_filters(config):
-    if config.use_filers:
+    if config.use_filters:
         obfilter = ZFilter(config.state_size, clip=5)
         rewfilter = ZFilter((), demean=False, clip=10)
     else:

@@ -72,7 +72,7 @@ class _Servicer(bridge_pb2.ParameterServerServicer):
         self._service = service
 
     def WaitForIteration(self, request, context):
-        return bridge_pb2.NIter(self._service.wait_for_iteration())
+        return bridge_pb2.NIter(n_iter=self._service.wait_for_iteration())
 
     def SendExperience(self, request, context):
         self._service.send_experience(request.n_iter, {

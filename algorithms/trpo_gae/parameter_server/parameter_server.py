@@ -10,12 +10,13 @@ from . import network
 
 class ParameterServer(relaax.algorithm_base.parameter_server_base.ParameterServerBase):
     def __init__(self, config, saver, metrics):
-        self.n_iter = tf.Variable(0)
+        self.n_iter = 0
         self.config = config
 
         self.is_collect = True      # set to False if TRPO is under update procedure
         self.paths = []             # experience accumulator
         self.paths_len = 0          # length of experience
+        self.global_step = 0
 
         self.policy_net, self.value_net = network.make(config)
 
@@ -32,25 +33,32 @@ class ParameterServer(relaax.algorithm_base.parameter_server_base.ParameterServe
         self._session.close()
 
     def restore_latest_checkpoint(self):
-        raise NotImplemented
+        print('restore checkpoint')
         #return self._saver.restore_latest_checkpoint(self._session)
 
     def save_checkpoint(self):
-        raise NotImplemented    # len(paths["actions"] + 2 NNs
+        pass
+        #raise NotImplemented    # len(paths["actions"] + 2 NNs
         #self._saver.save_checkpoint(self._session, self.global_t())
 
     def checkpoint_location(self):
-        raise NotImplemented
+        str = 'checkpoint location'
+        return str
+        # raise NotImplemented
         #return self._saver.location()
 
     def bridge(self):
         return self._bridge
 
     def update_paths(self, paths, length):
+        self.global_step += length
         self.paths_len += length
         self.paths.append(paths)
+
         if self.paths_len >= self.config.timesteps_per_batch:
             self.trpo_update()
+            self.paths_len = 0
+            self.paths = []
 
     def trpo_update(self):
         self.is_collect = False
@@ -79,6 +87,9 @@ class ParameterServer(relaax.algorithm_base.parameter_server_base.ParameterServe
         mean = alladv.mean()
         for path in self.paths:
             path["advantage"] = (path["advantage"] - mean) / std
+
+    def global_t(self):
+        return self.global_step
 
 
 class _Bridge(object):

@@ -20,7 +20,7 @@ class Config(relaax.algorithm_base.config_base.ConfigBase):
         self.discrete = config.get('discrete', False)
 
         # whether to do a running average filter of the incoming observations and rewards
-        self.use_filter = config.get('use_filter', True)
+        self.use_filters = config.get('use_filters', True)
 
         # POLICY GRADIENT OPTIONS
         # maximum length of trajectories (length in steps for one round in environment)
