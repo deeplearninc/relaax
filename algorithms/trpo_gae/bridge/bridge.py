@@ -33,6 +33,7 @@ class _Stub(object):
             n_iter=n_iter,
             observation=itertools.imap(_build_ndarray_message, paths["observation"]),
             action=itertools.imap(_build_ndarray_message, paths["action"]),
+            prob=itertools.imap(_build_ndarray_message, paths["prob"]),
             reward=paths["reward"],
             terminated=paths["terminated"],
             length=length
@@ -76,9 +77,10 @@ class _Servicer(bridge_pb2.ParameterServerServicer):
 
     def SendExperience(self, request, context):
         self._service.send_experience(request.n_iter, {
-            'observation': itertools.imap(_parse_ndarray_message, request.observation),
-            'action': itertools.imap(_parse_ndarray_message, request.action),
-            'reward': request.reward,
+            'observation': map(_parse_ndarray_message, request.observation),
+            'action': map(_parse_ndarray_message, request.action),
+            'prob': map(_parse_ndarray_message, request.prob),
+            'reward': numpy.array(request.reward),
             'terminated': request.terminated
         }, request.length)
         return bridge_pb2.NullMessage()

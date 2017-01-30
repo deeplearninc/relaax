@@ -17,9 +17,10 @@ message Experience {
     fixed32 n_iter = 1;
     repeated NdArray observation = 2;
     repeated NdArray action = 3;
-    repeated double reward = 4;
-    bool terminated = 5;
-    fixed32 length = 6;
+    repeated NdArray prob = 4;
+    repeated double reward = 5;
+    bool terminated = 6;
+    fixed32 length = 7;
 }
 
 message ScalarMetric {
