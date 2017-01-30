@@ -8,20 +8,23 @@ from ..common.protocol import socket_protocol
 Failure = socket_protocol.Failure
 
 
-class Client(object):
-    def __init__(self, rlx_server_url):
-        self._socket = None
-        self._agent_service = None
+def _socket_factory(rlx_server_url):
+    try:
+        s = socket.socket()
+        s.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+        s.connect(_parse_address(rlx_server_url))
+    except socket.error as e:
+        if s is not None:
+            s.close()
+        raise Failure("socket error({}): {}".format(e.errno, e.strerror))
+    assert s is not None
+    return s
 
-        try:
-            self._socket = socket.socket()
-            self._socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-            self._socket.connect(_parse_address(rlx_server_url))
-        except socket.error as e:
-            if self._socket is not None:
-                self._socket.close()
-            raise Failure("socket error({}): {}".format(e.errno, e.strerror))
-        assert self._socket is not None
+
+class Client(object):
+    def __init__(self, rlx_server_url, socket_factory=_socket_factory):
+        self._socket = socket_factory(rlx_server_url)
+        self._agent_service = None
 
         try:
             self._agent_service = socket_protocol.AgentStub(self._socket)

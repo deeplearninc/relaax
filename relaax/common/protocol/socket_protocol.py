@@ -23,7 +23,7 @@ class Failure(Exception):
 class AgentStub(relaax.algorithm_base.agent_base.AgentBase):
     def __init__(self, socket):
         self._socket = socket
-        self._metrics = _Metrics(self._socket, 'scalar_metric')
+        self._metrics = _Metrics(socket, 'scalar_metric')
 
     def act(self, state):
         _sendf(self._socket, 'act', json.dumps(state, cls=_NDArrayEncoder))
