@@ -19,16 +19,16 @@ fi
 
 if [ -z "$regime" ]
 then
-    (./random_agent --rlx-server $rlx_url:7001)
+    (./random_agent --rlx-server "$rlx_url")
 elif [ "$regime" == "display" ]
 then
-    (./random_agent --rlx-server $rlx_url:7001 --display true --level-script "$level" --action-size "$action_size")
+    (./random_agent --rlx-server "$rlx_url" --display true --level-script "$level" --action-size "$action_size")
 elif [ "$regime" -eq "$regime" ]
 #elif [[ $regime =~ $number ]]
 then
     for i in `seq 0 $((regime - 1))`;
     do
-    (./random_agent --rlx-server $rlx_url:7001 --level-script "$level" --action-size "$action_size" &)
+    (./random_agent --rlx-server "$rlx_url" --level-script "$level" --action-size "$action_size" &)
     done
 else
     echo "You've passed wrong arguments... Please, relaunch the docker with the right one"

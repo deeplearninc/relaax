@@ -100,6 +100,7 @@ RUN git clone https://github.com/deepmind/lab.git
 WORKDIR /opt/lab
 # headless=glx | headless=false
 RUN bazel build :deepmind_lab.so --define headless=osmesa \
+    && bazel run :random_agent --define headless=osmesa \
     && mkdir /opt/relaax
 
 # Add RELAAX to the image

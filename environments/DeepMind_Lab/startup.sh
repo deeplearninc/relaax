@@ -1,7 +1,11 @@
 #!/bin/bash
 
-echo "Initialization...please wait 1 minute"
-cd /opt/lab && bazel run :random_agent --define headless=false &>/dev/null
+if [ "$2" == "display" ]
+then
+    echo "Initialization for display...please wait a minute"
+    cd /opt/lab && bazel run :random_agent --define headless=false &>/dev/null
+fi
+
 mv /opt/relaax/environments/DeepMind_Lab/random_agent.py /opt/lab/bazel-bin/random_agent.runfiles/org_deepmind_lab/python/random_agent.py
 
 mkdir -p /var/run/sshd
