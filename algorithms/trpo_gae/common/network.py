@@ -32,7 +32,7 @@ def make_mlps(config, session):
 
 def make_filters(config):
     if config.use_filters:
-        obfilter = ZFilter(config.state_size, clip=5)
+        obfilter = ZFilter(tuple(config.state_size), clip=5)
         rewfilter = ZFilter((), demean=False, clip=10)
     else:
         obfilter = IDENTITY
