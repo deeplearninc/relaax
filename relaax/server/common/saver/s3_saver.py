@@ -26,10 +26,9 @@ class S3Saver(saver.Saver):
             if lf_path is None:
                 return False
             cp_name = self._latest_cp_name(dir)
-            self._download(dir, '%s.meta' % cp_name)
-            cp_path = self._download(dir, cp_name)
-            if cp_path is None:
-                return False
+            for name in self._list_keys(cp_name):
+                self._download(dir, name)
+            cp_path = os.path.join(dir, cp_name)
             self._get_saver().restore(session, cp_path)
         return True
 
@@ -45,8 +44,8 @@ class S3Saver(saver.Saver):
                     print('all_model_checkpoint_paths: "%s"' % cp_name, file=f)
 
             cp_name = self._latest_cp_name(dir)
-            self._upload(dir, cp_name)
-            self._upload(dir, '%s.meta' % cp_name)
+            for f in self._list_entries(dir, cp_name):
+                self._upload(dir, f)
             self._upload(dir, self._LATEST_FILENAME)
 
     def location(self):
@@ -60,6 +59,21 @@ class S3Saver(saver.Saver):
                 if match is not None:
                     cp_name = match.group(1)
         return cp_name
+
+    def _list_entries(self, dir, prefix):
+        for name in os.listdir(dir):
+            if (
+                (name == prefix or name.startswith('%s.' % prefix)) and
+                os.path.isfile(os.path.join(dir, name))
+            ):
+                yield name
+
+    def _list_keys(self, prefix):
+        for obj in self._s3().Bucket(self._bucket).objects.filter(Prefix='%s/%s' % (self._key, prefix)):
+            assert obj.key.startswith('%s/' % self._key)
+            name = obj.key[len(self._key) + 1:]
+            if name == prefix or name.startswith('%s.' % prefix):
+                yield name
 
     def _download(self, dir, name):
         if not self._bucket_exists():
