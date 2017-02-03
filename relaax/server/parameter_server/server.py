@@ -9,7 +9,7 @@ import relaax.common.metrics
 from ..common import algorithm_loader
 
 
-def run(yaml, bind, saver, metrics):
+def run(yaml, bind, saver, intervals, metrics):
     algorithm = algorithm_loader.load(yaml['path'])
 
     parameter_server = algorithm.ParameterServer(
@@ -23,9 +23,11 @@ def run(yaml, bind, saver, metrics):
         print('checkpoint restored from %s' % parameter_server.checkpoint_location())
         print("global_t is %d" % parameter_server.global_t())
 
+    last_saved_global_t = parameter_server.global_t()
+
     def stop_server(_1, _2):
         print('')
-        _save(parameter_server)
+        _save(parameter_server, last_saved_global_t)
         parameter_server.close()
         sys.exit(0)
 
@@ -35,34 +37,42 @@ def run(yaml, bind, saver, metrics):
     # keep the server or else GC will stop it
     server = algorithm.BridgeControl().start_parameter_server(bind, parameter_server.bridge())
 
-    last_global_t = parameter_server.global_t()
+    intervals_ = []
+    if intervals['checkpoint_time_interval'] is not None:
+        intervals_.append(_Interval(
+            intervals['checkpoint_time_interval'],
+            lambda: time.time()
+        ))
+    if intervals['checkpoint_global_step_interval'] is not None:
+        intervals_.append(_Interval(
+            intervals['checkpoint_global_step_interval'],
+            lambda: parameter_server.global_t()
+        ))
+
     last_activity_time = None
     while True:
-        time.sleep(1)
+        time.sleep(10)
 
-        global_t = parameter_server.global_t()
-        if global_t == last_global_t:
-            if last_activity_time is not None and time.time() >= last_activity_time + 10:
-                _save(parameter_server)
-                last_activity_time = None
-        else:
-            last_activity_time = time.time()
-
-            last_global_t = global_t
-            print("global_t is %d" % global_t)
-
-
-def _log_uniform(lo, hi, rate):
-    log_lo = math.log(lo)
-    log_hi = math.log(hi)
-    v = log_lo * (1 - rate) + log_hi * rate
-    return math.exp(v)
+        # do not interrupt loop on first True value
+        # we need to update all intervals
+        save = False
+        for i in intervals_:
+            if i.check():
+                save = True
+        if save:
+            print('SAVE')
+            _save(parameter_server, last_saved_global_t)
+            last_saved_global_t = parameter_server.global_t()
 
 
-def _save(parameter_server):
+def _save(parameter_server, last_saved_global_t):
+    global_t = parameter_server.global_t()
+    if global_t == last_saved_global_t:
+        return
+
     print(
         'checkpoint %d is saving to %s ...' %
-        (parameter_server.global_t(), parameter_server.checkpoint_location())
+        (global_t, parameter_server.checkpoint_location())
     )
     parameter_server.save_checkpoint()
     print('done')
@@ -77,3 +87,17 @@ class _Metrics(relaax.common.metrics.Metrics):
         if x is None:
             x = self._global_t()
         self._metrics.scalar(name, y, x=x)
+
+
+class _Interval(object):
+    def __init__(self, interval, counter):
+        self._interval = interval
+        self._counter = counter
+        self._target = counter() + interval
+
+    def check(self):
+        counter = self._counter()
+        if self._target <= counter:
+            self._target = counter + self._interval
+            return True
+        return False
