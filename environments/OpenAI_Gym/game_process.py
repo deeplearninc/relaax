@@ -82,19 +82,22 @@ class _GameProcess(object):
         self._state = self._process_state(state)
 
         self.cur_step_limit += 1
-        if self.cur_step_limit > self.timestep_limit:
+        if self.cur_step_limit == self.timestep_limit:
             terminal = True
 
         return reward, terminal
 
     def reset(self):
         do_act = 0
-        self.cur_step_limit = 0
 
         while True:
             self.gym.reset()
             if not self.display:
+
+                self.cur_step_limit = 0
                 no_op = np.random.randint(0, self._no_op_max)
+                self.cur_step_limit += no_op
+
                 for _ in range(no_op):
                     if self.box:
                         do_act = self._safe_rnd_act()
@@ -106,6 +109,7 @@ class _GameProcess(object):
 
             self._state = self._process_state(env_state[0])
             if not env_state[2]:
+                self.cur_step_limit += 1
                 break
 
     @staticmethod
