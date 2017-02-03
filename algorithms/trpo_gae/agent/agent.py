@@ -35,6 +35,9 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
 
     def act(self, state):
         start = time.time()
+        # poll every timestep_limit
+        if self._episode_timestep == self._config.timestep_limit:
+            self._send_experience()
 
         obs = self.obs_filter(state)
         self.data["observation"].append(obs)
@@ -70,9 +73,6 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
         self.data["reward"].append(reward)
 
         self._episode_timestep += 1
-        # poll every timestep_limit
-        if self._episode_timestep == self._config.timestep_limit:
-            self._send_experience()
 
         return self._stop_training
 
