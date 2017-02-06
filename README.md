@@ -738,7 +738,6 @@ relaax
         def close():                                     - close parameter server
         def restore_latest_checkpoint():                 - restore latest checkpoint
         def save_checkpoint():                           - save new checkpoint
-        def checkpoint_location():                       - return human readable checkpoint location
         def global_t():                                  - return current global learning step
         def bridge():                                    - return bridge interface
 
@@ -832,7 +831,6 @@ relaax
             def close():                     - close server
             def restore_latest_checkpoint(): - restore latest checkpoint using given checkpoint saver
             def save_checkpoint():           - save checkpoint using given checkpoint saver
-            def checkpoint_location():       - get human readable checkpoint storage location
             def global_t():                  - get current global learning step
             def bridge():                    - return bridge interface
 

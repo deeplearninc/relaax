@@ -48,9 +48,6 @@ class S3Saver(saver.Saver):
                 self._upload(dir, f)
             self._upload(dir, self._LATEST_FILENAME)
 
-    def location(self):
-        return "'%s' bucket '%s' key" % (self._bucket, self._key)
-
     def _latest_cp_name(self, dir):
         cp_name = None
         with open('%s/%s' % (dir, self._LATEST_FILENAME), 'r') as f:

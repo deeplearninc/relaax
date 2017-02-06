@@ -18,9 +18,7 @@ def run(yaml, bind, saver, intervals, metrics):
         metrics=_Metrics(metrics, lambda: parameter_server.global_t())
     )
 
-    print('looking for checkpoint in %s ...' % parameter_server.checkpoint_location())
     if parameter_server.restore_latest_checkpoint():
-        print('checkpoint restored from %s' % parameter_server.checkpoint_location())
         print("global_t is %d" % parameter_server.global_t())
 
     last_saved_global_t = parameter_server.global_t()
@@ -60,22 +58,13 @@ def run(yaml, bind, saver, intervals, metrics):
             if i.check():
                 save = True
         if save:
-            print('SAVE')
             _save(parameter_server, last_saved_global_t)
             last_saved_global_t = parameter_server.global_t()
 
 
 def _save(parameter_server, last_saved_global_t):
-    global_t = parameter_server.global_t()
-    if global_t == last_saved_global_t:
-        return
-
-    print(
-        'checkpoint %d is saving to %s ...' %
-        (global_t, parameter_server.checkpoint_location())
-    )
-    parameter_server.save_checkpoint()
-    print('done')
+    if parameter_server.global_t() != last_saved_global_t:
+        parameter_server.save_checkpoint()
 
 
 class _Metrics(relaax.common.metrics.Metrics):

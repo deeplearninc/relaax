@@ -18,6 +18,3 @@ class FsSaver(saver.Saver):
         if not os.path.exists(self._dir):
             os.makedirs(self._dir)
         self._save(self._dir, session, global_step)
-
-    def location(self):
-        return "'%s' dir" % self._dir
