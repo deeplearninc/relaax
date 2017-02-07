@@ -1,3 +1,4 @@
+from __future__ import print_function
 import tensorflow as tf
 import numpy as np
 from scipy.signal import lfilter
@@ -7,14 +8,14 @@ import relaax.algorithm_base.parameter_server_base
 
 from . import network
 from saver import KerasSaver as Saver
-from json import load   # cPickle | ujson
+from cPickle import load    # ujson
 
 
 class ParameterServer(relaax.algorithm_base.parameter_server_base.ParameterServerBase):
-    def __init__(self, config, unused_saver, metrics):
+    def __init__(self, config, saver, metrics):
         self.n_iter = 0             # number of updates within training process
         self.config = config        # common configuration, which is rewritten by yaml
-        self._saver = Saver(unused_saver._dir)  # saver for defined neural networks
+        self._saver = Saver(saver._dir)  # saver for defined neural networks
 
         self.is_collect = True      # set to False if TRPO is under update procedure
         self.paths = []             # experience accumulator
@@ -42,7 +43,8 @@ class ParameterServer(relaax.algorithm_base.parameter_server_base.ParameterServe
         if self.n_iter:
             self.policy_net.load_weights(self._saver.dir + "/pnet--" + str(self.n_iter) + ".h5")
             self.value_net.load_weights(self._saver.dir + "/vnet--" + str(self.n_iter) + ".h5")
-            self.paths = load(open(self._saver.dir + "/data--" + str(self.paths_len) + ".json"))
+            self.paths = load(open(self._saver.dir + "/data--" + str(self.paths_len) + ".p"))
+            self.global_step = (self.n_iter+1) * self.config.timesteps_per_batch + self.paths_len
         return self.n_iter
 
     def save_checkpoint(self):
