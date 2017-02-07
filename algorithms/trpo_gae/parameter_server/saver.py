@@ -17,12 +17,12 @@ class KerasSaver(Saver):
             return net_idx, data_idx    # True
         return 0, 0                     # False
 
-    def save_checkpoint(self, pnet, vnet, n_iter, data, len):
+    def save_checkpoint(self, pnet, vnet, n_iter, data, length):
         if not path.exists(self.dir):
             makedirs(self.dir)
         pnet.save_weights(self.dir + "/pnet--" + str(n_iter) + ".h5")
         vnet.save_weights(self.dir + "/vnet--" + str(n_iter) + ".h5")
-        with open(self.dir + "/data--" + str(len) + ".json", 'wb') as datafile:
+        with open(self.dir + "/data--" + str(length) + ".json", 'wb') as datafile:
             dump(data, datafile)
 
     def location(self):
