@@ -6,12 +6,15 @@ from time import time, sleep
 import relaax.algorithm_base.parameter_server_base
 
 from . import network
+from saver import KerasSaver as Saver
+from json import load   # cPickle | ujson
 
 
 class ParameterServer(relaax.algorithm_base.parameter_server_base.ParameterServerBase):
-    def __init__(self, config, saver, metrics):
+    def __init__(self, config, unused_saver, metrics):
         self.n_iter = 0             # number of updates within training process
-        self.config = config
+        self.config = config        # common configuration, which is rewritten by yaml
+        self._saver = Saver(unused_saver._dir)  # saver for defined neural networks
 
         self.is_collect = True      # set to False if TRPO is under update procedure
         self.paths = []             # experience accumulator
@@ -34,19 +37,19 @@ class ParameterServer(relaax.algorithm_base.parameter_server_base.ParameterServe
         self._session.close()
 
     def restore_latest_checkpoint(self):
-        print('restore checkpoint')
-        #return self._saver.restore_latest_checkpoint(self._session)
+        self.n_iter, self.paths_len = self._saver.latest_checkpoint_idx()
+        print('n_iter =', self.n_iter)
+        if self.n_iter:
+            self.policy_net.load_weights(self._saver.dir + "/pnet--" + str(self.n_iter) + ".h5")
+            self.value_net.load_weights(self._saver.dir + "/vnet--" + str(self.n_iter) + ".h5")
+            self.paths = load(open(self._saver.dir + "/data--" + str(self.paths_len) + ".json"))
+        return self.n_iter
 
     def save_checkpoint(self):
-        pass
-        #raise NotImplemented    # len(paths["actions"] + 2 NNs
-        #self._saver.save_checkpoint(self._session, self.global_t())
+        self._saver.save_checkpoint(self.policy_net, self.value_net, self.n_iter, self.paths, self.paths_len)
 
     def checkpoint_location(self):
-        str = 'checkpoint location'
-        return str
-        # raise NotImplemented
-        #return self._saver.location()
+        return self._saver.location()
 
     def bridge(self):
         return self._bridge
