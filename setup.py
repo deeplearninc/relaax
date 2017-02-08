@@ -20,7 +20,8 @@ setup(
         'scipy',
         'psutil',
         'honcho',
-        'keras'
+        'keras',
+        'h5py'
     ],
     provides=['relaax'],
     scripts=[
