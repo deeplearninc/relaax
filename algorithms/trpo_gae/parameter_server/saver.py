@@ -22,7 +22,7 @@ class KerasSaver(Saver):
             makedirs(self.dir)
         pnet.save_weights(self.dir + "/pnet--" + str(n_iter) + ".h5")
         vnet.save_weights(self.dir + "/vnet--" + str(n_iter) + ".h5")
-        with open(self.dir + "/data--" + str(length) + ".p", 'wb') as datafile:
+        with open(self.dir + "/data--" + str(n_iter) + "-" + str(length) + ".p", 'wb') as datafile:
             dump(data, datafile)
         with open(self.dir + '/latest', 'w') as f:
             f.write(str(n_iter) + '\n' + str(length))

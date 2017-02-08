@@ -43,8 +43,8 @@ class ParameterServer(relaax.algorithm_base.parameter_server_base.ParameterServe
         if status:
             self.policy_net.load_weights(self._saver.dir + "/pnet--" + str(self.n_iter) + ".h5")
             self.value_net.load_weights(self._saver.dir + "/vnet--" + str(self.n_iter) + ".h5")
-            self.paths = load(open(self._saver.dir + "/data--" + str(self.paths_len) + ".p"))
-            self.global_step = (self.n_iter+1) * self.config.timesteps_per_batch + self.paths_len
+            self.paths = load(open(self._saver.dir + "/data--" + str(self.n_iter) + "-" + str(self.paths_len) + ".p"))
+            self.global_step = (self.n_iter + 1) * self.config.timesteps_per_batch + self.paths_len
         return status
 
     def save_checkpoint(self):
