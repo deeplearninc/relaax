@@ -19,7 +19,7 @@ setup(
         'pillow',
         'scipy',
         'psutil',
-        'honcho'
+        'honcho',
         'keras'
     ],
     provides=['relaax'],
