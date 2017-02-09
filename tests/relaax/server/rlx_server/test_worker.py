@@ -116,3 +116,5 @@ class _MockSocket(object):
         return bs
 
 
+if __name__ == '__main__':
+    unittest.main()

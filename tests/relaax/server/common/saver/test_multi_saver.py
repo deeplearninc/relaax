@@ -110,6 +110,5 @@ class _MockSaver(saver.Saver):
         self._calls.append((self._id, ) + args)
 
 
-
 if __name__ == '__main__':
     unittest.main()

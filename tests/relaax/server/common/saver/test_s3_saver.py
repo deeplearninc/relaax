@@ -99,3 +99,7 @@ class TestS3Saver(unittest.TestCase):
 def _load_yaml(path):
     with open(path, 'r') as f:
         return ruamel.yaml.load(f, Loader=ruamel.yaml.Loader)
+
+
+if __name__ == '__main__':
+    unittest.main()

@@ -86,3 +86,7 @@ def _temp_dir():
         yield path
     finally:
         shutil.rmtree(path)
+
+
+if __name__ == '__main__':
+    unittest.main()
