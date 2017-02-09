@@ -10,6 +10,9 @@ class Config(relaax.algorithm_base.config_base.ConfigBase):
         # size of the input observation (flattened image 80x80 grid)
         self.state_size = config.get('state_size', [80 * 80])
 
+        # size of the hidden layer for Karpathy's simple NN
+        self.layer_size = config.get('hidden_layer_size', 200)
+
         # how many steps perform before a param update
         self.batch_size = config.get('batch_size', 10)
 

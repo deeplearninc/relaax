@@ -23,6 +23,7 @@ algorithm:
 
   action_size: 1                  # action size for the given environment (Karpathy's pong)
   state_size: [6400]              # size of the input observation (flattened image 80x80 grid = 6400)
+  hidden_layer_size: 200          # size of the hidden layer for Karpathy's simple NN
   batch_size: 10                  # how many steps perform before a param update
   max_global_step: 1e8            # maximum global step to stop the training when it is reached
 
