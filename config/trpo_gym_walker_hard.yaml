@@ -28,6 +28,7 @@ algorithm:
   activation: tanh                # activation function for MLP
   use_filter: true                # use average filter of the incoming observations and rewards
   discrete: false                 # switch between continuous and discrete action spaces
+  async: true                     # set to true to collect experience without blocking the updater
 
   PG_OPTIONS:
     timestep_limit: 1600          # length in steps for one round in environment

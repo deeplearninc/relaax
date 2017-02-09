@@ -11,13 +11,21 @@ from saver import KerasSaver as Saver
 from cPickle import load    # ujson
 
 
+class SetMethod(object):
+    def __init__(self, func):
+        self.func = func
+
+    def __call__(self, *args, **kwargs):
+        return self.func(*args, **kwargs)
+
+
 class ParameterServer(relaax.algorithm_base.parameter_server_base.ParameterServerBase):
     def __init__(self, config, saver, metrics):
         self.n_iter = 0             # number of updates within training process
         self.config = config        # common configuration, which is rewritten by yaml
         self._saver = Saver(saver._dir)  # saver for defined neural networks
 
-        self.is_collect = True      # set to False if TRPO is under update procedure
+        self.is_collect = True      # set to False if TRPO is under update procedure (for sync only)
         self.paths = []             # experience accumulator
         self.paths_len = 0          # length of experience
         self.global_step = 0        # step accumulator of whole experience through all updates
@@ -30,6 +38,10 @@ class ParameterServer(relaax.algorithm_base.parameter_server_base.ParameterServe
 
         self.policy, self.baseline = network.make_head(config, self.policy_net, self.value_net, self._session)
         self.trpo_updater = network.make_trpo(config, self.policy, self._session)
+
+        self.trpo_update = SetMethod(self.trpo_update_sync)
+        if config.async_collect:
+            self.trpo_update = SetMethod(self.trpo_update_async)
 
         self._session.run(initialize)
         self._bridge = _Bridge(config, metrics, self)
@@ -66,7 +78,7 @@ class ParameterServer(relaax.algorithm_base.parameter_server_base.ParameterServe
             self.paths_len = 0
             self.paths = []
 
-    def trpo_update(self):
+    def trpo_update_sync(self):
         self.is_collect = False
         start = time()
 
@@ -79,6 +91,18 @@ class ParameterServer(relaax.algorithm_base.parameter_server_base.ParameterServe
 
         print('Update time:', time() - start)
         self.is_collect = True
+
+    def trpo_update_async(self):
+        start = time()
+
+        self.n_iter += 1
+        self.compute_advantage()
+        # Value Update
+        vf_stats = self.baseline.fit(self.paths)
+        # Policy Update
+        pol_stats = self.trpo_updater(self.paths)
+
+        print('Update time:', time() - start)
 
     def compute_advantage(self):
         # Compute & Add to paths: return, baseline, advantage
@@ -105,14 +129,26 @@ class _Bridge(object):
         self._metrics = metrics
         self._ps = ps
 
-    def wait_for_iteration(self):
+        self.wait_for_iteration = SetMethod(self.wait_for_iteration_sync)
+        self.send_experience = SetMethod(self.send_experience_sync)
+        if config.async_collect:
+            self.wait_for_iteration = SetMethod(self.wait_for_iteration_async)
+            self.send_experience = SetMethod(self.send_experience_async)
+
+    def wait_for_iteration_sync(self):
         while not self._ps.is_collect:
             sleep(1)
         return self._ps.n_iter
 
-    def send_experience(self, n_iter, paths, length):
+    def wait_for_iteration_async(self):
+        return self._ps.n_iter
+
+    def send_experience_sync(self, n_iter, paths, length):
         if n_iter == self._ps.n_iter:
             self._ps.update_paths(paths, length)
+
+    def send_experience_async(self, n_iter, paths, length):
+        self._ps.update_paths(paths, length)
 
     def receive_weights(self, n_iter):
         assert n_iter == self._ps.n_iter    # check iteration

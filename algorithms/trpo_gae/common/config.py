@@ -22,6 +22,9 @@ class Config(relaax.algorithm_base.config_base.ConfigBase):
         # whether to do a running average filter of the incoming observations and rewards
         self.use_filters = config.get('use_filters', True)
 
+        # set to true to collect experience without blocking the updater
+        self.async_collect = config.get('async', False)
+
         # POLICY GRADIENT OPTIONS
         # maximum length of trajectories (length in steps for one round in environment)
         self.timestep_limit = config.get('PG_OPTIONS', {}).get('timestep_limit', 2000)
