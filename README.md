@@ -690,12 +690,12 @@ When you install RELAAX on your node you've got `relaax-parameter-server` comman
 
 If you're going to run training locally use following command line:
 ```bash
-relaax-parameter-server --config config.yaml --bind localhost:7000 --log-level WARNING --checkpoint-dir training/checkpoints --metrics-dir training/metrics
+relaax-parameter-server --config config.yaml --bind localhost:7000 --log-level WARNING --checkpoint-dir training/checkpoints --checkpoint-time-interval 900 --checkpoints-to-keep 8 --metrics-dir training/metrics
 ```
 
 If you're going to run training on cluster use following command line. There are differences in parameter-server IP and checkpoint and metrics locations:
 ```bash
-relaax-parameter-server --config config.yaml --bind 0.0.0.0:7000 --log-level WARNING --checkpoint-aws-s3 my_bucket training/checkpoints --aws-keys aws-keys.yaml --metrics-dir training/metrics --metrics-aws-s3 my_bucket training/metrics
+relaax-parameter-server --config config.yaml --bind 0.0.0.0:7000 --log-level WARNING --checkpoint-aws-s3 my_bucket training/checkpoints --aws-keys aws-keys.yaml --checkpoint-time-interval 900 --checkpoints-to-keep 8 --metrics-dir training/metrics --metrics-aws-s3 my_bucket training/metrics
 ```
 
 Available options are:
@@ -707,13 +707,19 @@ Available options are:
   --checkpoint-dir DIR  training checkpoint directory
   --checkpoint-aws-s3 BUCKET KEY
                         AWS S3 bucket and key for training checkpoints
-  --metrics-dir         metrics data directory
+  --checkpoint-time-interval SECONDS
+                        save on regular intervals in seconds
+  --checkpoint-global-step-interval STEPS
+                        save on regular intervals in global steps
+  --checkpoints-to-keep N
+                        number of checkpoints to keep
+  --metrics-dir DIR     metrics data directory
   --metrics-aws-s3 BUCKET KEY
                         AWS S3 bucket and key for training metrics data
   --aws-keys FILE       YAML file containing AWS access and secret keys
 ```
 
-Do not use both --checkpoint-dir and --checkpoint-aws-s3 flags in the same command line.
+It is possible to use both --checkpoint-dir and --checkpoint-aws-s3 flags in the same command line. In this case parameter server restores latest checkpoint (checkpoint having largest global step) from both location. Saving is doing in both locations.
 
 Configuration file is the same as for RLX Server. Please use the same configuration for Parameter Server and for RLX Server. Otherwise training will fail.
 
