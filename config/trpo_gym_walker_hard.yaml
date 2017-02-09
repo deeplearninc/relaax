@@ -28,12 +28,12 @@ algorithm:
   activation: tanh                # activation function for MLP
   use_filter: true                # use average filter of the incoming observations and rewards
   discrete: false                 # switch between continuous and discrete action spaces
-  async: true                     # set to true to collect experience without blocking the updater
+  async: false                    # set to true to collect experience without blocking the updater
 
   PG_OPTIONS:
     timestep_limit: 1600          # length in steps for one round in environment
     n_iter: 10000                 # number of updates to pass through the training (training length)
-    timesteps_per_batch: 12000    # number of experience to collect before update
+    timesteps_per_batch: 10000    # number of experience to collect before update
     rewards_gamma: 0.995          # rewards discount factor
     gae_lambda: 0.97              # lambda from generalized advantage estimation
 
