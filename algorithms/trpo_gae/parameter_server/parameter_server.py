@@ -11,14 +11,6 @@ from saver import KerasSaver as Saver
 from cPickle import load    # ujson
 
 
-class SetMethod(object):
-    def __init__(self, func):
-        self.func = func
-
-    def __call__(self, *args, **kwargs):
-        return self.func(*args, **kwargs)
-
-
 class ParameterServer(relaax.algorithm_base.parameter_server_base.ParameterServerBase):
     def __init__(self, config, saver, metrics):
         self.n_iter = 0             # number of updates within training process
@@ -38,10 +30,6 @@ class ParameterServer(relaax.algorithm_base.parameter_server_base.ParameterServe
 
         self.policy, self.baseline = network.make_head(config, self.policy_net, self.value_net, self._session)
         self.trpo_updater = network.make_trpo(config, self.policy, self._session)
-
-        self.trpo_update = SetMethod(self.trpo_update_sync)
-        if config.async_collect:
-            self.trpo_update = SetMethod(self.trpo_update_async)
 
         self._session.run(initialize)
         self._bridge = _Bridge(config, metrics, self)
@@ -78,7 +66,7 @@ class ParameterServer(relaax.algorithm_base.parameter_server_base.ParameterServe
             self.paths_len = 0
             self.paths = []
 
-    def trpo_update_sync(self):
+    def trpo_update(self):
         self.is_collect = False
         start = time()
 
@@ -91,18 +79,6 @@ class ParameterServer(relaax.algorithm_base.parameter_server_base.ParameterServe
 
         print('Update time:', time() - start)
         self.is_collect = True
-
-    def trpo_update_async(self):
-        start = time()
-
-        self.n_iter += 1
-        self.compute_advantage()
-        # Value Update
-        vf_stats = self.baseline.fit(self.paths)
-        # Policy Update
-        pol_stats = self.trpo_updater(self.paths)
-
-        print('Update time:', time() - start)
 
     def compute_advantage(self):
         # Compute & Add to paths: return, baseline, advantage
@@ -121,6 +97,14 @@ class ParameterServer(relaax.algorithm_base.parameter_server_base.ParameterServe
 
     def global_t(self):
         return self.global_step
+
+
+class SetMethod(object):
+    def __init__(self, func):
+        self.func = func
+
+    def __call__(self, *args, **kwargs):
+        return self.func(*args, **kwargs)
 
 
 class _Bridge(object):
