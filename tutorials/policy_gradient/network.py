@@ -74,8 +74,17 @@ class _AgentPolicyNN(_GlobalPolicyNN):
         self.grads = [grad for grad, _ in grads_and_vars]
         return self
 
-    def compute_loss(self):
+    def compute_loss(self, config):
+        # taken action
+        self.y = tf.placeholder(tf.float32, [None, config.action_size])
+
+        # R (input for value)
+        self.r = tf.placeholder("float", [None])
+
+        log_prob = self.y - self.pi
+
         self.loss = None
+
         return self
 
     def discount_rewards(self, r):
