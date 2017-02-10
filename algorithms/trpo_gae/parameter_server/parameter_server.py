@@ -32,7 +32,10 @@ class ParameterServer(relaax.algorithm_base.parameter_server_base.ParameterServe
         self.trpo_updater = network.make_trpo(config, self.policy, self._session)
 
         self._session.run(initialize)
-        self._bridge = _Bridge(config, metrics, self)
+
+        self._bridge = _Bridge(metrics, self)
+        if config.async_collect:
+            self._bridge = _BridgeAsync(metrics, self)
 
     def close(self):
         self._session.close()
@@ -99,40 +102,19 @@ class ParameterServer(relaax.algorithm_base.parameter_server_base.ParameterServe
         return self.global_step
 
 
-class SetMethod(object):
-    def __init__(self, func):
-        self.func = func
-
-    def __call__(self, *args, **kwargs):
-        return self.func(*args, **kwargs)
-
-
 class _Bridge(object):
-    def __init__(self, config, metrics, ps):
-        self._config = config
+    def __init__(self, metrics, ps):
         self._metrics = metrics
         self._ps = ps
 
-        self.wait_for_iteration = SetMethod(self.wait_for_iteration_sync)
-        self.send_experience = SetMethod(self.send_experience_sync)
-        if config.async_collect:
-            self.wait_for_iteration = SetMethod(self.wait_for_iteration_async)
-            self.send_experience = SetMethod(self.send_experience_async)
-
-    def wait_for_iteration_sync(self):
+    def wait_for_iteration(self):
         while not self._ps.is_collect:
             sleep(1)
         return self._ps.n_iter
 
-    def wait_for_iteration_async(self):
-        return self._ps.n_iter
-
-    def send_experience_sync(self, n_iter, paths, length):
+    def send_experience(self, n_iter, paths, length):
         if n_iter == self._ps.n_iter:
             self._ps.update_paths(paths, length)
-
-    def send_experience_async(self, n_iter, paths, length):
-        self._ps.update_paths(paths, length)
 
     def receive_weights(self, n_iter):
         assert n_iter == self._ps.n_iter    # check iteration
@@ -140,6 +122,17 @@ class _Bridge(object):
 
     def metrics(self):
         return self._metrics
+
+
+class _BridgeAsync(_Bridge):
+    def __init__(self, metrics, ps):
+        super(_BridgeAsync, self).__init__(metrics, ps)
+
+    def wait_for_iteration(self):
+        return self._ps.n_iter
+
+    def send_experience(self, n_iter, paths, length):
+        self._ps.update_paths(paths, length)
 
 
 def discount(x, gamma):
