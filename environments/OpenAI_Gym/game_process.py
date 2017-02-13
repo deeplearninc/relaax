@@ -92,9 +92,9 @@ class _GameProcess(object):
 
         while True:
             self.gym.reset()
-            if not self.display:
+            self.cur_step_limit = 0
 
-                self.cur_step_limit = 0
+            if not self.display:
                 no_op = np.random.randint(0, self._no_op_max)
                 # self.cur_step_limit += no_op
 
