@@ -48,11 +48,6 @@ def run(yaml, bind, saver, intervals, metrics):
             lambda: parameter_server.global_t()
         ))
 
-<<<<<<< HEAD
-    last_activity_time = None
-    while True:
-        time.sleep(10)
-=======
     while True:
         time.sleep(1)
 
@@ -64,7 +59,6 @@ def run(yaml, bind, saver, intervals, metrics):
                 save = True
         if save:
             last_saved_global_t = _save(parameter_server, last_saved_global_t)
->>>>>>> v2
 
         # do not interrupt loop on first True value
         # we need to update all intervals
@@ -77,26 +71,11 @@ def run(yaml, bind, saver, intervals, metrics):
             _save(parameter_server, last_saved_global_t)
             last_saved_global_t = parameter_server.global_t()
 
-<<<<<<< HEAD
-
-def _save(parameter_server, last_saved_global_t):
-    global_t = parameter_server.global_t()
-    if global_t == last_saved_global_t:
-        return
-
-    print(
-        'checkpoint %d is saving to %s ...' %
-        (global_t, parameter_server.checkpoint_location())
-    )
-    parameter_server.save_checkpoint()
-    print('done')
-=======
 def _save(parameter_server, last_saved_global_t):
     global_t = parameter_server.global_t()
     if global_t != last_saved_global_t:
         parameter_server.save_checkpoint()
     return global_t
->>>>>>> v2
 
 
 class _Metrics(relaax.common.metrics.Metrics):
