@@ -10,10 +10,11 @@ class GlobalPolicyNN(object):
 
         self._RMSP_DECAY = config.RMSP_DECAY
         self._RMSP_EPSILON = config.RMSP_EPSILON
+        self._action_size = config.action_size
 
         self.W1 = tf.get_variable('W1', shape=[config.state_size, config.layer_size],
                                   initializer=tf.contrib.layers.xavier_initializer())
-        self.W2 = tf.get_variable('W2', shape=[config.layer_size, 1],
+        self.W2 = tf.get_variable('W2', shape=[config.layer_size, self._action_size],
                                   initializer=tf.contrib.layers.xavier_initializer())
         self.values = [
             self.W1, self.W2
@@ -25,7 +26,7 @@ class GlobalPolicyNN(object):
             ])
 
         self.gradients = [tf.placeholder(v.dtype, v.get_shape()) for v in self.values]
-        self.learning_rate = tf.placeholder(tf.float32)
+        self.learning_rate = config.learning_rate   # tf.placeholder(tf.float32)
 
     def assign_values(self, session, values):
         session.run(self._assign_values, feed_dict={
@@ -72,8 +73,8 @@ class AgentPolicyNN(GlobalPolicyNN):
         self.grads = [grad for grad, _ in grads_and_vars]
         return self
 
-    def prepare_loss(self, config):
-        self.a = tf.placeholder(tf.float32, [None, config.action_size], name="taken action")
+    def prepare_loss(self):
+        self.a = tf.placeholder(tf.float32, [None, self._action_size], name="taken action")
         self.advantage = tf.placeholder(tf.float32, name="discounted_reward")
 
         # making actions that gave good advantage (reward over time) more likely,

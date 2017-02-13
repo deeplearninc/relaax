@@ -11,7 +11,7 @@ from network import AgentPolicyNN
 
 def make_network(config):
     network = AgentPolicyNN(config)
-    return network.prepare_loss(config).compute_gradients(config)
+    return network.prepare_loss().compute_gradients()
 
 
 class Agent(relaax.algorithm_base.agent_base.AgentBase):
