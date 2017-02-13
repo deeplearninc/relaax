@@ -74,7 +74,7 @@ class AgentPolicyNN(GlobalPolicyNN):
         return self
 
     def prepare_loss(self):
-        self.a = tf.placeholder(tf.float32, [None, self._action_size], name="taken action")
+        self.a = tf.placeholder(tf.float32, [None, self._action_size], name="taken_action")
         self.advantage = tf.placeholder(tf.float32, name="discounted_reward")
 
         # making actions that gave good advantage (reward over time) more likely,

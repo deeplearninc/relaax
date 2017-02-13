@@ -55,7 +55,7 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
         action = 0 if np.random.uniform() < prob else 1
 
         self.states.append(state)
-        self.actions.append(action)
+        self.actions.append([action])
 
         self.metrics().scalar('server latency', time.time() - start)
 
@@ -92,7 +92,7 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
     def _update_global(self):
         feed_dict = {
             self._local_network.s: self.states,
-            self._local_network.a: np.asarray(self.actions),
+            self._local_network.a: self.actions,
             self._local_network.advantage: self.discounted_reward(np.asarray(self.rewards)),
         }
 
