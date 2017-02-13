@@ -3,17 +3,16 @@ import numpy as np
 
 
 # Simple 2-layer fully-connected Policy Neural Network
-class _GlobalPolicyNN(object):
+class GlobalPolicyNN(object):
     # This class is used for global-NN and holds only weights on which applies computed gradients
     def __init__(self, config):
         self.global_t = tf.Variable(0, tf.int64)
         self.increment_global_t = tf.assign_add(self.global_t, 1)
 
-        self._GAMMA = config.GAMMA
         self._RMSP_DECAY = config.RMSP_DECAY
         self._RMSP_EPSILON = config.RMSP_EPSILON
 
-        self.W1 = tf.get_variable('W1', shape=[config.layer_size, config.state_size],
+        self.W1 = tf.get_variable('W1', shape=[config.state_size, config.layer_size],
                                   initializer=tf.contrib.layers.xavier_initializer())
         self.W2 = tf.get_variable('W2', shape=[config.layer_size, 1],
                                   initializer=tf.contrib.layers.xavier_initializer())
@@ -47,18 +46,18 @@ class _GlobalPolicyNN(object):
         return self
 
 
-class _AgentPolicyNN(_GlobalPolicyNN):
+class AgentPolicyNN(GlobalPolicyNN):
     # This class additionally implements loss computation and gradients wrt this loss
     def __init__(self, config):
-        super(_AgentPolicyNN, self).__init__(config)
+        super(AgentPolicyNN, self).__init__(config)
 
         # state (input)
         self.s = tf.placeholder(tf.float32, [None] + config.state_size)
 
-        hidden_fc = tf.nn.relu(tf.matmul(self.W1, self.s))
+        hidden_fc = tf.nn.relu(tf.matmul(self.s, self.W1))
 
         # policy (output)
-        self.pi = tf.nn.sigmoid(tf.matmul(self.W1, hidden_fc))
+        self.pi = tf.nn.sigmoid(tf.matmul(hidden_fc, self.W2))
 
     def run_policy(self, sess, s_t):
         pi_out = sess.run(self.pi, feed_dict={self.s: [s_t]})
@@ -74,7 +73,7 @@ class _AgentPolicyNN(_GlobalPolicyNN):
         self.grads = [grad for grad, _ in grads_and_vars]
         return self
 
-    def compute_loss(self, config):
+    def prepare_loss(self, config):
         # taken action
         self.y = tf.placeholder(tf.float32, [None, config.action_size])
 
@@ -86,14 +85,3 @@ class _AgentPolicyNN(_GlobalPolicyNN):
         self.loss = None
 
         return self
-
-    def discount_rewards(self, r):
-        """ take 1D float array of rewards and compute discounted reward """
-        discounted_r = np.zeros_like(r)
-        running_add = 0
-        for t in reversed(xrange(0, r.size)):
-            if r[t] != 0:
-                running_add = 0  # reset the sum, since this was a game boundary (pong specific!)
-            running_add = running_add * self._GAMMA + r[t]
-            discounted_r[t] = running_add
-        return discounted_r

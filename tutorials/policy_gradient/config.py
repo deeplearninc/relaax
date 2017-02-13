@@ -4,13 +4,13 @@ import relaax.algorithm_base.config_base
 class Config(relaax.algorithm_base.config_base.ConfigBase):
 
     def __init__(self, config):
-        # action size for the given environment (Karpathy's pong)
+        # action size for the given environment (CartPole)
         self.action_size = config.get('action_size', 1)
 
-        # size of the input observation (flattened image 80x80 grid)
+        # size of the input observation (flattened)
         self.state_size = config.get('state_size', [80 * 80])
 
-        # size of the hidden layer for Karpathy's simple NN
+        # size of the hidden layer for simple FC-NN
         self.layer_size = config.get('hidden_layer_size', 200)
 
         # how many steps perform before a param update
