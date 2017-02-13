@@ -5,7 +5,7 @@ class Config(relaax.algorithm_base.config_base.ConfigBase):
 
     def __init__(self, config):
         # action size for the given environment (CartPole)
-        self.action_size = config.get('action_size', 1)
+        self.action_size = config.get('action_size', 2)
 
         # size of the input observation (flattened)
         self.state_size = config.get('state_size', [80 * 80])

@@ -74,14 +74,12 @@ class AgentPolicyNN(GlobalPolicyNN):
         return self
 
     def prepare_loss(self, config):
-        # taken action
-        self.y = tf.placeholder(tf.float32, [None, config.action_size])
+        self.a = tf.placeholder(tf.float32, [None, config.action_size], name="taken action")
+        self.advantage = tf.placeholder(tf.float32, name="discounted_reward")
 
-        # R (input for value)
-        self.r = tf.placeholder("float", [None])
-
-        log_prob = self.y - self.pi
-
-        self.loss = None
+        # making actions that gave good advantage (reward over time) more likely,
+        # and actions that didn't less likely.
+        log_like = tf.log(self.a * (self.a - self.pi) + (1 - self.a) * (self.a + self.pi))
+        self.loss = -tf.reduce_mean(log_like * self.advantage)
 
         return self
