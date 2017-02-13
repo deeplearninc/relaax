@@ -35,7 +35,7 @@ def run(rlx_server_url, env, seed):
                     if reset:
                         episode_score = client.reset(reward)
                         n_game += 1
-                        print('Score at game', n_game, '=', episode_score)
+                        print('Score at round', n_game, '=', episode_score)
                         game.reset()
                         action = _send(client, None, game.state())
                     else:

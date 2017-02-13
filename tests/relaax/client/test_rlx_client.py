@@ -169,3 +169,7 @@ def eq(a, b):
             return True
         return False
     return a == b
+
+
+if __name__ == '__main__':
+    unittest.main()

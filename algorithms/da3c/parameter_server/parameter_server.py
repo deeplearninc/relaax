@@ -23,13 +23,12 @@ class ParameterServer(relaax.algorithm_base.parameter_server_base.ParameterServe
         self._session.close()
 
     def restore_latest_checkpoint(self):
-        return self._saver.restore_latest_checkpoint(self._session)
+        global_steps = self._saver.global_steps()
+        if len(global_steps) > 0:
+            self._saver.restore_checkpoint(self._session, max(global_steps))
 
     def save_checkpoint(self):
         self._saver.save_checkpoint(self._session, self.global_t())
-
-    def checkpoint_location(self):
-        return self._saver.location()
 
     def global_t(self):
         return self._session.run(self._network.global_t)
