@@ -1,0 +1,8 @@
+---
+dependencies:
+    pre:
+        - pip install --upgrade pip
+        - pip install -e .
+test:
+    override:
+        - python -m unittest discover

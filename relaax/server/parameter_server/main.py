@@ -8,6 +8,8 @@ import tensorflow as tf
 
 import relaax.common.metrics
 import relaax.server.common.saver.fs_saver
+import relaax.server.common.saver.limited_saver
+import relaax.server.common.saver.multi_saver
 import relaax.server.common.saver.s3_saver
 import relaax.server.parameter_server.server
 
@@ -27,6 +29,7 @@ def main():
     parser.add_argument('--checkpoint-aws-s3', nargs=2, type=str, default=None, help='AWS S3 bucket and key for TensorFlow checkpoint')
     parser.add_argument('--checkpoint-time-interval', type=int, default=None, help='save on regular intervals in seconds')
     parser.add_argument('--checkpoint-global-step-interval', type=int, default=None, help='save on regular intervals in global steps')
+    parser.add_argument('--checkpoints-to-keep', type=int, default=None, help='number of checkpoints to keep')
     parser.add_argument('--metrics-dir', type=str, default=None, help='TensorBoard metrics directory')
     parser.add_argument('--aws-keys', type=str, default=None, help='YAML file containing AWS access and secret keys')
     args = parser.parse_args()
@@ -50,6 +53,7 @@ def main():
             '--checkpoint-dir',
             '--checkpoint-time-interval',
             '--checkpoint-global-step-interval',
+            '--checkpoints-to-keep',
             '--metrics-dir',
             '--checkpoint-aws-s3'
         ]:
@@ -77,8 +81,12 @@ def _load_yaml(path):
 
 
 def _saver(args):
+    savers = []
+
     if args.checkpoint_dir is not None:
-        return relaax.server.common.saver.fs_saver.FsSaver(args.checkpoint_dir)
+        savers.append(
+            relaax.server.common.saver.fs_saver.FsSaver(args.checkpoint_dir)
+        )
 
     if args.checkpoint_aws_s3 is not None:
         if args.aws_keys is None:
@@ -89,11 +97,19 @@ def _saver(args):
             aws_access_key = aws_keys['access']
             aws_secret_key = aws_keys['secret']
 
-        return relaax.server.common.saver.s3_saver.S3Saver(
+        savers.append(relaax.server.common.saver.s3_saver.S3Saver(
             *args.checkpoint_aws_s3,
             aws_access_key=aws_access_key,
             aws_secret_key=aws_secret_key
+        ))
+
+    saver = relaax.server.common.saver.multi_saver.MultiSaver(savers)
+    if args.checkpoints_to_keep is not None:
+        saver = relaax.server.common.saver.limited_saver.LimitedSaver(
+            saver,
+            args.checkpoints_to_keep
         )
+    return saver
 
 
 class _Metrics(relaax.common.metrics.Metrics):

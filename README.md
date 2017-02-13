@@ -195,7 +195,7 @@ about ALE and Atari games you can find in official [Google group.](https://group
     $ docker run --rm -ti \
         -v /path_to_atari_roms_folder:/roms \
         --name ale deeplearninc/relaax-ale \
-        SERVER_IP:7001 boxing
+        SERVER_IP:PORT boxing
     ```
     It runs the docker in interactive mode by `-ti` and automatically removes this
     container when it stops with `--rm`. It also has `--name ale` for convenience.
@@ -214,7 +214,7 @@ about ALE and Atari games you can find in official [Google group.](https://group
     $ docker run --rm -ti \
         -v /path_to_atari_roms_folder:/roms \
         --name ale deeplearninc/relaax-ale \
-        SERVER_IP:7001 boxing 4
+        SERVER_IP:PORT boxing 4
     ```
     It adds the third parameter which is equal to `4` since it allows to
     define number of games to launch within the docker for parallel training.
@@ -226,7 +226,7 @@ about ALE and Atari games you can find in official [Google group.](https://group
         -p IP:PORT:5900 \
         -v /path_to_atari_roms_folder:/roms \
         --name ale deeplearninc/relaax-ale \
-        SERVER_IP:7001 boxing display
+        SERVER_IP:PORT boxing display
     ```
     It passes the last argument as `display` to run game in display mode, therefore
     it maps some ports on your computer to use `VNC` connection for visual session.
@@ -314,7 +314,7 @@ that you can use to work out your reinforcement learning algorithms.
 
     $ docker run --rm -ti \
         --name gym deeplearninc/relaax-gym \
-        SERVER_IP:7001 BipedalWalker-v2
+        SERVER_IP:PORT BipedalWalker-v2
     ```
     It runs the docker in interactive mode by `-ti` and automatically removes this
     container when it stops with `--rm`. It also has `--name gym` for convenience.
@@ -329,7 +329,7 @@ that you can use to work out your reinforcement learning algorithms.
 
     $ docker run --rm -ti \
         --name gym deeplearninc/relaax-gym \
-        SERVER_IP:7001 BipedalWalker-v2 4
+        SERVER_IP:PORT BipedalWalker-v2 4
     ```
     It adds the third parameter which is equal to `4` since it allows to define
     number of environments to launch within the docker for parallel training.
@@ -340,7 +340,7 @@ that you can use to work out your reinforcement learning algorithms.
     $ docker run --rm -ti \
         -p IP:PORT:5900 \
         --name gym deeplearninc/relaax-gym \
-        SERVER_IP:7001 BipedalWalker-v2 display
+        SERVER_IP:PORT BipedalWalker-v2 display
     ```
     It passes the last argument as `display` to run environment in display mode, therefore
     it maps some ports on your computer to use `VNC` connection for visual session.
@@ -452,7 +452,7 @@ for learning agents especially with deep reinforcement learning.
 
     $ docker run --rm -ti \
         --name lab deeplearninc/relaax-lab \
-        SERVER_IP
+        SERVER_IP:PORT
     ```
     It runs the docker in interactive mode by `-ti` and automatically removes this
     container when it stops with `--rm`. It also has `--name lab` for convenience.
@@ -467,7 +467,7 @@ for learning agents especially with deep reinforcement learning.
 
     $ docker run --rm -ti \
         --name lab deeplearninc/relaax-lab \
-        SERVER_IP 4 nav_maze_static_02 full
+        SERVER_IP:PORT 4 nav_maze_static_02 full
     ```
     It adds the second parameter which is equal to `4` since it allows to define
     number of environments to launch within the docker for parallel training.
@@ -481,7 +481,7 @@ for learning agents especially with deep reinforcement learning.
     $ docker run --rm -ti \
         -p IP:PORT:6080 \
         --name lab deeplearninc/relaax-lab \
-        SERVER_IP display
+        SERVER_IP:PORT display
     ```
     It passes the last argument as `display` to run environment in display mode, therefore
     it maps some ports on your computer to use `VNC` connection for visual session.
@@ -494,7 +494,7 @@ for learning agents especially with deep reinforcement learning.
     $ docker run --rm -ti \
         -p 6080:6080 \
         --name lab deeplearninc/relaax-lab \
-        192.168.2.103 display nav_maze_static_03 s
+        192.168.2.103:7001 display nav_maze_static_03 s
     ```
 
     You can connect to client's visual output via your browser by opening http://127.0.0.1:6080/vnc.html URL.
@@ -713,12 +713,12 @@ When you install RELAAX on your node you've got `relaax-parameter-server` comman
 
 If you're going to run training locally use following command line:
 ```bash
-relaax-parameter-server --config config.yaml --bind localhost:7000 --log-level WARNING --checkpoint-dir training/checkpoints --metrics-dir training/metrics
+relaax-parameter-server --config config.yaml --bind localhost:7000 --log-level WARNING --checkpoint-dir training/checkpoints --checkpoint-time-interval 900 --checkpoints-to-keep 8 --metrics-dir training/metrics
 ```
 
 If you're going to run training on cluster use following command line. There are differences in parameter-server IP and checkpoint and metrics locations:
 ```bash
-relaax-parameter-server --config config.yaml --bind 0.0.0.0:7000 --log-level WARNING --checkpoint-aws-s3 my_bucket training/checkpoints --aws-keys aws-keys.yaml --metrics-dir training/metrics --metrics-aws-s3 my_bucket training/metrics
+relaax-parameter-server --config config.yaml --bind 0.0.0.0:7000 --log-level WARNING --checkpoint-aws-s3 my_bucket training/checkpoints --aws-keys aws-keys.yaml --checkpoint-time-interval 900 --checkpoints-to-keep 8 --metrics-dir training/metrics --metrics-aws-s3 my_bucket training/metrics
 ```
 
 Available options are:
@@ -730,13 +730,19 @@ Available options are:
   --checkpoint-dir DIR  training checkpoint directory
   --checkpoint-aws-s3 BUCKET KEY
                         AWS S3 bucket and key for training checkpoints
-  --metrics-dir         metrics data directory
+  --checkpoint-time-interval SECONDS
+                        save on regular intervals in seconds
+  --checkpoint-global-step-interval STEPS
+                        save on regular intervals in global steps
+  --checkpoints-to-keep N
+                        number of checkpoints to keep
+  --metrics-dir DIR     metrics data directory
   --metrics-aws-s3 BUCKET KEY
                         AWS S3 bucket and key for training metrics data
   --aws-keys FILE       YAML file containing AWS access and secret keys
 ```
 
-Do not use both --checkpoint-dir and --checkpoint-aws-s3 flags in the same command line.
+It is possible to use both --checkpoint-dir and --checkpoint-aws-s3 flags in the same command line. In this case parameter server restores latest checkpoint (checkpoint having largest global step) from both location. Saving is doing in both locations.
 
 Configuration file is the same as for RLX Server. Please use the same configuration for Parameter Server and for RLX Server. Otherwise training will fail.
 
@@ -761,7 +767,6 @@ relaax
         def close():                                     - close parameter server
         def restore_latest_checkpoint():                 - restore latest checkpoint
         def save_checkpoint():                           - save new checkpoint
-        def checkpoint_location():                       - return human readable checkpoint location
         def global_t():                                  - return current global learning step
         def bridge():                                    - return bridge interface
 
@@ -855,7 +860,6 @@ relaax
             def close():                     - close server
             def restore_latest_checkpoint(): - restore latest checkpoint using given checkpoint saver
             def save_checkpoint():           - save checkpoint using given checkpoint saver
-            def checkpoint_location():       - get human readable checkpoint storage location
             def global_t():                  - get current global learning step
             def bridge():                    - return bridge interface
 
