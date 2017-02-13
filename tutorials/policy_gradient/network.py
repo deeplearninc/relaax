@@ -1,5 +1,4 @@
 import tensorflow as tf
-import numpy as np
 
 
 # Simple 2-layer fully-connected Policy Neural Network

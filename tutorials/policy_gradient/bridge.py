@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 import concurrent
 import grpc
 import itertools
@@ -27,6 +25,21 @@ class _Stub(relaax.algorithm_base.bridge_base.BridgeBase):
         self._stub = bridge_pb2.ParameterServerStub(grpc.insecure_channel(parameter_server))
         self._metrics = _Metrics(self._stub)
 
+    def increment_global_t(self):
+        return self._stub.IncrementGlobalT(bridge_pb2.NullMessage()).n
+
+    def apply_gradients(self, gradients):
+        self._stub.ApplyGradients(itertools.imap(_build_ndarray_message, gradients))
+
+    def get_values(self):
+        return [
+            _parse_ndarray_message(message)
+            for message in self._stub.GetValues(bridge_pb2.NullMessage())
+        ]
+
+    def metrics(self):
+        return self._metrics
+
 
 class _Metrics(relaax.common.metrics.Metrics):
     def __init__(self, stub):
@@ -50,6 +63,27 @@ class _Metrics(relaax.common.metrics.Metrics):
 class _Servicer(bridge_pb2.ParameterServerServicer):
     def __init__(self, service):
         self._service = service
+
+    def IncrementGlobalT(self, request, context):
+        return bridge_pb2.Step(n=long(self._service.increment_global_t()))
+
+    def ApplyGradients(self, request_iterator, context):
+        self._service.apply_gradients([
+            _parse_ndarray_message(message)
+            for message in request_iterator
+        ])
+        return bridge_pb2.NullMessage()
+
+    def GetValues(self, request, context):
+        for value in self._service.get_values():
+            yield _build_ndarray_message(value)
+
+    def StoreScalarMetric(self, request, context):
+        x = None
+        if request.HasField('x'):
+            x = request.x.value
+        self._service.metrics().scalar(name=request.name, y=request.y, x=x)
+        return bridge_pb2.NullMessage()
 
 
 def _build_ndarray_message(array):
