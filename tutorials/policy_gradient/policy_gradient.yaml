@@ -9,9 +9,9 @@
 
 relaax-parameter-server:
   --bind: localhost:7000
-  --checkpoint-dir: checkpoints/pg_pong
+  --checkpoint-dir: checkpoints/pg_cartpole
   --log-level: WARNING
-  --metrics-dir: metrics_pg_pong
+  --metrics-dir: metrics_pg_cartpole
 
 relaax-rlx-server:
   --bind: 0.0.0.0:7001
