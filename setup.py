@@ -21,6 +21,8 @@ setup(
         'scipy',
         'psutil',
         'honcho',
+        'keras',
+        'h5py',
         'mock'
     ],
     provides=['relaax'],
