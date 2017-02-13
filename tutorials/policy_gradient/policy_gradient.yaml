@@ -22,7 +22,7 @@ algorithm:
   path: .                         # path to algorithm package (if we here, just . is enough)
 
   action_size: 1                  # action size for the given environment (CartPole:2->1)
-  state_size: [4]                 # size of the input observation (flattened)
+  state_size: 4                   # size of the input observation (flattened)
   hidden_layer_size: 10           # size of the hidden layer for simple FC-NN
   batch_size: 5                   # how many steps perform before a param update
   max_global_step: 1e8            # maximum global step to stop the training when it is reached

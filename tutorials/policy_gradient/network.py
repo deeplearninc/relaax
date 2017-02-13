@@ -52,7 +52,7 @@ class AgentPolicyNN(GlobalPolicyNN):
         super(AgentPolicyNN, self).__init__(config)
 
         # state (input)
-        self.s = tf.placeholder(tf.float32, [None] + config.state_size)
+        self.s = tf.placeholder(tf.float32, [None, config.state_size])
 
         hidden_fc = tf.nn.relu(tf.matmul(self.s, self.W1))
 
