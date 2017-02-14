@@ -15,7 +15,7 @@ class ParameterServer(relaax.algorithm_base.parameter_server_base.ParameterServe
     def __init__(self, config, saver, metrics):
         self.n_iter = 0             # number of updates within training process
         self.config = config        # common configuration, which is rewritten by yaml
-        self._saver = Saver(saver._dir)  # saver for defined neural networks
+        self._saver = Saver(saver._savers[0]._dir)  # saver for defined neural networks
 
         self.is_collect = True      # set to False if TRPO is under update procedure (for sync only)
         self.paths = []             # experience accumulator
