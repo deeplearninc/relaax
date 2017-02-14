@@ -51,7 +51,7 @@ class ParameterServer(relaax.algorithm_base.parameter_server_base.ParameterServe
         return status
 
     def save_checkpoint(self):
-        self._saver.save_checkpoint(self.policy_net, self.value_net, self.n_iter, self.paths, self.paths_len)
+        self._saver.save_checkpoint(self.policy_net, self.value_net, self.n_iter, self.paths[:], self.paths_len)
 
     def checkpoint_location(self):
         return self._saver.location()
