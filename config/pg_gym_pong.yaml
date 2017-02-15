@@ -21,7 +21,7 @@ relaax-rlx-server:
 algorithm:
   path: ../relaax/algorithms/policy_grad  # path to algorithm package
 
-  action_size: 3                  # action size for the given environment (gym's Pong)
+  action_size: 6                  # action size for the given environment (gym's Pong)
   state_size: [84, 84]            # pass flattened or n-element list for an image-like state
   preprocess: true                # if true, input == difference from previous state
   hidden_layer_size: [200, 200]   # elements == hidden layers, each number == neurons

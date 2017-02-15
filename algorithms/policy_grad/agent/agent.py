@@ -6,19 +6,15 @@ import time
 
 import relaax.algorithm_base.agent_base
 import relaax.common.protocol.socket_protocol
-from network import AgentPolicyNN
 
-
-def make_network(config):
-    network = AgentPolicyNN(config)
-    return network.prepare_loss().compute_gradients()
+from . import network
 
 
 class Agent(relaax.algorithm_base.agent_base.AgentBase):
     def __init__(self, config, parameter_server):
         self._config = config
         self._parameter_server = parameter_server
-        self._local_network = make_network(config)
+        self._local_network = network.make(config)
 
         self.global_t = 0           # counter for global steps between all agents
         self.episode_reward = 0     # score accumulator for current episode (game)

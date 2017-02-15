@@ -1,6 +1,16 @@
 import tensorflow as tf
 
 
+def make_full_network(config):
+    network = AgentPolicyNN(config)
+    return network.prepare_loss().compute_gradients()
+
+
+def make_shared_network(config):
+    network = GlobalPolicyNN(config)
+    return network.apply_gradients()
+
+
 # Simple 2-layer fully-connected Policy Neural Network
 class GlobalPolicyNN(object):
     # This class is used for global-NN and holds only weights on which applies computed gradients
@@ -26,7 +36,7 @@ class GlobalPolicyNN(object):
             ])
 
         self.gradients = [tf.placeholder(v.dtype, v.get_shape()) for v in self.values]
-        self.learning_rate = config.learning_rate   # tf.placeholder(tf.float32)
+        self.learning_rate_input = tf.placeholder(tf.float32)
 
     def assign_values(self, session, values):
         session.run(self._assign_values, feed_dict={
@@ -38,7 +48,7 @@ class GlobalPolicyNN(object):
 
     def apply_gradients(self):
         optimizer = tf.train.RMSPropOptimizer(
-            learning_rate=self.learning_rate,
+            learning_rate=self.learning_rate_input,
             decay=self._RMSP_DECAY,
             epsilon=self._RMSP_EPSILON
         )
@@ -65,7 +75,7 @@ class AgentPolicyNN(GlobalPolicyNN):
 
     def compute_gradients(self):
         optimizer = tf.train.RMSPropOptimizer(
-            learning_rate=self.learning_rate,
+            learning_rate=self.learning_rate_input,
             decay=self._RMSP_DECAY,
             epsilon=self._RMSP_EPSILON
         )
