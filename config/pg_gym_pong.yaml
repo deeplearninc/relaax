@@ -3,9 +3,9 @@
 # This is an example of configuration to train Policy Gradient agent to play gym's pong game.
 #
 # To run this training open three terminals here and run:
-# relaax-parameter-server --config policy_gradient.yaml
-# relaax-rlx-server --config policy_gradient.yaml
-# ../../environments/OpenAI_Gym/main --rlx-server localhost:7001 --env CartPole-v0
+# relaax-parameter-server --config ../relaax/config/policy_gradient.yaml
+# relaax-rlx-server --config ../relaax/config/policy_gradient.yaml
+# ../relaax/environments/OpenAI_Gym/main --rlx-server localhost:7001 --env Pong-v0
 
 relaax-parameter-server:
   --bind: localhost:7000
@@ -19,15 +19,16 @@ relaax-rlx-server:
   --log-level: WARNING
 
 algorithm:
-  path: .                         # path to algorithm package (if we here, just . is enough)
+  path: ../relaax/algorithms/policy_grad  # path to algorithm package
 
-  action_size: 1                  # action size for the given environment (CartPole:2->1)
-  state_size: 4                   # size of the input observation (flattened)
-  hidden_layer_size: 10           # size of the hidden layer for simple FC-NN
+  action_size: 3                  # action size for the given environment (gym's Pong)
+  state_size: [84, 84]            # pass flattened or n-element list for an image-like state
+  preprocess: true                # if true, input == difference from previous state
+  hidden_layer_size: [200, 200]   # elements == hidden layers, each number == neurons
   batch_size: 5                   # how many steps perform before a param update
   max_global_step: 1e8            # maximum global step to stop the training when it is reached
 
-  initial_learning_rate: 1e-2     # learning rate which we use through whole training
+  initial_learning_rate: 1e-4     # learning rate which we use through whole training
   entropy_beta: 0.01              # entropy regularization constant
   rewards_gamma: 0.99             # discount factor for rewards
 
