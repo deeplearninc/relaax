@@ -1,4 +1,5 @@
 import tensorflow as tf
+import numpy as np
 
 
 def make_full_network(config):
@@ -20,15 +21,26 @@ class GlobalPolicyNN(object):
 
         self._RMSP_DECAY = config.RMSP_DECAY
         self._RMSP_EPSILON = config.RMSP_EPSILON
+
+        self._input_size = np.prod(np.array(config.state_size))
         self._action_size = config.action_size
 
-        self.W1 = tf.get_variable('W1', shape=[config.state_size, config.layer_size],
-                                  initializer=tf.contrib.layers.xavier_initializer())
-        self.W2 = tf.get_variable('W2', shape=[config.layer_size, self._action_size],
-                                  initializer=tf.contrib.layers.xavier_initializer())
-        self.values = [
-            self.W1, self.W2
-        ]
+        if type(config.layers_size) in [list, tuple]:
+            self.values = []
+            self.values.append(tf.get_variable('W0', shape=[self._input_size, config.layer_size[0]],
+                                               initializer=tf.contrib.layers.xavier_initializer()))
+            idx = len(config.layers_size)
+            for i in range(1, idx-1):
+                self.values.append(tf.get_variable('W%d' % i, shape=[config.layer_size[i-1], config.layer_size[i]],
+                                                   initializer=tf.contrib.layers.xavier_initializer()))
+            self.values.append(tf.get_variable('W%d' % idx, shape=[config.layer_size[-1], self._action_size],
+                                               initializer=tf.contrib.layers.xavier_initializer()))
+        else:
+            W1 = tf.get_variable('W1', shape=[self._input_size, config.layer_size],
+                                 initializer=tf.contrib.layers.xavier_initializer())
+            W2 = tf.get_variable('W2', shape=[config.layer_size, self._action_size],
+                                 initializer=tf.contrib.layers.xavier_initializer())
+            self.values = [W1, W2]
 
         self._placeholders = [tf.placeholder(v.dtype, v.get_shape()) for v in self.values]
         self._assign_values = tf.group(*[
@@ -64,10 +76,10 @@ class AgentPolicyNN(GlobalPolicyNN):
         # state (input)
         self.s = tf.placeholder(tf.float32, [None, config.state_size])
 
-        hidden_fc = tf.nn.relu(tf.matmul(self.s, self.W1))
+        hidden_fc = tf.nn.relu(tf.matmul(self.s, self.values[0]))
 
         # policy (output)
-        self.pi = tf.nn.sigmoid(tf.matmul(hidden_fc, self.W2))
+        self.pi = tf.nn.sigmoid(tf.matmul(hidden_fc, self.values[1]))
 
     def run_policy(self, sess, s_t):
         pi_out = sess.run(self.pi, feed_dict={self.s: [s_t]})

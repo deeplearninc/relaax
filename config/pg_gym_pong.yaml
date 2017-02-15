@@ -24,7 +24,7 @@ algorithm:
   action_size: 6                  # action size for the given environment (gym's Pong)
   state_size: [84, 84]            # pass flattened or n-element list for an image-like state
   preprocess: true                # if true, input == difference from previous state
-  hidden_layer_size: [200, 200]   # elements == hidden layers, each number == neurons
+  hidden_layers_size: [200, 200]  # elements == hidden layers, each number == neurons
   batch_size: 5                   # how many steps perform before a param update
   max_global_step: 1e8            # maximum global step to stop the training when it is reached
 

@@ -14,7 +14,7 @@ class Config(relaax.algorithm_base.config_base.ConfigBase):
         self.preprocess = config.get('preprocess', False)
 
         # # elements == hidden layers, each number == neurons
-        self.layer_size = config.get('hidden_layer_size', [200, 200])
+        self.layers_size = config.get('hidden_layers_size', [200, 200])
 
         # how many steps perform before a param update
         self.batch_size = config.get('batch_size', 10)
