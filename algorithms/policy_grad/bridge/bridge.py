@@ -29,13 +29,12 @@ class _Stub(relaax.algorithm_base.bridge_base.BridgeBase):
         return self._stub.IncrementGlobalT(bridge_pb2.NullMessage()).n
 
     def apply_gradients(self, gradients):
-        self._stub.ApplyGradients(itertools.imap(_build_ndarray_message, gradients))
+        self._stub.ApplyGradients(_build_ndarrays_part_messages(gradients))
 
     def get_values(self):
-        return [
-            _parse_ndarray_message(message)
-            for message in self._stub.GetValues(bridge_pb2.NullMessage())
-        ]
+        return _parse_ndarrays_part_messages(
+            self._stub.GetValues(bridge_pb2.NullMessage())
+        )
 
     def metrics(self):
         return self._metrics
@@ -68,15 +67,14 @@ class _Servicer(bridge_pb2.ParameterServerServicer):
         return bridge_pb2.Step(n=long(self._service.increment_global_t()))
 
     def ApplyGradients(self, request_iterator, context):
-        self._service.apply_gradients([
-            _parse_ndarray_message(message)
-            for message in request_iterator
-        ])
+        self._service.apply_gradients(
+            _parse_ndarrays_part_messages(request_iterator)
+        )
         return bridge_pb2.NullMessage()
 
     def GetValues(self, request, context):
-        for value in self._service.get_values():
-            yield _build_ndarray_message(value)
+        for part in _build_ndarrays_part_messages(self._service.get_values()):
+            yield part
 
     def StoreScalarMetric(self, request, context):
         x = None
@@ -86,17 +84,64 @@ class _Servicer(bridge_pb2.ParameterServerServicer):
         return bridge_pb2.NullMessage()
 
 
-def _build_ndarray_message(array):
-    return bridge_pb2.NdArray(
-        dtype=str(array.dtype),
-        shape=array.shape,
-        data=array.tobytes()
-    )
+def _build_ndarray_part_messages(array):
+    # TODO: select more appropriate block size
+    block_size = 1024 * 1024
+
+    dtype = str(array.dtype)
+    shape = array.shape
+    data = array.data
+    size = len(data)
+
+    # optimization to avoid extra data copying if array data fits to one block
+    # TODO: compare actual performance
+    if size <= block_size:
+        bytes_ = array.tobytes()
+        assert size == len(bytes_)
+        yield bridge_pb2.NdArrayPart(
+            dtype=dtype,
+            shape=shape,
+            last_part=True,
+            data=bytes_
+        )
+    else:
+        i = 0
+        while i < size:
+            ii = i + block_size
+            yield bridge_pb2.NdArrayPart(
+                dtype=dtype,
+                shape=shape,
+                last_part=ii >= size,
+                data=data[i:ii]
+            )
+            i = ii
 
 
-def _parse_ndarray_message(message):
-    return numpy.ndarray(
-        shape=message.shape,
-        dtype=numpy.dtype(message.dtype),
-        buffer=message.data
-    )
+def _build_ndarrays_part_messages(arrays):
+    for array in arrays:
+        for part in _build_ndarray_part_messages(array):
+            yield part
+
+
+def _parse_ndarrays_part_messages(messages):
+    data = []
+    for message in messages:
+        if message.last_part:
+            # optimization to avoid extra data copying if array data fits to one block
+            # TODO: compare actual performance
+            if len(data) == 0:
+                yield numpy.ndarray(
+                    shape=message.shape,
+                    dtype=numpy.dtype(message.dtype),
+                    buffer=message.data
+                )
+            else:
+                data.append(message.data)
+                yield numpy.ndarray(
+                    shape=message.shape,
+                    dtype=numpy.dtype(message.dtype),
+                    buffer=''.join(data)
+                )
+                data = []
+        else:
+            data.append(message.data)
