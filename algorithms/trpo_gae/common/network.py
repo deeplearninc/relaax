@@ -2,7 +2,7 @@ from __future__ import print_function
 from keras.models import Sequential
 from keras.layers.core import Dense, Lambda
 
-from core import *
+from relaax.algorithm_lib.core import *
 
 
 def make_mlps(config, session):

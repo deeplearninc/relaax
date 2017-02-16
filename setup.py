@@ -23,7 +23,8 @@ setup(
         'honcho',
         'keras',
         'h5py',
-        'mock'
+        'mock',
+        'tensorflow==0.12.1'
     ],
     provides=['relaax'],
     scripts=[

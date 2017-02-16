@@ -1,6 +1,5 @@
 import tensorflow as tf
 import time
-import itertools
 from collections import defaultdict
 
 import relaax.algorithm_base.agent_base
