@@ -1243,3 +1243,12 @@ To train RL Agents at scale RELAAX Server and supported Environments could be de
 ![img](resources/Deployment-In-the-Cloud.jpg)
 
 RELAAX comes with scripts and online service to allocate all required network components (VPC, subnets, load balancer), autoscaling groups, instances, etc. and provision software on on appropriate Instances.
+
+**DA3C-LSTM with DeepMind's Lab clients**
+
+| FPS | Number of Clients | Parameter Server | Environment | Worker (Agent) |
+| --- |:-----------------:|:----------------:|:-----------:|:--------------:|
+| 29  |         8         | r4.large / 400 MB / 10-15% CPU | r4.large / 2.1-2.3 GB / 95-100% CPU | r4.large / 1-1.4 GB / 30-40% CPU |
+| 60  |        16         | c4.large / 350 MB / 20-25% CPU | c4.xlarge / 4.2-4.4 GB / 85-90% CPU | c4.large / 1.9-2.2 GB / 70-80% CPU |
+| 61  |        18         | c4.large / 340 MB / 25% CPU | c4.xlarge / 4.8-4.9 GB / 90% CPU | c4.large / 2.2-2.5 GB / 65-70% CPU |
+| 64  |        20         | c4.large / 340 MB / 25% CPU | c4.xlarge / 5.3-5.4 GB / 95% CPU | c4.large / 2.1-2.6 GB / 70% CPU |
