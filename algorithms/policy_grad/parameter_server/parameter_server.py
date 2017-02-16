@@ -60,7 +60,7 @@ class _Bridge(relaax.algorithm_base.bridge_base.BridgeBase):
 
     def _anneal_learning_rate(self, global_time_step):
         factor = (self._config.max_global_step - global_time_step) / self._config.max_global_step
-        learning_rate = self._config.INITIAL_LEARNING_RATE * factor
+        learning_rate = self._config.learning_rate * factor
         if learning_rate < 0.0:
             learning_rate = 0.0
         return learning_rate

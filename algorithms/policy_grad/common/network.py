@@ -26,15 +26,15 @@ class GlobalPolicyNN(object):
         self._action_size = config.action_size
 
         if type(config.layers_size) not in [list, tuple]:
-            config.layer_size = [config.layer_size]
+            config.layers_size = [config.layers_size]
 
-        self.values = [tf.get_variable('W0', shape=[self._input_size, config.layer_size[0]],
+        self.values = [tf.get_variable('W0', shape=[self._input_size, config.layers_size[0]],
                                        initializer=tf.contrib.layers.xavier_initializer())]
         idx = len(config.layers_size)
         for i in range(1, idx-1):
-            self.values.append(tf.get_variable('W%d' % i, shape=[config.layer_size[i-1], config.layer_size[i]],
+            self.values.append(tf.get_variable('W%d' % i, shape=[config.layers_size[i-1], config.layers_size[i]],
                                                initializer=tf.contrib.layers.xavier_initializer()))
-        self.values.append(tf.get_variable('W%d' % idx, shape=[config.layer_size[-1], self._action_size],
+        self.values.append(tf.get_variable('W%d' % idx, shape=[config.layers_size[-1], self._action_size],
                                            initializer=tf.contrib.layers.xavier_initializer()))
 
         self._placeholders = [tf.placeholder(v.dtype, v.get_shape()) for v in self.values]
