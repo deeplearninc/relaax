@@ -53,6 +53,7 @@ RELAAX components:
     - [Distributed A3C Continuous](#distributed-a3c-continuous)
         - [Distributed A3C Architecture with Continuous Actions](#distributed-a3c-architecture-with-continuous-actions)
         - [Performance on gym's Walker](#performance-on-gyms-walker)
+    - [Distributed TRPO with GAE](#distributed-trpo-with-gae)
     - [Other Algorithms](#other-algorithms)
 - [Deployment in Cloud](#deployment-in-cloud)
 
@@ -1102,7 +1103,7 @@ we have some instability in training process (anyway DeepMind shows only 34 poin
 ![img](resources/Boxing-8th-35mil.png "Boxing")
 
 ### [Distributed A3C Continuous](#contents)
-Version of Distributed A3C algorithm, which can cope with continuous action space.
+Distributed version of A3C algorithm, which can cope with continuous action space.
 Inspired by original [paper](https://arxiv.org/abs/1602.01783) - Asynchronous Methods for Deep Reinforcement Learning from [DeepMind](https://deepmind.com/)
 
 #### [Distributed A3C Architecture with Continuous Actions](#contents)
@@ -1189,13 +1190,24 @@ TBD - Latency chart (Show latency of the agents over time)
 <br><br>
 
 
-### [Other Algorithms](#contents)
-These other algorithms we are working on and planning to make them run on RELAAX server:
-
-* TRPO-GAE
-Inspired by:
+### [Distributed TRPO with GAE](#contents)
+Distributed version of TRPO-GAE algorithm, which can cope with both continuous & discrete action space.
+Inspired by original papers:
     - [Trust Region Policy Optimization](https://arxiv.org/abs/1502.05477)
     - [High-Dimensional Continuous Control Using Generalized Advantage Estimation](https://arxiv.org/abs/1506.02438)
+
+The main pipeline of the algorithm is the similar to the original sources, but collecting of
+trajectories is performed independently by parallel agents. These agents have a copy of
+policy neural network to rollout trajectories from its client.
+Parameter server is blocked to update when the batch is collected and this procedure repeats.
+
+#### [Performance on gym's BipedalWalker](#contents)
+`batch_size == 10.000` & `trajectory_length == 1600` & `parallel_agents == 8`
+![img](bipedal-walker-trpo-10k-control.png "BipedalWalker")
+<br><br>
+
+### [Other Algorithms](#contents)
+These other algorithms we are working on and planning to make them run on RELAAX server:
 
 * ACER (A3C with experience)
 Inspired by:
