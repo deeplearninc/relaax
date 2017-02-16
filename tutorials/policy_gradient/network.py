@@ -79,7 +79,7 @@ class AgentPolicyNN(GlobalPolicyNN):
 
         # making actions that gave good advantage (reward over time) more likely,
         # and actions that didn't less likely.
-        log_like = tf.log(self.a * (self.a - self.pi) + (1 - self.a) * (self.a + self.pi))
+        log_like = tf.log(self.a * (self.a - self.pi) + (1 - self.a) * (self.pi - self.a))
         self.loss = -tf.reduce_mean(log_like * self.advantage)
 
         return self
