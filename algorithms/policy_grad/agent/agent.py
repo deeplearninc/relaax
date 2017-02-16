@@ -24,6 +24,7 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
         self.rewards = []           # auxiliary rewards accumulator through batch_size = 0..N
 
         self.episode_t = 0          # episode counter through batch_size = 0..M
+        self.action_vec = np.zeros([config.action_size])    # one-hot vector to store taken action
 
         initialize_all_variables = tf.variables_initializer(tf.global_variables())
 
@@ -47,11 +48,14 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
             self.rewards = []
 
         # Run the policy network and get an action to take
-        prob = self._local_network.run_policy(self._session, state)
-        action = 0 if np.random.uniform() < prob else 1
+        probs = self._local_network.run_policy(self._session, state)
+        action = self.choose_action(probs)
 
         self.states.append(state)
-        self.actions.append([action])
+
+        self.action_vec[action] = 1
+        self.actions.append(self.action_vec)
+        self.action_vec[action] = 0
 
         self.metrics().scalar('server latency', time.time() - start)
 
@@ -95,6 +99,13 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
         self._parameter_server.apply_gradients(
             self._session.run(self._local_network.grads, feed_dict=feed_dict)
         )
+
+    @staticmethod
+    def choose_action(pi_values):
+        values = np.cumsum(pi_values)
+        total = values[-1]
+        r = np.random.rand() * total
+        return np.searchsorted(values, r)
 
     def discounted_reward(self, r):
         """ take 1D float array of rewards and compute discounted reward """

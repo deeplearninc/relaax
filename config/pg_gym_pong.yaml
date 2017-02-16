@@ -3,15 +3,15 @@
 # This is an example of configuration to train Policy Gradient agent to play gym's pong game.
 #
 # To run this training open three terminals here and run:
-# relaax-parameter-server --config ../relaax/config/policy_gradient.yaml
-# relaax-rlx-server --config ../relaax/config/policy_gradient.yaml
+# relaax-parameter-server --config ../relaax/config/pg_gym_pong.yaml
+# relaax-rlx-server --config ../relaax/config/pg_gym_pong.yaml
 # ../relaax/environments/OpenAI_Gym/main --rlx-server localhost:7001 --env Pong-v0
 
 relaax-parameter-server:
   --bind: localhost:7000
-  --checkpoint-dir: checkpoints/pg_cartpole
+  --checkpoint-dir: checkpoints/pg_gym_pong
   --log-level: WARNING
-  --metrics-dir: metrics_pg_cartpole
+  --metrics-dir: metrics_pg_gym_pong
 
 relaax-rlx-server:
   --bind: 0.0.0.0:7001
