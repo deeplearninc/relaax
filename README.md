@@ -1195,8 +1195,9 @@ TBD - Latency chart (Show latency of the agents over time)
 Distributed version of TRPO-GAE algorithm, which can cope with both continuous & discrete action space.
 
 Inspired by original papers:
-    - [Trust Region Policy Optimization](https://arxiv.org/abs/1502.05477)
-    - [High-Dimensional Continuous Control Using Generalized Advantage Estimation](https://arxiv.org/abs/1506.02438)
+
+- [Trust Region Policy Optimization](https://arxiv.org/abs/1502.05477)
+- [High-Dimensional Continuous Control Using Generalized Advantage Estimation](https://arxiv.org/abs/1506.02438)
 
 The main pipeline of the algorithm is the similar to the original sources, but collecting of
 trajectories is performed independently by parallel agents. These agents have a copy of
