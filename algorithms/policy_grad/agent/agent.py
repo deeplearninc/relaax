@@ -26,6 +26,11 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
         self.episode_t = 0          # episode counter through batch_size = 0..M
         self.action_vec = np.zeros([config.action_size])    # one-hot vector to store taken action
 
+        if config.preprocess:
+            if type(config.state_size) not in [list, tuple]:
+                self._config.state_size = [config.state_size]
+            self.prev_state = np.zeros(self._config.state_size)
+
         initialize_all_variables = tf.variables_initializer(tf.global_variables())
 
         self._session = tf.Session()
@@ -34,6 +39,8 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
 
     def act(self, state):
         start = time.time()
+        if self._config.preprocess:
+            state = self._update_state(state)
 
         if self.episode_t == self._config.batch_size:
             self._update_global()
@@ -78,6 +85,9 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
         self.episode_reward = 0
         self.episode_t = self._config.batch_size
 
+        if self._config.preprocess:
+            self.prev_state.fill(0)
+
         return score
 
     def _reward(self, reward):
@@ -115,9 +125,15 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
             running_add = running_add * self._config.GAMMA + r[t]
             discounted_r[t] = running_add
         # size the rewards to be unit normal (helps control the gradient estimator variance)
-        discounted_r -= np.mean(discounted_r)
-        discounted_r /= np.std(discounted_r)
+        if discounted_r > 1e-8:
+            discounted_r -= np.mean(discounted_r)
+            discounted_r /= np.std(discounted_r)
         return discounted_r
 
     def metrics(self):
         return self._parameter_server.metrics()
+
+    def _update_state(self, state):
+        # Computes difference from the previous observation (motion-like process)
+        self.prev_state = state - self.prev_state
+        return self.prev_state
