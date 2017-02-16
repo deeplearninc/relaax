@@ -54,7 +54,7 @@ RELAAX components:
         - [Distributed A3C Architecture with Continuous Actions](#distributed-a3c-architecture-with-continuous-actions)
         - [Performance on gym's Walker](#performance-on-gyms-walker)
     - [Distributed TRPO with GAE](#distributed-trpo-with-gae)
-        - [Performance on gym's BipedalWalker](#performance-on-gyms-bipedal-walker)
+        - [Performance on gym's BipedalWalker](#performance-on-gyms-bipedalwalker)
     - [Other Algorithms](#other-algorithms)
 - [Deployment in Cloud](#deployment-in-cloud)
 
@@ -1195,8 +1195,8 @@ TBD - Latency chart (Show latency of the agents over time)
 Distributed version of TRPO-GAE algorithm, which can cope with both continuous & discrete action space.
 
 Inspired by original papers:
-    - [Trust Region Policy Optimization](https://arxiv.org/abs/1502.05477)
 
+    - [Trust Region Policy Optimization](https://arxiv.org/abs/1502.05477)
     - [High-Dimensional Continuous Control Using Generalized Advantage Estimation](https://arxiv.org/abs/1506.02438)
 
 The main pipeline of the algorithm is the similar to the original sources, but collecting of
