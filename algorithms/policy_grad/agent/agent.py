@@ -42,6 +42,9 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
         if self._config.preprocess:
             state = self._update_state(state)
 
+        if state.ndim > 1:  # lambda layer
+            state = state.flatten()
+
         if self.episode_t == self._config.batch_size:
             self._update_global()
             self.episode_t = 0
