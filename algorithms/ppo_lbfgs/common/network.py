@@ -56,7 +56,6 @@ def make_wrappers(config, policy_net, value_net, session):
 class PpoLbfgsUpdater(EzFlat, EzPickle):
     def __init__(self, config, stochpol, session):
         EzPickle.__init__(self, stochpol, config)
-        self.session = session  # for slicing eval
         self.cfg = config
         self.stochpol = stochpol
 
@@ -107,10 +106,9 @@ class PpoLbfgsUpdater(EzFlat, EzPickle):
         action_na = concat([path["action"] for path in paths])
         advantage_n = concat([path["advantage"] for path in paths])
 
-        N = tf.cast(tf.shape(ob_no)[0], tf.float32)
-        train_stop = int(0.75 * N) if self.cfg.do_split else N
-        train_sli = slice(0, self.session.run(train_stop))
-        test_sli = slice(self.session.run(train_stop), None)
+        train_stop = int(0.75 * len(ob_no)) if self.cfg.do_split else len(ob_no)
+        train_sli = slice(0, train_stop)
+        test_sli = slice(train_stop, None)
 
         train_args = (ob_no[train_sli], action_na[train_sli], advantage_n[train_sli], prob_np[train_sli])   # Fixed
 

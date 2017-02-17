@@ -1,18 +1,18 @@
 ---
 
-# This is an example of configuration to train TRPO-GAE with gym's BipedalWalker-v2.
+# This is an example of configuration to train PPO L-BFGS with gym's BipedalWalker-v2.
 #
 # To run this training navigate to empty directory next to relaax repo,
 # open three terminals there and run:
-# relaax-parameter-server --config ../relaax/config/trpo_gym_walker.yaml
-# relaax-rlx-server --config ../relaax/config/trpo_gym_walker.yaml
+# relaax-parameter-server --config ../relaax/config/ppo_gym_walker.yaml
+# relaax-rlx-server --config ../relaax/config/ppo_gym_walker.yaml
 # ../relaax/environments/OpenAI_Gym/main --rlx-server localhost:7001 --env BipedalWalker-v2
 
 relaax-parameter-server:
   --bind: localhost:7000
-  --checkpoint-dir: checkpoints/trpo_gym_walker
+  --checkpoint-dir: checkpoints/ppo_gym_walker
   --log-level: WARNING
-  --metrics-dir: metrics_trpo_gym_walker
+  --metrics-dir: metrics_ppo_gym_walker
 
 relaax-rlx-server:
   --bind: 0.0.0.0:7001
@@ -20,7 +20,7 @@ relaax-rlx-server:
   --log-level: WARNING
 
 algorithm:
-  path: ../relaax/algorithms/trpo_gae
+  path: ../relaax/algorithms/ppo_lbfgs
 
   action_size: 4                  # action size for the given environment
   state_size: [24]                # array of dimensions for the input observation
