@@ -51,3 +51,10 @@ def make_wrappers(config, policy_net, value_net, session):
     baseline = NnVf(value_net, config.timestep_limit, dict(mixfrac=0.1), session)
 
     return policy, baseline
+
+
+class PpoLbfgsUpdater(EzFlat, EzPickle):
+    def __init__(self, config, stochpol, session):
+        EzPickle.__init__(self, stochpol, config)
+        self.cfg = config
+        self.stochpol = stochpol

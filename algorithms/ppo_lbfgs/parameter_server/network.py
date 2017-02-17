@@ -9,5 +9,5 @@ def make_head(config, pnet, vnet, sess):
     return network.make_wrappers(config, pnet, vnet, sess)
 
 
-def make_trpo(config, policy, sess):
-    return network.TrpoUpdater(config, policy, sess)
+def make_ppo(config, policy, sess):
+    return network.PpoLbfgsUpdater(config, policy, sess)
