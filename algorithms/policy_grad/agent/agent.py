@@ -24,7 +24,6 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
         self.rewards = []           # auxiliary rewards accumulator through batch_size = 0..N
 
         self.episode_t = 0          # episode counter through batch_size = 0..M
-        self.action_vec = np.zeros([config.action_size])    # one-hot vector to store taken action
 
         if config.preprocess:
             if type(config.state_size) not in [list, tuple]:
@@ -63,9 +62,9 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
 
         self.states.append(state)
 
-        self.action_vec[action] = 1
-        self.actions.append(self.action_vec)
-        self.action_vec[action] = 0
+        action_vec = np.zeros([self._config.action_size])  # one-hot vector to store taken action
+        action_vec[action] = 1
+        self.actions.append(action_vec)
 
         self.metrics().scalar('server latency', time.time() - start)
 
