@@ -109,8 +109,7 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
             discounted_r[t] = running_add
         # size the rewards to be unit normal (helps control the gradient estimator variance)
         discounted_r -= np.mean(discounted_r)
-        discounted_r /= np.std(discounted_r)
-        # check zero_division, if you want
+        discounted_r /= np.std(discounted_r) + 1e-20
         return discounted_r
 
     def metrics(self):
