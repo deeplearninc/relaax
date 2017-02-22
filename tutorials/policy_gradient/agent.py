@@ -27,28 +27,17 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
         self.actions = []           # auxiliary actions accumulator through batch_size = 0..N
         self.rewards = []           # auxiliary rewards accumulator through batch_size = 0..N
 
-        self.episode_t = 0          # episode counter through batch_size = 0..M
-
         initialize_all_variables = tf.variables_initializer(tf.global_variables())
 
         self._session = tf.Session()
 
         self._session.run(initialize_all_variables)
 
+        # copy weights from shared to local
+        self._local_network.assign_values(self._session, self._parameter_server.get_values())
+
     def act(self, state):
         start = time.time()
-
-        if self.episode_t == self._config.batch_size:
-            self._update_global()
-            self.episode_t = 0
-
-        if self.episode_t == 0:
-            # copy weights from shared to local
-            self._local_network.assign_values(self._session, self._parameter_server.get_values())
-
-            self.states = []
-            self.actions = []
-            self.rewards = []
 
         # Run the policy network and get an action to take
         prob = self._local_network.run_policy(self._session, state)
@@ -74,9 +63,13 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
         score = self.episode_reward
 
         self.metrics().scalar('episode reward', self.episode_reward)
-
         self.episode_reward = 0
-        self.episode_t = self._config.batch_size
+
+        self._update_global()
+
+        self.states = []
+        self.actions = []
+        self.rewards = []
 
         return score
 
@@ -84,7 +77,6 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
         self.episode_reward += reward
         self.rewards.append(reward)
 
-        self.episode_t += 1
         self.global_t = self._parameter_server.increment_global_t()
 
         return self.global_t < self._config.max_global_step
@@ -93,12 +85,15 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
         feed_dict = {
             self._local_network.s: self.states,
             self._local_network.a: self.actions,
-            self._local_network.advantage: self.discounted_reward(np.asarray(self.rewards)),
+            self._local_network.advantage: self.discounted_reward(np.vstack(self.rewards)),
         }
 
         self._parameter_server.apply_gradients(
             self._session.run(self._local_network.grads, feed_dict=feed_dict)
         )
+
+        # copy weights from shared to local
+        self._local_network.assign_values(self._session, self._parameter_server.get_values())
 
     def discounted_reward(self, r):
         """ take 1D float array of rewards and compute discounted reward """

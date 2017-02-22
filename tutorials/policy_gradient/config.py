@@ -13,9 +13,6 @@ class Config(relaax.algorithm_base.config_base.ConfigBase):
         # size of the hidden layer for simple FC-NN
         self.layer_size = config.get('hidden_layer_size', 200)
 
-        # how many steps perform before a param update
-        self.batch_size = config.get('batch_size', 10)
-
         # maximum global step to stop the training when it is reached
         self.max_global_step = config.get('max_global_step', 10 * 10 ** 7)
 
