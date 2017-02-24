@@ -5,7 +5,7 @@
 # To run this training open three terminals here and run:
 # relaax-parameter-server --config ../relaax/tutorials/policy_gradient/policy_gradient.yaml
 # relaax-rlx-server --config ../relaax/tutorials/policy_gradient/policy_gradient.yaml
-# ../relaax/environments/OpenAI_Gym/main --rlx-server localhost:7001 --env CartPole-v0 --limit 800
+# ../relaax/environments/OpenAI_Gym/main --rlx-server localhost:7001 --env CartPole-v0 no_op_max=0 --limit 800
 # honcho start -f ../relaax/tutorials/policy_gradient/pg.Procfile
 
 relaax-parameter-server:
