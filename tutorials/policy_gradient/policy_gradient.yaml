@@ -3,9 +3,10 @@
 # This is an example of configuration to train Policy Gradient agent to play gym's pong game.
 #
 # To run this training open three terminals here and run:
-# relaax-parameter-server --config policy_gradient.yaml
-# relaax-rlx-server --config policy_gradient.yaml
-# ../../environments/OpenAI_Gym/main --rlx-server localhost:7001 --env CartPole-v0
+# relaax-parameter-server --config ../relaax/tutorials/policy_gradient/policy_gradient.yaml
+# relaax-rlx-server --config ../relaax/tutorials/policy_gradient/policy_gradient.yaml
+# ../relaax/environments/OpenAI_Gym/main --rlx-server localhost:7001 --env CartPole-v0 --limit 800
+# honcho start -f ../relaax/tutorials/policy_gradient/pg.Procfile
 
 relaax-parameter-server:
   --bind: localhost:7000
@@ -19,7 +20,7 @@ relaax-rlx-server:
   --log-level: WARNING
 
 algorithm:
-  path: .                         # path to algorithm package (if we here, just . is enough)
+  path: ../relaax/tutorials/policy_gradient   # path to algorithm package
 
   action_size: 1                  # action size for the given environment (CartPole:2->1)
   state_size: 4                   # size of the input observation (flattened)
