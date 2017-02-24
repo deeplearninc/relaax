@@ -45,9 +45,9 @@ class ParameterServer(relaax.algorithm_base.parameter_server_base.ParameterServe
         status, self.n_iter, self.paths_len = self._nn_saver.latest_checkpoint_idx()
         print('n_iter =', self.n_iter)
         if status:
-            self.policy_net.load_weights(self._saver.dir + "/pnet--" + str(self.n_iter) + ".h5")
-            self.value_net.load_weights(self._saver.dir + "/vnet--" + str(self.n_iter) + ".h5")
-            self.paths = load(open(self._saver.dir + "/data--" + str(self.n_iter) + "-" + str(self.paths_len) + ".p"))
+            self.policy_net.load_weights(self._nn_saver.dir + "/pnet--" + str(self.n_iter) + ".h5")
+            self.value_net.load_weights(self._nn_saver.dir + "/vnet--" + str(self.n_iter) + ".h5")
+            self.paths = load(open(self._nn_saver.dir + "/data--" + str(self.n_iter) + "-" + str(self.paths_len) + ".p"))
             self.global_step = (self.n_iter + 1) * self.config.timesteps_per_batch + self.paths_len
         global_steps = self._saver.global_steps()
         if len(global_steps) > 0:
