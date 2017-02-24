@@ -79,7 +79,14 @@ pip install -e .
 algorithms/da3c/bridge/bridge.sh
 ```
 
-* Install <a href="https://www.tensorflow.org/get_started/os_setup" target="_blank">TensorFlow</a>
+* Install TensorFlow
+```bash
+pip install tensorflow==0.12.1
+```
+If previous command does not work for you (it is possible in some kind python virtual environments) use this one:
+```bash
+pip install --upgrade https://storage.googleapis.com/tensorflow/linux/cpu/tensorflow-0.12.1-cp27-none-linux_x86_64.whl
+```
 
 * Create training directory
 ```bash
