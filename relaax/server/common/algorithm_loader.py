@@ -14,7 +14,10 @@ def load(full_path):
 
 def _load_module(path, name):
     if name not in sys.modules:
-        file, pathname, description = imp.find_module(name, [path])
+        file, pathname, description = imp.find_module(
+            name,
+            [os.path.expanduser(path)]
+        )
         try:
             imp.load_module(name, file, pathname, description)
         finally:
