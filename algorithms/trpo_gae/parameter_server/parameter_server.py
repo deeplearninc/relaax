@@ -42,7 +42,7 @@ class ParameterServer(relaax.algorithm_base.parameter_server_base.ParameterServe
         self._session.close()
 
     def restore_latest_checkpoint(self):
-        status, self.n_iter, self.paths_len = self._saver.latest_checkpoint_idx()
+        status, self.n_iter, self.paths_len = self._nn_saver.latest_checkpoint_idx()
         print('n_iter =', self.n_iter)
         if status:
             self.policy_net.load_weights(self._saver.dir + "/pnet--" + str(self.n_iter) + ".h5")
