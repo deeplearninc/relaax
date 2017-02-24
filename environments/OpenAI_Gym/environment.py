@@ -11,9 +11,9 @@ from relaax.client import rlx_client
 from . import game_process
 
 
-def run(rlx_server_url, env, seed, limit):
+def run(rlx_server_url, env, seed, limit, rnd):
     n_game = 0
-    game = game_process.GameProcessFactory(env, limit).new_env(_seed(seed))
+    game = game_process.GameProcessFactory(env, limit).new_env(_seed(seed), rnd)
 
     def toggle_rendering():
         if game.display:

@@ -10,8 +10,8 @@ class GameProcessFactory(object):
         self._env = env
         self._limit = limit
 
-    def new_env(self, seed):
-        return _GameProcess(seed, self._env, limit=self._limit)
+    def new_env(self, seed, rnd):
+        return _GameProcess(seed, self._env, no_op_max=rnd, limit=self._limit)
 
     def new_display_env(self, seed):
         return _GameProcess(seed, self._env, display=True, no_op_max=0, limit=self._limit)
@@ -96,7 +96,7 @@ class _GameProcess(object):
 
         while True:
             self.gym.reset()
-            if not self.display:
+            if not self.display and self._no_op_max > 0:
                 no_op = np.random.randint(0, self._no_op_max)
                 for _ in range(no_op):
                     if self.box:
