@@ -140,26 +140,18 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
         # fail safe
         return len(values) - 1
 
-    def update_state(self, frame):
-        if not self.terminal_end and self.local_t != 0:
-            self.obsQueue = np.append(
-                self.obsQueue[:, :, 1:],
-                np.reshape(frame, frame.shape + (1, )),
-                axis=2
-            )
-        else:
-            self.obsQueue = np.stack((frame, frame, frame, frame), axis=2)
-
     def _update_state(self, obs):
+        axis = len(obs.shape) # extra dimension for observation
+        new_obs = np.reshape(obs, obs.shape + (1,))
         if not self.terminal_end and self.local_t != 0:
-            np.delete(self.obsQueue, 0, len(self._config.state_size))
-            np.append(self.obsQueue,
-                      np.reshape(obs, obs.shape + (1,)),
-                      axis=len(self._config.state_size))
+            # remove oldest observation from the begining of the observation queue
+            self.obsQueue = np.delete(self.obsQueue, 0, axis=axis)
+
+            # append latest observation to the end of the observation queue
+            self.obsQueue = np.append(self.obsQueue, new_obs, axis=axis)
         else:
-            self.obsQueue = np.repeat(np.reshape(obs, obs.shape + (1,)),
-                                      self._config.history_len,
-                                      axis=len(self._config.state_size))
+            # copy observation several times to form initial observation queue
+            self.obsQueue = np.repeat(new_obs, self._config.history_len, axis=axis)
 
     def _update_global(self):
         R = 0.0
