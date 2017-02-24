@@ -38,8 +38,8 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
         self.start_lstm_state = None
 
         self.obsQueue = None        # observation accumulator, cuz state = history_len * consecutive observations
-        self.obs_size = int(np.prod(np.array(config.state_size)))
-        self.obfilter = ZFilter(tuple([self.obs_size]), clip=5)
+        obs_size = int(np.prod(np.array(config.state_size)))
+        self.obfilter = ZFilter(tuple([obs_size]), clip=5)
 
         initialize_all_variables = tf.initialize_all_variables()
 
@@ -133,9 +133,9 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
     def _update_state(self, observation):
         obs = self.obfilter(observation.flatten())
         if not self.terminal_end and self.local_t != 0:
-            np.append(self.obsQueue[self.obs_size:], obs)
+            self.obsQueue = np.append(self.obsQueue[len(obs):], obs)
         else:
-            self.obsQueue = np.repeat(obs, self._config.history_len)
+            self.obsQueue = np.tile(obs, self._config.history_len)
 
     def _update_global(self):
         R = 0.0
