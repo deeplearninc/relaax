@@ -4,7 +4,7 @@ from distutils.core import setup
 
 setup(
     name='relaax',
-    version='0.1',
+    version='0.1.2',
     description='RELAAX solution',
     author='Stanislav Volodarskiy',
     author_email='stanislav@dplrn.com',
