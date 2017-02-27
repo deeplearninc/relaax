@@ -21,7 +21,7 @@ setup(
         'scipy',
         'psutil',
         'honcho',
-        'keras',
+        'keras==1.2.1',
         'h5py',
         'mock'
     ],
