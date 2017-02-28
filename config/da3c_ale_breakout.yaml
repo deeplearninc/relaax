@@ -1,6 +1,6 @@
 ---
 
-# This is an example of configuration to train DA3C agent to play ALE boxing game.
+# This is an example of configuration to train DA3C agent to play ALE breakout game.
 #                                                                                 
 # To run this training navigate to empty directory next to relaax repo,
 # open three terminals there and run:
@@ -10,9 +10,9 @@
 
 relaax-parameter-server:
   --bind: localhost:7000
-  --checkpoint-dir: checkpoints/breakout_a3c
+  --checkpoint-dir: checkpoints/a3c_ale_breakout
   --log-level: WARNING
-  --metrics-dir: metrics_ale_breakout
+  --metrics-dir: metrics_a3c_ale_breakout
 
 relaax-rlx-server:
   --bind: 0.0.0.0:7001

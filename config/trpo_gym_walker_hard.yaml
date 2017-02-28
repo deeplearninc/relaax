@@ -12,7 +12,7 @@ relaax-parameter-server:
   --bind: localhost:7000
   --checkpoint-dir: checkpoints/trpo_gym_walker_hard
   --log-level: WARNING
-  --metrics-dir: metrics_trpo_gym_walker
+  --metrics-dir: metrics_trpo_gym_walker_hard
 
 relaax-rlx-server:
   --bind: 0.0.0.0:7001

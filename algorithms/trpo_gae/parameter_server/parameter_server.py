@@ -15,7 +15,8 @@ class ParameterServer(relaax.algorithm_base.parameter_server_base.ParameterServe
     def __init__(self, config, saver, metrics):
         self.n_iter = 0             # number of updates within training process
         self.config = config        # common configuration, which is rewritten by yaml
-        self._saver = Saver(saver._savers[0]._dir)  # saver for defined neural networks
+        self._saver = saver         # saver for tensorflow session
+        self._nn_saver = Saver(saver._savers[0]._dir)  # saver for defined neural networks
 
         self.is_collect = True      # set to False if TRPO is under update procedure (for sync only)
         self.paths = []             # experience accumulator
@@ -41,17 +42,21 @@ class ParameterServer(relaax.algorithm_base.parameter_server_base.ParameterServe
         self._session.close()
 
     def restore_latest_checkpoint(self):
-        status, self.n_iter, self.paths_len = self._saver.latest_checkpoint_idx()
+        status, self.n_iter, self.paths_len = self._nn_saver.latest_checkpoint_idx()
         print('n_iter =', self.n_iter)
         if status:
-            self.policy_net.load_weights(self._saver.dir + "/pnet--" + str(self.n_iter) + ".h5")
-            self.value_net.load_weights(self._saver.dir + "/vnet--" + str(self.n_iter) + ".h5")
-            self.paths = load(open(self._saver.dir + "/data--" + str(self.n_iter) + "-" + str(self.paths_len) + ".p"))
+            self.policy_net.load_weights(self._nn_saver.dir + "/pnet--" + str(self.n_iter) + ".h5")
+            self.value_net.load_weights(self._nn_saver.dir + "/vnet--" + str(self.n_iter) + ".h5")
+            self.paths = load(open(self._nn_saver.dir + "/data--" + str(self.n_iter) + "-" + str(self.paths_len) + ".p"))
             self.global_step = (self.n_iter + 1) * self.config.timesteps_per_batch + self.paths_len
+        global_steps = self._saver.global_steps()
+        if len(global_steps) > 0:
+            self._saver.restore_checkpoint(self._session, max(global_steps))
         return status
 
     def save_checkpoint(self):
-        self._saver.save_checkpoint(self.policy_net, self.value_net, self.n_iter, self.paths[:], self.paths_len)
+        self._nn_saver.save_checkpoint(self.policy_net, self.value_net, self.n_iter, self.paths[:], self.paths_len)
+        self._saver.save_checkpoint(self._session, self.global_t())
 
     def checkpoint_location(self):
         return self._saver.location()
