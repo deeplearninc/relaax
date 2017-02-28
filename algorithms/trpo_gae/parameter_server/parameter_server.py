@@ -83,7 +83,7 @@ class ParameterServer(relaax.algorithm_base.parameter_server_base.ParameterServe
         # Policy Update
         pol_stats = self.trpo_updater(self.paths)
 
-        print('Update time:', time() - start)
+        print('Update time for {} iteration: {}'.format(self.n_iter, time() - start))
         self.is_collect = True
 
     def compute_advantage(self):
