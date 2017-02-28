@@ -1,18 +1,18 @@
 ---
 
-# This is an example of configuration to train DA3C Continuous with gym's BipedalWalker-v2.
+# This is an example of configuration to train DA3C with gym's BoxingDeterministic-v3.
 #
 # To run this training navigate to empty directory next to relaax repo,
 # open three terminals there and run:
 # relaax-parameter-server --config ../relaax/config/da3c_gym_boxing.yaml
 # relaax-rlx-server --config ../relaax/config/da3c_gym_boxing.yaml
-# ../relaax/environments/OpenAI_Gym/main --rlx-server localhost:7001 --env Boxing-v0
+# ../relaax/environments/OpenAI_Gym/main --rlx-server localhost:7001 --env BoxingDeterministic-v3
 
 relaax-parameter-server:
   --bind: localhost:7000
-  --checkpoint-dir: checkpoints/boxing_a3c_gym
+  --checkpoint-dir: checkpoints/a3c_gym_boxing
   --log-level: WARNING
-  --metrics-dir: metrics_gym_boxing
+  --metrics-dir: metrics_a3c_gym_boxing
 
 relaax-rlx-server:
   --bind: 0.0.0.0:7001
