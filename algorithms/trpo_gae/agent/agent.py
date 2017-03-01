@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import tensorflow as tf
 import time
 from collections import defaultdict
@@ -99,7 +101,7 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
             return
 
         if old_n_iter < self._n_iter:
-            print('Collecting time for {} iteration: {}'.format(old_n_iter, time.time() - self.collecting_time))
+            print('Collecting time for {} iteration: {}'.format(old_n_iter+1, time.time() - self.collecting_time))
             self.policy.net.set_weights(list(self._parameter_server.receive_weights(self._n_iter)))
             self.collecting_time = time.time()
 
