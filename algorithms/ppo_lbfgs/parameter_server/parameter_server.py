@@ -29,16 +29,13 @@ class ParameterServer(relaax.algorithm_base.parameter_server_base.ParameterServe
         initialize = tf.variables_initializer(tf.global_variables())
 
         self.policy, self.baseline = network.make_head(config, self.policy_net, self.value_net, self._session)
-        self.trpo_updater = network.make_trpo(config, self.policy, self._session)
+        self.ppo_updater = network.make_ppo(config, self.policy, self._session)
 
         self._session.run(initialize)
 
         self._bridge = _Bridge(metrics, self)
         if config.async_collect:
             self._bridge = _BridgeAsync(metrics, self)
-
-        self.policy_net.get_weights()   # work around with keras' cache
-        self.value_net.get_weights()
 
     def close(self):
         self._session.close()
@@ -47,9 +44,9 @@ class ParameterServer(relaax.algorithm_base.parameter_server_base.ParameterServe
         status, self.n_iter, self.paths_len = self._saver.latest_checkpoint_idx()
         print('n_iter =', self.n_iter)
         if status:
-            self.policy_net.load_weights(self._nn_saver.dir + "/pnet--" + str(self.n_iter) + ".h5")
-            self.value_net.load_weights(self._nn_saver.dir + "/vnet--" + str(self.n_iter) + ".h5")
-            self.paths = load(open(self._nn_saver.dir + "/data--" + str(self.n_iter) + "-" + str(self.paths_len) + ".p"))
+            self.policy_net.load_weights(self._saver.dir + "/pnet--" + str(self.n_iter) + ".h5")
+            self.value_net.load_weights(self._saver.dir + "/vnet--" + str(self.n_iter) + ".h5")
+            self.paths = load(open(self._saver.dir + "/data--" + str(self.n_iter) + "-" + str(self.paths_len) + ".p"))
             self.global_step = (self.n_iter + 1) * self.config.timesteps_per_batch + self.paths_len
         return status
 
@@ -68,11 +65,11 @@ class ParameterServer(relaax.algorithm_base.parameter_server_base.ParameterServe
         self.paths.append(paths)
 
         if self.paths_len >= self.config.timesteps_per_batch:
-            self.trpo_update()
+            self.ppo_update()
             self.paths_len = 0
             self.paths = []
 
-    def trpo_update(self):
+    def ppo_update(self):
         self.is_collect = False
         start = time()
 
@@ -81,9 +78,9 @@ class ParameterServer(relaax.algorithm_base.parameter_server_base.ParameterServe
         # Value Update
         vf_stats = self.baseline.fit(self.paths)
         # Policy Update
-        pol_stats = self.trpo_updater(self.paths)
+        pol_stats = self.ppo_updater(self.paths)
 
-        print('Update time for {} iteration: {}'.format(self.n_iter, time() - start))
+        print('Update time:', time() - start)
         self.is_collect = True
 
     def compute_advantage(self):

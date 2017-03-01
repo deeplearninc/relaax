@@ -1,18 +1,18 @@
 ---
 
-# This is an example of configuration to train TRPO-GAE with gym's BipedalWalkerHardcore-v2.
+# This is an example of configuration to train PPO L-BFGS with gym's BipedalWalker-v2.
 #
 # To run this training navigate to empty directory next to relaax repo,
 # open three terminals there and run:
-# relaax-parameter-server --config ../relaax/config/trpo_gym_walker_hard.yaml
-# relaax-rlx-server --config ../relaax/config/trpo_gym_walker_hard.yaml
-# ../relaax/environments/OpenAI_Gym/main --rlx-server localhost:7001 --env BipedalWalkerHardcore-v2
+# relaax-parameter-server --config ../relaax/config/ppo_gym_walker.yaml
+# relaax-rlx-server --config ../relaax/config/ppo_gym_walker.yaml
+# ../relaax/environments/OpenAI_Gym/main --rlx-server localhost:7001 --env BipedalWalker-v2
 
 relaax-parameter-server:
   --bind: localhost:7000
-  --checkpoint-dir: checkpoints/trpo_gym_walker_hard
+  --checkpoint-dir: checkpoints/ppo_gym_walker
   --log-level: WARNING
-  --metrics-dir: metrics_trpo_gym_walker_hard
+  --metrics-dir: metrics_ppo_gym_walker
 
 relaax-rlx-server:
   --bind: 0.0.0.0:7001
@@ -20,7 +20,7 @@ relaax-rlx-server:
   --log-level: WARNING
 
 algorithm:
-  path: ../relaax/algorithms/trpo_gae
+  path: ../relaax/algorithms/ppo_lbfgs
 
   action_size: 4                  # action size for the given environment
   state_size: [24]                # array of dimensions for the input observation
@@ -31,12 +31,13 @@ algorithm:
   async: false                    # set to true to collect experience without blocking the updater
 
   PG_OPTIONS:
-    timestep_limit: 2000          # length in steps for one round in environment
+    timestep_limit: 1600          # length in steps for one round in environment
     n_iter: 10000                 # number of updates to pass through the training (training length)
-    timesteps_per_batch: 50000    # number of experience to collect before update
+    timesteps_per_batch: 10000    # number of experience to collect before update
     rewards_gamma: 0.995          # rewards discount factor
     gae_lambda: 0.97              # lambda from generalized advantage estimation
 
-  TRPO:
-    cg_damping: 0.1               # multiple of the identity to Fisher matrix during CG
-    max_kl: 0.01                  # KL divergence between old and new policy
+  PPO:
+    kl_target: 0.01               # desired kl divergence between old and new policy
+    reverse_kl: 0                 # kl[new, old] instead of kl[old, new]
+    maxiter: 25                   # maximum number of iterations
