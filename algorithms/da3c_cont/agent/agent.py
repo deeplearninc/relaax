@@ -133,9 +133,9 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
     def _update_state(self, observation):
         obs = self.obfilter(observation.flatten())
         if not self._terminal_end and self.local_t != 0:
-            np.append(self.obsQueue[self.obs_size:], obs)
+            self.obsQueue = np.append(self.obsQueue[self.obs_size:], obs)
         else:
-            self.obsQueue = np.repeat(obs, self._config.history_len)
+            self.obsQueue = self.obsQueue = np.repeat(obs, self._config.history_len)
 
     def _update_global(self):
         R = 0.0
