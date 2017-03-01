@@ -19,6 +19,7 @@ def run(rlx_server_url, rom, display, seed):
             client = rlx_client.Client(rlx_server_url)
             try:
                 action = client.init(game.state())
+                client_latency, acts = 0, 0
                 while True:
                     reward, reset = game.act(action)
                     if reset:
@@ -27,8 +28,14 @@ def run(rlx_server_url, rom, display, seed):
                         print('Score at game', n_game, '=', episode_score)
                         game.reset()
                         action = _send(client, None, game.state())
+                        if acts:
+                            client.metrics().scalar('client latency', client_latency / acts)
+                            client_latency, acts = 0, 0
                     else:
+                        start = time.time()
                         action = _send(client, reward, game.state())
+                        client_latency += time.time() - start
+                        acts += 1
             finally:
                 client.disconnect()
         except rlx_client.Failure as e:
@@ -39,9 +46,7 @@ def run(rlx_server_url, rom, display, seed):
 
 
 def _send(client, reward, state):
-    start = time.time()
     action = client.send(reward, state)
-    client.metrics().scalar('client latency', time.time() - start)
     return action
 
 
