@@ -70,7 +70,7 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
         self.server_latency_accumulator = 0
         self.metrics().scalar('server latency', latency)
 
-        self._send_experience(terminated=True)
+        self._send_experience(terminated=(self._episode_timestep < self._config.timestep_limit))
         return score
 
     def _reward(self, reward):
@@ -99,7 +99,7 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
             return
 
         if old_n_iter < self._n_iter:
-            print('Collecting time:', time.time() - self.collecting_time)  # +update waiting
+            print('Collecting time for {} iteration: {}'.format(old_n_iter, time.time() - self.collecting_time))
             self.policy.net.set_weights(list(self._parameter_server.receive_weights(self._n_iter)))
             self.collecting_time = time.time()
 
