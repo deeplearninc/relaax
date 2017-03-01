@@ -26,18 +26,18 @@ class SetProcessFunc(object):
 
 class _GameProcess(object):
     AtariGameList = [
-        'AirRaid-v0', 'Alien-v0', 'Amidar-v0', 'Assault-v0', 'Asterix-v0',
-        'Asteroids-v0', 'Atlantis-v0', 'BankHeist-v0', 'BattleZone-v0', 'BeamRider-v0',
-        'Berzerk-v0', 'Bowling-v0', 'Boxing-v0', 'Breakout-v0', 'Carnival-v0',
-        'Centipede-v0', 'ChopperCommand-v0', 'CrazyClimber-v0', 'DemonAttack-v0', 'DoubleDunk-v0',
-        'ElevatorAction-v0', 'Enduro-v0', 'FishingDerby-v0', 'Freeway-v0', 'Frostbite-v0',
-        'Gopher-v0', 'Gravitar-v0', 'IceHockey-v0', 'Jamesbond-v0', 'JourneyEscape-v0',
-        'Kangaroo-v0', 'Krull-v0', 'KungFuMaster-v0', 'MontezumaRevenge-v0', 'MsPacman-v0',
-        'NameThisGame-v0', 'Phoenix-v0', 'Pitfall-v0', 'Pong-v0', 'Pooyan-v0',
-        'PrivateEye-v0', 'Qbert-v0', 'Riverraid-v0', 'RoadRunner-v0', 'Robotank-v0',
-        'Seaquest-v0', 'Skiing-v0', 'Solaris-v0', 'SpaceInvaders-v0', 'StarGunner-v0',
-        'Tennis-v0', 'TimePilot-v0', 'Tutankham-v0', 'UpNDown-v0', 'Venture-v0',
-        'VideoPinball-v0', 'WizardOfWor-v0', 'YarsRevenge-v0', 'Zaxxon-v0']
+        'AirRaid', 'Alien', 'Amidar', 'Assault', 'Asterix',
+        'Asteroids', 'Atlantis', 'BankHeist', 'BattleZone', 'BeamRider',
+        'Berzerk', 'Bowling', 'Boxing', 'Breakout', 'Carnival',
+        'Centipede', 'ChopperCommand', 'CrazyClimber', 'DemonAttack', 'DoubleDunk',
+        'ElevatorAction', 'Enduro', 'FishingDerby', 'Freeway', 'Frostbite',
+        'Gopher', 'Gravitar', 'IceHockey', 'Jamesbond', 'JourneyEscape',
+        'Kangaroo', 'Krull', 'KungFuMaster', 'MontezumaRevenge', 'MsPacman',
+        'NameThisGame', 'Phoenix', 'Pitfall', 'Pong', 'Pooyan',
+        'PrivateEye', 'Qbert', 'Riverraid', 'RoadRunner', 'Robotank',
+        'Seaquest', 'Skiing', 'Solaris', 'SpaceInvaders', 'StarGunner',
+        'Tennis', 'TimePilot', 'Tutankham', 'UpNDown', 'Venture',
+        'VideoPinball', 'WizardOfWor', 'YarsRevenge', 'Zaxxon']
 
     def __init__(self, rand_seed, env, display=False, no_op_max=7):
         self.gym = gym.make(env)
@@ -47,12 +47,13 @@ class _GameProcess(object):
         self.display = display
         self._close_display = False
 
-        self.timestep_limit = self.gym.spec.timestep_limit
+        self.timestep_limit = self.gym.spec.tags.get('wrapper_config.TimeLimit.max_episode_steps')
         self.cur_step_limit = None
         self._state = None
 
         self._process_state = SetProcessFunc(self._process_all)
-        if env in _GameProcess.AtariGameList:
+        atari = [name + 'Deterministic' for name in _GameProcess.AtariGameList] + _GameProcess.AtariGameList
+        if any(item.startswith(env.split('-')[0]) for item in atari):
             self._process_state = SetProcessFunc(self._process_atari)
 
         self.ac_size, self.box = self._action_size()
