@@ -3,7 +3,7 @@ from __future__ import print_function
 import logging
 import os
 import random
-import time
+from time import time, sleep
 
 from relaax.client import rlx_client
 
@@ -32,9 +32,9 @@ def run(rlx_server_url, rom, display, seed):
                             client.metrics().scalar('client latency', client_latency / acts)
                             client_latency, acts = 0, 0
                     else:
-                        start = time.time()
+                        start = time()
                         action = _send(client, reward, game.state())
-                        client_latency += time.time() - start
+                        client_latency += time() - start
                         acts += 1
             finally:
                 client.disconnect()
@@ -42,7 +42,7 @@ def run(rlx_server_url, rom, display, seed):
             _warning('{} : {}'.format(rlx_server_url, e.message))
             delay = random.randint(1, 10)
             _info('waiting for %ds...', delay)
-            time.sleep(delay)
+            sleep(delay)
 
 
 def _send(client, reward, state):
