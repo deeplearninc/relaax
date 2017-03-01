@@ -26,6 +26,7 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
 
         self.global_t = 0           # counter for global steps between all agents
         self.local_t = 0            # steps count for current agent's thread
+        self.updates_t = 0          # counter for global updates
         self.episode_reward = 0     # score accumulator for current game
 
         self.states = []            # auxiliary states accumulator through episode_len = 0..5
@@ -38,6 +39,7 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
         self.start_lstm_state = None
 
         self.obsQueue = None        # observation accumulator for state = history_len * consecutive frames
+        self.accum_latency = 0
 
         initialize_all_variables = tf.variables_initializer(tf.global_variables())
 
@@ -76,11 +78,13 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
         self.actions.append(action)
         self.values.append(value_)
 
+        self.accum_latency += time.time() - start
+
         if (self.local_t % 100) == 0:
             print("pi=", pi_)
             print(" V=", value_)
-
-        self.metrics().scalar('server latency', time.time() - start)
+            self.metrics().scalar('server latency', self.accum_latency / 100)
+            self.accum_latency = 0
 
         return action
 
@@ -92,14 +96,12 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
     def reward_and_reset(self, reward):
         if not self._reward(reward):
             return None
-
         self.terminal_end = True
-        print("score=", self.episode_reward)
 
+        print("score=", self.episode_reward)
         score = self.episode_reward
 
         self.metrics().scalar('episode reward', self.episode_reward)
-
         self.episode_reward = 0
 
         if self._config.use_LSTM:
@@ -210,5 +212,7 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
             self._session.run(self._local_network.grads, feed_dict=feed_dict)
         )
 
-        if (self.local_t % 100) == 0:
+        if (self.updates_t % 20) == 0:
             print("TIMESTEP", self.local_t)
+
+        self.updates_t += 1
