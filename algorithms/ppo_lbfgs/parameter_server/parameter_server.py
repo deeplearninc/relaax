@@ -38,6 +38,9 @@ class ParameterServer(relaax.algorithm_base.parameter_server_base.ParameterServe
         if config.async_collect:
             self._bridge = _BridgeAsync(metrics, self)
 
+        self.policy_net.get_weights()  # work around with keras' cache
+        self.value_net.get_weights()
+
     def close(self):
         self._session.close()
 
@@ -81,7 +84,7 @@ class ParameterServer(relaax.algorithm_base.parameter_server_base.ParameterServe
         # Policy Update
         pol_stats = self.ppo_updater(self.paths)
 
-        print('Update time:', time() - start)
+        print('Update time for {} iteration: {}'.format(self.n_iter, time() - start))
         self.is_collect = True
 
     def compute_advantage(self):
