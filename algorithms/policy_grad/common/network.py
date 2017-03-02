@@ -19,9 +19,6 @@ class GlobalPolicyNN(object):
         self.global_t = tf.Variable(0, tf.int64)
         self.increment_global_t = tf.assign_add(self.global_t, 1)
 
-        self._RMSP_DECAY = config.RMSP_DECAY
-        self._RMSP_EPSILON = config.RMSP_EPSILON
-
         self._input_size = np.prod(np.array(config.state_size))
         self._action_size = config.action_size
 
