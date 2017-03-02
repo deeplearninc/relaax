@@ -105,7 +105,7 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
         feed_dict = {
             self._local_network.s: self.states,
             self._local_network.a: self.actions,
-            self._local_network.advantage: self.discounted_reward(np.asarray(self.rewards)),
+            self._local_network.advantage: self.discounted_reward(np.vstack(self.rewards)),
         }
 
         self._parameter_server.apply_gradients(

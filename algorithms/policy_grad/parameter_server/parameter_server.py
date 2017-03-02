@@ -17,7 +17,7 @@ class ParameterServer(relaax.algorithm_base.parameter_server_base.ParameterServe
 
         self._session.run(initialize)
 
-        self._bridge = _Bridge(config, metrics, self._network, self._session)
+        self._bridge = _Bridge(metrics, self._network, self._session)
 
     def close(self):
         self._session.close()
@@ -36,8 +36,7 @@ class ParameterServer(relaax.algorithm_base.parameter_server_base.ParameterServe
 
 
 class _Bridge(relaax.algorithm_base.bridge_base.BridgeBase):
-    def __init__(self, config, metrics, network, session):
-        self._config = config
+    def __init__(self, metrics, network, session):
         self._metrics = metrics
         self._network = network
         self._session = session
@@ -47,9 +46,6 @@ class _Bridge(relaax.algorithm_base.bridge_base.BridgeBase):
 
     def apply_gradients(self, gradients):
         feed_dict = {p: v for p, v in zip(self._network.gradients, gradients)}
-        feed_dict[self._network.learning_rate_input] = self._anneal_learning_rate(
-            self._session.run(self._network.global_t)
-        )
         self._session.run(self._network.apply_gradients, feed_dict=feed_dict)
 
     def get_values(self):
@@ -57,10 +53,3 @@ class _Bridge(relaax.algorithm_base.bridge_base.BridgeBase):
 
     def metrics(self):
         return self._metrics
-
-    def _anneal_learning_rate(self, global_time_step):
-        factor = (self._config.max_global_step - global_time_step) / self._config.max_global_step
-        learning_rate = self._config.learning_rate * factor
-        if learning_rate < 0.0:
-            learning_rate = 0.0
-        return learning_rate

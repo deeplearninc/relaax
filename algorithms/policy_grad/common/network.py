@@ -43,7 +43,7 @@ class GlobalPolicyNN(object):
             ])
 
         self.gradients = [tf.placeholder(v.dtype, v.get_shape()) for v in self.values]
-        self.learning_rate_input = tf.placeholder(tf.float32)
+        self.learning_rate = config.learning_rate
 
     def assign_values(self, session, values):
         session.run(self._assign_values, feed_dict={
@@ -54,10 +54,8 @@ class GlobalPolicyNN(object):
         return self.values
 
     def apply_gradients(self):
-        optimizer = tf.train.RMSPropOptimizer(
-            learning_rate=self.learning_rate_input,
-            decay=self._RMSP_DECAY,
-            epsilon=self._RMSP_EPSILON
+        optimizer = tf.train.AdamOptimizer(
+            learning_rate=self.learning_rate
         )
         self.apply_gradients = optimizer.apply_gradients(zip(self.gradients, self.values))
         return self
@@ -83,13 +81,7 @@ class AgentPolicyNN(GlobalPolicyNN):
         return pi_out[0]
 
     def compute_gradients(self):
-        optimizer = tf.train.RMSPropOptimizer(
-            learning_rate=self.learning_rate_input,
-            decay=self._RMSP_DECAY,
-            epsilon=self._RMSP_EPSILON
-        )
-        grads_and_vars = optimizer.compute_gradients(self.loss, self.values)
-        self.grads = [grad for grad, _ in grads_and_vars]
+        self.grads = tf.gradients(self.loss, self.values)
         return self
 
     def prepare_loss(self):
