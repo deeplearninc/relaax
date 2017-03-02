@@ -6,7 +6,7 @@
 # open three terminals there and run:
 # relaax-parameter-server --config ../relaax/config/ppo_test_env.yaml
 # relaax-rlx-server --config ../relaax/config/ppo_test_env.yaml
-# ../relaax/environments/Test_Envs/env_trpo
+# ../relaax/environments/Test_Envs/xpo_env
 
 relaax-parameter-server:
   --bind: localhost:7000

@@ -16,7 +16,7 @@ class GameProcessFactory(object):
         return _GameProcess(seed, self._env, display=True, no_op_max=0)
 
 
-class SetProcessFunc(object):
+class SetFunction(object):
     def __init__(self, func):
         self.func = func
 
@@ -51,10 +51,14 @@ class _GameProcess(object):
         self.cur_step_limit = None
         self._state = None
 
-        self._process_state = SetProcessFunc(self._process_all)
+        self._process_state = SetFunction(self._process_all)
+        self.reset = SetFunction(self._reset_all)
+
         atari = [name + 'Deterministic' for name in _GameProcess.AtariGameList] + _GameProcess.AtariGameList
+
         if any(item.startswith(env.split('-')[0]) for item in atari):
-            self._process_state = SetProcessFunc(self._process_atari)
+            self._process_state = SetFunction(self._process_atari)
+            self.reset = SetFunction(self._reset_atari)
 
         self.ac_size, self.box = self._action_size()
         self.reset()
@@ -69,8 +73,8 @@ class _GameProcess(object):
         return self._state
 
     def act(self, action):
-        if self.box:
-            action = np.clip(action, self.gym.action_space.low, self.gym.action_space.high)
+        # if self.box:
+        #     action = np.clip(action, self.gym.action_space.low, self.gym.action_space.high)
         if self.display:
             if self._close_display:
                 self.gym.render(close=True)
@@ -88,9 +92,7 @@ class _GameProcess(object):
 
         return reward, terminal
 
-    def reset(self):
-        do_act = 0
-
+    def _reset_atari(self):
         while True:
             self.gym.reset()
             self.cur_step_limit = 0
@@ -100,16 +102,29 @@ class _GameProcess(object):
                 # self.cur_step_limit += no_op
 
                 for _ in range(no_op):
-                    if self.box:
-                        do_act = self._safe_rnd_act()
-                    self.gym.step(do_act)
+                    self.gym.step(0)
 
-            if self.box:
-                do_act = self._safe_rnd_act()
-            env_state = self.gym.step(do_act)
+            env_state = self.gym.step(0)
+            if not env_state[2]:  # not terminal
+                self._state = self._process_state(env_state[0])
+                # self.cur_step_limit += 1
+                break
 
-            self._state = self._process_state(env_state[0])
-            if not env_state[2]:
+    def _reset_all(self):
+        while True:
+            self.gym.reset()
+            self.cur_step_limit = 0
+
+            if not self.display:
+                no_op = np.random.randint(0, self._no_op_max)
+                # self.cur_step_limit += no_op
+
+                for _ in range(no_op):
+                    self.gym.step(self.gym.action_space.sample())
+
+            env_state = self.gym.step(self.gym.action_space.sample())
+            if not env_state[2]:  # not terminal
+                self._state = self._process_state(env_state[0])
                 # self.cur_step_limit += 1
                 break
 
