@@ -5,9 +5,7 @@ from keras.layers.core import Dense, Lambda
 from relaax.algorithm_lib.core import *
 
 
-def make_mlps(config, session):
-    K.set_session(session)
-
+def make_mlps(config):
     policy_net = Sequential()
     for (i, layeroutsize) in enumerate(config.hidden_layers_sizes):
         input_shape = dict(input_shape=config.state_size) if i == 0 else {}
