@@ -17,6 +17,7 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
         self._local_network = network.make(config)
 
         self.global_t = 0           # counter for global steps between all agents
+        self.local_t = 0            # steps count for current agent worker
         self.episode_reward = 0     # score accumulator for current episode (game)
 
         self.states = []            # auxiliary states accumulator through batch_size = 0..N
@@ -24,6 +25,7 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
         self.rewards = []           # auxiliary rewards accumulator through batch_size = 0..N
 
         self.episode_t = 0          # episode counter through batch_size = 0..M
+        self.latency = 0            # latency accumulator for one episode loop
 
         if config.preprocess:
             if type(config.state_size) not in [list, tuple]:
@@ -66,8 +68,12 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
         action_vec[action] = 1
         self.actions.append(action_vec)
 
-        self.metrics().scalar('server latency', time.time() - start)
+        if (self.local_t % 100) == 0:   # can add by config
+            print("Probs:", probs)
+            self.metrics().scalar('server latency', self.latency / 100)
+            self.latency = 0
 
+        self.latency += time.time() - start
         return action
 
     def reward_and_act(self, reward, state):
@@ -96,6 +102,7 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
         self.episode_reward += reward
         self.rewards.append(reward)
 
+        self.local_t += 1
         self.episode_t += 1
         self.global_t = self._parameter_server.increment_global_t()
 
