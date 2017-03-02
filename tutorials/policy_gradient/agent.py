@@ -33,7 +33,7 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
 
         self._session.run(initialize_all_variables)
 
-        # copy weights from shared to local
+        # copy weights from parameter server (shared) to local agent
         self._local_network.assign_values(self._session, self._parameter_server.get_values())
 
     def act(self, state):
