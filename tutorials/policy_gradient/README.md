@@ -2,12 +2,12 @@
 
 Any RELAAX algorithm should be divided into 4 parts:
  - Client: some simulated environment to interact;
- - Agent: worker connected end-to-end to the Client;
+ - Agent: worker, connected end-to-end to the Client;
  - Parameter Server: aggregates results from all Agents;
  - Bridge: transport specifications between Agent and Parameter Server.
 
 We'll focused on the last three points to implement some simple Policy Gradient algorithm,
-which we used for OpenAI Gym's `CartPole-v0` training.
+which we used to train OpenAI Gym's `CartPole-v0`
 <br></br>
 
 #### 1. Neural Networks
@@ -15,7 +15,7 @@ which we used for OpenAI Gym's `CartPole-v0` training.
 Let's start from defining a simple neural network class.
 We've to have two kind of neural networks:
  - base one for parameter server to accumulate and share parameters between agents
- - agent's neural network, which a bit extends the previous one
+ - agent's neural network, which extends a bit the previous one
 <br></br>
 
 **Parameter Server Neural Network**
@@ -36,7 +36,7 @@ We also define an appropriate `tensorflow` operation to increment these variable
 
 Then we want to define the weights for our neural network.
 Our neural network has one hidden layer for simplicity (without bias).
-We need to define 2 weight matrix:
+We need to define 2 weight matrices:
  - from input to hidden
  - form hidden to output
 
@@ -66,10 +66,10 @@ You can find one there (in this folder) named `policy_gradient.yaml`:
   ...
 ```
 
-This `yaml` is read at initialize procedure and stored in `Config class` field by field in `config.py`
+This `yaml` is read at initialize procedure and stored in `Config class` field by field with `config.py`
 
 ```python
-class GlobalPolicyNN(object):
+class Config(relaax.algorithm_base.config_base.ConfigBase):
     def __init__(self, config):
         ...
         # size of the hidden layer for simple FC-NN
@@ -109,7 +109,7 @@ class GlobalPolicyNN(object):
 **Agent Neural Network**
 
 We use Agent's network to rollout the client environment.
-Since that we have to define connections for forward pass through the network:
+Since that we have to define connections for forward pass through our network:
 ```python
 class AgentPolicyNN(GlobalPolicyNN):
     # This class additionally implements loss computation and gradients wrt this loss
@@ -134,10 +134,10 @@ class AgentPolicyNN(GlobalPolicyNN):
 It needs to define `placeholder` for the input state
 with first unset dimension to have flexibility in batch size.
 Standard ReLU (Rectifier Liner Unit) function is applied to the output of the hidden layer.
-And we use `sigmoid` at the final output to represent probability of action take.
+And we use `sigmoid` at the final output to represent probability of action to take.
 
 Forward pass trough the network is performed by `run_policy` method,
-which takes a single states as input.
+which takes a single state as input.
 
 Then we define `placeholders` for network weights to assign them a new values with appropriate method:
 ```python
@@ -178,6 +178,8 @@ class GlobalPolicyNN(object):
 <br></br>
 
 #### 2. Agent
+
+Begin
 
 #### 3. Bridge
 
