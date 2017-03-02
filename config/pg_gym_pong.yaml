@@ -25,7 +25,7 @@ algorithm:
   state_size: [84, 84]            # pass flattened or n-element list for an image-like state
   preprocess: true                # if true, input == difference from previous state
   hidden_layers_size: [200, 200]  # elements == hidden layers, each number == neurons
-  batch_size: 10                  # how many steps perform before a param update
+  batch_size: 800                 # how many steps perform before a param update
   max_global_step: 1e8            # maximum global step to stop the training when it is reached
 
   learning_rate: 1e-4             # learning rate which we use through whole training

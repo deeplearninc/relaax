@@ -69,7 +69,7 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
         self.actions.append(action_vec)
 
         if (self.local_t % 100) == 0:   # can add by config
-            print("Probs:", probs)
+            print("TIMESTEP {}\nProbs: {}".format(self.local_t, probs))
             self.metrics().scalar('server latency', self.latency / 100)
             self.latency = 0
 
