@@ -6,14 +6,15 @@ from gym.spaces import Box  # check continuous
 
 
 class GameProcessFactory(object):
-    def __init__(self, env):
+    def __init__(self, env, limit):
         self._env = env
+        self._limit = limit
 
-    def new_env(self, seed):
-        return _GameProcess(seed, self._env)
+    def new_env(self, seed, rnd):
+        return _GameProcess(seed, self._env, no_op_max=rnd, limit=self._limit)
 
     def new_display_env(self, seed):
-        return _GameProcess(seed, self._env, display=True, no_op_max=0)
+        return _GameProcess(seed, self._env, display=True, no_op_max=0, limit=self._limit)
 
 
 class SetFunction(object):
@@ -39,7 +40,7 @@ class _GameProcess(object):
         'Tennis', 'TimePilot', 'Tutankham', 'UpNDown', 'Venture',
         'VideoPinball', 'WizardOfWor', 'YarsRevenge', 'Zaxxon']
 
-    def __init__(self, rand_seed, env, display=False, no_op_max=7):
+    def __init__(self, rand_seed, env, display=False, no_op_max=7, limit=None):
         self.gym = gym.make(env)
         self.gym.seed(rand_seed)
         self._no_op_max = no_op_max
@@ -47,7 +48,9 @@ class _GameProcess(object):
         self.display = display
         self._close_display = False
 
-        self.timestep_limit = self.gym.spec.tags.get('wrapper_config.TimeLimit.max_episode_steps')
+        self.timestep_limit = limit
+        if self.timestep_limit is None:
+            self.timestep_limit = self.gym.spec.tags.get('wrapper_config.TimeLimit.max_episode_steps')
         self.cur_step_limit = None
         self._state = None
 

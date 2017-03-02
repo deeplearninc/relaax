@@ -1,0 +1,36 @@
+---
+
+# This is an example of configuration to train Policy Gradient agent to play gym's pong game.
+#
+# To run this training open three terminals here and run:
+# relaax-parameter-server --config ../relaax/tutorials/policy_gradient/policy_gradient.yaml
+# relaax-rlx-server --config ../relaax/tutorials/policy_gradient/policy_gradient.yaml
+# ../relaax/environments/OpenAI_Gym/main --rlx-server localhost:7001 --env CartPole-v0 --rnd=0 --limit 800
+# honcho start -f ../relaax/tutorials/policy_gradient/pg.Procfile
+
+relaax-parameter-server:
+  --bind: localhost:7000
+  --checkpoint-dir: checkpoints/pg_cartpole
+  --log-level: WARNING
+  --metrics-dir: metrics_pg_cartpole
+
+relaax-rlx-server:
+  --bind: 0.0.0.0:7001
+  --parameter-server: localhost:7000
+  --log-level: WARNING
+
+algorithm:
+  path: ../relaax/tutorials/policy_gradient   # path to algorithm package
+
+  action_size: 1                  # action size for the given environment (CartPole:2->1)
+  state_size: 4                   # size of the input observation (flattened)
+  hidden_layer_size: 10           # size of the hidden layer for simple FC-NN
+  max_global_step: 1e8            # maximum global step to stop the training when it is reached
+
+  learning_rate: 1e-2             # learning rate which we use through whole training
+  entropy_beta: 0.01              # entropy regularization constant
+  rewards_gamma: 0.99             # discount factor for rewards
+
+  RMSProp:
+    decay: 0.99                   # decay parameter for RMSProp
+    epsilon: 1e-5                 # epsilon parameter for RMSProp (in a denominator sum to avoid NaN)

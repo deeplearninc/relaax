@@ -7,10 +7,11 @@ message Step {
     fixed64 n = 1;
 }
 
-message NdArray {
+message NdArrayPart {
     string dtype = 1;
     repeated int32 shape = 2;
-    bytes data = 3;
+    bool last_part = 3;
+    bytes data = 4;
 }
 
 message ScalarMetric {
@@ -24,7 +25,7 @@ message ScalarMetric {
 
 service ParameterServer {
     rpc IncrementGlobalT(NullMessage) returns (Step) {}
-    rpc ApplyGradients(stream NdArray) returns (NullMessage) {}
-    rpc GetValues(NullMessage) returns (stream NdArray) {}
+    rpc ApplyGradients(stream NdArrayPart) returns (NullMessage) {}
+    rpc GetValues(NullMessage) returns (stream NdArrayPart) {}
     rpc StoreScalarMetric(ScalarMetric) returns (NullMessage) {}
 }
