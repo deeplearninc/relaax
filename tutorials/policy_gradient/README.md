@@ -52,10 +52,76 @@ We need to define 2 weight matrix:
 ```
 
 We use `xavier` initialization type for our weights.
+You can ask a reasonable question: what is `config`?
+We use a specific config file for each experiment to setup parameters in some flexible way.
+You can find one there (in this folder) named `policy_gradient.yaml`:
+
+```yaml
+  ...
+  action_size: 1                  # action size for the given environment (CartPole-v0)
+  state_size:  4                  # size of the input observation (flattened)
+  hidden_layer_size: 10           # size of the hidden layer for simple FC-NN
+  ...
+```
+
+This `yaml` is read at initialize procedure and stored in `Config class` field by field in `config.py`
+
+```python
+    def __init__(self, config):
+    ...
+    # size of the hidden layer for simple FC-NN
+    self.layer_size = config.get('hidden_layer_size', 200)
+    ...
+```
+
+We overwrite the default values of class members by appropriate `yaml` fields if they presence.
+
+And, finally, we define `placeholders` to apply gradients by our `Adam` optimizer:
+```python
+class GlobalPolicyNN(object):
+    def __init__(self, config):
+        ...
+        self.gradients = [tf.placeholder(v.dtype, v.get_shape()) for v in self.values]
+        self.learning_rate = config.learning_rate
+
+    ...
+    def apply_gradients(self):
+    optimizer = tf.train.AdamOptimizer(
+        learning_rate=self.learning_rate
+    )
+    self.apply_gradients = optimizer.apply_gradients(zip(self.gradients, self.values))
+    return self
+```
+
+We can get the global weights from parameter server by calling this method of our class at any time:
+```python
+class GlobalPolicyNN(object):
+    ...
+    def get_vars(self):
+        return self.values
+```
 
 **Agent Neural Network**
 
-efefe
+AgentNN
+
+We define `placeholders` for our weights to assign new values with appropriate method:
+```python
+class GlobalPolicyNN(object):
+    def __init__(self, config):
+        ...
+        self._placeholders = [tf.placeholder(v.dtype, v.get_shape()) for v in self.values]
+            self._assign_values = tf.group(*[
+                tf.assign(v, p) for v, p in zip(self.values, self._placeholders)
+                ])
+        ...
+
+    def assign_values(self, session, values):
+        session.run(self._assign_values, feed_dict={
+            p: v for p, v in zip(self._placeholders, values)
+            })
+    ...
+```
 
 #### 2. Agent
 

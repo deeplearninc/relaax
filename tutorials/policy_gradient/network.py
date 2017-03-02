@@ -18,18 +18,8 @@ class GlobalPolicyNN(object):
             self.W1, self.W2
         ]
 
-        self._placeholders = [tf.placeholder(v.dtype, v.get_shape()) for v in self.values]
-        self._assign_values = tf.group(*[
-            tf.assign(v, p) for v, p in zip(self.values, self._placeholders)
-            ])
-
         self.gradients = [tf.placeholder(v.dtype, v.get_shape()) for v in self.values]
         self.learning_rate = config.learning_rate   # tf.placeholder(tf.float32)
-
-    def assign_values(self, session, values):
-        session.run(self._assign_values, feed_dict={
-            p: v for p, v in zip(self._placeholders, values)
-            })
 
     def get_vars(self):
         return self.values
@@ -54,6 +44,16 @@ class AgentPolicyNN(GlobalPolicyNN):
 
         # policy (output)
         self.pi = tf.nn.sigmoid(tf.matmul(hidden_fc, self.W2))
+
+        self._placeholders = [tf.placeholder(v.dtype, v.get_shape()) for v in self.values]
+        self._assign_values = tf.group(*[
+            tf.assign(v, p) for v, p in zip(self.values, self._placeholders)
+            ])
+
+    def assign_values(self, session, values):
+        session.run(self._assign_values, feed_dict={
+            p: v for p, v in zip(self._placeholders, values)
+            })
 
     def run_policy(self, sess, s_t):
         pi_out = sess.run(self.pi, feed_dict={self.s: [s_t]})
