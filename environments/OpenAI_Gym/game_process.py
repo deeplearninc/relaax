@@ -100,7 +100,7 @@ class _GameProcess(object):
             self.gym.reset()
             self.cur_step_limit = 0
 
-            if not self.display:
+            if not self.display and self._no_op_max:
                 no_op = np.random.randint(0, self._no_op_max)
                 # self.cur_step_limit += no_op
 
@@ -118,7 +118,7 @@ class _GameProcess(object):
             self.gym.reset()
             self.cur_step_limit = 0
 
-            if not self.display:
+            if not self.display and self._no_op_max:
                 no_op = np.random.randint(0, self._no_op_max)
                 # self.cur_step_limit += no_op
 
