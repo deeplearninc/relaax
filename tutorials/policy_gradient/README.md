@@ -67,16 +67,17 @@ You can find one there (in this folder) named `policy_gradient.yaml`:
 This `yaml` is read at initialize procedure and stored in `Config class` field by field in `config.py`
 
 ```python
+class GlobalPolicyNN(object):
     def __init__(self, config):
-    ...
-    # size of the hidden layer for simple FC-NN
-    self.layer_size = config.get('hidden_layer_size', 200)
-    ...
+        ...
+        # size of the hidden layer for simple FC-NN
+        self.layer_size = config.get('hidden_layer_size', 200)
+        ...
 ```
 
 We overwrite the default values of class members by appropriate `yaml` fields if they presence.
 
-And, finally, we define `placeholders` to apply gradients by our `Adam` optimizer:
+And, finally, we define `placeholders` to apply gradients by `Adam` optimizer:
 ```python
 class GlobalPolicyNN(object):
     def __init__(self, config):
@@ -92,14 +93,16 @@ class GlobalPolicyNN(object):
     self.apply_gradients = optimizer.apply_gradients(zip(self.gradients, self.values))
     return self
 ```
+You can free to use any other optimizer, but you have to define related parameters in `yaml` and `config.py`
 
-We can get the global weights from parameter server by calling this method of our class at any time:
+We can get the global weights from our parameter server by calling this method at any time:
 ```python
 class GlobalPolicyNN(object):
     ...
     def get_vars(self):
         return self.values
 ```
+<br></br>
 
 **Agent Neural Network**
 
