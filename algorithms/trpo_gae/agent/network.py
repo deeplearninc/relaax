@@ -1,8 +1,8 @@
 from ..common import network
 
 
-def make(config, sess):
-    return network.make_mlps(config, sess)
+def make(config):
+    return network.make_mlps(config)
 
 
 def make_filters(config):

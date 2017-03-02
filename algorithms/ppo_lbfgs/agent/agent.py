@@ -23,7 +23,7 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
 
         self._session = tf.Session()
 
-        self.policy_net, value_net = network.make(config, self._session)
+        self.policy_net, value_net = network.make(config)
         self.obs_filter, self.reward_filter = network.make_filters(config)
 
         initialize_all_variables = tf.variables_initializer(tf.global_variables())
