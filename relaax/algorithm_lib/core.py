@@ -1,7 +1,6 @@
 import tensorflow as tf
 import scipy.optimize
 from keras.layers.core import Layer
-from keras import backend as K
 from collections import OrderedDict
 
 from distributions import *

@@ -5,6 +5,8 @@ import numpy as np
 from scipy.signal import lfilter
 from time import time, sleep
 
+import keras.backend
+
 import relaax.algorithm_base.parameter_server_base
 
 from . import network
@@ -23,23 +25,22 @@ class ParameterServer(relaax.algorithm_base.parameter_server_base.ParameterServe
         self.paths_len = 0          # length of experience
         self.global_step = 0        # step accumulator of whole experience through all updates
 
+        # inform Keras that we are going to initialize variables here
+        keras.backend.manual_variable_initialization(True)
+
         self._session = tf.Session()
+        keras.backend.set_session(self._session)
 
-        self.policy_net, self.value_net = network.make(config, self._session)
-
-        initialize = tf.variables_initializer(tf.global_variables())
+        self.policy_net, self.value_net = network.make(config)
 
         self.policy, self.baseline = network.make_head(config, self.policy_net, self.value_net, self._session)
         self.ppo_updater = network.make_ppo(config, self.policy, self._session)
 
-        self._session.run(initialize)
+        self._session.run(tf.variables_initializer(tf.global_variables()))
 
         self._bridge = _Bridge(metrics, self)
         if config.async_collect:
             self._bridge = _BridgeAsync(metrics, self)
-
-        self.policy_net.get_weights()  # work around with keras' cache
-        self.value_net.get_weights()
 
     def close(self):
         self._session.close()
