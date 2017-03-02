@@ -192,7 +192,7 @@ of this experience.
 
 Parameter server performs updates and agents are synchronized
 with it by updating its own neural network weights
-before each experience collecting loop.
+before starting of each experience collecting loop.
 
 To implement the Agent, besides issues with parameter server,
 we have to define 3 public methods from agent's interface:
