@@ -4,6 +4,8 @@ import tensorflow as tf
 import time
 from collections import defaultdict
 
+import keras.backend
+
 import relaax.algorithm_base.agent_base
 import relaax.common.protocol.socket_protocol
 
@@ -21,16 +23,18 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
 
         self.data = defaultdict(list)
 
+        # inform Keras that we are going to initialize variables here
+        keras.backend.manual_variable_initialization(True)
+
         self._session = tf.Session()
+        keras.backend.set_session(self._session)
 
         self.policy_net, value_net = network.make(config)
         self.obs_filter, self.reward_filter = network.make_filters(config)
 
-        initialize_all_variables = tf.variables_initializer(tf.global_variables())
-
         self.policy, _ = network.make_head(config, self.policy_net, value_net, self._session)
 
-        self._session.run(initialize_all_variables)
+        self._session.run(tf.variables_initializer(tf.global_variables()))
 
         self._n_iter = self._parameter_server.wait_for_iteration()  # counter for global updates at parameter server
         self.policy.net.set_weights(
