@@ -24,7 +24,7 @@ else
         echo $!
         done
     else
-        echo "You've passed a wrong arguments... Please, relaunch the docker with the right one"
+        echo "You've passed wrong arguments... Please, relaunch the docker with the right one"
     fi
 
     if [ "$regime" == "display" ]

@@ -8,6 +8,7 @@ Any RELAAX algorithm should be divided into 4 parts:
 
 We'll focused on the last three points to implement some simple Policy Gradient algorithm,
 which we used for OpenAI Gym's `CartPole-v0` training.
+<br></br>
 
 #### 1. Neural Networks
 
@@ -15,6 +16,7 @@ Let's start from defining a simple neural network class.
 We've to have two kind of neural networks:
  - base one for parameter server to accumulate and share parameters between agents
  - agent's neural network, which a bit extends the previous one
+<br></br>
 
 **Parameter Server Neural Network**
 
@@ -106,9 +108,38 @@ class GlobalPolicyNN(object):
 
 **Agent Neural Network**
 
-AgentNN
+We use Agent's network to rollout the client environment.
+Since that we have to define connections for forward pass through the network:
+```python
+class AgentPolicyNN(GlobalPolicyNN):
+    # This class additionally implements loss computation and gradients wrt this loss
+    def __init__(self, config):
+        super(AgentPolicyNN, self).__init__(config)
 
-We define `placeholders` for our weights to assign new values with appropriate method:
+        # state (input)
+        self.s = tf.placeholder(tf.float32, [None, config.state_size])
+
+        hidden_fc = tf.nn.relu(tf.matmul(self.s, self.W1))
+
+        # policy (output)
+        self.pi = tf.nn.sigmoid(tf.matmul(hidden_fc, self.W2))
+        ...
+
+    def run_policy(self, sess, s_t):
+        pi_out = sess.run(self.pi, feed_dict={self.s: [s_t]})
+        return pi_out[0]
+    ...
+```
+
+It needs to define `placeholder` for the input state
+with first unset dimension to have flexibility in batch size.
+Standard ReLU (Rectifier Liner Unit) function is applied to the output of the hidden layer.
+And we use `sigmoid` at the final output to represent probability of action take.
+
+Forward pass trough the network is performed by `run_policy` method,
+which takes a single states as input.
+
+Then we define `placeholders` for network weights to assign them a new values with appropriate method:
 ```python
 class GlobalPolicyNN(object):
     def __init__(self, config):
@@ -117,7 +148,6 @@ class GlobalPolicyNN(object):
             self._assign_values = tf.group(*[
                 tf.assign(v, p) for v, p in zip(self.values, self._placeholders)
                 ])
-        ...
 
     def assign_values(self, session, values):
         session.run(self._assign_values, feed_dict={
@@ -125,6 +155,27 @@ class GlobalPolicyNN(object):
             })
     ...
 ```
+
+To compute the `gradients` wrt our weights we have to define a `loss` function:
+```python
+class GlobalPolicyNN(object):
+    ...
+    def compute_gradients(self):
+        self.grads = tf.gradients(self.loss, self.values)
+        return self
+
+    def prepare_loss(self):
+        self.a = tf.placeholder(tf.float32, [None, self._action_size], name="taken_action")
+        self.advantage = tf.placeholder(tf.float32, name="discounted_reward")
+
+        # making actions that gave good advantage (reward over time) more likely,
+        # and actions that didn't less likely.
+        log_like = tf.log(self.a * (self.a - self.pi) + (1 - self.a) * (self.pi - self.a))
+        self.loss = -tf.reduce_mean(log_like * self.advantage)
+
+        return self
+```
+<br></br>
 
 #### 2. Agent
 
