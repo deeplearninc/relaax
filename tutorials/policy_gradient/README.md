@@ -180,8 +180,8 @@ class GlobalPolicyNN(object):
 #### 2. Agent
 
 Agent interacts with its client (simulated environment) by
-receiving states, reward and terminal as input signals, and
-sends the actions, defined my its neural network forward pass.
+receiving states, rewards and terminal as input signals, and
+sends the actions, defined by its neural network forward pass.
 It's a typical reinforcement learning procedure.
 
 In addition wrt distributed training scenario:
@@ -192,7 +192,7 @@ of this experience.
 
 Parameter server performs updates and agents are synchronized
 with it by updating its own neural network weights
-before each experience collecting loop for the batch.
+before each experience collecting loop.
 
 To implement the Agent, besides issues with parameter server,
 we have to define 3 public methods from agent's interface:
@@ -200,7 +200,7 @@ we have to define 3 public methods from agent's interface:
  - `reward_and_act`
  - `reward_and_reset`
 
-Constructor of the our Agent's class looks like a follows:
+Constructor of the Agent's class looks like a follows:
 ```python
 class Agent(relaax.algorithm_base.agent_base.AgentBase):
     def __init__(self, config, parameter_server):
@@ -226,13 +226,14 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
     ...
 ```
 
-We've got the `parameter_server` as out member for further interaction.
-By calling `make_network(config)` we define Agent's neural network, which we define above.
+We've got the `parameter_server` as our member for further interaction.
+
+By calling `make_network(config)` we define an Agent's neural network, which we described above.
 
 We also need some auxiliary accumulators within the experience collecting loop
-also as a `global_step` counter and episode score to print out through the training process.
+also as a `global_step` counter and episode score to print out it through the training process.
 
-Let's define 3 methods for interaction with the client that mentions a bit earlier:
+Let's define 3 methods for interaction with the client:
 ```python
 class Agent(relaax.algorithm_base.agent_base.AgentBase):
     ...
@@ -280,15 +281,15 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
     ...
 ```
 
-The `act` method is directly called from the client only for the first
-interaction. When client initialized its own state it has the only
+The `act` method is directly called from the client for the first
+interaction only. When client initialized its own state it has the only
 starting state and no rewards or terminal signals. It needs to just
 call `act` with this state for the first time. If client environment
 reaches an terminal state (if it exists) it needs to repeat this call
 after reinitialization from the terminal state.
 
 For the next interactions `act` method is called through `reward_and_act`
-or, if we reached the terminal state, `reward_and_reset` method is called.
+or, if we reached the terminal state, `reward_and_reset` method is taken.
 
 We get an `action` with some probability (unity uniform):
 ```python
@@ -298,14 +299,14 @@ We get an `action` with some probability (unity uniform):
 We try to skew our logits (`prob`) to `1` for the `0` action
 and to `0` for `1` action through the training.
 
-And the we add this `action` as list to represent as `one-hot` vector:
+And we add this `action` as a list to represent as `one-hot` vector:
 ```python
     self.actions.append([action])
 ```
 
 We perform a gradients computation at each terminal signal by the
 `self._update_global()` which looks like as follows:
-(our collecting loop of experience if equal to `1` episode)
+(our collecting loop of experience is equal to `1` episode at this case)
 ```python
 class Agent(relaax.algorithm_base.agent_base.AgentBase):
     ...
@@ -325,11 +326,11 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
     ...
 ```
 
-Computed gradients immediately send to `parameter_server` via `Bridge`to apply.
+Computed gradients immediately send to `parameter_server` via `Bridge` (see below) to apply.
 Then we synchronized agent's weights from `parameter_server` to be sure
-to grub all past updates (also from other agents) before new batch collecting.
+that we grub all past updates (also from other agents) before new batch collecting.
 
-We also defined function for discounted reward computations as follows:
+We also defined function for discounted reward as follows:
 ```python
 class Agent(relaax.algorithm_base.agent_base.AgentBase):
     ...
