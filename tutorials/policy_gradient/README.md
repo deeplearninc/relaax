@@ -502,12 +502,18 @@ $ honcho start -f ../relaax/tutorials/policy_gradient/pg.Procfile
 ```
 
 We also need to run clients. We use a couple OpenAI Gym's `CartPole-v0` environments via `docker`
+(but I recommend to use `2nd` launch variant for clients, see below)
 ```bash
-$ docker run --rm -d --net host -p 15900:5900 --name gym deeplearninc/relaax-gym localhost:7001 CartPole-v0 display
+$ docker run --rm -d --net host --name gym deeplearninc/relaax-gym localhost:7001 CartPole-v0 2
 ```
 
-But we try to run this environments manually in each `terminal` at this point.
-You have to open two terminals in addition to exesting one and run in each:
+We don't support named arguments for our `docker` clients at this moment.
+Since that you I not flexible in setup of your environment.
+By default we use `0..7` random actions for dockers and it may
+affect and slowdown training process.
+
+Just try to run this environments manually in each `terminal`.
+You have to open two terminals in addition to exesting one and run in each this command:
 ```bash
 $ ../relaax/environments/OpenAI_Gym/main --rlx-server localhost:7001 --env CartPole-v0 --rnd 0 --limit 800
 ```
@@ -528,3 +534,8 @@ $ kill -SIGUSR1 {ps_num}
 ```
 
 If you call this command one more time it turns the visual off.
+
+If you prefer docker. I can run one more in display regime as follows:
+```bash
+$ docker run --rm -d --net host -p 15900:5900 --name gym deeplearninc/relaax-gym localhost:7001 CartPole-v0 display
+```
