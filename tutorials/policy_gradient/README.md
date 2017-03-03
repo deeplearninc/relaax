@@ -475,6 +475,6 @@ We have there `4` types of messages by which we define the signature of GRPC ser
 
 Desc
 
-#### 5. [How to Run](#relaax-tutorial-based-on-simple-policy-gradient)
+### 5. [How to Run](#relaax-tutorial-based-on-simple-policy-gradient)
 
 Desc
