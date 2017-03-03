@@ -481,7 +481,7 @@ the Agent it sends the current state of weights to synchronize.
 
 Parameter server is also provides functionality of saving current training progress.
 
-THe base class of `parameter_server` looks so simple:
+The base class of `parameter_server` looks so simple:
 ```python
 class ParameterServer(relaax.algorithm_base.parameter_server_base.ParameterServerBase):
     def __init__(self, config, saver, metrics):
@@ -515,7 +515,8 @@ class ParameterServer(relaax.algorithm_base.parameter_server_base.ParameterServe
         return self._bridge
 ```
 
-As you can see, we doesn't define some methods, which provides interaction with the agents.
+As you can see, we doesn't define some methods, which supports interaction with the Agents.
+
 We use an additional class (`_Bridge`) for this purpose:
 ```python
 class _Bridge(relaax.algorithm_base.bridge_base.BridgeBase):
@@ -538,7 +539,7 @@ class _Bridge(relaax.algorithm_base.bridge_base.BridgeBase):
         return self._metrics
 ```
 
-You've already seen this signature in a `Bridge` section above.
+You've already seen such signature in a `Bridge` section above.
 <br></br>
 
 #### 5. [How to Run](#relaax-tutorial-based-on-simple-policy-gradient)
