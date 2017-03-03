@@ -502,6 +502,10 @@ $ honcho start -f ../relaax/tutorials/policy_gradient/pg.Procfile
 ```
 
 We also need to run clients. We use a couple OpenAI Gym's `CartPole-v0` environments via `docker`
+```bash
+$ docker run --rm -d --net host -p 15900:5900 --name gym deeplearninc/relaax-gym localhost:7001 CartPole-v0 display
+```
+
 But we try to run this environments manually in each `terminal` at this point.
 You have to open two terminals in addition to exesting one and run in each:
 ```bash
