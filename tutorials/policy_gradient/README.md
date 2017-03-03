@@ -1,11 +1,11 @@
 ### RELAAX tutorial based on simple Policy Gradient
-- [Neural Networks](#neural-networks)
+- [Neural Networks](#1-neural-networks)
     - [Parameter Server Neural Network](#parameter-server-neural-network)
     - [Agent Neural Network](#agent-neural-network)
-- [Agent](#agent)
-- [Bridge](#bridge)
-- [Parameter Server](#parameter-server)
-- [How to Run](#how-to-run)
+- [Agent](#2-agent)
+- [Bridge](#3-bridge)
+- [Parameter Server](#4-parameter-server)
+- [How to Run](#5-how-to-run)
 
 Any RELAAX algorithm should be divided into 4 parts:
  - Client: some simulated environment to interact;
@@ -113,7 +113,7 @@ class GlobalPolicyNN(object):
 ```
 <br></br>
 
-[Agent Neural Network](#relaax-tutorial-based-on-simple-policy-gradient)
+#### [Agent Neural Network](#relaax-tutorial-based-on-simple-policy-gradient)
 
 We use Agent's network to rollout the client environment.
 Since that we have to define connections for forward pass through our network:
@@ -475,6 +475,6 @@ We have there `4` types of messages by which we define the signature of GRPC ser
 
 Desc
 
-### 5. [How to Run](#relaax-tutorial-based-on-simple-policy-gradient)
+#### 5. [How to Run](#relaax-tutorial-based-on-simple-policy-gradient)
 
 Desc
