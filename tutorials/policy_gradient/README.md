@@ -1,4 +1,11 @@
 ### RELAAX tutorial based on simple Policy Gradient
+- [Neural Networks](#neural-networks)
+    - [Parameter Server Neural Network](#parameter-server-neural-network)
+    - [Agent Neural Network](#agent-neural-network)
+- [Agent](#agent)
+- [Bridge](#bridge)
+- [Parameter Server](#parameter-server)
+- [How to Run](#how-to-run)
 
 Any RELAAX algorithm should be divided into 4 parts:
  - Client: some simulated environment to interact;
@@ -18,7 +25,7 @@ We've to have two kind of neural networks:
  - agent's neural network, which extends a bit the previous one
 <br></br>
 
-**Parameter Server Neural Network**
+#### [Parameter Server Neural Network](#relaax-tutorial-based-on-simple-policy-gradient)
 
 We can define the beginning of neural network class as follows:
 ```python
@@ -106,7 +113,7 @@ class GlobalPolicyNN(object):
 ```
 <br></br>
 
-**Agent Neural Network**
+[Agent Neural Network](#relaax-tutorial-based-on-simple-policy-gradient)
 
 We use Agent's network to rollout the client environment.
 Since that we have to define connections for forward pass through our network:
