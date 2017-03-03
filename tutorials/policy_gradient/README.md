@@ -528,14 +528,31 @@ If you do everything in a right way you can see such output:
 ![img](resources/tutorial-output.png "CartPole")
 
 You also can switch some environment to produce a visual output.
+It needs to know process number of the environment to switch on, for example:
+```
+$ ps ax | grep python
+...
+{ps_num} pts/2    S+     0:00 python ../relaax/environments/OpenAI_Gym/main
+ --rlx-server localhost:7001 --env CartPole-v0 --rnd 0 --limit 800
+```
 
+Let's send a specific predefined `signal` to switch display on:
 ```bash
 $ kill -SIGUSR1 {ps_num}
 ```
 
 If you call this command one more time it turns the visual off.
 
-If you prefer docker. I can run one more in display regime as follows:
+If you prefer docker. You can run one more in a display mode as follows:
 ```bash
 $ docker run --rm -d --net host -p 15900:5900 --name gym deeplearninc/relaax-gym localhost:7001 CartPole-v0 display
+```
+
+You can connect to client's visual output via your VNC client with:
+```bash
+For example:
+---
+Server: localhost:15900
+Passwd: relaax
+Color depth: True color (24 bit)
 ```
