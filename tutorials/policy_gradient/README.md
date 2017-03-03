@@ -486,10 +486,12 @@ $ docker pull deeplearninc/relaax-gym
 Then I advice to create an empty folder for experiments next to `relaax` cloned directory.
 We'll store checkpoints and metrics in this folder trough the training.
 
-To run a tutorial algorithm I've created a `honcho` run-file named `pg.Procfile`:
+To run the tutorial algorithm I've created a `honcho` run-file named `pg.Procfile`:
 ```honcho
-ps: PYTHONUNBUFFERED=true relaax-parameter-server --config ../relaax/tutorials/policy_gradient/policy_gradient.yaml
-rlx: PYTHONUNBUFFERED=true relaax-rlx-server --config ../relaax/tutorials/policy_gradient/policy_gradient.yaml
+ps: PYTHONUNBUFFERED=true relaax-parameter-server \
+    --config ../relaax/tutorials/policy_gradient/policy_gradient.yaml
+rlx: PYTHONUNBUFFERED=true relaax-rlx-server --config \
+    ../relaax/tutorials/policy_gradient/policy_gradient.yaml
 tb: PYTHONUNBUFFERED=true tensorboard --logdir metrics_pg_cartpole
 ```
 
@@ -501,34 +503,35 @@ Let's open your `terminal` in recently created folder and run the command to sta
 $ honcho start -f ../relaax/tutorials/policy_gradient/pg.Procfile
 ```
 
-We also need to run clients. We use a couple OpenAI Gym's `CartPole-v0` environments via `docker`
-(but I recommend to use `2nd` launch variant for clients, see below)
+We also need to run clients. You can launch a couple of OpenAI Gym's `CartPole-v0` environments via `docker`
 ```bash
+# but I recommend to use `2nd` variant to launch clients, see below
 $ docker run --rm -d --net host --name gym deeplearninc/relaax-gym localhost:7001 CartPole-v0 2
 ```
 
-We don't support named arguments for our `docker` clients at this moment.
-Since that you I not flexible in setup of your environment.
-By default we use `0..7` random actions for dockers and it may
-affect and slowdown training process.
+We don't support named arguments for our `docker` images at this moment.
+Since that you are not so flexible in setup of your environments.
+By default we use `0..7` random actions for dockers and it can
+affect and slowdown the training process a bit.
 
-Just try to run this environments manually in each `terminal`.
-You have to open two terminals in addition to exesting one and run in each this command:
+Just try to run these environments manually.
+You have to open `2` `terminals` in addition to existing one and run in each the command below:
 ```bash
-$ ../relaax/environments/OpenAI_Gym/main --rlx-server localhost:7001 --env CartPole-v0 --rnd 0 --limit 800
+$ ../relaax/environments/OpenAI_Gym/main \
+    --rlx-server localhost:7001 --env CartPole-v0 --rnd 0 --limit 800
 ```
 
-We additionally set `2` parameters for our environments:
+We additionally set `2` arguments for these environments:
  - `--rnd`: set number of random actions to perform by environment
  before moving the control to the Agent after each terminal state.
  - `--limit :` maximum number of steps to perform by environment
  until terminated if terminal state isn't reached "naturally".
 
 If you do everything in a right way you can see such output:
-![img](resources/tutorial-output.png "CartPole")
+![img](../../resources/tutorial-output.png "CartPole")
 
 You also can switch some environment to produce a visual output.
-It needs to know process number of the environment to switch on, for example:
+It needs to know a process number of the environment to switch on, for example:
 ```
 $ ps ax | grep python
 ...
@@ -543,12 +546,13 @@ $ kill -SIGUSR1 {ps_num}
 
 If you call this command one more time it turns the visual off.
 
-If you prefer docker. You can run one more in a display mode as follows:
+If you prefer docker. You can run one more environment in a display mode as follows:
 ```bash
-$ docker run --rm -d --net host -p 15900:5900 --name gym deeplearninc/relaax-gym localhost:7001 CartPole-v0 display
+$ docker run --rm -d --net host -p 15900:5900 --name gym deeplearninc/relaax-gym \
+    localhost:7001 CartPole-v0 display
 ```
 
-You can connect to client's visual output via your VNC client with:
+You can connect to client's visual output via your VNC client with in this case:
 ```bash
 For example:
 ---
