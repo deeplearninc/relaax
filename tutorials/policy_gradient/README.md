@@ -477,4 +477,50 @@ Desc
 
 #### 5. [How to Run](#relaax-tutorial-based-on-simple-policy-gradient)
 
-Desc
+First of all you need to install [relaax](https://github.com/deeplearninc/relaax#quick-start)
+and download the `docker` image with client for OpenAI Gym's environments:
+```bash
+$ docker pull deeplearninc/relaax-gym
+```
+
+Then I advice to create an empty folder for experiments next to `relaax` cloned directory.
+We'll store checkpoints and metrics in this folder trough the training.
+
+To run a tutorial algorithm I've created a `honcho` run-file named `pg.Procfile`:
+```honcho
+ps: PYTHONUNBUFFERED=true relaax-parameter-server --config ../relaax/tutorials/policy_gradient/policy_gradient.yaml
+rlx: PYTHONUNBUFFERED=true relaax-rlx-server --config ../relaax/tutorials/policy_gradient/policy_gradient.yaml
+tb: PYTHONUNBUFFERED=true tensorboard --logdir metrics_pg_cartpole
+```
+
+It launches `parameter_server`, `rlx_server` (for agents), and a `tensorboard` to see the metrics
+in one pretty colorful command line.
+
+Let's open your `terminal` in recently created folder and run the command to start:
+```bash
+$ honcho start -f ../relaax/tutorials/policy_gradient/pg.Procfile
+```
+
+We also need to run clients. We use a couple OpenAI Gym's `CartPole-v0` environments via `docker`
+But we try to run this environments manually in each `terminal` at this point.
+You have to open two terminals in addition to exesting one and run in each:
+```bash
+$ ../relaax/environments/OpenAI_Gym/main --rlx-server localhost:7001 --env CartPole-v0 --rnd 0 --limit 800
+```
+
+We additionally set `2` parameters for our environments:
+ - `--rnd`: set number of random actions to perform by environment
+ before moving the control to the Agent after each terminal state.
+ - `--limit :` maximum number of steps to perform by environment
+ until terminated if terminal state isn't reached "naturally".
+
+If you do everything in a right way you can see such output:
+![img](resources/tutorial-output.png "CartPole")
+
+You also can switch some environment to produce a visual output.
+
+```bash
+$ kill -SIGUSR1 {ps_num}
+```
+
+If you call this command one more time it turns the visual off.
