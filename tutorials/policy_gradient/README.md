@@ -10,7 +10,7 @@ We'll focused on the last three points to implement some simple Policy Gradient 
 which we used to train OpenAI Gym's `CartPole-v0`
 <br></br>
 
-#### 1. Neural Networks
+#### 1. [Neural Networks](#relaax-tutorial-based-on-simple-policy-gradient)
 
 Let's start from defining a simple neural network class.
 We've to have two kind of neural networks:
@@ -177,7 +177,7 @@ class GlobalPolicyNN(object):
 ```
 <br></br>
 
-#### 2. Agent
+#### 2. [Agent](#relaax-tutorial-based-on-simple-policy-gradient)
 
 Agent interacts with its client (simulated environment) by
 receiving states, rewards and terminal as input signals, and
@@ -348,14 +348,14 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
         return discounted_r
 ```
 
-#### 3. Bridge
+#### 3. [Bridge](#relaax-tutorial-based-on-simple-policy-gradient)
 
 It's one challenging part of this tutorial if you want to define you own bridge.
 But you can use an existing one if a signature of your methods and data representation
 are similar to existing one algorithms. For example, you can just copy necessary
 files for this tutorial from a `DA3C` algorithm package.
 
-In the appropriate folder `relaax/algorithms/da3c/bridge` you find:
+In the appropriate folder `relaax/algorithms/da3c/bridge` you can find:
  - `bridge.py`: contains the main descriptions of the transport protocol
  and its methods and classes to communicate between agents and a parameter server.
  - `bridge.proto`: description of your data structures and GRPC procedures
@@ -397,7 +397,6 @@ class _Stub(relaax.algorithm_base.bridge_base.BridgeBase):
 This class implements Parameter Server API and serves for `parameter_server` to interact with agents.
 As you remember, each agent has a link to `parameter_server` object to make a query from its side.
 
-We have methods for incrementing global step, apply gradients, and for retrieving a neural network weights.
 We also use there some additional procedure to parse and built the transmitted messages into `numpy` ndarrays.
 
 The `_Servicer` class looks like as follows:
@@ -465,10 +464,10 @@ service ParameterServer {
 
 We have there `4` types of messages by which we define the signature of GRPC service procedures.
 
-#### 4. Parameter Server
+#### 4. [Parameter Server](#relaax-tutorial-based-on-simple-policy-gradient)
 
 Desc
 
-#### 5. How to Run
+#### 5. [How to Run](#relaax-tutorial-based-on-simple-policy-gradient)
 
 Desc
