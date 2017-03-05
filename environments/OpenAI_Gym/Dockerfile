@@ -26,15 +26,13 @@ RUN apt-get update \
         ratpoison \
         libvncserver-dev \
     && pip install -U pip \
+    # Install OpenAI Gym
+    && pip install gym[all] \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /root/.cache/pip/
 
-# Install the OpenAI Gym
-WORKDIR /opt
-RUN git clone https://github.com/openai/gym.git && pip install -e './gym[all]' \
-    && mkdir /opt/relaax
-
 # Add RELAAX to the image
+RUN mkdir /opt/relaax
 COPY algorithms /opt/relaax/algorithms
 COPY bin /opt/relaax/bin
 COPY config /opt/relaax/config
