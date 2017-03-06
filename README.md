@@ -61,7 +61,19 @@ RELAAX components:
 
 ## [Quick start](#quick-start)
 
-We recommended you use an isolated Python environment to run RELAAX. Virtualenv or Anaconda are examples. If you're using the system's python environment, you may need to run `pip install` commands with `sudo`. On OSX / macOS, we recommend using [Homebrew](http://brew.sh/) to install a current python version.
+Fist you need to be sure that you have compatible `python` version.
+We support python from version `2.7`, just type in your terminal to be sure:
+```bash
+$ python -V
+# you can see something as follows
+Python 2.7.X :: Anaconda custom (64-bit)
+```
+
+We recommended you use an isolated Python environment to run RELAAX.
+Virtualenv or Anaconda are examples. If you're using the system's python environment,
+you may need to run `pip install` commands with `sudo` and you also have to be sure
+that you have `python-pip` installed.
+On OSX / macOS, we recommend using [Homebrew](http://brew.sh/) to install a current python version.
 
 * Install <a href="https://docs.docker.com/engine/installation/" target="_blank">Docker</a>
 
