@@ -572,16 +572,15 @@ $ honcho start -f ../relaax/tutorials/policy_gradient/pg.Procfile
 
 We also need to run clients. You can launch a couple of OpenAI Gym's `CartPole-v0` environments via `docker`
 ```bash
-# but I recommend to use `2nd` variant to launch clients, see below
-$ docker run --rm -d --net host --name gym deeplearninc/relaax-gym localhost:7001 CartPole-v0 2
+# you can also use a `2nd` variant to launch clients without docker, see below
+$ docker run --rm -d --net host --name gym deeplearninc/relaax-gym:v0.2.0 \
+    --rlx-server localhost:7001 \
+    --env CartPole-v0 -n 2 --rnd 0 --limit 800
 ```
 
-We don't support named arguments for our `docker` images at this moment.
 Since that you are not so flexible in setup of your environments.
-By default we use `0..7` random actions for dockers and it can
-affect and slowdown the training process a bit.
 
-Just try to run these environments manually.
+Or just try to run these environments manually (2nd variant).
 You have to open `2` `terminals` in addition to existing one and run in each the command below:
 ```bash
 $ ../relaax/environments/OpenAI_Gym/main \
@@ -593,6 +592,9 @@ We additionally set `2` arguments for these environments:
  before moving the control to the Agent after each terminal state.
  - `--limit :` maximum number of steps to perform by environment
  until terminated if terminal state isn't reached "naturally".
+
+By default we use `0..7` random actions for environments and it can
+affect and slowdown the training process a bit, since that we set it to `0`
 
 If you do everything in a right way you can see such output:
 ![img](../../resources/tutorial-output.png "CartPole")
@@ -615,15 +617,16 @@ If you call this command one more time it turns the visual off.
 
 If you prefer docker. You can run one more environment in a display mode as follows:
 ```bash
-$ docker run --rm -d --net host -p 15900:5900 --name gym deeplearninc/relaax-gym \
-    localhost:7001 CartPole-v0 display
+$ docker run --rm -d --net host --name gym deeplearninc/relaax-gym:v0.2.0 \
+    --rlx-server localhost:7001 \
+    --env CartPole-v0 --limit 800 --display
 ```
 
 You can connect to client's visual output via your VNC client with:
 ```bash
 For example:
 ---
-Server: localhost:15900
+Server: localhost:5900
 Passwd: relaax
 Color depth: True color (24 bit)
 ```
