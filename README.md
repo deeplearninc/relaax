@@ -295,14 +295,14 @@ that you can use to work out your reinforcement learning algorithms.
 1. Pull the Docker Image:
 
     ```bash
-    $ docker pull deeplearninc/relaax-gym
+    $ docker pull deeplearninc/relaax-gym:v0.2.0
     ```
 
 2. Run the Server:
 
     Open new terminal window, navigate to training directory and run `honcho`:
     ```bash
-    $ honcho -f ../relaax/config/da3cc_gym_walker.Procfile start
+    $ honcho -f ../relaax/config/trpo_gym_walker.Procfile start
     ```
     It is assumed that the training directory located next to `relaax` repository
     at the same level. It also allows to create it anywhere and it needs
@@ -310,41 +310,49 @@ that you can use to work out your reinforcement learning algorithms.
 
 3. Run a Client:
 
-    It provides 3 predefined run-cases for the pulled docker image:
+    Let's explain some run-cases for the pulled docker image:
     ```bash
     # For example, the first one case
 
     $ docker run --rm -ti \
-        --name gym deeplearninc/relaax-gym \
-        SERVER_IP:PORT BipedalWalker-v2
+        --name gym deeplearninc/relaax-gym:v0.2.0 \
+        --rlx-server SERVER_IP:PORT --env BipedalWalker-v2
     ```
-    It runs the docker in interactive mode by `-ti` and automatically removes this
-    container when it stops with `--rm`. It also has `--name gym` for convenience.
+    It launches one sample of the environment within the docker, which is defined
+    by the last parameter `--env` with name `BipedalWalker-v2`
+    You can find more environment names [there](https://gym.openai.com/envs)
+
+    The command above runs the docker in interactive mode by `-ti` and automatically removes
+    this container when it stops with `--rm`. It also has `--name gym` for convenience.
+    You can stop the docker by pressing `Ctrl+C` in docker's cmd at any time.
+
+    But I recommend to use `-d` parameter instead of `-ti` which allows to launch
+    docker is a background mode. You can stop the docker further by:
+    ```bash
+    $ docker stop gym
+    ```
 
     Use `ifconfig` command to find IP of your relaax SERVER, which is run by `honcho`
 
-    It launches one sample of the environment within the docker, which is defined
-    by the last parameter `BipedalWalker-v2` (name of the gym's [environment](https://gym.openai.com/envs))
-
     ```bash
-    # For example, the second run-case
+    # One more run-case
 
     $ docker run --rm -ti \
-        --name gym deeplearninc/relaax-gym \
-        SERVER_IP:PORT BipedalWalker-v2 4
+        --name gym deeplearninc/relaax-gym:v0.2.0 \
+        --rlx-server SERVER_IP:PORT --env BipedalWalker-v2 -n 4
     ```
-    It adds the third parameter which is equal to `4` since it allows to define
+    It adds the third parameter `-n` which is equal to `4` since it allows to define
     number of environments to launch within the docker for parallel training.
 
     ```bash
-    # And the third one use-case
+    # Use-case with visual output
 
     $ docker run --rm -ti \
         -p IP:PORT:5900 \
-        --name gym deeplearninc/relaax-gym \
-        SERVER_IP:PORT BipedalWalker-v2 display
+        --name gym deeplearninc/relaax-gym:v0.2.0 \
+        --rlx-server SERVER_IP:PORT --env BipedalWalker-v2 --display
     ```
-    It passes the last argument as `display` to run environment in display mode, therefore
+    It passes the last argument `--display` to run environment in a display mode, therefore
     it maps some ports on your computer to use `VNC` connection for visual session.
 
     For example, the full command to run the clients and a server on
@@ -352,8 +360,9 @@ that you can use to work out your reinforcement learning algorithms.
     ```bash
     $ docker run --rm -ti \
         -p 192.168.2.103:15900:5900 \
-        --name gym deeplearninc/relaax-gym \
-        192.168.2.103:7001 BipedalWalker-v2 display
+        --name gym deeplearninc/relaax-gym:v0.2.0 \
+        --rlx-server 192.168.2.103:7001 \
+        --env BipedalWalker-v2 --display
     ```
 
     You can connect to client's visual output via your VNC client with:
@@ -365,6 +374,18 @@ that you can use to work out your reinforcement learning algorithms.
     Color depth: True color (24 bit)
     ```
 
+    You also can launch docker directly in `localhost` mode for single PC:
+    ```bash
+    It works for *nix OS:
+    ---
+    $ docker run --rm -d \
+        --net host \
+        --name gym deeplearninc/relaax-gym:v0.2.0 \
+        --rlx-server localhost:7001 \
+        --env BipedalWalker-v2 --display
+    ```
+    It allows to set the server in your VNC client as `localhost:5900`
+
 Please find sample of configuration to run experiments with OpenAI Gym there:
 
 `relaax/config/da3cc_gym_walker.yaml`
@@ -373,7 +394,7 @@ This sample is setup for `BipedalWalker-v2` environment, which operates with con
 Therefore you may use continuous version of our `Distributed A3C` or set another algorithm there:
 ```yml
 algorithm:
-  path: ../relaax/algorithms/da3c_cont
+  path: ../relaax/algorithms/trpo_gae
 ```
 
 `action_size` and `state_size` parameters for `BipedalWalker-v2` is equal to:
