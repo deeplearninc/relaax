@@ -9,4 +9,4 @@
 mkdir ~/.vnc
 x11vnc -storepasswd "$VNC_PASS" ~/.vnc/passwd
 
-xvfb-run -n "$X11_DISPLAY_NO" -s "-screen 0 1280x720x24" ./xx.sh "$X11_WINDOW_MANAGER" "$@"
+xvfb-run -n "$X11_DISPLAY_NO" -s "-screen 0 1280x720x24" ./x.sh "$X11_WINDOW_MANAGER" "$@"
