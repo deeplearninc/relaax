@@ -99,6 +99,9 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
 
         old_n_iter = self._n_iter
         self._n_iter = self._parameter_server.wait_for_iteration()
+        if self._n_iter == -1:
+            self._n_iter = old_n_iter
+            return
 
         if self._n_iter > self._config.n_iter:
             self._stop_training = True

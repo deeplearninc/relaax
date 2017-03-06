@@ -113,9 +113,9 @@ class _Bridge(object):
         self._ps = ps
 
     def wait_for_iteration(self):
-        while not self._ps.is_collect:
-            sleep(1)
-        return self._ps.n_iter
+        if self._ps.is_collect:
+            return self._ps.n_iter
+        return -1
 
     def send_experience(self, n_iter, paths, length):
         if n_iter == self._ps.n_iter:
