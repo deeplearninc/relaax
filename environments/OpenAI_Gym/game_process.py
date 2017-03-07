@@ -6,17 +6,18 @@ from gym.spaces import Box  # check continuous
 
 
 class GameProcessFactory(object):
-    def __init__(self, env):
+    def __init__(self, env, limit):
         self._env = env
+        self._limit = limit
 
-    def new_env(self, seed):
-        return _GameProcess(seed, self._env)
+    def new_env(self, seed, rnd):
+        return _GameProcess(seed, self._env, no_op_max=rnd, limit=self._limit)
 
     def new_display_env(self, seed):
-        return _GameProcess(seed, self._env, display=True, no_op_max=0)
+        return _GameProcess(seed, self._env, display=True, no_op_max=0, limit=self._limit)
 
 
-class SetProcessFunc(object):
+class SetFunction(object):
     def __init__(self, func):
         self.func = func
 
@@ -26,20 +27,20 @@ class SetProcessFunc(object):
 
 class _GameProcess(object):
     AtariGameList = [
-        'AirRaid-v0', 'Alien-v0', 'Amidar-v0', 'Assault-v0', 'Asterix-v0',
-        'Asteroids-v0', 'Atlantis-v0', 'BankHeist-v0', 'BattleZone-v0', 'BeamRider-v0',
-        'Berzerk-v0', 'Bowling-v0', 'Boxing-v0', 'Breakout-v0', 'Carnival-v0',
-        'Centipede-v0', 'ChopperCommand-v0', 'CrazyClimber-v0', 'DemonAttack-v0', 'DoubleDunk-v0',
-        'ElevatorAction-v0', 'Enduro-v0', 'FishingDerby-v0', 'Freeway-v0', 'Frostbite-v0',
-        'Gopher-v0', 'Gravitar-v0', 'IceHockey-v0', 'Jamesbond-v0', 'JourneyEscape-v0',
-        'Kangaroo-v0', 'Krull-v0', 'KungFuMaster-v0', 'MontezumaRevenge-v0', 'MsPacman-v0',
-        'NameThisGame-v0', 'Phoenix-v0', 'Pitfall-v0', 'Pong-v0', 'Pooyan-v0',
-        'PrivateEye-v0', 'Qbert-v0', 'Riverraid-v0', 'RoadRunner-v0', 'Robotank-v0',
-        'Seaquest-v0', 'Skiing-v0', 'Solaris-v0', 'SpaceInvaders-v0', 'StarGunner-v0',
-        'Tennis-v0', 'TimePilot-v0', 'Tutankham-v0', 'UpNDown-v0', 'Venture-v0',
-        'VideoPinball-v0', 'WizardOfWor-v0', 'YarsRevenge-v0', 'Zaxxon-v0']
+        'AirRaid', 'Alien', 'Amidar', 'Assault', 'Asterix',
+        'Asteroids', 'Atlantis', 'BankHeist', 'BattleZone', 'BeamRider',
+        'Berzerk', 'Bowling', 'Boxing', 'Breakout', 'Carnival',
+        'Centipede', 'ChopperCommand', 'CrazyClimber', 'DemonAttack', 'DoubleDunk',
+        'ElevatorAction', 'Enduro', 'FishingDerby', 'Freeway', 'Frostbite',
+        'Gopher', 'Gravitar', 'IceHockey', 'Jamesbond', 'JourneyEscape',
+        'Kangaroo', 'Krull', 'KungFuMaster', 'MontezumaRevenge', 'MsPacman',
+        'NameThisGame', 'Phoenix', 'Pitfall', 'Pong', 'Pooyan',
+        'PrivateEye', 'Qbert', 'Riverraid', 'RoadRunner', 'Robotank',
+        'Seaquest', 'Skiing', 'Solaris', 'SpaceInvaders', 'StarGunner',
+        'Tennis', 'TimePilot', 'Tutankham', 'UpNDown', 'Venture',
+        'VideoPinball', 'WizardOfWor', 'YarsRevenge', 'Zaxxon']
 
-    def __init__(self, rand_seed, env, display=False, no_op_max=7):
+    def __init__(self, rand_seed, env, display=False, no_op_max=7, limit=None):
         self.gym = gym.make(env)
         self.gym.seed(rand_seed)
         self._no_op_max = no_op_max
@@ -47,13 +48,20 @@ class _GameProcess(object):
         self.display = display
         self._close_display = False
 
-        self.timestep_limit = self.gym.spec.timestep_limit
+        self.timestep_limit = limit
+        if self.timestep_limit is None:
+            self.timestep_limit = self.gym.spec.tags.get('wrapper_config.TimeLimit.max_episode_steps')
         self.cur_step_limit = None
         self._state = None
 
-        self._process_state = SetProcessFunc(self._process_all)
-        if env in _GameProcess.AtariGameList:
-            self._process_state = SetProcessFunc(self._process_atari)
+        self._process_state = SetFunction(self._process_all)
+        self.reset = SetFunction(self._reset_all)
+
+        atari = [name + 'Deterministic' for name in _GameProcess.AtariGameList] + _GameProcess.AtariGameList
+
+        if any(item.startswith(env.split('-')[0]) for item in atari):
+            self._process_state = SetFunction(self._process_atari)
+            self.reset = SetFunction(self._reset_atari)
 
         self.ac_size, self.box = self._action_size()
         self.reset()
@@ -68,8 +76,8 @@ class _GameProcess(object):
         return self._state
 
     def act(self, action):
-        if self.box:
-            action = np.clip(action, self.gym.action_space.low, self.gym.action_space.high)
+        # if self.box:
+        #     action = np.clip(action, self.gym.action_space.low, self.gym.action_space.high)
         if self.display:
             if self._close_display:
                 self.gym.render(close=True)
@@ -87,28 +95,39 @@ class _GameProcess(object):
 
         return reward, terminal
 
-    def reset(self):
-        do_act = 0
-
+    def _reset_atari(self):
         while True:
             self.gym.reset()
             self.cur_step_limit = 0
 
-            if not self.display:
+            if not self.display and self._no_op_max:
                 no_op = np.random.randint(0, self._no_op_max)
                 # self.cur_step_limit += no_op
 
                 for _ in range(no_op):
-                    if self.box:
-                        do_act = self._safe_rnd_act()
-                    self.gym.step(do_act)
+                    self.gym.step(0)
 
-            if self.box:
-                do_act = self._safe_rnd_act()
-            env_state = self.gym.step(do_act)
+            env_state = self.gym.step(0)
+            if not env_state[2]:  # not terminal
+                self._state = self._process_state(env_state[0])
+                # self.cur_step_limit += 1
+                break
 
-            self._state = self._process_state(env_state[0])
-            if not env_state[2]:
+    def _reset_all(self):
+        while True:
+            self.gym.reset()
+            self.cur_step_limit = 0
+
+            if not self.display and self._no_op_max:
+                no_op = np.random.randint(0, self._no_op_max)
+                # self.cur_step_limit += no_op
+
+                for _ in range(no_op):
+                    self.gym.step(self.gym.action_space.sample())
+
+            env_state = self.gym.step(self.gym.action_space.sample())
+            if not env_state[2]:  # not terminal
+                self._state = self._process_state(env_state[0])
                 # self.cur_step_limit += 1
                 break
 

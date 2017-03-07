@@ -1,5 +1,6 @@
 from __future__ import print_function
 
+import keras.backend
 import os.path
 import re
 import tensorflow as tf
@@ -10,6 +11,7 @@ from saver import KerasSaver as Saver
 from cPickle import load, dump    # ujson
 
 import relaax.server.common.saver.checkpoint
+
 import relaax.algorithm_base.parameter_server_base
 
 from . import network
@@ -25,18 +27,20 @@ class ParameterServer(relaax.algorithm_base.parameter_server_base.ParameterServe
         self.paths_len = 0          # length of experience
         self.global_step = 0        # step accumulator of whole experience through all updates
 
+        # inform Keras that we are going to initialize variables here
+        keras.backend.manual_variable_initialization(True)
+
         self._session = tf.Session()
+        keras.backend.set_session(self._session)
 
-        self.policy_net, self.value_net = network.make(config, self._session)
-
-        initialize = tf.variables_initializer(tf.global_variables())
+        self.policy_net, self.value_net = network.make(config)
 
         self.policy, self.baseline = network.make_head(config, self.policy_net, self.value_net, self._session)
         self.trpo_updater = network.make_trpo(config, self.policy, self._session)
 
         self._saver = saver_factory(_Checkpoint(self))
 
-        self._session.run(initialize)
+        self._session.run(tf.variables_initializer(tf.global_variables()))
 
         self._bridge = _Bridge(metrics, self)
         if config.async_collect:
@@ -83,7 +87,7 @@ class ParameterServer(relaax.algorithm_base.parameter_server_base.ParameterServe
         # Policy Update
         pol_stats = self.trpo_updater(self.paths)
 
-        print('Update time:', time() - start)
+        print('Update time for {} iteration: {}'.format(self.n_iter, time() - start))
         self.is_collect = True
 
     def compute_advantage(self):
@@ -111,9 +115,9 @@ class _Bridge(object):
         self._ps = ps
 
     def wait_for_iteration(self):
-        while not self._ps.is_collect:
-            sleep(1)
-        return self._ps.n_iter
+        if self._ps.is_collect:
+            return self._ps.n_iter
+        return -1
 
     def send_experience(self, n_iter, paths, length):
         if n_iter == self._ps.n_iter:

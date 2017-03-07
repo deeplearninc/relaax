@@ -21,9 +21,10 @@ setup(
         'scipy',
         'psutil',
         'honcho',
-        'keras',
+        'keras==1.2.1',
         'h5py',
-        'mock'
+        'mock',
+        'tensorflow==0.12.1'
     ],
     provides=['relaax'],
     scripts=[

@@ -12,7 +12,7 @@ relaax-parameter-server:
   --bind: localhost:7000
   --checkpoint-dir: checkpoints/a3c_lab_demo
   --log-level: WARNING
-  --metrics-dir: metrics_lab_demo
+  --metrics-dir: metrics_a3c_lab_demo
 
 relaax-rlx-server:
   --bind: 0.0.0.0:7001

@@ -1,7 +1,6 @@
 import tensorflow as tf
 import scipy.optimize
 from keras.layers.core import Layer
-from keras import backend as K
 from collections import OrderedDict
 
 from distributions import *
@@ -361,3 +360,38 @@ class NnVf(object):
 
     def preproc(self, ob_no):
         return concat([ob_no, np.arange(len(ob_no)).reshape(-1, 1) / float(self.timestep_limit)], axis=1)
+
+
+# ================================================================
+# Auxiliary functions
+# ================================================================
+
+class TensorFlowUpdateFunction(object):
+    def __init__(self, inputs, outputs, session, updates=()):
+        self._inputs = inputs
+        self._outputs = outputs
+        self._updates = updates
+        self.session = session
+
+    def __call__(self, *args, **kwargs):
+        feeds = {}
+        for (argpos, arg) in enumerate(args):
+            feeds[self._inputs[argpos]] = arg
+
+        try:
+            outputs_identity = [tf.identity(output) for output in self._outputs]
+            output_is_list = True
+        except TypeError:
+            outputs_identity = [tf.identity(self._outputs)]
+            output_is_list = False
+
+        # with tf.control_dependencies(outputs_identity):
+        assign_ops = [tf.assign(variable, replacement) for variable, replacement in self._updates]
+
+        outputs_list = self.session.run(outputs_identity + assign_ops, feeds)[:len(outputs_identity)]
+
+        if output_is_list:
+            return outputs_list
+        else:
+            assert len(outputs_list) == 1
+        return outputs_list[0]

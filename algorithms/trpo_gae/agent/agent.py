@@ -1,7 +1,10 @@
+from __future__ import print_function
+
 import tensorflow as tf
 import time
-import itertools
 from collections import defaultdict
+
+import keras.backend
 
 import relaax.algorithm_base.agent_base
 import relaax.common.protocol.socket_protocol
@@ -14,40 +17,46 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
         self._config = config
         self._parameter_server = parameter_server
 
-        self._n_iter = 0             # counter for global updates at parameter server
         self._episode_timestep = 0   # timestep for current episode (round)
         self._episode_reward = 0     # score accumulator for current episode (round)
-        self._stop_training = False
+        self._stop_training = False  # stop training flag to prevent the training further
 
         self.data = defaultdict(list)
 
+        # inform Keras that we are going to initialize variables here
+        keras.backend.manual_variable_initialization(True)
+
         self._session = tf.Session()
+        keras.backend.set_session(self._session)
 
-        self.policy_net, value_net = network.make(config, self._session)
+        self.policy_net, value_net = network.make(config)
         self.obs_filter, self.reward_filter = network.make_filters(config)
-
-        initialize_all_variables = tf.variables_initializer(tf.global_variables())
 
         self.policy, _ = network.make_head(config, self.policy_net, value_net, self._session)
 
-        self._session.run(initialize_all_variables)
-        self.collecting_time = time.time()  # timer for collecting experience
+        self._session.run(tf.variables_initializer(tf.global_variables()))
+
+        self._n_iter = self._parameter_server.wait_for_iteration()  # counter for global updates at parameter server
+        self.policy.net.set_weights(
+            list(self._parameter_server.receive_weights(self._n_iter))
+        )
+
+        self.server_latency_accumulator = 0     # accumulator for averaging server latency
+        self.collecting_time = time.time()      # timer for collecting experience
 
     def act(self, state):
         start = time.time()
-        # poll every timestep_limit
-        if self._episode_timestep == self._config.timestep_limit:
-            self._send_experience()
 
         obs = self.obs_filter(state)
         self.data["observation"].append(obs)
 
         action, agentinfo = self.policy.act(obs)
         self.data["action"].append(action)
+
         for (k, v) in agentinfo.iteritems():
             self.data[k].append(v)
 
-        self.metrics().scalar('server latency', time.time() - start)
+        self.server_latency_accumulator += time.time() - start
         return action
 
     def reward_and_act(self, reward, state):
@@ -63,7 +72,11 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
         print("Episode reward =", score)
         self.metrics().scalar('episode reward', score)
 
-        self._send_experience(terminated=True)
+        latency = self.server_latency_accumulator / self._episode_timestep
+        self.server_latency_accumulator = 0
+        self.metrics().scalar('server latency', latency)
+
+        self._send_experience(terminated=(self._episode_timestep < self._config.timestep_limit))
         return score
 
     def _reward(self, reward):
@@ -86,13 +99,16 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
 
         old_n_iter = self._n_iter
         self._n_iter = self._parameter_server.wait_for_iteration()
+        if self._n_iter == -1:
+            self._n_iter = old_n_iter
+            return
 
         if self._n_iter > self._config.n_iter:
             self._stop_training = True
             return
 
         if old_n_iter < self._n_iter:
-            print('Collecting time:', time.time() - self.collecting_time)   # +update waiting
+            print('Collecting time for {} iteration: {}'.format(old_n_iter+1, time.time() - self.collecting_time))
             self.policy.net.set_weights(list(self._parameter_server.receive_weights(self._n_iter)))
             self.collecting_time = time.time()
 

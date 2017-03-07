@@ -10,9 +10,9 @@
 
 relaax-parameter-server:
   --bind: localhost:7000
-  --checkpoint-dir: checkpoints/a3c_gym_walker
+  --checkpoint-dir: checkpoints/a3cc_gym_walker
   --log-level: WARNING
-  --metrics-dir: metrics_gym_walker
+  --metrics-dir: metrics_a3cc_gym_walker
 
 relaax-rlx-server:
   --bind: 0.0.0.0:7001
@@ -30,7 +30,7 @@ algorithm:
   lstm: false                     # to use LSTM instead of FF, set to the True
   max_global_step: 1e8            # amount of maximum global steps to pass through the training
 
-  initial_learning_rate: 5e-5
+  initial_learning_rate: 1e-4     # 5e-5
   entropy_beta: 1e-3              # entropy regularization constant
   rewards_gamma: 0.99             # rewards discount factor
   RMSProp:

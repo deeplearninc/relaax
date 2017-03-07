@@ -3,17 +3,17 @@ from __future__ import print_function
 import logging
 import os
 import random
-import time
 import signal
+from time import time, sleep
 
 from relaax.client import rlx_client
 
 from . import game_process
 
 
-def run(rlx_server_url, env, seed):
+def run(rlx_server_url, env, seed, limit, rnd):
     n_game = 0
-    game = game_process.GameProcessFactory(env).new_env(_seed(seed))
+    game = game_process.GameProcessFactory(env, limit).new_env(_seed(seed), rnd)
 
     def toggle_rendering():
         if game.display:
@@ -30,6 +30,7 @@ def run(rlx_server_url, env, seed):
             client = rlx_client.Client(rlx_server_url)
             try:
                 action = client.init(game.state())
+                client_latency, acts = 0, 0
                 while True:
                     reward, reset = game.act(action)
                     if reset:
@@ -38,21 +39,25 @@ def run(rlx_server_url, env, seed):
                         print('Score at round', n_game, '=', episode_score)
                         game.reset()
                         action = _send(client, None, game.state())
+                        if acts:
+                            client.metrics().scalar('client latency', client_latency / acts)
+                            client_latency, acts = 0, 0
                     else:
+                        start = time()
                         action = _send(client, reward, game.state())
+                        client_latency += time() - start
+                        acts += 1
             finally:
                 client.disconnect()
         except rlx_client.Failure as e:
             _warning('{} : {}'.format(rlx_server_url, e.message))
             delay = random.randint(1, 10)
             _info('waiting for %ds...', delay)
-            time.sleep(delay)
+            sleep(delay)
 
 
 def _send(client, reward, state):
-    start = time.time()
     action = client.send(reward, state)
-    client.metrics().scalar('client latency', time.time() - start)
     return action
 
 
