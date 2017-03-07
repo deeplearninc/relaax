@@ -9,18 +9,18 @@ class LimitedSaver(saver.Saver):
         self._saver = saver
         self._limit = limit
 
-    def global_steps(self):
-        return self._saver.global_steps()
+    def checkpoint_ids(self):
+        return self._saver.checkpoint_ids()
 
-    def remove_checkpoint(self, global_step):
-        self._saver.remove_checkpoint(global_step)
+    def remove_checkpoint(self, checkpoint_id):
+        self._saver.remove_checkpoint(checkpoint_id)
 
-    def restore_checkpoint(self, session, global_step):
-        self._saver.restore_checkpoint(session, global_step)
+    def restore_checkpoint(self, checkpoint_id):
+        self._saver.restore_checkpoint(checkpoint_id)
 
-    def save_checkpoint(self, session, global_step):
-        self._saver.save_checkpoint(session, global_step)
-        global_steps = self._saver.global_steps()
-        if len(global_steps) > self._limit:
-            for global_step in sorted(global_steps)[:-self._limit]:
-                self._saver.remove_checkpoint(global_step)
+    def save_checkpoint(self, checkpoint_id):
+        self._saver.save_checkpoint(checkpoint_id)
+        checkpoint_ids = self._saver.checkpoint_ids()
+        if len(checkpoint_ids) > self._limit:
+            for checkpoint_id in sorted(checkpoint_ids)[:-self._limit]:
+                self._saver.remove_checkpoint(checkpoint_id)

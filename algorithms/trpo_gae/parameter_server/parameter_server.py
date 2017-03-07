@@ -1,21 +1,24 @@
 from __future__ import print_function
+
+import os.path
+import re
 import tensorflow as tf
 import numpy as np
 from scipy.signal import lfilter
 from time import time, sleep
+from saver import KerasSaver as Saver
+from cPickle import load, dump    # ujson
 
+import relaax.server.common.saver.checkpoint
 import relaax.algorithm_base.parameter_server_base
 
 from . import network
-from saver import KerasSaver as Saver
-from cPickle import load    # ujson
 
 
 class ParameterServer(relaax.algorithm_base.parameter_server_base.ParameterServerBase):
-    def __init__(self, config, saver, metrics):
+    def __init__(self, config, saver_factory, metrics):
         self.n_iter = 0             # number of updates within training process
         self.config = config        # common configuration, which is rewritten by yaml
-        self._saver = Saver(saver._savers[0]._dir)  # saver for defined neural networks
 
         self.is_collect = True      # set to False if TRPO is under update procedure (for sync only)
         self.paths = []             # experience accumulator
@@ -31,6 +34,8 @@ class ParameterServer(relaax.algorithm_base.parameter_server_base.ParameterServe
         self.policy, self.baseline = network.make_head(config, self.policy_net, self.value_net, self._session)
         self.trpo_updater = network.make_trpo(config, self.policy, self._session)
 
+        self._saver = saver_factory(_Checkpoint(self))
+
         self._session.run(initialize)
 
         self._bridge = _Bridge(metrics, self)
@@ -41,17 +46,15 @@ class ParameterServer(relaax.algorithm_base.parameter_server_base.ParameterServe
         self._session.close()
 
     def restore_latest_checkpoint(self):
-        status, self.n_iter, self.paths_len = self._saver.latest_checkpoint_idx()
-        print('n_iter =', self.n_iter)
-        if status:
-            self.policy_net.load_weights(self._saver.dir + "/pnet--" + str(self.n_iter) + ".h5")
-            self.value_net.load_weights(self._saver.dir + "/vnet--" + str(self.n_iter) + ".h5")
-            self.paths = load(open(self._saver.dir + "/data--" + str(self.n_iter) + "-" + str(self.paths_len) + ".p"))
+        checkpoint_ids = self._saver.checkpoint_ids()
+        if len(checkpoint_ids) > 0:
+            checkpoint_id = max(checkpoint_ids)
+            self._saver.restore_checkpoint(checkpoint_id)
+            self.n_iter, self.paths_len = checkpoint_id
             self.global_step = (self.n_iter + 1) * self.config.timesteps_per_batch + self.paths_len
-        return status
 
     def save_checkpoint(self):
-        self._saver.save_checkpoint(self.policy_net, self.value_net, self.n_iter, self.paths[:], self.paths_len)
+        self._saver.save_checkpoint((self.n_iter, self.paths_len))
 
     def checkpoint_location(self):
         return self._saver.location()
@@ -133,6 +136,50 @@ class _BridgeAsync(_Bridge):
 
     def send_experience(self, n_iter, paths, length):
         self._ps.update_paths(paths, length)
+
+
+class _Checkpoint(relaax.server.common.saver.checkpoint.Checkpoint):
+    _PNET_S = 'pnet-%d-%d.h5'
+    _PNET_RE = re.compile('^pnet-(\d+)-(\d+).h5$')
+
+    _VNET_S = 'vnet-%d-%d.h5'
+    _VNET_RE = re.compile('^vnet-(\d+)-(\d+).h5$')
+
+    _DATA_S = 'data-%d-%d.p'
+    _DATA_RE = re.compile('^data-(\d+)-(\d+).p$')
+
+    def __init__(self, ps):
+        self._ps = ps
+
+    def checkpoint_ids(self, names):
+        ids = set()
+        for name in names:
+            match = self._DATA_RE.match(name)
+            if match is not None:
+                ids.add((int(match.group(1)), int(match.group(2))))
+        return ids
+
+    def checkpoint_names(self, names, checkpoint_id):
+        items = (
+            self._PNET_S % checkpoint_id,
+            self._VNET_S % checkpoint_id,
+            self._DATA_S % checkpoint_id
+        )
+        return tuple(set(names) & set(items))
+
+    def restore_checkpoint(self, dir, checkpoint_id):
+        self._ps.policy_net.load_weights(os.path.join(dir, self._PNET_S % checkpoint_id))
+        self._ps.value_net.load_weights(os.path.join(dir, self._VNET_S % checkpoint_id))
+        with open(os.path.join(dir, self._DATA_S % checkpoint_id), 'rb') as f:
+            self._ps.paths = load(f)
+
+    def save_checkpoint(self, dir, checkpoint_id):
+        if not os.path.exists(dir):
+            os.makedirs(dir)
+        self._ps.policy_net.save_weights(os.path.join(dir, self._PNET_S % checkpoint_id))
+        self._ps.value_net.save_weights(os.path.join(dir, self._VNET_S % checkpoint_id))
+        with open(os.path.join(dir, self._DATA_S % checkpoint_id), 'wb') as f:
+            dump(self._ps.paths[:], f)
 
 
 def discount(x, gamma):
