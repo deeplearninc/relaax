@@ -7,8 +7,8 @@ import logging
 import numpy
 import os
 import random
+import re
 import socket
-import struct
 import time
 
 import relaax.algorithm_base.agent_base
@@ -111,28 +111,19 @@ def _sendf(s, *args):
 def _send(socket, *args):
     data = json.dumps(args, cls=_NDArrayEncoder)
     _debug('send data %s', data[:64])
-    socket.sendall(''.join([
-        struct.pack('<I', len(data)),
-        data
-    ]))
+    socket.sendall('%d:%s,' % (len(data), data))
 
 
 class _ReceiveError(Exception):
     pass
         
 
-_COUNT_LEN = len(struct.pack('<I', 0))
-
-
 def _receive(socket):
     try:
-        return json.loads(
-            _receiveb(
-                socket,
-                struct.unpack('<I', _receiveb(socket, _COUNT_LEN))[0]
-            ),
-            object_hook=_ndarray_decoder
-        )
+        payload =_receiveb(socket, _receive_length(socket))
+        if _receiveb(socket, 1) != ',':
+            raise _ReceiveError
+        return json.loads(payload, object_hook=_ndarray_decoder)
     except _ReceiveError:
         return None
 
@@ -149,6 +140,22 @@ def _receiveb(socket, length):
     data = ''.join(packets)
     assert len(data) == length
     return data
+
+
+def _receive_length(socket):
+    digits = []
+    while True:
+        char = socket.recv(1)
+        if not char:
+            raise _ReceiveError
+        if char == ':':
+            break
+        if re.match('^\d$', char) is None:
+            raise _ReceiveError
+        if len(digits) > 0 and digits[0] == 0:
+            raise _ReceiveError
+        digits.append(char)
+    return int(''.join(digits))
 
 
 class _NDArrayEncoder(json.JSONEncoder):
