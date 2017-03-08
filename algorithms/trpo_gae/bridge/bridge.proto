@@ -18,7 +18,9 @@ message NdArray {
 }
 
 message FilterState {
-    repeated NdArray array = 1;
+    fixed64 n = 1;
+    NdArray mean = 2;
+    NdArray std = 3;
 }
 
 message Experience {
@@ -29,6 +31,7 @@ message Experience {
     repeated double reward = 5;
     bool terminated = 6;
     fixed32 length = 7;
+    FilterState diff = 8;
 }
 
 message ScalarMetric {

@@ -29,10 +29,8 @@ class _Stub(object):
         return self._stub.GetGlobalT(bridge_pb2.NullMessage()).g
 
     def get_filter_state(self):
-        return itertools.imap(
-            _parse_ndarray_message,
-            self._stub.GetFilterState(bridge_pb2.NullMessage())
-        )
+        state = self._stub.GetFilterState(bridge_pb2.NullMessage())
+        return state.n, _parse_ndarray_message(state.mean), _parse_ndarray_message(state.std)
 
     def wait_for_iteration(self):
         return self._stub.WaitForIteration(bridge_pb2.NullMessage()).n_iter
@@ -45,7 +43,12 @@ class _Stub(object):
             prob=itertools.imap(_build_ndarray_message, paths["prob"]),
             reward=paths["reward"],
             terminated=paths["terminated"],
-            length=length
+            length=length,
+            state=bridge_pb2.FilterState(
+                n=len(paths["reward"]),
+                mean=_build_ndarray_message(paths["filter_diff"][0]),
+                std=_build_ndarray_message(paths["filter_diff"][1])
+            )
         ))
 
     def receive_weights(self, n_iter):
@@ -85,8 +88,7 @@ class _Servicer(bridge_pb2.ParameterServerServicer):
         return bridge_pb2.Step(g=long(self._service.get_global_t()))
 
     def GetFilterState(self, request, context):
-        for state in self._service.get_filter_state():
-            yield _build_ndarray_message(state)
+        return request.n, _parse_ndarray_message(request.mean), _parse_ndarray_message(request.std)
 
     def WaitForIteration(self, request, context):
         return bridge_pb2.NIter(n_iter=self._service.wait_for_iteration())
@@ -98,7 +100,9 @@ class _Servicer(bridge_pb2.ParameterServerServicer):
             'prob': map(_parse_ndarray_message, request.prob),
             'reward': numpy.array(request.reward),
             'terminated': request.terminated
-        }, request.length)
+        }, request.length, {'filter_diff': (_parse_ndarray_message(request.state.mean),
+                                            _parse_ndarray_message(request.state.std))}
+        )
         return bridge_pb2.NullMessage()
 
     def ReceiveWeights(self, request, context):

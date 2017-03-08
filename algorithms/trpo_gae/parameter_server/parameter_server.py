@@ -118,7 +118,7 @@ class ParameterServer(relaax.algorithm_base.parameter_server_base.ParameterServe
         return self.global_step
 
     def filter_state(self):
-        return [self.M, self.S]
+        return self.M, self.S
 
     def update_filter_state(self, diff):
         self.M += diff[0]
