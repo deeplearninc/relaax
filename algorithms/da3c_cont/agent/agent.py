@@ -27,6 +27,7 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
         self.global_t = 0           # counter for global steps between all agents
         self.local_t = 0            # steps count for current agent's process
         self.episode_reward = 0     # score accumulator for current episode
+        self.local_reward = 0       # reward accumulator within defined timestep limit
 
         self.states = []            # auxiliary states accumulator through episode_len = 0..5
         self.actions = []           # auxiliary actions accumulator through episode_len = 0..5
@@ -83,7 +84,9 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
             print("sigma=", sig_)
             print(" V=", value_)
 
-        self.metrics().scalar('server latency', time.time() - start, x=self.global_t)
+            self.metrics().scalar('episode score', self.local_reward, x=self.global_t)
+            self.local_reward = 0
+            self.metrics().scalar('server latency', time.time() - start, x=self.global_t)
 
         return action
 
@@ -117,6 +120,7 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
 
     def _reward(self, reward):
         self.episode_reward += reward
+        self.local_reward += reward
 
         # clip reward
         self.rewards.append(np.clip(reward, -1, 1))
