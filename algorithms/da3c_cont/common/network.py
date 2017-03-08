@@ -34,30 +34,42 @@ class _GameACNetwork(object):
         # temporary difference (R-V) (input for policy)
         self.td = tf.placeholder("float", [None])
 
-        # compute log and avoid NaN
-        log_pi = tf.log(self.sigma2 + 1e-20)
+        if True:
+            normal_dist = tf.contrib.distributions.Normal(self.mu, self.sigma2)
+            loss = -tf.reduce_mean(tf.reduce_sum(normal_dist.log_prob(self.a), reduction_indices=1) * self.td)  # self.v
+            loss -= 1e-1 * normal_dist.entropy()
+            policy_loss = -tf.reduce_mean(loss)
 
-        # policy entropy
-        entropy = -tf.reduce_sum(0.5 * (tf.log(2. * np.pi * self.sigma2) + 1.), reduction_indices=1)
+            # R (input for value)
+            self.r = tf.placeholder("float", [None])
+            value_loss = tf.reduce_mean(tf.square(self.r - self.v))
 
-        # policy loss (output)
-        b_size = tf.to_float(tf.size(self.a) / config.action_size)
-        x_prec = tf.exp(-log_pi)
-        x_diff = tf.sub(self.a, self.mu)
-        x_power = tf.square(x_diff) * x_prec * -0.5
-        gaussian_nll = (tf.reduce_sum(log_pi, reduction_indices=1)
-                        + b_size * tf.log(2. * np.pi)) / 2. - tf.reduce_sum(x_power, reduction_indices=1)
-        policy_loss = tf.mul(gaussian_nll, tf.stop_gradient(self.td)) + config.ENTROPY_BETA * entropy
+            self.total_loss = policy_loss + value_loss
+        else:
+            # compute log and avoid NaN
+            log_pi = tf.log(self.sigma2 + 1e-20)
 
-        # R (input for value)
-        self.r = tf.placeholder("float", [None])
+            # policy entropy
+            entropy = -tf.reduce_sum(0.5 * (tf.log(2. * np.pi * self.sigma2) + 1.), reduction_indices=1)
 
-        # value loss (output)
-        # (Learning rate for Critic is half of Actor's, so multiply by 0.5)
-        value_loss = 0.5 * tf.nn.l2_loss(self.r - self.v)
+            # policy loss (output)
+            b_size = tf.to_float(tf.size(self.a) / config.action_size)
+            x_prec = tf.exp(-log_pi)
+            x_diff = tf.sub(self.a, self.mu)
+            x_power = tf.square(x_diff) * x_prec * -0.5
+            gaussian_nll = (tf.reduce_sum(log_pi, reduction_indices=1)
+                            + b_size * tf.log(2. * np.pi)) / 2. - tf.reduce_sum(x_power, reduction_indices=1)
+            policy_loss = tf.mul(gaussian_nll, tf.stop_gradient(self.td)) + config.ENTROPY_BETA * entropy
 
-        # gradient of policy and value are summed up
-        self.total_loss = policy_loss + value_loss
+            # R (input for value)
+            self.r = tf.placeholder("float", [None])
+
+            # value loss (output)
+            # (Learning rate for Critic is half of Actor's, so multiply by 0.5)
+            value_loss = 0.5 * tf.nn.l2_loss(self.r - self.v)
+
+            # gradient of policy and value are summed up
+            self.total_loss = policy_loss + value_loss
 
         return self
 
@@ -153,7 +165,7 @@ class _GameACFFNetwork(_GameACFFNetworkShared):
 
         # policy (output)
         self.mu = tf.matmul(h_fc3, self.W_fc4) + self.b_fc4
-        self.sigma2 = tf.nn.softplus(tf.matmul(h_fc3, self.W_fc5) + self.b_fc5)
+        self.sigma2 = tf.nn.softplus(tf.matmul(h_fc3, self.W_fc5) + self.b_fc5) + 1e-5
 
         # value (output)
         v_ = tf.matmul(h_fc3, self.W_fc6) + self.b_fc6
@@ -256,7 +268,7 @@ class _GameACLSTMNetwork(_GameACLSTMNetworkShared):
 
         # policy (output)
         self.mu = tf.matmul(lstm_outputs, self.W_fc4) + self.b_fc4
-        self.sigma2 = tf.nn.softplus(tf.matmul(lstm_outputs, self.W_fc5) + self.b_fc5)
+        self.sigma2 = tf.nn.softplus(tf.matmul(lstm_outputs, self.W_fc5) + self.b_fc5) + 1e-5
 
         # value (output)
         v_ = tf.matmul(lstm_outputs, self.W_fc6) + self.b_fc6
