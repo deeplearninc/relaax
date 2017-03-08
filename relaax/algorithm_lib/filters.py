@@ -71,9 +71,18 @@ class RunningStat(object):
 class RunningStatExt(RunningStat):
     def __init__(self, shape):
         super(RunningStatExt, self).__init__(shape)
+        self._inM = None
+        self._inS = None
 
-    def set(self):
-        pass
+    def set(self, n, M, S):
+        self._n = n
+        assert M.shape == self._M.shape
+        self._M = M
+        self._S = S
+        self._inM = M.copy()
+        self._inS = S.copy()
 
     def get_diff(self):
-        pass
+        diffM = self._M - self._inM
+        diffS = self._S - self._inS
+        return diffM, diffS
