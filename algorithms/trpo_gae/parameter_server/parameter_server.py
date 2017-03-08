@@ -56,14 +56,14 @@ class ParameterServer(relaax.algorithm_base.parameter_server_base.ParameterServe
         if status:
             self.policy_net.load_weights(self._saver.dir + "/pnet--" + str(self.n_iter) + ".h5")
             self.value_net.load_weights(self._saver.dir + "/vnet--" + str(self.n_iter) + ".h5")
-            self.paths = load(open(self._saver.dir + "/data--" + str(self.n_iter) + "-" + str(self.paths_len) + ".p"))
-            if self.config.use_filter:
-                _, self.M, self.S = self.paths["filter_diff"]
+            self.paths, g_step, self.M, self.S = load(open(self._saver.dir + "/data--" + str(self.n_iter) + "-" + str(self.paths_len) + ".p"))
+            # self.global_step
         return status
 
     def save_checkpoint(self):
         self._saver.save_checkpoint(self.policy_net, self.value_net, self.n_iter,
-                                    self.paths[:], self.paths_len, self.global_step)
+                                    self.paths[:], self.paths_len, self.global_step,
+                                    self.M, self.S)
 
     def checkpoint_location(self):
         return self._saver.location()

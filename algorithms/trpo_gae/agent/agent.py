@@ -43,8 +43,6 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
         if config.use_filter:
             self.obs_filter, _ = network.make_filters(config)
             state = self._parameter_server.get_filter_state()
-            print('init n', state[0])
-            print('init mean', state[1])
             self.obs_filter.rs.set(*state)
 
         self.server_latency_accumulator = 0     # accumulator for averaging server latency
@@ -125,8 +123,6 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
 
         if self._config.use_filter:
             state = self._parameter_server.get_filter_state()
-            print(state[0])
-            print(state[1])
             self.obs_filter.rs.set(*state)
 
     def metrics(self):

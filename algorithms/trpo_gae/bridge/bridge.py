@@ -44,7 +44,7 @@ class _Stub(object):
             reward=paths["reward"],
             terminated=paths["terminated"],
             length=length,
-            state=bridge_pb2.FilterState(
+            diff=bridge_pb2.FilterState(
                 n=length,
                 mean=_build_ndarray_message(paths["filter_diff"][1]),
                 std=_build_ndarray_message(paths["filter_diff"][2])
@@ -103,10 +103,11 @@ class _Servicer(bridge_pb2.ParameterServerServicer):
             'action': map(_parse_ndarray_message, request.action),
             'prob': map(_parse_ndarray_message, request.prob),
             'reward': numpy.array(request.reward),
-            'terminated': request.terminated
-        }, request.length, {'filter_diff': (_parse_ndarray_message(request.state.mean),
-                                            _parse_ndarray_message(request.state.std))}
-                                      )
+            'terminated': request.terminated,
+            'filter_diff': (request.length,
+                            _parse_ndarray_message(request.diff.mean),
+                            _parse_ndarray_message(request.diff.std))
+        }, request.length)
         return bridge_pb2.NullMessage()
 
     def ReceiveWeights(self, request, context):
