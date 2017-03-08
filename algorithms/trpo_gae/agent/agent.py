@@ -41,10 +41,10 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
 
         if config.use_filter:
             self.obs_filter, _ = network.make_filters(config)
-            self._g_step = self._parameter_server.get_global_t()
-            M, S = self._parameter_server.get_filter_state()
-            print(M)
-            print(S)
+            state = self._parameter_server.get_filter_state()
+            print(state[0])
+            print(state[1])
+            self.obs_filter.set(self._parameter_server.get_global_t(), state[0], state[1])
 
         self.server_latency_accumulator = 0     # accumulator for averaging server latency
         self.collecting_time = time.time()      # timer for collecting experience
@@ -117,6 +117,12 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
             print('Collecting time for {} iteration: {}'.format(old_n_iter+1, time.time() - self.collecting_time))
             self.policy.net.set_weights(list(self._parameter_server.receive_weights(self._n_iter)))
             self.collecting_time = time.time()
+
+        if self._config.use_filter:
+            state = self._parameter_server.get_filter_state()
+            print(state[0])
+            print(state[1])
+            self.obs_filter.set(self._parameter_server.get_global_t(), state[0], state[1])
 
     def metrics(self):
         return self._parameter_server.metrics()
