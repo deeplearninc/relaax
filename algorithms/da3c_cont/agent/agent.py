@@ -27,7 +27,6 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
         self.global_t = 0           # counter for global steps between all agents
         self.local_t = 0            # steps count for current agent's process
         self.episode_reward = 0     # score accumulator for current episode
-        self.local_reward = 0       # reward accumulator within defined timestep limit
 
         self.states = []            # auxiliary states accumulator through episode_len = 0..5
         self.actions = []           # auxiliary actions accumulator through episode_len = 0..5
@@ -83,10 +82,11 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
             print("mu=", mu_)
             print("sigma=", sig_)
             print(" V=", value_)
+            self.metrics().scalar('server latency', time.time() - start)
 
-            self.metrics().scalar('episode score', self.local_reward, x=self.global_t)
-            self.local_reward = 0
-            self.metrics().scalar('server latency', time.time() - start, x=self.global_t)
+        if self._config.reward_interval and (self.local_t % self._config.reward_interval == 0):
+            self.metrics().scalar('episode score', self.episode_reward)
+            self.episode_reward = 0
 
         return action
 
@@ -98,21 +98,19 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
     def reward_and_reset(self, reward):
         if not self._reward(reward):
             return None
-
         self._terminal_end = True
-        print("score=", self.episode_reward)
 
+        print("score=", self.episode_reward)
         score = self.episode_reward
 
-        self.metrics().scalar('episode score', self.episode_reward, x=self.global_t)
-
-        self.episode_reward = 0
+        if not self._config.reward_interval:
+            self.metrics().scalar('episode score', self.episode_reward)
+            self.episode_reward = 0
 
         if self._config.use_LSTM:
             self._local_network.reset_state()
 
         self.episode_t = self._config.episode_len
-
         return score
 
     def metrics(self):
@@ -120,7 +118,6 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
 
     def _reward(self, reward):
         self.episode_reward += reward
-        self.local_reward += reward
 
         # clip reward
         self.rewards.append(np.clip(reward, -1, 1))

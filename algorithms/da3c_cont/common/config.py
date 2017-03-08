@@ -25,6 +25,12 @@ class Config(relaax.algorithm_base.config_base.ConfigBase):
         # amount of maximum global steps to pass through the training
         self.max_global_step = config.get('max_global_step', 8 * 10 ** 7)
 
+        # useful for non-episodic (non-terminal) environments, it prints out the accumalated
+        # reward each defined interval, for episodic environments it is recommended to set
+        # this to 0 to print out accumulated reward at each episode end
+        self.reward_interval = config.get('reward_count_interval', 0)
+
+        # initial learning rate from which we start to anneal
         self.INITIAL_LEARNING_RATE = config.get('initial_learning_rate', 5e-5)
 
         # discount factor for rewards
