@@ -117,6 +117,9 @@ class _Bridge(object):
         self._metrics = metrics
         self._ps = ps
 
+    def get_global_t(self):
+        return self._ps.global_t()
+
     def wait_for_iteration(self):
         if self._ps.is_collect:
             return self._ps.n_iter

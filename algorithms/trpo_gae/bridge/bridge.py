@@ -25,6 +25,9 @@ class _Stub(object):
         self._stub = bridge_pb2.ParameterServerStub(grpc.insecure_channel(parameter_server))
         self._metrics = _Metrics(self._stub)
 
+    def get_global_t(self):
+        return self._stub.GetGlobalT(bridge_pb2.NullMessage()).g
+
     def wait_for_iteration(self):
         return self._stub.WaitForIteration(bridge_pb2.NullMessage()).n_iter
 
@@ -71,6 +74,9 @@ class _Metrics(relaax.common.metrics.Metrics):
 class _Servicer(bridge_pb2.ParameterServerServicer):
     def __init__(self, service):
         self._service = service
+
+    def GetGlobalT(self, request, context):
+        return bridge_pb2.Step(g=long(self._service.get_global_t()))
 
     def WaitForIteration(self, request, context):
         return bridge_pb2.NIter(n_iter=self._service.wait_for_iteration())

@@ -7,6 +7,10 @@ message NIter {
     fixed32 n_iter = 1;
 }
 
+message Step {
+    fixed64 g = 1;
+}
+
 message NdArray {
     string dtype = 1;
     repeated int32 shape = 2;
@@ -33,6 +37,7 @@ message ScalarMetric {
 }
 
 service ParameterServer {
+    rpc GetGlobalT(NullMessage) returns (Step) {}
     rpc WaitForIteration(NullMessage) returns (NIter) {}
     rpc SendExperience(Experience) returns (NullMessage) {}
     rpc ReceiveWeights(NIter) returns (stream NdArray) {}
