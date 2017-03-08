@@ -16,7 +16,7 @@ class KerasSaver(Saver):
                 data_idx = f.readline()
                 global_idx = f.readline()
             return True, int(net_idx), int(data_idx), int(global_idx)
-        return False, 0, 0
+        return False, 0, 0, 0
 
     def save_checkpoint(self, pnet, vnet, n_iter, data, length, g_step):
         if not path.exists(self.dir):

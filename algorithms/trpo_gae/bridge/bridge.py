@@ -28,6 +28,12 @@ class _Stub(object):
     def get_global_t(self):
         return self._stub.GetGlobalT(bridge_pb2.NullMessage()).g
 
+    def get_filter_state(self):
+        return itertools.imap(
+            _parse_ndarray_message,
+            self._stub.GetFilterState(bridge_pb2.NullMessage())
+        )
+
     def wait_for_iteration(self):
         return self._stub.WaitForIteration(bridge_pb2.NullMessage()).n_iter
 
@@ -77,6 +83,10 @@ class _Servicer(bridge_pb2.ParameterServerServicer):
 
     def GetGlobalT(self, request, context):
         return bridge_pb2.Step(g=long(self._service.get_global_t()))
+
+    def GetFilterState(self, request, context):
+        for state in self._service.get_filter_state():
+            yield _build_ndarray_message(state)
 
     def WaitForIteration(self, request, context):
         return bridge_pb2.NIter(n_iter=self._service.wait_for_iteration())

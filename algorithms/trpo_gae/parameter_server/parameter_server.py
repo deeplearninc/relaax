@@ -111,6 +111,9 @@ class ParameterServer(relaax.algorithm_base.parameter_server_base.ParameterServe
     def global_t(self):
         return self.global_step
 
+    def filter_state(self):
+        return [self.M, self.S]
+
 
 class _Bridge(object):
     def __init__(self, metrics, ps):
@@ -119,6 +122,9 @@ class _Bridge(object):
 
     def get_global_t(self):
         return self._ps.global_t()
+
+    def get_filter_state(self):
+        return self._ps.filter_state()
 
     def wait_for_iteration(self):
         if self._ps.is_collect:

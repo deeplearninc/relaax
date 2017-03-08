@@ -30,8 +30,6 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
         keras.backend.set_session(self._session)
 
         self.policy_net, value_net = network.make(config)
-        self.obs_filter, self.reward_filter = network.make_filters(config)
-
         self.policy, _ = network.make_head(config, self.policy_net, value_net, self._session)
 
         self._session.run(tf.variables_initializer(tf.global_variables()))
@@ -41,13 +39,21 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
             list(self._parameter_server.receive_weights(self._n_iter))
         )
 
+        if config.use_filter:
+            self.obs_filter, _ = network.make_filters(config)
+            self._g_step = self._parameter_server.get_global_t()
+            M, S = self._parameter_server.get_filter_state()
+            print(M)
+            print(S)
+
         self.server_latency_accumulator = 0     # accumulator for averaging server latency
         self.collecting_time = time.time()      # timer for collecting experience
 
-    def act(self, state):
+    def act(self, obs):
         start = time.time()
 
-        obs = self.obs_filter(state)
+        if self._config.use_filter:
+            obs = self.obs_filter(obs)
         self.data["observation"].append(obs)
 
         action, agentinfo = self.policy.act(obs)

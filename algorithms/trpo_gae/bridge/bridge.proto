@@ -17,6 +17,10 @@ message NdArray {
     bytes data = 3;
 }
 
+message FilterState {
+    repeated NdArray array = 1;
+}
+
 message Experience {
     fixed32 n_iter = 1;
     repeated NdArray observation = 2;
@@ -38,6 +42,7 @@ message ScalarMetric {
 
 service ParameterServer {
     rpc GetGlobalT(NullMessage) returns (Step) {}
+    rpc GetFilterState(NullMessage) returns (FilterState) {}
     rpc WaitForIteration(NullMessage) returns (NIter) {}
     rpc SendExperience(Experience) returns (NullMessage) {}
     rpc ReceiveWeights(NIter) returns (stream NdArray) {}
