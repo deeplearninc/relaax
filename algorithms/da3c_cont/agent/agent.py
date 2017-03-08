@@ -129,7 +129,11 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
         return self.global_t < self._config.max_global_step
 
     def _choose_action(self, mu, sig):
-        return (np.random.randn(1, self._config.action_size).astype(np.float32) * sig + mu)[0]
+        act = (np.random.randn(1, self._config.action_size).astype(np.float32) * sig + mu)[0]
+        if self._config.min_value is None:
+            print(act)
+            return act
+        return np.clip(act, self._config.min_value, self._config.max_value)
 
     def _update_state(self, observation):
         obs = self.obfilter(observation.flatten())

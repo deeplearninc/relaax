@@ -7,6 +7,12 @@ class Config(relaax.algorithm_base.config_base.ConfigBase):
         # action size for the given environment (4 fits to bipedal_walker)
         self.action_size = config.get('action_size', 4)
 
+        # minimum value for each action (length should be equal to action_size)
+        self.min_value = config.get('action_low', None)
+
+        # maximum value for each action (length should be equal to action_size)
+        self.max_value = config.get('action_high', None)
+
         # size of the input observation
         self.state_size = config.get('state_size', [24])
 

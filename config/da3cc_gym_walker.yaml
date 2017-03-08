@@ -23,6 +23,8 @@ algorithm:
   path: ../relaax/algorithms/da3c_cont
 
   action_size: 4                  # action size for the given environment
+#  action_low: [-1, -1, -1, -1]    # minimum value for each action (length should be equal to action_size)
+#  action_high: [1, 1, 1, 1]       # maximum value for each action (length should be equal to action_size)
   state_size: [24]                # array of dimensions for the input observation
   history_len: 1                  # number of observations to stack in state
   episode_len: 5                  # local loop size for one episode

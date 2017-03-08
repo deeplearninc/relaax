@@ -34,14 +34,15 @@ class _GameACNetwork(object):
         # temporary difference (R-V) (input for policy)
         self.td = tf.placeholder("float", [None])
 
+        # R (input for value)
+        self.r = tf.placeholder("float", [None])
+
         if True:
             normal_dist = tf.contrib.distributions.Normal(self.mu, self.sigma2)
             loss = -tf.reduce_mean(tf.reduce_sum(normal_dist.log_prob(self.a), reduction_indices=1) * self.td)  # self.v
             loss -= 1e-1 * normal_dist.entropy()
             policy_loss = -tf.reduce_mean(loss)
 
-            # R (input for value)
-            self.r = tf.placeholder("float", [None])
             value_loss = tf.reduce_mean(tf.square(self.r - self.v))
 
             self.total_loss = policy_loss + value_loss
@@ -60,9 +61,6 @@ class _GameACNetwork(object):
             gaussian_nll = (tf.reduce_sum(log_pi, reduction_indices=1)
                             + b_size * tf.log(2. * np.pi)) / 2. - tf.reduce_sum(x_power, reduction_indices=1)
             policy_loss = tf.mul(gaussian_nll, tf.stop_gradient(self.td)) + config.ENTROPY_BETA * entropy
-
-            # R (input for value)
-            self.r = tf.placeholder("float", [None])
 
             # value loss (output)
             # (Learning rate for Critic is half of Actor's, so multiply by 0.5)
