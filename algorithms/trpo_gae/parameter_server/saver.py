@@ -14,10 +14,11 @@ class KerasSaver(Saver):
             with open(latest_cp_path, 'r') as f:
                 net_idx = f.readline()
                 data_idx = f.readline()
-            return True, int(net_idx), int(data_idx)
+                global_idx = f.readline()
+            return True, int(net_idx), int(data_idx), int(global_idx)
         return False, 0, 0
 
-    def save_checkpoint(self, pnet, vnet, n_iter, data, length):
+    def save_checkpoint(self, pnet, vnet, n_iter, data, length, g_step):
         if not path.exists(self.dir):
             makedirs(self.dir)
         pnet.save_weights(self.dir + "/pnet--" + str(n_iter) + ".h5")
@@ -25,7 +26,7 @@ class KerasSaver(Saver):
         with open(self.dir + "/data--" + str(n_iter) + "-" + str(length) + ".p", 'wb') as datafile:
             dump(data, datafile)
         with open(self.dir + '/latest', 'w') as f:
-            f.write(str(n_iter) + '\n' + str(length))
+            f.write(str(n_iter) + '\n' + str(length) + '\n' + str(g_step))
 
     def location(self):
         return "'%s' dir" % self.dir

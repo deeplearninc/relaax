@@ -74,6 +74,7 @@ class RunningStatExt(RunningStat):
         self._inM = None
         self._inS = None
 
+    # n = self._parameter_server.increment_global_t() --> each step (?)
     def set(self, n, M, S):
         self._n = n
         assert M.shape == self._M.shape
