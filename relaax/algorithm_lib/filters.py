@@ -4,12 +4,14 @@ import numpy as np
 class ZFilter(object):
     """ y = (x-mean)/std
     using running estimates of mean, std """
-    def __init__(self, shape, demean=True, destd=True, clip=10.0):
+    def __init__(self, shape_or_object, demean=True, destd=True, clip=10.0):
         self.demean = demean
         self.destd = destd
         self.clip = clip
 
-        self.rs = RunningStat(shape)
+        self.rs = shape_or_object
+        if type(shape_or_object) is tuple:
+            self.rs = RunningStat(shape_or_object)
 
     def __call__(self, x, update=True):
         if update:
@@ -64,3 +66,14 @@ class RunningStat(object):
     @property
     def shape(self):
         return self._M.shape
+
+
+class RunningStatExt(RunningStat):
+    def __init__(self, shape):
+        super(RunningStatExt, self).__init__(shape)
+
+    def set(self):
+        pass
+
+    def get_diff(self):
+        pass
