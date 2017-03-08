@@ -45,7 +45,7 @@ class _Stub(object):
             terminated=paths["terminated"],
             length=length,
             state=bridge_pb2.FilterState(
-                n=len(paths["reward"]),
+                n=length,
                 mean=_build_ndarray_message(paths["filter_diff"][0]),
                 std=_build_ndarray_message(paths["filter_diff"][1])
             )

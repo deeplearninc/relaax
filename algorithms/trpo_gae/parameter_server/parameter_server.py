@@ -58,8 +58,7 @@ class ParameterServer(relaax.algorithm_base.parameter_server_base.ParameterServe
             self.value_net.load_weights(self._saver.dir + "/vnet--" + str(self.n_iter) + ".h5")
             self.paths = load(open(self._saver.dir + "/data--" + str(self.n_iter) + "-" + str(self.paths_len) + ".p"))
             if self.config.use_filter:
-                self.M = self.paths["filter_diff"][0]
-                self.S = self.paths["filter_diff"][1]
+                self.M, self.S = self.paths["filter_diff"]
         return status
 
     def save_checkpoint(self):
@@ -118,7 +117,7 @@ class ParameterServer(relaax.algorithm_base.parameter_server_base.ParameterServe
         return self.global_step
 
     def filter_state(self):
-        return self.M, self.S
+        return self.global_step, self.M, self.S
 
     def update_filter_state(self, diff):
         self.M += diff[0]

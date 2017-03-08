@@ -1,6 +1,7 @@
 from __future__ import print_function
 
 import tensorflow as tf
+import numpy as np
 import time
 from collections import defaultdict
 
@@ -44,7 +45,7 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
             state = self._parameter_server.get_filter_state()
             print(state[0])
             print(state[1])
-            self.obs_filter.set(self._parameter_server.get_global_t(), state[0], state[1])
+            self.obs_filter.set(state)
 
         self.server_latency_accumulator = 0     # accumulator for averaging server latency
         self.collecting_time = time.time()      # timer for collecting experience
@@ -97,6 +98,7 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
 
     def _send_experience(self, terminated=False):
         self.data["terminated"] = terminated
+        self.data["filter_diff"] = (np.zeros(1), np.zeros(1))
         if self._config.use_filter:
             self.data["filter_diff"] = self.obs_filter.get_diff()
         self._parameter_server.send_experience(self._n_iter, self.data, self._episode_timestep)
