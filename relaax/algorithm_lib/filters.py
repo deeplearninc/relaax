@@ -84,7 +84,6 @@ class RunningStatExt(RunningStat):
         self._inS = S.copy()
 
     def get_diff(self):
-        print(self._n, self._inN)
         diffM = self._M*self._n - self._inM*self._inN
         diffS = self._S - self._inS
         return diffM, diffS

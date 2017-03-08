@@ -14,9 +14,8 @@ class KerasSaver(Saver):
             with open(latest_cp_path, 'r') as f:
                 net_idx = f.readline()
                 data_idx = f.readline()
-                global_idx = f.readline()
-            return True, int(net_idx), int(data_idx), int(global_idx)
-        return False, 0, 0, 0
+            return True, int(net_idx), int(data_idx)
+        return False, 0, 0
 
     def save_checkpoint(self, pnet, vnet, n_iter, paths, length, g_step, mean, std):
         if not path.exists(self.dir):
@@ -26,7 +25,7 @@ class KerasSaver(Saver):
         with open(self.dir + "/data--" + str(n_iter) + "-" + str(length) + ".p", 'wb') as datafile:
             dump((paths, g_step, mean, std), datafile)
         with open(self.dir + '/latest', 'w') as f:
-            f.write(str(n_iter) + '\n' + str(length) + '\n' + str(g_step))
+            f.write(str(n_iter) + '\n' + str(length))
 
     def location(self):
         return "'%s' dir" % self.dir

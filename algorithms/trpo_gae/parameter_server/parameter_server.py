@@ -38,10 +38,10 @@ class ParameterServer(relaax.algorithm_base.parameter_server_base.ParameterServe
 
         self._session.run(tf.variables_initializer(tf.global_variables()))
 
-        if config.use_filter:
-            shape = tuple(config.state_size)
-            self.M = np.zeros(shape)
-            self.S = np.zeros(shape)
+        # if config.use_filter:
+        shape = tuple(config.state_size)
+        self.M = np.zeros(shape)
+        self.S = np.zeros(shape)
 
         self._bridge = _Bridge(metrics, self)
         if config.async_collect:
@@ -51,13 +51,13 @@ class ParameterServer(relaax.algorithm_base.parameter_server_base.ParameterServe
         self._session.close()
 
     def restore_latest_checkpoint(self):
-        status, self.n_iter, self.paths_len, self.global_step = self._saver.latest_checkpoint_idx()
+        status, self.n_iter, self.paths_len = self._saver.latest_checkpoint_idx()
         print('n_iter =', self.n_iter)
         if status:
             self.policy_net.load_weights(self._saver.dir + "/pnet--" + str(self.n_iter) + ".h5")
             self.value_net.load_weights(self._saver.dir + "/vnet--" + str(self.n_iter) + ".h5")
-            self.paths, g_step, self.M, self.S = load(open(self._saver.dir + "/data--" + str(self.n_iter) + "-" + str(self.paths_len) + ".p"))
-            # self.global_step
+            self.paths, self.global_step, self.M, self.S = \
+                load(open(self._saver.dir + "/data--" + str(self.n_iter) + "-" + str(self.paths_len) + ".p"))
         return status
 
     def save_checkpoint(self):
