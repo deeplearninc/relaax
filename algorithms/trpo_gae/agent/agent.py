@@ -98,10 +98,7 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
     def _send_experience(self, terminated=False):
         self.data["terminated"] = terminated
         if self._config.use_filter:
-            diff = self.obs_filter.get_diff()
-            self.data["filter_M"] = diff[0]
-            self.data["filter_S"] = diff[1]
-
+            self.data["filter_diff"] = self.obs_filter.get_diff()
         self._parameter_server.send_experience(self._n_iter, self.data, self._episode_timestep)
 
         self.data.clear()

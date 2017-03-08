@@ -74,6 +74,9 @@ class ParameterServer(relaax.algorithm_base.parameter_server_base.ParameterServe
         self.paths_len += length
         self.paths.append(paths)
 
+        if self.config.use_filter:
+            self.update_filter_state(paths["filter_diff"])
+
         if self.paths_len >= self.config.timesteps_per_batch:
             self.trpo_update()
             self.paths_len = 0
@@ -113,6 +116,10 @@ class ParameterServer(relaax.algorithm_base.parameter_server_base.ParameterServe
 
     def filter_state(self):
         return [self.M, self.S]
+
+    def update_filter_state(self, diff):
+        self.M += diff[0]
+        self.S += diff[1]
 
 
 class _Bridge(object):
