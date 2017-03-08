@@ -82,6 +82,7 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
             print("mu=", mu_)
             print("sigma=", sig_)
             print(" V=", value_)
+            print("action=", action)
             self.metrics().scalar('server latency', time.time() - start)
 
         if self._config.reward_interval and (self.local_t % self._config.reward_interval == 0):
@@ -131,7 +132,6 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
     def _choose_action(self, mu, sig):
         act = (np.random.randn(1, self._config.action_size).astype(np.float32) * sig + mu)[0]
         if self._config.min_value is None:
-            print(act)
             return act
         return np.clip(act, self._config.min_value, self._config.max_value)
 
