@@ -46,8 +46,8 @@ class _Stub(object):
             length=length,
             state=bridge_pb2.FilterState(
                 n=length,
-                mean=_build_ndarray_message(paths["filter_diff"][0]),
-                std=_build_ndarray_message(paths["filter_diff"][1])
+                mean=_build_ndarray_message(paths["filter_diff"][1]),
+                std=_build_ndarray_message(paths["filter_diff"][2])
             )
         ))
 
@@ -88,7 +88,11 @@ class _Servicer(bridge_pb2.ParameterServerServicer):
         return bridge_pb2.Step(g=long(self._service.get_global_t()))
 
     def GetFilterState(self, request, context):
-        return request.n, _parse_ndarray_message(request.mean), _parse_ndarray_message(request.std)
+        n, mean, std = self._service.get_filter_state()
+        return bridge_pb2.FilterState(n=n,
+                                      mean=_build_ndarray_message(mean),
+                                      std=_build_ndarray_message(std)
+                                      )
 
     def WaitForIteration(self, request, context):
         return bridge_pb2.NIter(n_iter=self._service.wait_for_iteration())
@@ -102,7 +106,7 @@ class _Servicer(bridge_pb2.ParameterServerServicer):
             'terminated': request.terminated
         }, request.length, {'filter_diff': (_parse_ndarray_message(request.state.mean),
                                             _parse_ndarray_message(request.state.std))}
-        )
+                                      )
         return bridge_pb2.NullMessage()
 
     def ReceiveWeights(self, request, context):

@@ -78,8 +78,8 @@ class RunningStatExt(RunningStat):
     def set(self, n, M, S):
         self._n, self._inN = n, n
         assert M.shape == self._M.shape
-        self._M = M
-        self._S = S
+        self._M = M.copy()
+        self._S = S.copy()
         self._inM = M.copy()
         self._inS = S.copy()
 

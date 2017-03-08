@@ -43,9 +43,9 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
         if config.use_filter:
             self.obs_filter, _ = network.make_filters(config)
             state = self._parameter_server.get_filter_state()
-            print(state[0])
-            print(state[1])
-            self.obs_filter.set(state)
+            print('init n', state[0])
+            print('init mean', state[1])
+            self.obs_filter.rs.set(*state)
 
         self.server_latency_accumulator = 0     # accumulator for averaging server latency
         self.collecting_time = time.time()      # timer for collecting experience
@@ -100,7 +100,8 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
         self.data["terminated"] = terminated
         self.data["filter_diff"] = (0, np.zeros(1), np.zeros(1))
         if self._config.use_filter:
-            self.data["filter_diff"] = (self._episode_timestep, self.obs_filter.get_diff())
+            mean, std = self.obs_filter.rs.get_diff()
+            self.data["filter_diff"] = (self._episode_timestep, mean, std)
         self._parameter_server.send_experience(self._n_iter, self.data, self._episode_timestep)
 
         self.data.clear()
@@ -126,7 +127,7 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
             state = self._parameter_server.get_filter_state()
             print(state[0])
             print(state[1])
-            self.obs_filter.set(state)
+            self.obs_filter.rs.set(*state)
 
     def metrics(self):
         return self._parameter_server.metrics()
