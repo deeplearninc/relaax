@@ -71,12 +71,12 @@ class RunningStat(object):
 class RunningStatExt(RunningStat):
     def __init__(self, shape):
         super(RunningStatExt, self).__init__(shape)
+        self._inN = None
         self._inM = None
         self._inS = None
 
-    # n = self._parameter_server.increment_global_t() --> each step (?)
     def set(self, n, M, S):
-        self._n = n
+        self._n, self._inN = n, n
         assert M.shape == self._M.shape
         self._M = M
         self._S = S
@@ -84,6 +84,7 @@ class RunningStatExt(RunningStat):
         self._inS = S.copy()
 
     def get_diff(self):
-        diffM = self._M - self._inM
+        print(self._n, self._inN)
+        diffM = self._M*self._n - self._inM*self._inN
         diffS = self._S - self._inS
         return diffM, diffS
