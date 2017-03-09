@@ -25,6 +25,13 @@ class _Stub(object):
         self._stub = bridge_pb2.ParameterServerStub(grpc.insecure_channel(parameter_server))
         self._metrics = _Metrics(self._stub)
 
+    def get_global_t(self):
+        return self._stub.GetGlobalT(bridge_pb2.NullMessage()).g
+
+    def get_filter_state(self):
+        state = self._stub.GetFilterState(bridge_pb2.NullMessage())
+        return state.n, _parse_ndarray_message(state.mean), _parse_ndarray_message(state.std)
+
     def wait_for_iteration(self):
         return self._stub.WaitForIteration(bridge_pb2.NullMessage()).n_iter
 
@@ -36,7 +43,12 @@ class _Stub(object):
             prob=itertools.imap(_build_ndarray_message, paths["prob"]),
             reward=paths["reward"],
             terminated=paths["terminated"],
-            length=length
+            length=length,
+            diff=bridge_pb2.FilterState(
+                n=length,
+                mean=_build_ndarray_message(paths["filter_diff"][1]),
+                std=_build_ndarray_message(paths["filter_diff"][2])
+            )
         ))
 
     def receive_weights(self, n_iter):
@@ -72,6 +84,16 @@ class _Servicer(bridge_pb2.ParameterServerServicer):
     def __init__(self, service):
         self._service = service
 
+    def GetGlobalT(self, request, context):
+        return bridge_pb2.Step(g=long(self._service.get_global_t()))
+
+    def GetFilterState(self, request, context):
+        n, mean, std = self._service.get_filter_state()
+        return bridge_pb2.FilterState(n=n,
+                                      mean=_build_ndarray_message(mean),
+                                      std=_build_ndarray_message(std)
+                                      )
+
     def WaitForIteration(self, request, context):
         return bridge_pb2.NIter(n_iter=self._service.wait_for_iteration())
 
@@ -81,7 +103,10 @@ class _Servicer(bridge_pb2.ParameterServerServicer):
             'action': map(_parse_ndarray_message, request.action),
             'prob': map(_parse_ndarray_message, request.prob),
             'reward': numpy.array(request.reward),
-            'terminated': request.terminated
+            'terminated': request.terminated,
+            'filter_diff': (request.length,
+                            _parse_ndarray_message(request.diff.mean),
+                            _parse_ndarray_message(request.diff.std))
         }, request.length)
         return bridge_pb2.NullMessage()
 

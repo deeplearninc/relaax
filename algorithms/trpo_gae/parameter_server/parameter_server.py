@@ -42,6 +42,10 @@ class ParameterServer(relaax.algorithm_base.parameter_server_base.ParameterServe
 
         self._session.run(tf.variables_initializer(tf.global_variables()))
 
+        if config.use_filter:
+            self.M = np.zeros(config.state_size)
+            self.S = np.zeros(config.state_size)
+
         self._bridge = _Bridge(metrics, self)
         if config.async_collect:
             self._bridge = _BridgeAsync(metrics, self)
@@ -52,10 +56,7 @@ class ParameterServer(relaax.algorithm_base.parameter_server_base.ParameterServe
     def restore_latest_checkpoint(self):
         checkpoint_ids = self._saver.checkpoint_ids()
         if len(checkpoint_ids) > 0:
-            checkpoint_id = max(checkpoint_ids)
-            self._saver.restore_checkpoint(checkpoint_id)
-            self.n_iter, self.paths_len = checkpoint_id
-            self.global_step = (self.n_iter + 1) * self.config.timesteps_per_batch + self.paths_len
+            self._saver.restore_checkpoint(max(checkpoint_ids))
 
     def save_checkpoint(self):
         self._saver.save_checkpoint((self.n_iter, self.paths_len))
@@ -70,6 +71,9 @@ class ParameterServer(relaax.algorithm_base.parameter_server_base.ParameterServe
         self.global_step += length
         self.paths_len += length
         self.paths.append(paths)
+
+        if self.config.use_filter:
+            self.update_filter_state(paths["filter_diff"])
 
         if self.paths_len >= self.config.timesteps_per_batch:
             self.trpo_update()
@@ -108,11 +112,24 @@ class ParameterServer(relaax.algorithm_base.parameter_server_base.ParameterServe
     def global_t(self):
         return self.global_step
 
+    def filter_state(self):
+        return self.global_step, self.M, self.S
+
+    def update_filter_state(self, diff):
+        self.M = (self.M*self.global_step + diff[1]) / (self.global_step + diff[0])
+        self.S += diff[2]
+
 
 class _Bridge(object):
     def __init__(self, metrics, ps):
         self._metrics = metrics
         self._ps = ps
+
+    def get_global_t(self):
+        return self._ps.global_t()
+
+    def get_filter_state(self):
+        return self._ps.filter_state()
 
     def wait_for_iteration(self):
         if self._ps.is_collect:
@@ -175,7 +192,10 @@ class _Checkpoint(relaax.server.common.saver.checkpoint.Checkpoint):
         self._ps.policy_net.load_weights(os.path.join(dir, self._PNET_S % checkpoint_id))
         self._ps.value_net.load_weights(os.path.join(dir, self._VNET_S % checkpoint_id))
         with open(os.path.join(dir, self._DATA_S % checkpoint_id), 'rb') as f:
-            self._ps.paths = load(f)
+            if self._ps.config.use_filter:
+                self._ps.paths, self._ps.global_step, self._ps.M, self._ps.S = load(f)
+            else:
+                self._ps.paths, self._ps.global_step = load(f)
 
     def save_checkpoint(self, dir, checkpoint_id):
         if not os.path.exists(dir):
@@ -183,7 +203,10 @@ class _Checkpoint(relaax.server.common.saver.checkpoint.Checkpoint):
         self._ps.policy_net.save_weights(os.path.join(dir, self._PNET_S % checkpoint_id))
         self._ps.value_net.save_weights(os.path.join(dir, self._VNET_S % checkpoint_id))
         with open(os.path.join(dir, self._DATA_S % checkpoint_id), 'wb') as f:
-            dump(self._ps.paths[:], f)
+            if self._ps.config.use_filter:
+                dump((self._ps.paths[:], self._ps.global_step, self._ps.M, self._ps.S), f)
+            else:
+                dump((self._ps.paths[:], self._ps.global_step), f)
 
 
 def discount(x, gamma):
