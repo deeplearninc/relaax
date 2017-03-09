@@ -39,12 +39,12 @@ class _GameACNetwork(object):
         log_pi = tf.log(tf.clip_by_value(self.pi, 1e-20, 1.0))
 
         # policy entropy
-        entropy = -tf.reduce_sum(self.pi * log_pi, reduction_indices=1)
+        entropy = -tf.reduce_sum(self.pi * log_pi, axis=1)
 
         # policy loss (output)  (Adding minus, because the original paper's
         # objective function is for gradient ascent, but we use gradient descent optimizer)
         policy_loss = - tf.reduce_sum(
-            tf.reduce_sum(tf.mul(log_pi, self.a), reduction_indices=1) * self.td + entropy * config.ENTROPY_BETA)
+            tf.reduce_sum(tf.multiply(log_pi, self.a), axis=1) * self.td + entropy * config.ENTROPY_BETA)
 
         # R (input for value)
         self.r = tf.placeholder("float", [None])

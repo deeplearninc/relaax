@@ -1,5 +1,5 @@
 import tensorflow as tf
-from tensorflow.python.ops.rnn_cell import RNNCell
+from tensorflow.contrib.rnn import RNNCell
 
 
 class CustomBasicLSTMCell(RNNCell):
@@ -39,16 +39,16 @@ class CustomBasicLSTMCell(RNNCell):
         """Long short-term memory cell (LSTM)."""
         with tf.variable_scope(scope or type(self).__name__):  # "BasicLSTMCell"
             # Parameters of gates are concatenated into one multiply for efficiency.
-            c, h = tf.split(1, 2, state)
+            c, h = tf.split(state, 2, axis=1)
             concat = self._linear([inputs, h], 4 * self._num_units, True)
 
             # i = input_gate, j = new_input, f = forget_gate, o = output_gate
-            i, j, f, o = tf.split(1, 4, concat)
+            i, j, f, o = tf.split(concat, 4, axis=1)
 
             new_c = c * tf.sigmoid(f + self._forget_bias) + tf.sigmoid(i) * tf.tanh(j)
             new_h = tf.tanh(new_c) * tf.sigmoid(o)
 
-            return new_h, tf.concat(1, [new_c, new_h])
+            return new_h, tf.concat([new_c, new_h], axis=1)
 
     def _linear(self, args, output_size, bias, bias_start=0.0, scope=None):
         """Linear map: sum_i(args[i] * W[i]), where W[i] is a variable.
@@ -89,7 +89,7 @@ class CustomBasicLSTMCell(RNNCell):
             if len(args) == 1:
                 res = tf.matmul(args[0], matrix)
             else:
-                res = tf.matmul(tf.concat(1, args), matrix)
+                res = tf.matmul(tf.concat(args, axis=1), matrix)
             if not bias:
                 return res
             bias_term = tf.get_variable(

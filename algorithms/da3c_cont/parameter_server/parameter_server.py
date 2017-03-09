@@ -11,11 +11,9 @@ class ParameterServer(relaax.algorithm_base.parameter_server_base.ParameterServe
         self._network = network.make(config)
         self._saver = saver
 
-        initialize = tf.initialize_all_variables()
-
         self._session = tf.Session()
 
-        self._session.run(initialize)
+        self._session.run(tf.variables_initializer(tf.global_variables()))
 
         self._bridge = _Bridge(config, metrics, self._network, self._session)
 

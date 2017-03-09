@@ -83,11 +83,11 @@ class PpoLbfgsUpdater(EzFlat, EzPickle):
             kl = tf.reduce_mean(probtype.kl(oldprob_np, prob_np))
 
         # Policy gradient:
-        surr = -tf.reduce_mean(tf.mul((p_n / oldp_n), adv_n))   # tf.matmul --> .dot
+        surr = -tf.reduce_mean(tf.multiply((p_n / oldp_n), adv_n))   # tf.matmul --> .dot
 
-        pensurr = tf.select(tf.greater(kl, kl_cutoff),
-                            surr + kl_coeff * kl + 1000 * tf.square(kl - kl_cutoff),
-                            surr + kl_coeff * kl)
+        pensurr = tf.where(tf.greater(kl, kl_cutoff),
+                           surr + kl_coeff * kl + 1000 * tf.square(kl - kl_cutoff),
+                           surr + kl_coeff * kl)
         g = flatgrad(pensurr, params)
 
         losses = [surr, kl, ent]

@@ -73,7 +73,7 @@ class TrpoUpdater(EzFlat, EzPickle):
         oldlogp_n = probtype.loglikelihood(act_na, oldprob_np)
 
         # Policy gradient:
-        surr = -tf.reduce_mean(tf.mul(tf.exp(logp_n - oldlogp_n), adv_n))
+        surr = -tf.reduce_mean(tf.multiply(tf.exp(logp_n - oldlogp_n), adv_n))
         pg = flatgrad(surr, params)
 
         N = tf.cast(tf.shape(ob_no)[0], tf.float32)

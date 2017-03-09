@@ -38,16 +38,16 @@ class _GameACNetwork(object):
         log_pi = tf.log(self.sigma2 + 1e-20)
 
         # policy entropy
-        entropy = -tf.reduce_sum(0.5 * (tf.log(2. * np.pi * self.sigma2) + 1.), reduction_indices=1)
+        entropy = -tf.reduce_sum(0.5 * (tf.log(2. * np.pi * self.sigma2) + 1.), axis=1)
 
         # policy loss (output)
         b_size = tf.to_float(tf.size(self.a) / config.action_size)
         x_prec = tf.exp(-log_pi)
-        x_diff = tf.sub(self.a, self.mu)
+        x_diff = tf.subtract(self.a, self.mu)
         x_power = tf.square(x_diff) * x_prec * -0.5
-        gaussian_nll = (tf.reduce_sum(log_pi, reduction_indices=1)
-                        + b_size * tf.log(2. * np.pi)) / 2. - tf.reduce_sum(x_power, reduction_indices=1)
-        policy_loss = tf.mul(gaussian_nll, tf.stop_gradient(self.td)) + config.ENTROPY_BETA * entropy
+        gaussian_nll = (tf.reduce_sum(log_pi, axis=1)
+                        + b_size * tf.log(2. * np.pi)) / 2. - tf.reduce_sum(x_power, axis=1)
+        policy_loss = tf.multiply(gaussian_nll, tf.stop_gradient(self.td)) + config.ENTROPY_BETA * entropy
 
         # R (input for value)
         self.r = tf.placeholder("float", [None])
