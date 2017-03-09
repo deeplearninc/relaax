@@ -233,7 +233,8 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
     ...
 ```
 
-We've got the `parameter_server` as our member for further interaction.
+We've got the `parameter_server` as our member for further interaction,
+but truly we've got here a bridge which presents the API to interact with `parameter_server`
 
 By calling `make_network(config)` we define an Agent's neural network, which we described above.
 
