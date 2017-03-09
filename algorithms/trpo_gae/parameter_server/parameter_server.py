@@ -7,7 +7,6 @@ import tensorflow as tf
 import numpy as np
 from scipy.signal import lfilter
 from time import time, sleep
-from saver import KerasSaver as Saver
 from cPickle import load, dump    # ujson
 
 import relaax.server.common.saver.checkpoint
