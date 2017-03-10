@@ -17,69 +17,43 @@ _logger = logging.getLogger(__name__)
 
 
 class S3Saver(saver.Saver):
-    def __init__(self, bucket, key, aws_access_key=None, aws_secret_key=None):
+    def __init__(self, checkpoint, bucket, key, aws_access_key=None, aws_secret_key=None):
         super(S3Saver, self).__init__()
+        self._checkpoint = checkpoint
         self._bucket = bucket
         self._key = key
         self._aws_access_key = aws_access_key
         self._aws_secret_key = aws_secret_key
 
-    def global_steps(self):
-        steps = set()
-        for name in self._list_objects('%s-' % self._CHECKPOINT_PREFIX):
-            match = re.match('^%s-(\d+)(?:|\..+)$' % self._CHECKPOINT_PREFIX, name)
-            if match is not None:
-                steps.add(int(match.group(1)))
-        return steps
+    def checkpoint_ids(self):
+        return self._checkpoint.checkpoint_ids(self._listdir())
 
-    def remove_checkpoint(self, global_step):
+    def remove_checkpoint(self, checkpoint_id):
         removed = False
-        for name in self._list_objects('%s-%d' % (self._CHECKPOINT_PREFIX, global_step)):
-            match = re.match('^%s-\d+(?:|\..+)$' % self._CHECKPOINT_PREFIX, name)
-            if match is not None:
-                self._remove(name)
-                removed = True
+        for name in self._checkpoint.checkpoint_names(self._listdir(), checkpoint_id):
+            self._remove(name)
+            removed = True
         if removed:
-            _logger.info('checkpoint {} was removed from {} bucket {} key'.format(global_step, self._bucket, self._key))
+            _logger.info('checkpoint {} was removed from {} bucket {} key'.format(checkpoint_id, self._bucket, self._key))
 
-    def restore_checkpoint(self, session, global_step):
+    def restore_checkpoint(self, checkpoint_id):
         with _temp_dir() as dir:
-            for name in self._list_objects('%s-%d' % (self._CHECKPOINT_PREFIX, global_step)):
-                match = re.match('^%s-\d+(?:|\..+)$' % self._CHECKPOINT_PREFIX, name)
-                if match is not None:
-                    self._download(dir, name)
-            tensorflow.train.Saver().restore(
-                session,
-                os.path.join(dir, '%s-%d' % (self._CHECKPOINT_PREFIX, global_step))
-            )
-        _logger.info('checkpoint {} was restored from {} bucket {} key'.format(global_step, self._bucket, self._key))
+            for name in self._checkpoint.checkpoint_names(self._listdir(), checkpoint_id):
+                self._download(dir, name)
+            self._checkpoint.restore_checkpoint(dir, checkpoint_id)
+        _logger.info('checkpoint {} was restored from {} bucket {} key'.format(checkpoint_id, self._bucket, self._key))
 
-    def save_checkpoint(self, session, global_step):
+    def save_checkpoint(self, checkpoint_id):
         with _temp_dir() as dir:
-            tensorflow.train.Saver().save(
-                session,
-                '%s/%s' % (dir, self._CHECKPOINT_PREFIX),
-                global_step=global_step
-            )
+            self._checkpoint.save_checkpoint(dir, checkpoint_id)
+            for name in os.listdir(dir):
+                self._upload(dir, name)
+        _logger.info('checkpoint {} was saved to {} bucket {} key'.format(checkpoint_id, self._bucket, self._key))
 
-            for name in self._list_entries(dir, '%s-%d' % (self._CHECKPOINT_PREFIX, global_step)):
-                match = re.match('^%s-\d+(?:|\..+)$' % self._CHECKPOINT_PREFIX, name)
-                if match is not None:
-                    self._upload(dir, name)
-        _logger.info('checkpoint {} was saved to {} bucket {} key'.format(global_step, self._bucket, self._key))
-
-    def _list_entries(self, dir, prefix):
-        for name in os.listdir(dir):
-            if (
-                (name == prefix or name.startswith('%s.' % prefix)) and
-                os.path.isfile(os.path.join(dir, name))
-            ):
-                yield name
-
-    def _list_objects(self, prefix):
-        full_prefix = '%s/%s' % (self._key, prefix)
-        for obj in self._s3().Bucket(self._bucket).objects.filter(Prefix=full_prefix):
-            assert obj.key.startswith(full_prefix)
+    def _listdir(self):
+        prefix = '%s/' % self._key
+        for obj in self._s3().Bucket(self._bucket).objects.filter(Prefix=prefix):
+            assert obj.key.startswith(prefix)
             yield obj.key[len(self._key) + 1:]
 
     def _download(self, dir, name):

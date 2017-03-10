@@ -1,7 +1,7 @@
 
 
 class ParameterServerBase(object):
-    def __init__(self, config, saver, metrics):
+    def __init__(self, config, saver_factory, metrics):
         raise NotImplementedError
 
     def close(self):

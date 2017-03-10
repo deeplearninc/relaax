@@ -12,42 +12,31 @@ _logger = logging.getLogger(__name__)
 
 
 class FsSaver(saver.Saver):
-    def __init__(self, dir):
+    def __init__(self, checkpoint, dir):
         super(FsSaver, self).__init__()
+        self._checkpoint = checkpoint
         self._dir = dir
 
-    def global_steps(self):
-        steps = set()
+    def checkpoint_ids(self):
+        names = []
         if os.path.exists(self._dir):
-            for name in os.listdir(self._dir):
-                match = re.match('^%s-(\d+)(|\..+)$' % self._CHECKPOINT_PREFIX, name)
-                if match is not None:
-                    steps.add(int(match.group(1)))
-        return steps
+            names = os.listdir(self._dir)
+        return self._checkpoint.checkpoint_ids(names)
 
-    def remove_checkpoint(self, global_step):
+    def remove_checkpoint(self, checkpoint_id):
         removed = False
-        for name in os.listdir(self._dir):
-            match = re.match('^%s-%d(?:|\..+)$' % (self._CHECKPOINT_PREFIX, global_step), name)
-            if match is not None:
-                os.remove(os.path.join(self._dir, name))
-                removed = True
+        for name in self._checkpoint.checkpoint_names(os.listdir(self._dir), checkpoint_id):
+            os.remove(os.path.join(self._dir, name))
+            removed = True
         if removed:
-            _logger.info('checkpoint {} was removed from {} dir'.format(global_step, self._dir))
+            _logger.info('checkpoint {} was removed from {} dir'.format(checkpoint_id, self._dir))
 
-    def restore_checkpoint(self, session, global_step):
-        tensorflow.train.Saver().restore(
-            session,
-            os.path.join(self._dir, '%s-%d' % (self._CHECKPOINT_PREFIX, global_step))
-        )
-        _logger.info('checkpoint {} was restored from {} dir'.format(global_step, self._dir))
+    def restore_checkpoint(self, checkpoint_id):
+        self._checkpoint.restore_checkpoint(self._dir, checkpoint_id)
+        _logger.info('checkpoint {} was restored from {} dir'.format(checkpoint_id, self._dir))
 
-    def save_checkpoint(self, session, global_step):
+    def save_checkpoint(self, checkpoint_id):
         if not os.path.exists(self._dir):
             os.makedirs(self._dir)
-        tensorflow.train.Saver().save(
-            session,
-            '%s/%s' % (self._dir, self._CHECKPOINT_PREFIX),
-            global_step=global_step
-        )
-        _logger.info('checkpoint {} was saved to {} dir'.format(global_step, self._dir))
+        self._checkpoint.save_checkpoint(self._dir, checkpoint_id)
+        _logger.info('checkpoint {} was saved to {} dir'.format(checkpoint_id, self._dir))

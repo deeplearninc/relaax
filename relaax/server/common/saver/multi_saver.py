@@ -8,22 +8,22 @@ class MultiSaver(saver.Saver):
         super(MultiSaver, self).__init__()
         self._savers = savers
 
-    def global_steps(self):
+    def checkpoint_ids(self):
         steps = set()
         for s in self._savers:
-            steps |= s.global_steps()
+            steps |= s.checkpoint_ids()
         return steps
 
-    def remove_checkpoint(self, global_step):
+    def remove_checkpoint(self, checkpoint_id):
         for s in self._savers:
-            s.remove_checkpoint(global_step)
+            s.remove_checkpoint(checkpoint_id)
 
-    def restore_checkpoint(self, session, global_step):
+    def restore_checkpoint(self, checkpoint_id):
         for s in reversed(self._savers):
-            if global_step in s.global_steps():
-                s.restore_checkpoint(session, global_step)
+            if checkpoint_id in s.checkpoint_ids():
+                s.restore_checkpoint(checkpoint_id)
                 break
 
-    def save_checkpoint(self, session, global_step):
+    def save_checkpoint(self, checkpoint_id):
         for s in self._savers:
-            s.save_checkpoint(session, global_step)
+            s.save_checkpoint(checkpoint_id)
