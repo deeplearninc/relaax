@@ -2,15 +2,15 @@
 
 RELAAX is a framework designed to:
 
-1. Simplify research and development of Reinforcement Learning applications and algorithms by taking care of underlying infrastructure
+1. Simplify research and development of Reinforcement Learning applications by taking care of underlying infrastructure
 
-2. Provide a usable and scalable implementation of state of art Reinforcement Learning Algorithms
+2. Provide a usable and scalable implementation of state of the art Reinforcement Learning Algorithms
 
-3. Simplify deploying of Agents and Environments for training and exploitation of the trained Agents at scale on popular cloud platforms
+3. Ease deployment of Agents and Environments for training and exploitation of the trained Agents at scale on popular cloud platforms
 
-RELAAX components:
+The components of RELAAX include:
 
-* [Reinforcement Learning eXchange (RLX) protocol](#reinforcement-learning-exchange-protocol) connects RL Agents with RL Environment
+* [Reinforcement Learning eXchange (RLX) protocol](#reinforcement-learning-exchange-protocol) connects RL Agents with an RL Environment
 
 * [RELAAX Client](#relaax-clients) wraps details of the [RLX Protocol](#reinforcement-learning-exchange-protocol) implementation and exposes simple API to be used to exchange States, Rewards, and Actions between the scalable RL Server and Environment. 
 
