@@ -1,9 +1,5 @@
 #!/bin/bash
 
-X11_WINDOW_MANAGER="$1"
-shift;
-echo "X11 WINDOW MANAGER: ${X11_WINDOW_MANAGER}"
-
 # DEFAULT VALUES
 NUM=1    # number of clients to run
 ARGS=""  # concat all args to one string
@@ -91,7 +87,6 @@ echo "ARGS = ${ARGS}"
 PIDS=()
 for i in `seq 0 $((NUM - 1))`;
 do
-$X11_WINDOW_MANAGER &
 ./main $ARGS &
 PIDS+=($!)
 done
