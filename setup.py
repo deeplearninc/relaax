@@ -24,7 +24,7 @@ setup(
         'keras==1.2.1',
         'h5py',
         'mock',
-        'tensorflow==0.12.1'
+        'tensorflow'
     ],
     provides=['relaax'],
     scripts=[
