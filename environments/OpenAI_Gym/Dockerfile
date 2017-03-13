@@ -31,7 +31,7 @@ RUN apt-get update \
     && cd /opt \
     && git clone https://github.com/deeplearninc/relaax.git \
     && cd relaax \
-    && git checkout v2 \
+    && git checkout v2_dockers \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /root/.cache/pip/
 
