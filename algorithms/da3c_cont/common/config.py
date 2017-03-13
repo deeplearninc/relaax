@@ -22,6 +22,9 @@ class Config(relaax.algorithm_base.config_base.ConfigBase):
         # local loop size for one episode
         self.episode_len = config.get('episode_len', 5)
 
+        # it has 2 options for type of loss function: A or B (B is set by default)
+        self.loss_type = config.get('loss_type', 'B')
+
         # to use GPU, set to the True
         self.use_GPU = config.get('gpu', False)
 

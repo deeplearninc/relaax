@@ -28,6 +28,7 @@ algorithm:
   state_size: [24]                # array of dimensions for the input observation
   history_len: 1                  # number of observations to stack in state
   episode_len: 5                  # local loop size for one episode
+  loss_type: 1                    # it has 2 options for type of loss function: A or B (B is set by default)
   gpu: false                      # to use GPU, set to the True
   lstm: false                     # to use LSTM instead of FF, set to the True
   max_global_step: 1e8            # amount of maximum global steps to pass through the training

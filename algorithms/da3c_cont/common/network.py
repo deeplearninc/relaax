@@ -37,7 +37,7 @@ class _GameACNetwork(object):
         # R (input for value)
         self.r = tf.placeholder("float", [None])
 
-        if False:
+        if config.loss_type == 'A':
             normal_dist = tf.contrib.distributions.Normal(self.mu, self.sigma2)
             loss = -tf.reduce_mean(tf.reduce_sum(normal_dist.log_prob(self.a), axis=1) * self.td)  # self.v
             loss -= 1e-1 * normal_dist.entropy()
@@ -46,7 +46,7 @@ class _GameACNetwork(object):
             value_loss = tf.reduce_mean(tf.square(self.r - self.v))
 
             self.total_loss = policy_loss + value_loss
-        else:
+        elif config.loss_type == 'B':
             log_pi = tf.log(self.sigma2)
 
             # policy entropy
@@ -67,6 +67,8 @@ class _GameACNetwork(object):
 
             # gradient of policy and value are summed up
             self.total_loss = policy_loss + value_loss
+        else:
+            assert False, 'You have to define your own loss'
 
         return self
 
