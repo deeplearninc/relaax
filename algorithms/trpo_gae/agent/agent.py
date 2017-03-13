@@ -1,6 +1,7 @@
 from __future__ import print_function
 
 import tensorflow as tf
+import numpy as np
 import time
 from collections import defaultdict
 
@@ -30,8 +31,6 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
         keras.backend.set_session(self._session)
 
         self.policy_net, value_net = network.make(config)
-        self.obs_filter, self.reward_filter = network.make_filters(config)
-
         self.policy, _ = network.make_head(config, self.policy_net, value_net, self._session)
 
         self._session.run(tf.variables_initializer(tf.global_variables()))
@@ -41,13 +40,20 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
             list(self._parameter_server.receive_weights(self._n_iter))
         )
 
+        if config.use_filter:
+            self.obs_filter, _ = network.make_filters(config)
+            state = self._parameter_server.get_filter_state()
+            self.obs_filter.rs.set(*state)
+
         self.server_latency_accumulator = 0     # accumulator for averaging server latency
         self.collecting_time = time.time()      # timer for collecting experience
 
     def act(self, state):
         start = time.time()
 
-        obs = self.obs_filter(state)
+        obs = state
+        if self._config.use_filter:
+            obs = self.obs_filter(state)
         self.data["observation"].append(obs)
 
         action, agentinfo = self.policy.act(obs)
@@ -91,6 +97,10 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
 
     def _send_experience(self, terminated=False):
         self.data["terminated"] = terminated
+        self.data["filter_diff"] = (0, np.zeros(1), np.zeros(1))
+        if self._config.use_filter:
+            mean, std = self.obs_filter.rs.get_diff()
+            self.data["filter_diff"] = (self._episode_timestep, mean, std)
         self._parameter_server.send_experience(self._n_iter, self.data, self._episode_timestep)
 
         self.data.clear()
@@ -111,6 +121,10 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
             print('Collecting time for {} iteration: {}'.format(old_n_iter+1, time.time() - self.collecting_time))
             self.policy.net.set_weights(list(self._parameter_server.receive_weights(self._n_iter)))
             self.collecting_time = time.time()
+
+        if self._config.use_filter:
+            state = self._parameter_server.get_filter_state()
+            self.obs_filter.rs.set(*state)
 
     def metrics(self):
         return self._parameter_server.metrics()

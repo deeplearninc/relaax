@@ -222,18 +222,17 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
         self.actions = []           # auxiliary actions accumulator through batch_size = 0..N
         self.rewards = []           # auxiliary rewards accumulator through batch_size = 0..N
 
-        initialize_all_variables = tf.variables_initializer(tf.global_variables())
-
         self._session = tf.Session()
 
-        self._session.run(initialize_all_variables)
+        self._session.run(tf.variables_initializer(tf.global_variables()))
 
         # copy weights from parameter server (shared) to local agent
         self._local_network.assign_values(self._session, self._parameter_server.get_values())
     ...
 ```
 
-We've got the `parameter_server` as our member for further interaction.
+We've got the `parameter_server` as our member for further interaction,
+but truly we've got here a bridge which presents the API to interact with `parameter_server`
 
 By calling `make_network(config)` we define an Agent's neural network, which we described above.
 

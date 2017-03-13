@@ -9,12 +9,12 @@ import relaax.common.metrics
 from ..common import algorithm_loader
 
 
-def run(yaml, bind, saver, intervals, metrics):
+def run(yaml, bind, saver_factory, intervals, metrics):
     algorithm = algorithm_loader.load(yaml['path'])
 
     parameter_server = algorithm.ParameterServer(
         config=algorithm.Config(yaml),
-        saver=saver,
+        saver_factory=saver_factory,
         metrics=_Metrics(metrics, lambda: parameter_server.global_t())
     )
 
@@ -67,7 +67,6 @@ def run(yaml, bind, saver, intervals, metrics):
             if i.check():
                 save = True
         if save:
-            print('SAVE')
             _save(parameter_server, last_saved_global_t)
             last_saved_global_t = parameter_server.global_t()
 

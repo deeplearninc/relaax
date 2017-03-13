@@ -41,11 +41,9 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
         self.obs_size = int(np.prod(np.array(config.state_size)))
         self.obfilter = ZFilter(tuple([self.obs_size]), clip=5)
 
-        initialize_all_variables = tf.initialize_all_variables()
-
         self._session = tf.Session()
 
-        self._session.run(initialize_all_variables)
+        self._session.run(tf.variables_initializer(tf.global_variables()))
 
     def act(self, state):
         start = time.time()

@@ -798,7 +798,7 @@ relaax
   algorithm_base
     parameter_server_base.py
       class ParameterServerBase
-        def __init__(config, saver, metrics)             - initialize parameter server
+        def __init__(config, saver_factory, metrics)     - initialize parameter server
         def close():                                     - close parameter server
         def restore_latest_checkpoint():                 - restore latest checkpoint
         def save_checkpoint():                           - save new checkpoint

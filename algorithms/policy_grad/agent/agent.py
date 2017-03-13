@@ -32,11 +32,9 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
                 self._config.state_size = [config.state_size]
             self.prev_state = np.zeros(self._config.state_size)
 
-        initialize_all_variables = tf.variables_initializer(tf.global_variables())
-
         self._session = tf.Session()
 
-        self._session.run(initialize_all_variables)
+        self._session.run(tf.variables_initializer(tf.global_variables()))
 
     def act(self, state):
         start = time.time()

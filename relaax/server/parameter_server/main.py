@@ -66,7 +66,7 @@ def main():
     relaax.server.parameter_server.server.run(
         yaml=yaml['algorithm'],
         bind=args.bind,
-        saver=_saver(args),
+        saver_factory=lambda checkpoint: _saver(args, checkpoint),
         intervals={
             'checkpoint_time_interval': args.checkpoint_time_interval,
             'checkpoint_global_step_interval': args.checkpoint_global_step_interval
@@ -80,13 +80,14 @@ def _load_yaml(path):
         return ruamel.yaml.load(f, Loader=ruamel.yaml.Loader)
 
 
-def _saver(args):
+def _saver(args, checkpoint):
     savers = []
 
     if args.checkpoint_dir is not None:
-        savers.append(
-            relaax.server.common.saver.fs_saver.FsSaver(args.checkpoint_dir)
-        )
+        savers.append(relaax.server.common.saver.fs_saver.FsSaver(
+            checkpoint=checkpoint,
+            dir=args.checkpoint_dir
+        ))
 
     if args.checkpoint_aws_s3 is not None:
         if args.aws_keys is None:
@@ -97,8 +98,11 @@ def _saver(args):
             aws_access_key = aws_keys['access']
             aws_secret_key = aws_keys['secret']
 
+        bucket, key = args.checkpoint_aws_s3
         savers.append(relaax.server.common.saver.s3_saver.S3Saver(
-            *args.checkpoint_aws_s3,
+            checkpoint=checkpoint,
+            bucket=bucket,
+            key=key,
             aws_access_key=aws_access_key,
             aws_secret_key=aws_secret_key
         ))

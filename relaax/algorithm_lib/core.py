@@ -33,7 +33,7 @@ class ConcatFixedStd(Layer):
     def call(self, x, mask):
         Mean = x  # Mean = x * 0.1
         Std = tf.tile(tf.reshape(tf.exp(self.logstd), [1, -1]), (tf.shape(Mean)[0], 1))
-        return tf.concat(1, [Mean, Std])
+        return tf.concat([Mean, Std], axis=1)
 
 
 # ================================================================
@@ -107,8 +107,8 @@ class DiagGauss(ProbType):
     def loglikelihood(self, a, prob):
         mean0 = prob[:, :self.d]
         std0 = prob[:, self.d:]
-        return - 0.5 * tf.reduce_sum(tf.square((a - mean0) / std0), 1) \
-               - 0.5 * tf.log(2.0 * np.pi) * self.d - tf.reduce_sum(tf.log(std0), 1)
+        return - 0.5 * tf.reduce_sum(tf.square((a - mean0) / std0), axis=1) \
+               - 0.5 * tf.log(2.0 * np.pi) * self.d - tf.reduce_sum(tf.log(std0), axis=1)
 
     def likelihood(self, a, prob):
         return tf.exp(self.loglikelihood(a, prob))
@@ -118,12 +118,12 @@ class DiagGauss(ProbType):
         std0 = prob0[:, self.d:]
         mean1 = prob1[:, :self.d]
         std1 = prob1[:, self.d:]
-        return tf.reduce_sum(tf.log(std1 / std0), 1) + tf.reduce_sum(
-            ((tf.square(std0) + tf.square(mean0 - mean1)) / (2.0 * tf.square(std1))), 1) - 0.5 * self.d
+        return tf.reduce_sum(tf.log(std1 / std0), axis=1) + tf.reduce_sum(
+            ((tf.square(std0) + tf.square(mean0 - mean1)) / (2.0 * tf.square(std1))), axis=1) - 0.5 * self.d
 
     def entropy(self, prob):
         std_nd = prob[:, self.d:]
-        return tf.reduce_sum(tf.log(std_nd), 1) + .5 * np.log(2 * np.pi * np.e) * self.d
+        return tf.reduce_sum(tf.log(std_nd), axis=1) + .5 * np.log(2 * np.pi * np.e) * self.d
 
     def sample(self, prob):
         mean_nd = prob[:, :self.d]
@@ -222,13 +222,13 @@ def numel(x):
 
 def flatgrad(loss, var_list):
     grads = tf.gradients(loss, var_list)
-    return tf.concat(0, [tf.reshape(grad, [numel(v)]) for (v, grad) in zip(var_list, grads)])
+    return tf.concat([tf.reshape(grad, [numel(v)]) for (v, grad) in zip(var_list, grads)], axis=0)
 
 
 class GetFlat(object):
     def __init__(self, var_list, session):
         self.session = session
-        self.op = tf.concat(0, [tf.reshape(v, [numel(v)]) for v in var_list])
+        self.op = tf.concat([tf.reshape(v, [numel(v)]) for v in var_list], axis=0)
 
     def __call__(self):
         return self.op.eval(session=self.session)
