@@ -28,7 +28,7 @@ class GlobalPolicyNN(object):
         self.values = [tf.get_variable('W0', shape=[self._input_size, config.layers_size[0]],
                                        initializer=tf.contrib.layers.xavier_initializer())]
         idx = len(config.layers_size)
-        for i in range(1, idx-1):
+        for i in range(1, idx):
             self.values.append(tf.get_variable('W%d' % i, shape=[config.layers_size[i-1], config.layers_size[i]],
                                                initializer=tf.contrib.layers.xavier_initializer()))
         self.values.append(tf.get_variable('W%d' % idx, shape=[config.layers_size[-1], self._action_size],
@@ -38,6 +38,9 @@ class GlobalPolicyNN(object):
         self._assign_values = tf.group(*[
             tf.assign(v, p) for v, p in zip(self.values, self._placeholders)
             ])
+
+        for val in self.values:
+            print(val.name, val.get_shape())
 
         self.gradients = [tf.placeholder(v.dtype, v.get_shape()) for v in self.values]
         self.learning_rate = config.learning_rate
@@ -67,7 +70,7 @@ class AgentPolicyNN(GlobalPolicyNN):
         self.s = tf.placeholder(tf.float32, [None, self._input_size])
 
         structure = [tf.nn.relu(tf.matmul(self.s, self.values[0]))]
-        for i in range(1, len(self.values) - 2):
+        for i in range(1, len(self.values) - 1):
             structure.append(tf.nn.relu(tf.matmul(structure[i-1], self.values[i])))
 
         # policy (output)
