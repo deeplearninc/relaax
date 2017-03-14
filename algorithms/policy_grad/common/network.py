@@ -39,9 +39,6 @@ class GlobalPolicyNN(object):
             tf.assign(v, p) for v, p in zip(self.values, self._placeholders)
             ])
 
-        for val in self.values:
-            print(val.name, val.get_shape())
-
         self.gradients = [tf.placeholder(v.dtype, v.get_shape()) for v in self.values]
         self.learning_rate = config.learning_rate
 
