@@ -63,6 +63,17 @@ case $key in
     ARGS+="--rnd $RND "
     shift # rm argument=value
     ;;
+    -f|--frame-skip)
+    shift # rm argument
+    SKIP="$1"
+    ARGS+="--frame-skip $SKIP "
+    shift # rm value
+    ;;
+    -f=*|--frame-skip=*)
+    SKIP="${key#*=}"
+    ARGS+="--frame-skip $SKIP "
+    shift # rm argument=value
+    ;;
     -n|--num)
     shift # rm argument
     NUM="$1"
