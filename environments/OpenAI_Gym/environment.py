@@ -32,6 +32,7 @@ def run(rlx_server_url, env, seed, limit, rnd):
                 action = client.init(game.state())
                 client_latency, acts = 0, 0
                 while True:
+                    start = time()
                     reward, reset = game.act(action)
                     if reset:
                         episode_score = client.reset(reward)
@@ -39,14 +40,13 @@ def run(rlx_server_url, env, seed, limit, rnd):
                         print('Score at round', n_game, '=', episode_score)
                         game.reset()
                         action = _send(client, None, game.state())
-                        if acts:
-                            client.metrics().scalar('client latency', client_latency / acts)
-                            client_latency, acts = 0, 0
                     else:
-                        start = time()
                         action = _send(client, reward, game.state())
-                        client_latency += time() - start
-                        acts += 1
+                    client_latency += time() - start
+                    acts += 1
+                    if acts > 250:
+                        client.metrics().scalar('client latency', client_latency / acts)
+                        client_latency, acts = 0, 0
             finally:
                 client.disconnect()
         except rlx_client.Failure as e:
