@@ -7,16 +7,15 @@ import ale_python_interface
 
 
 class GameProcessFactory(object):
-    def __init__(self, rom, display, frame_skip):
+    def __init__(self, rom, display):
         self._rom = rom
         self._display = display
-        self._frame_skip = frame_skip
 
-    def new_env(self, seed):
-        return _GameProcess(seed, self._rom, self._display, self._frame_skip)
+    def new_env(self, seed, frame_skip):
+        return _GameProcess(seed, self._rom, self._display, frame_skip)
 
-    def new_display_env(self, seed):
-        return _GameProcess(seed, self._rom, display=True, frame_skip=self._frame_skip, no_op_max=0)
+    def new_display_env(self, seed, frame_skip):
+        return _GameProcess(seed, self._rom, display=True, frame_skip=frame_skip, no_op_max=0)
 
 
 class _GameProcess(object):

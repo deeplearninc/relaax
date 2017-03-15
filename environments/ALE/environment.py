@@ -12,7 +12,7 @@ from . import game_process
 
 def run(rlx_server_url, rom, display, seed, frame_skip):
     n_game = 0
-    game = game_process.GameProcessFactory(rom, display, frame_skip).new_env(_seed(seed))
+    game = game_process.GameProcessFactory(rom, display).new_env(_seed(seed), frame_skip)
 
     while True:
         try:

@@ -30,6 +30,7 @@ def main():
     parser.add_argument('--seed', type=int, default=None, help='Seed for random generator')
     parser.add_argument('--limit', type=int, default=None, help='Steps limit for the episode')
     parser.add_argument('--rnd', type=int, default=7, help='Random steps to initialize environment')
+    parser.add_argument('--frame-skip', type=int, default=None, help='Number of frames to skip between actions')
     args = parser.parse_args()
 
     run(
@@ -37,7 +38,8 @@ def main():
         env=args.env,
         seed=args.seed,
         limit=args.limit,
-        rnd=args.rnd
+        rnd=args.rnd,
+        frame_skip=args.frame_skip
     )
 
 
