@@ -13,11 +13,11 @@ class GameProcessFactory(object):
         self._display = display
         self._action_size = action_size
 
-    def new_env(self, seed, frame_skip):
-        return _GameProcess(seed, self._level, self._width, self._height, frame_skip, self._display, self._action_size)
+    def new_env(self, fps, frame_skip):
+        return _GameProcess(fps, self._level, self._width, self._height, frame_skip, self._display, self._action_size)
 
-    def new_display_env(self, seed, frame_skip):
-        return _GameProcess(seed, self._level, self._width, self._height, frame_skip, display=True, no_op_max=0)
+    def new_display_env(self, fps, frame_skip):
+        return _GameProcess(fps, self._level, self._width, self._height, frame_skip, display=True, no_op_max=0)
 
 
 class _GameProcess(object):

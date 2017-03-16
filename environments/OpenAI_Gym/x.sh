@@ -1,9 +1,5 @@
 #!/bin/bash
 
-X11_WINDOW_MANAGER="$1"
-shift;
-echo "X11 WINDOW MANAGER: ${X11_WINDOW_MANAGER}"
-
 # DEFAULT VALUES
 NUM=1    # number of clients to run
 ARGS=""  # concat all args to one string
@@ -67,6 +63,17 @@ case $key in
     ARGS+="--rnd $RND "
     shift # rm argument=value
     ;;
+    -f|--frame-skip)
+    shift # rm argument
+    SKIP="$1"
+    ARGS+="--frame-skip $SKIP "
+    shift # rm value
+    ;;
+    -f=*|--frame-skip=*)
+    SKIP="${key#*=}"
+    ARGS+="--frame-skip $SKIP "
+    shift # rm argument=value
+    ;;
     -n|--num)
     shift # rm argument
     NUM="$1"
@@ -91,7 +98,6 @@ echo "ARGS = ${ARGS}"
 PIDS=()
 for i in `seq 0 $((NUM - 1))`;
 do
-$X11_WINDOW_MANAGER &
 ./main $ARGS &
 PIDS+=($!)
 done

@@ -1,5 +1,4 @@
 import imp
-import os
 import sys
 import numpy as np
 from scipy.misc import imresize
@@ -12,11 +11,11 @@ class GameProcessFactory(object):
         self._rom = rom
         self._display = display
 
-    def new_env(self, seed):
-        return _GameProcess(seed, self._rom, self._display)
+    def new_env(self, seed, frame_skip):
+        return _GameProcess(seed, self._rom, self._display, frame_skip)
 
-    def new_display_env(self, seed):
-        return _GameProcess(seed, self._rom, display=True, no_op_max=0)
+    def new_display_env(self, seed, frame_skip):
+        return _GameProcess(seed, self._rom, display=True, frame_skip=frame_skip, no_op_max=0)
 
 
 class _GameProcess(object):

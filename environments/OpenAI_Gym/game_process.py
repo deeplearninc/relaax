@@ -3,18 +3,19 @@ from scipy.misc import imresize
 
 import gym    # you should install gym via pip
 from gym.spaces import Box  # check continuous
+from gym.wrappers.frame_skipping import SkipWrapper
 
 
 class GameProcessFactory(object):
-    def __init__(self, env, limit):
+    def __init__(self, env, rnd):
         self._env = env
-        self._limit = limit
+        self._rnd = rnd
 
-    def new_env(self, seed, rnd):
-        return _GameProcess(seed, self._env, no_op_max=rnd, limit=self._limit)
+    def new_env(self, seed, limit, frame_skip):
+        return _GameProcess(seed, self._env, no_op_max=self._rnd, limit=limit, frame_skip=frame_skip)
 
-    def new_display_env(self, seed):
-        return _GameProcess(seed, self._env, display=True, no_op_max=0, limit=self._limit)
+    def new_display_env(self, seed, limit, frame_skip):
+        return _GameProcess(seed, self._env, display=True, no_op_max=0, limit=limit, frame_skip=frame_skip)
 
 
 class SetFunction(object):
@@ -40,8 +41,12 @@ class _GameProcess(object):
         'Tennis', 'TimePilot', 'Tutankham', 'UpNDown', 'Venture',
         'VideoPinball', 'WizardOfWor', 'YarsRevenge', 'Zaxxon']
 
-    def __init__(self, rand_seed, env, display=False, no_op_max=7, limit=None):
+    def __init__(self, rand_seed, env, display=False, no_op_max=7, limit=None, frame_skip=None):
         self.gym = gym.make(env)
+        if frame_skip is not None:
+            skip_wrapper = SkipWrapper(frame_skip)
+            self.gym = skip_wrapper(self.gym)
+
         self.gym.seed(rand_seed)
         self._no_op_max = no_op_max
 

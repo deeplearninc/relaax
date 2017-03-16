@@ -23,22 +23,17 @@ RUN apt-get update \
         xvfb \
         x11vnc \
         # additional things
-        ratpoison \
         libvncserver-dev \
     && pip install -U pip \
     # Install OpenAI Gym
     && pip install gym[all] \
+    # Add RELAAX to the image
+    && cd /opt \
+    && git clone https://github.com/deeplearninc/relaax.git \
+    && cd relaax \
+    && git checkout v2_dockers \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /root/.cache/pip/
-
-# Add RELAAX to the image
-RUN mkdir /opt/relaax
-COPY algorithms /opt/relaax/algorithms
-COPY bin /opt/relaax/bin
-COPY config /opt/relaax/config
-COPY environments /opt/relaax/environments
-COPY relaax /opt/relaax/relaax
-COPY setup.py /opt/relaax/
 
 # Xvnc
 EXPOSE 5900

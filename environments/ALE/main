@@ -29,13 +29,15 @@ def main():
     parser.add_argument('--rom', type=str, help='Atari game ROM file')
     parser.add_argument('--display', type=bool, default=False, help='Activate display screen')
     parser.add_argument('--seed', type=int, default=None, help='Seed for random generator')
+    parser.add_argument('--frame-skip', type=int, default=4, help='Number of frames to skip between actions')
     args = parser.parse_args()
 
     run(
         rlx_server_url=args.rlx_server,
         rom=args.rom,
         display=args.display,
-        seed=args.seed
+        seed=args.seed,
+        frame_skip=args.frame_skip
     )
 
 
