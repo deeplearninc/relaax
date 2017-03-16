@@ -12,7 +12,7 @@ from . import env_process
 
 def run(rlx_server_url, level, width, height, display, fps, frame_skip, action_size):
     n_game = 0
-    game = env_process.GameProcessFactory(level, width, height, display, action_size).new_env(_seed(fps), frame_skip)
+    game = env_process.GameProcessFactory(level, width, height, display, action_size).new_env(fps, frame_skip)
 
     while True:
         try:
@@ -21,21 +21,21 @@ def run(rlx_server_url, level, width, height, display, fps, frame_skip, action_s
                 action = client.init(game.state())
                 client_latency, acts = 0, 0
                 while True:
+                    start = time()
                     reward, reset = game.act(action)
                     if reset:
                         episode_score = client.reset(reward)
                         n_game += 1
-                        print('Score at game', n_game, '=', episode_score)
+                        print('Score at round', n_game, '=', episode_score)
                         game.reset()
                         action = _send(client, None, game.state())
-                        if acts:
-                            client.metrics().scalar('client latency', client_latency / acts)
-                            client_latency, acts = 0, 0
                     else:
-                        start = time()
                         action = _send(client, reward, game.state())
-                        client_latency += time() - start
-                        acts += 1
+                    client_latency += time() - start
+                    acts += 1
+                    if acts > 250:
+                        client.metrics().scalar('client latency', client_latency / acts)
+                        client_latency, acts = 0, 0
             finally:
                 client.disconnect()
         except rlx_client.Failure as e:
@@ -48,12 +48,6 @@ def run(rlx_server_url, level, width, height, display, fps, frame_skip, action_s
 def _send(client, reward, state):
     action = client.send(reward, state)
     return action
-
-
-def _seed(value):
-    if value is None:
-        return random.randrange(1000000)
-    return value
 
 
 def _info(message, *args):
