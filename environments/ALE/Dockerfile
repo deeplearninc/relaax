@@ -5,6 +5,7 @@ RUN apt-get update \
         # main dependencies
         python-pip \
         python-numpy \
+        python-scipy \
         # ale dependencies
         libsdl1.2-dev \
         libsdl-gfx1.2-dev \
@@ -22,7 +23,6 @@ RUN apt-get update \
         libvncserver-dev \
     && pip install -U pip \
     && pip install Cython \
-    && pip install scipy \
     # Add RELAAX to the image
     && cd /opt \
     && git clone https://github.com/deeplearninc/relaax.git \
