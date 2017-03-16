@@ -35,7 +35,7 @@ RUN git clone https://github.com/4SkyNet/Arcade-Learning-Environment.git \
     && cd /opt/Arcade-Learning-Environment \
     && mkdir build && cd build \
     && cmake -DUSE_SDL=ON -DUSE_RLGLUE=OFF -DBUILD_EXAMPLES=OFF .. \
-    && make -j 4 && cd .. && pip install . && mkdir /opt/relaax
+    && make -j 4 && cd .. && pip install .
 
 # Xvnc
 EXPOSE 5900
