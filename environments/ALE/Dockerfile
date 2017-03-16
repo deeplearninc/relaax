@@ -20,7 +20,9 @@ RUN apt-get update \
         xvfb \
         x11vnc \
         libvncserver-dev \
-    && pip install -U pip && pip install Cython \
+    && pip install -U pip \
+    && pip install Cython \
+    && pip install scipy \
     # Add RELAAX to the image
     && cd /opt \
     && git clone https://github.com/deeplearninc/relaax.git \
