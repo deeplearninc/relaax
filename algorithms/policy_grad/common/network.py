@@ -71,7 +71,7 @@ class AgentPolicyNN(GlobalPolicyNN):
             structure.append(tf.nn.relu(tf.matmul(structure[i-1], self.values[i])))
 
         # policy (output)
-        self.pi = tf.nn.sigmoid(tf.matmul(structure[-1], self.values[-1]))
+        self.pi = tf.nn.softmax(tf.matmul(structure[-1], self.values[-1]))
 
     def run_policy(self, sess, s_t):
         pi_out = sess.run(self.pi, feed_dict={self.s: [s_t]})
