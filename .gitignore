@@ -4,3 +4,5 @@
 Session.vim
 tags
 relaax.egg-info
+*.pyc
+
