@@ -6,3 +6,6 @@ tags
 relaax.egg-info
 *.pyc
 
+training/metrics*
+training/checkpoint*
+**/logs/*
