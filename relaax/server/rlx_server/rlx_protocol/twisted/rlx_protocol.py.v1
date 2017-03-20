@@ -1,0 +1,108 @@
+import time
+import traceback
+
+import logging
+log = logging.getLogger(__name__)
+
+from twisted.internet.defer import Deferred, DeferredQueue
+from twisted.internet.protocol import Factory, Protocol
+from twisted.protocols.basic import NetstringReceiver
+
+from accepted_socket import AcceptedSocket
+from relaax.common.rlx_message import RLXMessage as rlxm
+
+### Protocol Implementation
+
+class RLXAgentProxy():
+
+    def __init__(self,prt_queue):
+        self.agt_queue = DeferredQueue()
+        self.prt_queue = prt_queue
+        self.agt_queue.get().addCallback(self.protocolDataReceived)
+
+    def init(self,ignore=None):
+        print("loading agent")
+        time.sleep(0.5)
+        if True:
+            return {'response':'ready'}
+        else:
+            return {'response':'error','message':'can\'t load agent'}
+
+    def update(self,data):
+        print("processing update: ", data)
+        time.sleep(0.05)
+        if True:
+            return {'response':'action','data': [1.1,2.2]}
+        else:
+            return {'response':'error','message':'can\'t update agent'}
+
+    def reset(self,ignore=None):
+        print("reseting agent")
+        time.sleep(0.02)
+        if True:
+            return {'response':'done'}
+        else:
+            return {'response':'error','message':'can\'t reset agent'}
+
+    def protocolDataReceived(self,data):
+        reply = self.prt_queue.put
+        
+        try:
+            if data['verb'] in ['init','update','reset']:    
+                reply(getattr(self, data['verb'])(data))
+            else:
+                reply({'response':'error','message':'unknown command'})
+        except:
+            reply({'response':'error','message':'unknown error'})
+            log.error(traceback.format_exc())
+
+        self.agt_queue.get().addCallback(self.protocolDataReceived)
+
+class RLXProtocol(NetstringReceiver):
+
+    def __init__(self,factory):
+        self.factory = factory
+        self.prt_queue = DeferredQueue()
+        self.agent = RLXAgentProxy(self.prt_queue)
+        self.agt_queue = self.agent.agt_queue
+
+    def connectionMade(self):
+        log.debug("Connection is made")
+        self.prt_queue.get().addCallback(self.agentDataReceived)
+
+    def stringReceived(self, data):
+        print("received: ", data)
+        self.agt_queue.put(rlxm.from_wire(data))
+
+    def connectionLost(self, reason):
+        print("lost connection")
+        self.factory.done.callback(None)
+
+    def agentDataReceived(self,data):
+        self.sendString(rlxm.to_wire(data))
+        self.prt_queue.get().addCallback(self.agentDataReceived)
+
+
+class RLXProtocolFactory(Factory):
+    protocol = RLXProtocol
+
+    def __init__(self):
+        self.done = Deferred()
+
+    def buildProtocol(self, addr):
+        return RLXProtocol(self)
+
+    @staticmethod
+    def buildConnection(reactor,socket,address):
+        factory = RLXProtocolFactory()
+        adopted = AcceptedSocket(socket,address,factory,reactor)
+        if not adopted.start():
+            log.error("Failed to to build connection")
+            factory.done.callback(None)
+        return factory.done
+
+def adoptConnection(socket,address):
+    from twisted.internet import task    
+    task.react(RLXProtocolFactory.buildConnection,(socket,address))
+
+

@@ -1,0 +1,22 @@
+
+syntax = "proto3";
+
+message ArgPart {
+    repeated string ops = 1;
+    string dtype = 2;
+    repeated int32 shape = 3;
+    string name = 4;
+    bool last_part = 5;
+    bytes data = 6;
+}
+
+message ResultPart {
+    string dtype = 1;
+    repeated int32 shape = 2;
+    bool last_part = 3;
+    bytes data = 4;
+}
+
+service Bridge {
+    rpc Run(stream ArgPart) returns (stream ResultPart) {}
+}

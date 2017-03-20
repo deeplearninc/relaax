@@ -1,0 +1,3 @@
+ps: PYTHONUNBUFFERED=true relaax-parameter-server --config sample.yaml --log-level DEBUG
+rlx: PYTHONUNBUFFERED=true sleep 4&&relaax-rlx-server --config sample.yaml --log-level DEBUG
+env: PYTHONUNBUFFERED=true sleep 6&&python client/sample_exchange.py
