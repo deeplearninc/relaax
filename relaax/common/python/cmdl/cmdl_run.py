@@ -1,15 +1,16 @@
 import sys
+import logging
 from honcho.manager import Manager
 
 from relaax.common.python.cmdl.cmdl_config import options
 
-import logging
 log = logging.getLogger("relaax")
+
 
 class RManager(Manager):
 
     def __init__(self, *args, **kwargs):
-        super(RManager,self).__init__(*args, **kwargs)        
+        super(RManager, self).__init__(*args, **kwargs)
 
     def _any_stopped(self):
         clients = []
@@ -19,7 +20,8 @@ class RManager(Manager):
         if len(clients):
             return all(clients)
         else:
-            super(RManager,self)._any_stopped()
+            super(RManager, self)._any_stopped()
+
 
 class CmdlRun(object):
 
@@ -40,18 +42,20 @@ class CmdlRun(object):
         manager.loop()
         sys.exit(manager.returncode)
 
-    def run_parameter_server(self,manager):
-        if options.run in ['all','servers','parameter-server']:
-            manager.add_process('parameter-server', 
-                '%s relaax-parameter-server %s'%(self.nobuffer, self.cmdl))
+    def run_parameter_server(self, manager):
+        if options.run in ['all', 'servers', 'parameter-server']:
+            manager.add_process('parameter-server',
+                                '%s relaax-parameter-server %s'
+                                % (self.nobuffer, self.cmdl))
 
-    def run_rlx_server(self,manager):
-        if options.run in ['all','servers','rlx-server']:
-            manager.add_process('rlx-server', 
-                '%s relaax-rlx-server %s'%(self.nobuffer, self.cmdl))
+    def run_rlx_server(self, manager):
+        if options.run in ['all', 'servers', 'rlx-server']:
+            manager.add_process('rlx-server',
+                                '%s relaax-rlx-server %s'
+                                % (self.nobuffer, self.cmdl))
 
-    def run_client(self,manager):
-        if options.run in ['all','client']:
+    def run_client(self, manager):
+        if options.run in ['all', 'client']:
             if options.client:
                 self.run_all_clients(manager)
             else:
@@ -59,19 +63,18 @@ class CmdlRun(object):
                 RESET_SEQ = "\033[0m"
                 log.info(COLOR_SEQ+"No client specified"+RESET_SEQ)
 
-    def run_all_clients(self,manager):
+    def run_all_clients(self, manager):
         if options.concurrent_clients > 1:
             count = 0
             while count < options.concurrent_clients:
-                self.run_one_client('client-%d'%count,manager)
+                self.run_one_client('client-%d' % count, manager)
                 count += 1
         else:
-            self.run_one_client('client',manager)
+            self.run_one_client('client', manager)
 
-    def run_one_client(self,process_name,manager):
-        manager.add_process(process_name, 
-            '%s python %s' % (self.nobuffer, options.client))
+    def run_one_client(self, process_name, manager):
+        manager.add_process(
+            process_name, '%s python %s' % (self.nobuffer, options.client))
+
 
 run_all = CmdlRun().run_componenets
-
-

@@ -9,7 +9,8 @@ class BridgeProtocol(object):
     def build_arg_messages(ops, feed_dict):
         yield bridge_pb2.ArgPart(ops=ops)
         for name, array in feed_dict.iteritems():
-            for message in BridgeProtocol.build_arg_messages_for_one_array(name, array):
+            for message in BridgeProtocol\
+                    .build_arg_messages_for_one_array(name, array):
                 yield message
 
     @staticmethod
@@ -22,7 +23,8 @@ class BridgeProtocol(object):
         data = array.data
         size = len(data)
 
-        # optimization to avoid extra data copying if array data fits to one block
+        # optimization to avoid extra data
+        # copying if array data fits to one block
         # TODO: compare actual performance
         if size <= block_size:
             bytes_ = array.tobytes()
@@ -60,7 +62,8 @@ class BridgeProtocol(object):
         data = []
         for message in messages:
             if message.last_part:
-                # optimization to avoid extra data copying if array data fits to one block
+                # optimization to avoid extra data
+                # copying if array data fits to one block
                 # TODO: compare actual performance
                 if len(data) == 0:
                     feed_dict[message.name] = numpy.ndarray(
@@ -84,7 +87,8 @@ class BridgeProtocol(object):
     @staticmethod
     def build_result_messages(arrays):
         for array in arrays:
-            for message in BridgeProtocol.build_result_messages_for_one_array(array):
+            for message in BridgeProtocol\
+                    .build_result_messages_for_one_array(array):
                 yield message
 
     @staticmethod
@@ -97,7 +101,8 @@ class BridgeProtocol(object):
         data = array.data
         size = len(data)
 
-        # optimization to avoid extra data copying if array data fits to one block
+        # optimization to avoid extra data
+        # copying if array data fits to one block
         # TODO: compare actual performance
         if size <= block_size:
             bytes_ = array.tobytes()
@@ -131,7 +136,8 @@ class BridgeProtocol(object):
         data = []
         for message in messages:
             if message.last_part:
-                # optimization to avoid extra data copying if array data fits to one block
+                # optimization to avoid extra data
+                # copying if array data fits to one block
                 # TODO: compare actual performance
                 if len(data) == 0:
                     yield numpy.ndarray(

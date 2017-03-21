@@ -1,17 +1,19 @@
 import logging
-log = logging.getLogger(__name__)
 
+from twisted.internet import abstract
 from twisted.internet.tcp import Server
 from twisted.internet import address, fdesc
-from twisted.internet import abstract, interfaces
 
-### AcceptedSocket
+log = logging.getLogger(__name__)
+
+# AcceptedSocket
+
 
 class AcceptedSocket():
     transport = Server
 
     def __init__(self, skt, addr, factory, reactor, interface=''):
-        self.skt  = skt
+        self.skt = skt
         self.addr = addr
         self.factory = factory
         self.reactor = reactor
@@ -30,6 +32,7 @@ class AcceptedSocket():
         if protocol is None:
             log.error("Can't create protocol")
             return False
-        transport = self.transport(self.skt,protocol,self.addr,self,1,self.reactor)
+        transport = self.transport(
+            self.skt, protocol, self.addr, self, 1, self.reactor)
         protocol.makeConnection(transport)
         return True

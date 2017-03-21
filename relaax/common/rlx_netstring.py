@@ -1,39 +1,41 @@
 import re
-import socket
+
 
 class NetStringException(Exception):
-  pass
+    pass
+
 
 class NetStringClosed(Exception):
-  pass
+    pass
+
 
 class NetString():
     MAX_STRING_LEN = 10**9
     MAX_LEN_DIGITS = 10
 
-    def __init__(self,skt):
+    def __init__(self, skt):
         self.skt = skt
 
     def readString(self):
         slen = self._receive_length()
-        if  slen>self.MAX_STRING_LEN:
-            raise NetStringException("net string too long")            
+        if slen > self.MAX_STRING_LEN:
+            raise NetStringException("net string too long")
         s = self._receiveb(slen)
         if self._receiveb(1) != ',':
             raise NetStringException("wrong net string format")
         return s
 
-    def writeString(self,data):
+    def writeString(self, data):
         try:
             if len(data) > self.MAX_STRING_LEN:
                 raise NetStringException("can't send, net string too long")
-            self.skt.sendall('%d:%s,'%(len(data), data))
+            self.skt.sendall('%d:%s,' % (len(data), data))
         except NetStringException as e:
             raise e
         except:
             raise NetStringClosed("net string closed")
 
-    def _receiveb(self,length):
+    def _receiveb(self, length):
         packets = []
         rest = length
         while rest > 0:
@@ -48,17 +50,18 @@ class NetString():
 
     def _receive_length(self):
         digits = []
+
         while True:
             char = self.skt.recv(1)
             if char == ':':
                 break
-            if  not char:
+            if not char:
                 raise NetStringClosed("net string closed")
-            if  (re.match('^\d$', char) is None) or \
-                (len(digits) > 0 and digits[0] == 0) or \
-                (len(digits) > self.MAX_LEN_DIGITS):
-                raise NetStringException("can't receive, wrong net string format")
+            if (re.match('^\d$', char) is None) or \
+               (len(digits) > 0 and digits[0] == 0) or \
+               (len(digits) > self.MAX_LEN_DIGITS):
+                raise NetStringException(
+                    "can't receive, wrong net string format")
             digits.append(char)
+
         return int(''.join(digits))
-
-

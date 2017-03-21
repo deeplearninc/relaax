@@ -1,15 +1,17 @@
 import os
-import sys
+import errno
 import socket
 import logging
-log = logging.getLogger(__name__)
 
 from rlx_worker import RLXWorker
+
+log = logging.getLogger(__name__)
+
 
 class RLXPort():
 
     @classmethod
-    def listen(self,server_address):
+    def listen(self, server_address):
         self.listener = socket.socket()
         try:
             self.listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -18,11 +20,11 @@ class RLXPort():
             log.debug("Started and listening on %s:%d" % server_address)
 
             while True:
-                try:    
+                try:
                     connection, address = self.listener.accept()
                     log.debug("Accepted connection, starting worker")
                 except socket.error as e:
-                    if handle_accept_socket_exeption(e):
+                    if self.handle_accept_socket_exeption(e):
                         connection
                     raise
                 except KeyboardInterrupt:
@@ -34,9 +36,10 @@ class RLXPort():
                     try:
                         pid = os.fork()
                     except OSError as e:
-                        log.critical('OSError {} : {}'.format(server_address, e.message))
+                        log.critical(
+                            'OSError {}:{}'.format(server_address, e.message))
                     if pid == 0:
-                        RLXWorker.run(connection,address)
+                        RLXWorker.run(connection, address)
                         break
 
                 finally:
@@ -48,15 +51,16 @@ class RLXPort():
 
     @classmethod
     def handle_accept_socket_exeption(error):
-        if error.args[0] in (EWOULDBLOCK, EAGAIN):
+        if error[0] in (errno.EWOULDBLOCK, errno.EAGAIN):
             # Try again
-            return True # continue accept loop
-        elif error.args[0] == EPERM:
+            return True  # continue accept loop
+        elif error[0] == errno.EPERM:
             # Netfilter on Linux may have rejected the
             # connection, but we get told to try to accept()
             # anyway.
-            return True # continue accept loop
-        elif error.args[0] in (EMFILE, ENOBUFS, ENFILE, ENOMEM, ECONNABORTED):
+            return True  # continue accept loop
+        elif error[0] in (errno.EMFILE, errno.ENOBUFS, errno.ENFILE,
+                          errno.ENOMEM, errno.ECONNABORTED):
             # Linux gives EMFILE when a process is not allowed to
             # allocate any more file descriptors.  *BSD and Win32
             # give (WSA)ENOBUFS.  Linux can also give ENFILE if the
@@ -75,7 +79,5 @@ class RLXPort():
             # such a listener is not considered readable, so
             # accept(2) will never be called.  Calling accept(2) on
             # such a listener, however, does not return at all.
-            log.error("Could not accept new connection (%s)" % (
-                errorcode[error.args[0]],))
-        return False # break accept loop
-
+            log.error("Could not accept new connection (%s)" % error[1])
+        return False  # break accept loop

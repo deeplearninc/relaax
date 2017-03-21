@@ -1,8 +1,8 @@
 import io
-import sys
 import json
 import base64
 import numpy as np
+
 
 class RLXMessage():
     class _NDArrayEncoder(json.JSONEncoder):
@@ -24,17 +24,17 @@ class RLXMessage():
         return dct
 
     @classmethod
-    def _encode_array(self,arr):
-        # Server expects numpy.nparray so 
+    def _encode_array(self, arr):
+        # Server expects numpy.nparray so
         # always encodeing as numpy.nparray
         if isinstance(arr, np.ndarray):
             data = arr
         else:
-            data = np.asarray(arr,dtype=np.float32)
-        return json.dumps(data,cls=self._NDArrayEncoder)
+            data = np.asarray(arr, dtype=np.float32)
+        return json.dumps(data, cls=self._NDArrayEncoder)
 
     @classmethod
-    def client_to_wire(self,verb,state=None,reward=None):
+    def client_to_wire(self, verb, state=None, reward=None):
         message = [verb]
         if reward:
             message.append(reward)
@@ -44,14 +44,10 @@ class RLXMessage():
         return '%d:%s,' % (len(data), data)
 
     @classmethod
-    def client_from_wire(self,wire_data,to_parray=False):
+    def client_from_wire(self, wire_data, to_parray=False):
         message = {}
-        data = json.loads(wire_data,object_hook=self._ndarray_decoder)
+        data = json.loads(wire_data, object_hook=self._ndarray_decoder)
         message['verb'] = data[0]
         if message['verb'] == 'act':
             message['action'] = data[1].tolist() if to_parray else data[1]
         return message
-
-
-
-

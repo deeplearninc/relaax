@@ -1,17 +1,17 @@
-import traceback
-
 import logging
-log = logging.getLogger(__name__)
+import traceback
 
 from relaax.common.rlx_message import RLXMessage as rlxm
 from relaax.server.rlx_server.rlx_agent_proxy import RLXAgentProxy
-
 from relaax.common.rlx_netstring import NetString, NetStringClosed
+
+log = logging.getLogger(__name__)
+
 
 class RLXProtocol(NetString):
 
     def __init__(self, skt, address):
-        NetString.__init__(self,skt)
+        NetString.__init__(self, skt)
         self.agent = RLXAgentProxy()
         self.address = address
 
@@ -35,19 +35,20 @@ class RLXProtocol(NetString):
             self.connectionMade()
             while True:
                 data = self.readString()
-                self.stringReceived(data)                  
+                self.stringReceived(data)
 
-        except NetStringClosed as e:
-            reason = "Connection dropped"
-            log.debug("Raw Socket Connection dropped on connection %s:%d"%self.address)
-        except Exception as e:
+        except NetStringClosed:
+            reason = 'Connection dropped'
+            log.debug(('Raw Socket Connection dropped '
+                       'on connection %s:%d') % self.address)
+        except Exception:
             reason = "Unknown error"
-            log.error("Something crashed in the protocol for connection %s:%d"%self.address)
+            log.error(('Error in the protocol '
+                       'for connection %s:%d') % self.address)
             log.error(traceback.format_exc())
         finally:
             self.connectionLost(reason)
 
-def adoptConnection(skt,addr):
-    RLXProtocol(skt,addr).protocolLoop()
 
-
+def adoptConnection(skt, addr):
+    RLXProtocol(skt, addr).protocolLoop()

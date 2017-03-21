@@ -1,8 +1,8 @@
 import io
-import sys
 import json
 import base64
 import numpy as np
+
 
 class RLXMessage():
     class _NDArrayEncoder(json.JSONEncoder):
@@ -24,20 +24,18 @@ class RLXMessage():
         return obj
 
     @classmethod
-    def to_wire(cls,data):
-        return json.dumps(data,cls=cls._NDArrayEncoder)
+    def to_wire(cls, data):
+        return json.dumps(data, cls=cls._NDArrayEncoder)
 
     @classmethod
-    def from_wire(cls,data):
-        return json.loads(data,object_hook=cls._ndarray_decoder)
+    def from_wire(cls, data):
+        return json.loads(data, object_hook=cls._ndarray_decoder)
 
 # may be return an object instead of dict
 # def from_wire():
 #   class Object(object):
 #     pass
 #   robj = Object()
-#   iterate through json and do    
+#   iterate through json and do
 #   setattr(robj, key, value)
 #   return robj
-
-

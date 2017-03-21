@@ -30,10 +30,11 @@ def define_scope(function, scope=None, *args, **kwargs):
     """
     attribute = '_cache_' + function.__name__
     name = scope or function.__name__
+
     @property
     @functools.wraps(function)
     def decorator(self):
-        if not hasattr(self,'__operations__'):
+        if not hasattr(self, '__operations__'):
             self.__operations__ = {}
 
         if not hasattr(self, attribute):
@@ -43,6 +44,7 @@ def define_scope(function, scope=None, *args, **kwargs):
                 self.__operations__[function.__name__] = operation
         return getattr(self, attribute)
     return decorator
+
 
 define_input = define_scope
 define_output = define_scope

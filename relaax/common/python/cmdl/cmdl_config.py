@@ -2,22 +2,25 @@ import sys
 import logging as log
 from relaax.common.python.config.base_config import BaseConfig
 
+
 class CmdlConfig(BaseConfig):
 
     def __init__(self):
-        super(CmdlConfig,self).__init__()
+        super(CmdlConfig, self).__init__()
 
-    def load_from_cmdl(self,parser):
-        parser.add_argument('-r','--run', type=str, default='all', required=False,
-            choices=('all','client','servers','rlx-server','parameter-server'),
+    def load_from_cmdl(self, parser):
+        add = parser.add_argument
+        add('-r', '--run', type=str, default='all', required=False,
+            choices=('all', 'client', 'servers',
+                     'rlx-server', 'parameter-server'),
             help='List of system components to run: client, servers, or all')
-        parser.add_argument('-c','--config', type=str, default=None, required=True, 
+        add('-c', '--config', type=str, default=None, required=True,
             help='RELAAX config yaml file')
-        parser.add_argument('-cl','--client', type=str, default=None,
+        add('-cl', '--client', type=str, default=None,
             help='Environment/Client to run')
-        parser.add_argument('-cc','--concurrent-clients', type=int, default=1,
+        add('-cc', '--concurrent-clients', type=int, default=1,
             help='Number of environments/clients to run at the same time')
-        parser.add_argument('-ll','--log-level', type=str, default=None,
+        add('-ll', '--log-level', type=str, default=None,
             choices=('DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'),
             help='Logging level')
 
@@ -32,14 +35,15 @@ class CmdlConfig(BaseConfig):
 
     def setup_logger(self):
         log_level = getattr(log, 'INFO', None)
-        
+
         if not isinstance(log_level, int):
-            raise ValueError('Invalid log level: %s' % loglevel)
-        
+            raise ValueError('Invalid log level: %s' % log_level)
+
         log.basicConfig(
-            stream = sys.stdout, 
+            stream=sys.stdout,
             datefmt='%H:%M:%S',
-            format = '%(asctime)s %(name)s\t\t  | %(message)s',
-            level  = log_level)
+            format='%(asctime)s %(name)s\t\t  | %(message)s',
+            level=log_level)
+
 
 options = CmdlConfig().load()

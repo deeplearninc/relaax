@@ -8,7 +8,8 @@ from bridge_protocol import BridgeProtocol
 
 class BridgeServer(object):
     def __init__(self, bind, session):
-        self.server = grpc.server(concurrent.futures.ThreadPoolExecutor(max_workers=1))
+        self.server = \
+            grpc.server(concurrent.futures.ThreadPoolExecutor(max_workers=1))
         bridge_pb2.add_BridgeServicer_to_server(Servicer(session), self.server)
         self.server.add_insecure_port('%s:%d' % bind)
 
