@@ -1,0 +1,15 @@
+[run]
+branch = True
+source = relaax
+data_file = coverage.html/.coverage
+
+[paths]
+source =
+   relaax
+   .tox/*/lib/python*/site-packages/relaax
+
+[report]
+skip_covered = true
+
+[html]
+directory = coverage.html

@@ -22,7 +22,7 @@ setup(
         'numpy',
         'scipy',
         'psutil',
-        'honcho',
+        'honcho==0.7.1',
         'keras==1.2.1',
         'h5py',
         'mock',
