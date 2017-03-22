@@ -1,8 +1,9 @@
-import functools
 import tensorflow
 
-from relaax.common.algorithms.python.decorators import define_scope, define_input
-from relaax.server.parameter_server.parameter_server_base import ParameterServerBase
+from relaax.common.algorithms.decorators import define_scope, define_input
+from relaax.server.parameter_server.parameter_server_base import (
+    ParameterServerBase)
+
 
 class SampleParameterServer(ParameterServerBase):
     def __init__(self):
@@ -13,11 +14,12 @@ class SampleParameterServer(ParameterServerBase):
     def run(self, ops, feed_dict):
         return self.on_run(self.session, self.graph, ops, feed_dict)
 
+
 class PSGraph(object):
 
     def __init__(self):
         self.step
-        self.next_step 
+        self.next_step
         self.state
         self.act
 
@@ -35,6 +37,6 @@ class PSGraph(object):
 
     @define_scope
     def act(self):
-        with tensorflow.get_default_graph().control_dependencies([self.next_step]):
+        with tensorflow.get_default_graph().\
+                control_dependencies([self.next_step]):
             return tensorflow.reverse(self.state, [0])
-
