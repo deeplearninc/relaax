@@ -9,7 +9,7 @@ source =
    .tox/*/lib/python*/site-packages/relaax
 
 [report]
-skip_covered = true
+# skip_covered = true
 
 [html]
 directory = coverage.html

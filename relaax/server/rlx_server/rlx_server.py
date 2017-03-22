@@ -13,7 +13,7 @@ log = logging.getLogger(__name__)
 class RLXServer():
 
     @staticmethod
-    def preloadAlgorithm():
+    def preload_algorithm():
         try:
             options.algorithm_module =\
                 AlgorithmLoader.load(options.algorithm_path)
@@ -24,7 +24,7 @@ class RLXServer():
             exit()
 
     @staticmethod
-    def preloadProtocol():
+    def preload_protocol():
         try:
             name = options.protocol_name
 
@@ -45,8 +45,8 @@ class RLXServer():
 
     @classmethod
     def start(cls):
-        cls.preloadProtocol()
-        cls.preloadAlgorithm()
+        cls.preload_protocol()
+        cls.preload_algorithm()
         log.info("Starting RLX server on %s:%d"
                  % options.bind)
         log.info("Expecting parameter server on %s:%d"

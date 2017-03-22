@@ -1,3 +1,4 @@
+import os
 import sys
 import logging
 from honcho.manager import Manager
@@ -59,9 +60,9 @@ class CmdlRun(object):
             if options.client:
                 self.run_all_clients(manager)
             else:
-                COLOR_SEQ = "\033[1;31m"
-                RESET_SEQ = "\033[0m"
-                log.info(COLOR_SEQ+"No client specified"+RESET_SEQ)
+                color_seq = "\033[1;31m"
+                reset_seq = "\033[0m"
+                log.info(color_seq + "No client specified" + reset_seq)
 
     def run_all_clients(self, manager):
         if options.concurrent_clients > 1:
@@ -77,4 +78,13 @@ class CmdlRun(object):
             process_name, '%s python %s' % (self.nobuffer, options.client))
 
 
-run_all = CmdlRun().run_componenets
+def main():
+    print "something"
+    # Disable TF warnings
+    os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+    # run
+    CmdlRun().run_componenets()
+
+
+if __name__ == '__main__':
+    main()

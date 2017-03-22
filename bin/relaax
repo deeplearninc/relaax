@@ -1,8 +1,0 @@
-#!/usr/bin/env python
-import os
-from relaax.common.python.cmdl.cmdl_run import run_all
-
-### Disable TF warnings
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-
-run_all()

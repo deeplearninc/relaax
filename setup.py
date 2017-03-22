@@ -1,20 +1,33 @@
-#!/usr/bin/env python
+import os
+import re
+import codecs
+from setuptools import setup
+from setuptools import find_packages
 
-from distutils.core import setup
+
+def read(*path):
+    here = os.path.dirname(__file__)
+    with codecs.open(os.path.join(here, *path), encoding='utf-8') as fp:
+        return fp.read()
+
+VERSION = re.search(
+    r'^__version__ = [\'"]([^\'"]*)[\'"]',
+    read('relaax/__init__.py')
+).group(1)
 
 setup(
     name='relaax',
-    version='0.2',
-    description='RELAAX solution',
-    author='Stanislav Volodarskiy',
-    author_email='stanislav@dplrn.com',
-    url='http://www.dplrn.com/',
-    packages=['relaax'],
+    version=VERSION,
+    description=('Reinforcement Learning framework to facilitate development '
+                 'and use of scalable RL algorithms and applications'),
+    author='Deep Learn',
+    author_email='relaax@dplrn.com',
+    url='https://github.com/deeplearninc/relaax',
+    license='MIT',
     install_requires=[
         'autobahn==0.17.2',
         'Twisted==17.1.0',
         'ruamel.yaml',
-        'futures',
         'grpcio_tools',
         'grpcio',
         'boto3',
@@ -25,13 +38,21 @@ setup(
         'honcho==0.7.1',
         'keras==1.2.1',
         'h5py',
-        'mock',
         'tensorflow'
     ],
-    provides=['relaax'],
-    scripts=[
-        'bin/relaax-parameter-server',
-        'bin/relaax-rlx-server',
-        'bin/relaax'
-    ]
-)
+    extras_require={
+        'tests': [
+            'pytest',
+            'pytest-cov',
+            'pytest-xdist',
+            'flake8',
+            'mock']
+    },
+    entry_points={
+        'console_scripts': [
+            'relaax=relaax.common.python.cmdl.cmdl_run:main',
+            'relaax-parameter-server=relaax.server.parameter_server.parameter_server:main',
+            'relaax-rlx-server=relaax.server.rlx_server.rlx_server:main'
+        ]
+    },
+    packages=find_packages())

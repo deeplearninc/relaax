@@ -1,20 +1,31 @@
 *.pyc
 *.pyo
-*.egg-info
+*.py~
+*.egg*
+.DS_Store
 
+# Testing artifacts
+**/__pycache__/*
 coverage.html/*
 /.cache
 /.coverage
 /.env
 /.tox
 
+# Bridge building artifacts
 **/*_pb2.py
 **/*_pb2_grpc.py
+
+# Development artifacts
+training/metrics*
+training/checkpoint*
 **/aws-keys.yaml
+**/logs/*
 Session.vim
 tags
 
-training/metrics*
-training/checkpoint*
-**/logs/*
+# Setuptools distribution and build folders
+/dist/
+/build
+
 
