@@ -2,9 +2,9 @@ import io
 
 
 class TLSocket(object):
-    def __init__(self, in_skt, out_skt):
-        self.output = in_skt
-        self.input = out_skt
+    def __init__(self, sin, sout):
+        self.output = sin
+        self.input = sout
         self.opened = True
 
     def sendall(self, data):
