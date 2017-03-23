@@ -8,6 +8,12 @@ class MockSocket(object):
         self.input = sout
         self.opened = True
 
+    def setsockopt(self, *args):
+        pass
+
+    def connect(self, *args):
+        pass
+
     def sendall(self, data):
         assert self.opened
         self.output.sendall(data)
