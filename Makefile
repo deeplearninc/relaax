@@ -28,16 +28,16 @@ clean-pyc:
 	find . -name '*.pyc' -type f -exec rm -f {} +
 	find . -name '*.pyo' -type f -exec rm -f {} +
 	find . -name '*~' -type f -exec rm -f {} +
-	find . -name '__pycache__' -type d -exec rm -rf {} +
 
 clean-test:
+	rm -fr tests/__pycache__
 	rm -fr coverage/
 	rm -fr .tox/
 
 lint:
 	flake8
 
-test: claen-test
+test: clean-test
 	mkdir coverage
 	pytest --cov=relaax --cov-report html:coverage tests/
 
