@@ -75,7 +75,7 @@ class PGAgent(object):
             state = state.flatten()
         action = self.action_from_policy(state)
         # accumulate experience
-        self.accomulate(state, reward, action)
+        self.accumulate(state, reward, action)
 
         return action
 
@@ -145,7 +145,7 @@ class PGAgent(object):
 
     # accumulate experience:
     # state, reward, and actions for policy training
-    def accomulate(self, state, reward, action):
+    def accumulate(self, state, reward, action):
         self.state.append(state)
 
         # one-hot vector to store taken action
