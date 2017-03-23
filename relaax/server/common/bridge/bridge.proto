@@ -1,22 +1,36 @@
 
 syntax = "proto3";
 
-message ArgPart {
-    repeated string ops = 1;
-    string dtype = 2;
-    repeated int32 shape = 3;
-    string name = 4;
-    bool last_part = 5;
-    bytes data = 6;
-}
+message Item {
+    enum ItemType {
+        LIST_OPEN = 0;
+        LIST_CLOSE = 1;
+        DICT_OPEN = 2;
+        DICT_CLOSE = 3;
+        NONE = 4;
+        BOOL = 5;
+        INT = 6;
+        FLOAT = 7;
+        STR = 8;
+        NUMPY_ARRAY = 9;
+    }
 
-message ResultPart {
-    string dtype = 1;
-    repeated int32 shape = 2;
-    bool last_part = 3;
-    bytes data = 4;
+    message NumpyArray {
+        bool last = 1;
+        string dtype = 2;
+        repeated uint32 shape = 3;
+        bytes data = 4;
+    }
+
+    ItemType   item_type         = 1;
+    string     dict_key          = 2; // for dictionary items only
+    bool       bool_value        = 3; // for bool items only
+    sint64     int_value         = 4; // for int items only
+    double     float_value       = 5; // for float items only
+    string     str_value         = 6; // for str items only
+    NumpyArray numpy_array_value = 8; // for numpy array items only
 }
 
 service Bridge {
-    rpc Run(stream ArgPart) returns (stream ResultPart) {}
+    rpc Run(stream Item) returns (stream Item) {}
 }
