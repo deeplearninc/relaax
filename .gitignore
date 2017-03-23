@@ -6,7 +6,7 @@
 
 # Testing artifacts
 **/__pycache__/*
-coverage.html/*
+coverage/*
 /.cache
 /.coverage
 /.env

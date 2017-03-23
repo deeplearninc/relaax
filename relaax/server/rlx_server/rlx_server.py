@@ -47,10 +47,8 @@ class RLXServer():
     def start(cls):
         cls.preload_protocol()
         cls.preload_algorithm()
-        log.info("Starting RLX server on %s:%d"
-                 % options.bind)
-        log.info("Expecting parameter server on %s:%d"
-                 % options.parameter_server)
+        log.info("Starting RLX server on %s:%d" % options.bind)
+        log.info("Expecting parameter server on %s:%d" % options.parameter_server)
         RLXPort.listen(options.bind)
 
 

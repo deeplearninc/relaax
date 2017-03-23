@@ -1,7 +1,7 @@
 [run]
 branch = True
 source = relaax
-data_file = coverage.html/.coverage
+data_file = coverage/.coverage
 
 [paths]
 source =
@@ -12,4 +12,4 @@ source =
 # skip_covered = true
 
 [html]
-directory = coverage.html
+directory = coverage

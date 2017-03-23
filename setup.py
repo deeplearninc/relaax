@@ -10,6 +10,7 @@ def read(*path):
     with codecs.open(os.path.join(here, *path), encoding='utf-8') as fp:
         return fp.read()
 
+
 VERSION = re.search(
     r'^__version__ = [\'"]([^\'"]*)[\'"]',
     read('relaax/__init__.py')
