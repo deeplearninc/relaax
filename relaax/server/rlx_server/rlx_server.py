@@ -15,8 +15,7 @@ class RLXServer():
     @staticmethod
     def preload_algorithm():
         try:
-            options.algorithm_module =\
-                AlgorithmLoader.load(options.algorithm_path)
+            options.algorithm_module = AlgorithmLoader.load(options.algorithm_path)
 
         except Exception:
             log.critical("Can't load algorithm module")
