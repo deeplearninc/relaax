@@ -1,5 +1,5 @@
 from mock import Mock
-from test_lib.tl_socket import TLSocket, TLSocketBuffer
+from fixtures.mock_socket import MockSocket
 
 from relaax.common.rlx_netstring import NetString, NetStringClosed, NetStringException
 
@@ -7,17 +7,15 @@ from relaax.common.rlx_netstring import NetString, NetStringClosed, NetStringExc
 class TestNetString:
 
     def test_to_wire_and_read_back(self):
-        sktbuf = TLSocketBuffer()
-        socket = TLSocket(sktbuf, sktbuf)
         some_string = "some string"
+        socket = MockSocket.create()
         nstr = NetString(socket)
         nstr.write_string(some_string)
         data = nstr.read_string()
         assert data == some_string
 
     def test_recieve_zero_length(self):
-        sktbuf = TLSocketBuffer()
-        socket = TLSocket(sktbuf, sktbuf)
+        socket = MockSocket.create()
         nstr = NetString(socket)
         # close on empty socket
         try:
@@ -28,9 +26,8 @@ class TestNetString:
 
     def test_not_numbers_in_string_length(self):
         # close on not numbers in string length
-        sktbuf = TLSocketBuffer()
-        socket = TLSocket(sktbuf, sktbuf)
-        sktbuf.sendall('abc')
+        socket = MockSocket.create()
+        socket.output.sendall('abc')
         nstr = NetString(socket)
         try:
             nstr.read_string()
@@ -39,10 +36,9 @@ class TestNetString:
             assert str(e) == 'can\'t receive, wrong net string format'
 
     def test_too_long_string(self):
-        sktbuf = TLSocketBuffer()
-        socket = TLSocket(sktbuf, sktbuf)
+        socket = MockSocket.create()
         data = str(NetString.MAX_STRING_LEN)
-        sktbuf.sendall(data)
+        socket.output.sendall(data)
         nstr = NetString(socket)
         try:
             data = nstr.read_string()
@@ -51,11 +47,10 @@ class TestNetString:
             assert str(e) == 'can\'t receive, wrong net string format'
 
     def test_slen_greater_max(self):
-        sktbuf = TLSocketBuffer()
-        socket = TLSocket(sktbuf, sktbuf)
+        socket = MockSocket.create()
         data = str(NetString.MAX_STRING_LEN - 1) + ":abc"
         NetString.MAX_STRING_LEN -= 2
-        sktbuf.sendall(data)
+        socket.output.sendall(data)
         nstr = NetString(socket)
         try:
             data = nstr.read_string()
@@ -64,11 +59,10 @@ class TestNetString:
             assert str(e) == 'net string too long'
 
     def test_comma_at_end_of_string(self):
-        sktbuf = TLSocketBuffer()
-        socket = TLSocket(sktbuf, sktbuf)
+        socket = MockSocket.create()
         data = "some string"
         data = '%d:%sx' % (len(data), data)
-        sktbuf.sendall(data)
+        socket.output.sendall(data)
         nstr = NetString(socket)
         try:
             data = nstr.read_string()
@@ -77,11 +71,10 @@ class TestNetString:
             assert str(e) == 'wrong net string format'
 
     def test_too_short_string(self):
-        sktbuf = TLSocketBuffer()
-        socket = TLSocket(sktbuf, sktbuf)
+        socket = MockSocket.create()
         data = "some string"
         data = '%d:%s' % (len(data), data)
-        sktbuf.sendall(data)
+        socket.output.sendall(data)
         nstr = NetString(socket)
         try:
             data = nstr.read_string()

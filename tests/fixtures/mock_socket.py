@@ -1,7 +1,8 @@
 import io
 
 
-class TLSocket(object):
+class MockSocket(object):
+
     def __init__(self, sin, sout):
         self.output = sin
         self.input = sout
@@ -19,8 +20,13 @@ class TLSocket(object):
         assert self.opened
         self.opened = False
 
+    @staticmethod
+    def create():
+        sktbuf = MockSocketBuffer()
+        return MockSocket(sktbuf, sktbuf)
 
-class TLSocketBuffer(object):
+
+class MockSocketBuffer(object):
     def __init__(self):
         self._buffer = io.BytesIO()
         self._read_pos = self._buffer.tell()

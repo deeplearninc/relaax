@@ -42,7 +42,7 @@ setup(
         'tensorflow'
     ],
     extras_require={
-        'tests': [
+        'testing': [
             'pytest',
             'pytest-cov',
             'pytest-xdist',
