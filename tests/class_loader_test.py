@@ -24,15 +24,18 @@ class TestRLXMessage:
         path = 'tests/fixtures/client/sample_other_client.py'
         try:
             ClassLoader.load(path, 'RSClient')
+            assert False
         except ImportError:
             assert True
         path = 'tests/fixtures/client/rs_client.py'
         try:
             ClassLoader.load(path, 'WrongClass')
+            assert False
         except AttributeError:
             assert True
         try:
             path = 'tests/fixtures/random_search'
             ClassLoader.load(path, 'random_search.rs_agent.WrongClass')
+            assert False
         except AttributeError:
             assert True

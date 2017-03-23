@@ -24,7 +24,7 @@ class RLXProtocol(NetString):
         self.sendString(res)
 
     def sendString(self, data):
-        self.writeString(rlxm.to_wire(data))
+        self.write_string(rlxm.to_wire(data))
 
     def connectionLost(self, reason):
         pass
@@ -34,7 +34,7 @@ class RLXProtocol(NetString):
         try:
             self.connectionMade()
             while True:
-                data = self.readString()
+                data = self.read_string()
                 self.stringReceived(data)
 
         except NetStringClosed:
