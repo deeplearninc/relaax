@@ -19,8 +19,7 @@ class BridgeProtocol(object):
 
     @staticmethod
     def build_item_messages_recursive(value, dict_key):
-        method = BridgeProtocol.BUILD_ITEM_MESSAGES_BY_TYPE[type(value)]
-        return method(value, dict_key)
+        return BridgeProtocol.BUILD_ITEM_MESSAGES_BY_TYPE[type(value)](value, dict_key)
 
     def build_item_messages_for_list(value, dict_key):
         yield bridge_pb2.Item(item_type=bridge_pb2.Item.LIST_OPEN)
