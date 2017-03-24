@@ -54,8 +54,32 @@ class BridgeProtocol(object):
         # TODO: select more appropriate block size
         block_size = 1024 * 1024
 
-        dtype = str(array.dtype)
-        shape = array.shape
+        for block, last in BridgeProtocol.slice_ndarray(array, block_size):
+            assert 0 < len(block) <= block_size
+            if last:
+                yield bridge_pb2.Item(
+                    item_type=bridge_pb2.Item.NUMPY_ARRAY,
+                    dict_key=dict_key,
+                    numpy_array_value=bridge_pb2.Item.NumpyArray(
+                        last=True,
+                        dtype=str(array.dtype),
+                        shape=array.shape,
+                        data=block
+                    )
+                )
+            else:
+                yield bridge_pb2.Item(
+                    item_type=bridge_pb2.Item.NUMPY_ARRAY,
+                    numpy_array_value=bridge_pb2.Item.NumpyArray(
+                        last=False,
+                        data=block
+                    )
+                )
+
+    @staticmethod
+    def slice_ndarray(array, block_size):
+        assert block_size > 0
+
         data = array.data
         size = len(data)
 
@@ -64,40 +88,16 @@ class BridgeProtocol(object):
         if size <= block_size:
             bytes_ = array.tobytes()
             assert size == len(bytes_)
-            yield bridge_pb2.Item(
-                item_type=bridge_pb2.Item.NUMPY_ARRAY,
-                dict_key=dict_key,
-                numpy_array_value=bridge_pb2.Item.NumpyArray(
-                    last=True,
-                    dtype=dtype,
-                    shape=shape,
-                    data=bytes_
-                )
-            )
+            yield bytes_, True
         else:
             i = 0
-            while i < size:
+            while True:
                 ii = i + block_size
                 if ii >= size:
-                    yield bridge_pb2.Item(
-                        item_type=bridge_pb2.Item.NUMPY_ARRAY,
-                        dict_key=dict_key,
-                        numpy_array_value=bridge_pb2.Item.NumpyArray(
-                            last=True,
-                            dtype=dtype,
-                            shape=shape,
-                            data=data[i:ii]
-                        )
-                    )
-                else:
-                    yield bridge_pb2.Item(
-                        item_type=bridge_pb2.Item.NUMPY_ARRAY,
-                        numpy_array_value=bridge_pb2.Item.NumpyArray(
-                            last=False,
-                            data=data[i:ii]
-                        )
-                    )
+                    break
+                yield data[i:ii], False
                 i = ii
+            yield data[i:], True
 
     @staticmethod
     def parse_messages_recursive(message, messages):
@@ -138,25 +138,26 @@ class BridgeProtocol(object):
     def parse_messages_for_ndarray(message, messages):
         data = []
         while True:
-            if message.numpy_array_value.last:
-                # optimization to avoid extra data copying if array data fits to one block
-                # TODO: compare actual performance
-                if len(data) == 0:
-                    buffer_ = message.numpy_array_value.data
-                else:
-                    data.append(message.numpy_array_value.data)
-                    buffer_ = ''.join(data)
-
-                value = numpy.ndarray(
-                    shape=message.numpy_array_value.shape,
-                    dtype=numpy.dtype(message.numpy_array_value.dtype),
-                    buffer=buffer_
-                )
-                return value, message
-            else:
-                data.append(message.numpy_array_value.data)
-            message = next(messages)
             assert message.item_type == bridge_pb2.Item.NUMPY_ARRAY
+            data.append(message.numpy_array_value.data)
+            if message.numpy_array_value.last:
+                break
+            message = next(messages)
+
+        # optimization to avoid extra data copying if array data fits to one block
+        # TODO: compare actual performance
+        if len(data) == 1:
+            buffer_ = data[0]
+        else:
+            buffer_ = ''.join(data)
+
+        value = numpy.ndarray(
+            shape=message.numpy_array_value.shape,
+            dtype=numpy.dtype(message.numpy_array_value.dtype),
+            buffer=buffer_
+        )
+        return value, message
+
 
     BUILD_ITEM_MESSAGES_BY_TYPE = {
         list          : build_messages_for_list   ,
