@@ -1,8 +1,6 @@
 import tensorflow as tf
 import numpy as np
 
-from lstm import CustomBasicLSTMCell
-
 
 def make_shared_network(config):
     if config.use_LSTM:
@@ -35,23 +33,23 @@ class _GameACNetwork(object):
         # temporary difference (R-V) (input for policy)
         self.td = tf.placeholder("float", [None])
 
-        # avoid NaN with clipping when value in pi becomes zero
-        log_pi = tf.log(tf.clip_by_value(self.pi, 1e-20, 1.0))
+        # avoid NaN with getting the maximum with small value
+        log_pi = tf.log(tf.maximum(self.pi, 1e-20))
 
         # policy entropy
         entropy = -tf.reduce_sum(self.pi * log_pi, axis=1)
 
         # policy loss (output)  (Adding minus, because the original paper's
         # objective function is for gradient ascent, but we use gradient descent optimizer)
-        policy_loss = - tf.reduce_sum(
+        policy_loss = -tf.reduce_sum(
             tf.reduce_sum(tf.multiply(log_pi, self.a), axis=1) * self.td + entropy * config.ENTROPY_BETA)
 
         # R (input for value)
         self.r = tf.placeholder("float", [None])
 
         # value loss (output)
-        # (Learning rate for Critic is half of Actor's, so multiply by 0.5)
-        value_loss = 0.5 * tf.nn.l2_loss(self.r - self.v)
+        # (Learning rate for Critic is half of Actor's, it's l2 without dividing by 0.5)
+        value_loss = tf.reduce_sum(tf.square(self.r - self.v))
 
         # gradient of policy and value are summed up
         self.total_loss = policy_loss + value_loss
@@ -182,7 +180,7 @@ class _GameACLSTMNetworkShared(_GameACNetwork):
         self.b_fc1 = _fc_bias_variable([256], 2592)
 
         # lstm
-        self.lstm = CustomBasicLSTMCell(256)
+        self.lstm = tf.contrib.rnn.BasicLSTMCell(256, state_is_tuple=True)
 
         # weight for policy output layer
         self.W_fc2 = _fc_weight_variable([256, config.action_size])
@@ -200,36 +198,38 @@ class _GameACLSTMNetworkShared(_GameACNetwork):
 
         h_conv2_flat = tf.reshape(h_conv2, [-1, 2592])
         h_fc1 = tf.nn.relu(tf.matmul(h_conv2_flat, self.W_fc1) + self.b_fc1)
-        # h_fc1 shape=(5,256)
-
         h_fc1_reshaped = tf.reshape(h_fc1, [1, -1, 256])
-        # h_fc_reshaped = (1,5,256)
 
         # place holder for LSTM unrolling time step size.
         self.step_size = tf.placeholder(tf.float32, [1])
 
-        self.initial_lstm_state = tf.placeholder(tf.float32, [1, self.lstm.state_size])
+        self.initial_lstm_state0 = tf.placeholder(tf.float32, [1, 256])
+        self.initial_lstm_state1 = tf.placeholder(tf.float32, [1, 256])
+        self.initial_lstm_state = tf.contrib.rnn.LSTMStateTuple(self.initial_lstm_state0,
+                                                                self.initial_lstm_state1)
 
         # Unrolling LSTM up to EPISODE_LEN time steps. (=5 time steps)
         # When episode terminates unrolling time steps becomes less than LOCAL_TIME_STEP.
         # Unrolling step size is applied via self.step_size placeholder.
         # When forward propagating, step_size is 1.
         # (time_major = False, so output shape is [batch_size, max_time, cell.output_size])
-        self.lstm_outputs, self.lstm_state = tf.nn.dynamic_rnn(
-            self.lstm,
-            h_fc1_reshaped,
-            initial_state=self.initial_lstm_state,
-            sequence_length=self.step_size,
-            time_major=False
-        )
+        with tf.variable_scope('LSTM') as scope:
+            self.lstm_outputs, self.lstm_state = tf.nn.dynamic_rnn(self.lstm,
+                                                                   h_fc1_reshaped,
+                                                                   initial_state=self.initial_lstm_state,
+                                                                   sequence_length=self.step_size,
+                                                                   time_major=False, scope=scope)
+            scope.reuse_variables()
+            self.W_lstm = tf.get_variable("basic_lstm_cell/weights")
+            self.b_lstm = tf.get_variable("basic_lstm_cell/biases")
 
         self.values = [
-            self.W_conv1    , self.b_conv1  ,
-            self.W_conv2    , self.b_conv2  ,
-            self.W_fc1      , self.b_fc1    ,
-            self.lstm.matrix, self.lstm.bias,
-            self.W_fc2      , self.b_fc2    ,
-            self.W_fc3      , self.b_fc3
+            self.W_conv1, self.b_conv1,
+            self.W_conv2, self.b_conv2,
+            self.W_fc1  , self.b_fc1  ,
+            self.W_lstm , self.b_lstm ,
+            self.W_fc2  , self.b_fc2  ,
+            self.W_fc3  , self.b_fc3
         ]
 
         self._placeholders = [tf.placeholder(v.dtype, v.get_shape()) for v in self.values]
@@ -255,8 +255,7 @@ class _GameACLSTMNetwork(_GameACLSTMNetworkShared):
     def __init__(self, config):
         super(_GameACLSTMNetwork, self).__init__(config)
 
-        # lstm_outputs: (1,5,256) for back prop, (1,1,256) for forward prop.
-
+        # lstm_outputs: (1, step_size, 256) for back prop & (1, 1, 256) for forward prop
         lstm_outputs = tf.reshape(self.lstm_outputs, [-1, 256])
 
         # policy (output)
@@ -269,38 +268,37 @@ class _GameACLSTMNetwork(_GameACLSTMNetworkShared):
         self.reset_state()
 
     def reset_state(self):
-        self.lstm_state_out = np.zeros([1, self.lstm.state_size])
+        self.lstm_state_out = tf.contrib.rnn.LSTMStateTuple(np.zeros([1, 256]),
+                                                            np.zeros([1, 256]))
 
     def run_policy_and_value(self, sess, s_t):
-        # This run_policy_and_value() is used when forward propagating.
-        # so the step size is 1.
+        # This run_policy_and_value() is used when forward propagating --> so the step size is 1
         pi_out, v_out, self.lstm_state_out = sess.run([self.pi, self.v, self.lstm_state],
                                                       feed_dict={self.s: [s_t],
-                                                                 self.initial_lstm_state: self.lstm_state_out,
+                                                                 self.initial_lstm_state0: self.lstm_state_out[0],
+                                                                 self.initial_lstm_state1: self.lstm_state_out[1],
                                                                  self.step_size: [1]})
-        # pi_out: (1,3), v_out: (1)
         return pi_out[0], v_out[0]
 
     def run_policy(self, sess, s_t):
-        # This run_policy() is used for displaying the result with display tool.
         pi_out, self.lstm_state_out = sess.run([self.pi, self.lstm_state],
                                                feed_dict={self.s: [s_t],
-                                                          self.initial_lstm_state: self.lstm_state_out,
+                                                          self.initial_lstm_state0: self.lstm_state_out[0],
+                                                          self.initial_lstm_state1: self.lstm_state_out[1],
                                                           self.step_size: [1]})
-
         return pi_out[0]
 
     def run_value(self, sess, s_t):
-        # This run_value() is used for calculating V for bootstrapping at the
-        # end of EPISODE_LEN time step sequence.
-        # When next sequent starts, V will be calculated again with the same state using updated network weights,
+        # This run_value() is used for calculating V for bootstrapping at the end of EPISODE_LEN time step sequence.
+        # When next sequence starts, V will be calculated again with the same state using updated network weights,
         # so we don't update LSTM state here.
         prev_lstm_state_out = self.lstm_state_out
+
         v_out, _ = sess.run([self.v, self.lstm_state],
                             feed_dict={self.s: [s_t],
-                                       self.initial_lstm_state: self.lstm_state_out,
+                                       self.initial_lstm_state0: self.lstm_state_out[0],
+                                       self.initial_lstm_state1: self.lstm_state_out[1],
                                        self.step_size: [1]})
-
         # roll back lstm state
         self.lstm_state_out = prev_lstm_state_out
         return v_out[0]
