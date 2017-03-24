@@ -5,6 +5,7 @@ from pg_config import config
 from pg_network import PolicyNN
 
 from relaax.common.algorithms.rewards import discounted_reward
+from relaax.common.algorithms.acts import choose_action
 
 
 # PGAgent implements training regime for Policy Gradient algorithm
@@ -119,11 +120,6 @@ class PGAgent(object):
 
     # run agent's policy and get action
     def action_from_policy(self, state):
-        def choose_action(probabilities):
-            values = np.cumsum(probabilities)
-            r = np.random.rand()*values[-1]
-            return np.searchsorted(values, r)
-
         if state:
             action_probabilities = self.sess.run(
                 self.nn.policy, feed_dict={self.nn.state: [state]})
@@ -133,7 +129,7 @@ class PGAgent(object):
     # accumulate experience:
     # state, reward, and actions for policy training
     def accumulate(self, state, reward, action):
-        self.state.append(state)
+        self.states.append(state)
 
         # one-hot vector to store taken action
         action_vec = np.zeros([config.action_size])
