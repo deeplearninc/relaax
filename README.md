@@ -202,14 +202,14 @@ about ALE and Atari games you can find in official [Google group.](https://group
 
 3. Run a Client:
 
-    It provides 3 predefined run-cases for the pulled docker image:
+    It provides some run-cases for the pulled docker image:
     ```bash
     # For example, the first one case
 
     $ docker run --rm -ti \
         -v /path_to_atari_roms_folder:/roms \
-        --name ale deeplearninc/relaax-ale \
-        SERVER_IP:PORT boxing
+        --name ale deeplearninc/relaax-ale:v0.2.0 \
+        --rlx-server SERVER_IP:PORT --env boxing
     ```
     It runs the docker in interactive mode by `-ti` and automatically removes this
     container when it stops with `--rm`. It also has `--name ale` for convenience.
@@ -223,24 +223,24 @@ about ALE and Atari games you can find in official [Google group.](https://group
     by the last parameter `boxing` (it launches the `Atari Boxing` game)
 
     ```bash
-    # For example, the second run-case
+    # For example, another run-case
 
     $ docker run --rm -ti \
         -v /path_to_atari_roms_folder:/roms \
-        --name ale deeplearninc/relaax-ale \
-        SERVER_IP:PORT boxing 4
+        --name ale deeplearninc/relaax-ale:v0.2.0 \
+        --rlx-server SERVER_IP:PORT --env boxing -n 4
     ```
-    It adds the third parameter which is equal to `4` since it allows to
+    It adds the third parameter `-n` which is equal to `4` since it allows to
     define number of games to launch within the docker for parallel training.
 
     ```bash
-    # And the third one use-case
+    # Use-case with dispaly mode
 
     $ docker run --rm -ti \
         -p IP:PORT:5900 \
         -v /path_to_atari_roms_folder:/roms \
-        --name ale deeplearninc/relaax-ale \
-        SERVER_IP:PORT boxing display
+        --name ale deeplearninc/relaax-ale:v0.2.0 \
+        --rlx-server SERVER_IP:PORT --env boxing --display
     ```
     It passes the last argument as `display` to run game in display mode, therefore
     it maps some ports on your computer to use `VNC` connection for visual session.
@@ -248,12 +248,15 @@ about ALE and Atari games you can find in official [Google group.](https://group
     For example, the full command to run the clients and a server on
     a single machine (under the NAT) should looks like as follows:
     ```bash
-    $ docker run --rm -ti \
+    $ docker run --rm -d \
         -p 192.168.2.103:15900:5900 \
         -v /opt/atari-game-roms:/roms \
         --name ale deeplearninc/relaax-ale \
-        192.168.2.103:7001 boxing display
+        -x 192.168.2.103:7001 -e boxing -d
     ```
+    It runs docker in a background mode by `-d` instead of interactive.
+    It also uses short names such as `-x`, `-e` and `-d` which replaces
+    `--rlx-server`, `--env` and `--display` respectively.
 
     You can connect to client's visual output via your VNC client with:
     ```
@@ -263,6 +266,18 @@ about ALE and Atari games you can find in official [Google group.](https://group
     Passwd: relaax
     Color depth: True color (24 bit)
     ```
+
+    You also can launch docker directly in `localhost` mode on a single PC:
+    ```bash
+    It works for *nix OS:
+    ---
+    $ docker run --rm -d \
+        --net host \
+        --name ale deeplearninc/relaax-ale:v0.2.0 \
+        --rlx-server localhost:7001 \
+        --env breakout --display
+    ```
+    It allows to set the server in your VNC client as `localhost:5900`
 
 Please find sample of configuration to perform experiments with ALE there:
 
