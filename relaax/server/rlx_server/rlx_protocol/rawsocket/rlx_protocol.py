@@ -15,27 +15,27 @@ class RLXProtocol(NetString):
         self.agent = RLXAgentProxy()
         self.address = address
 
-    def connectionMade(self):
+    def connection_made(self):
         pass
 
-    def stringReceived(self, data):
+    def string_received(self, data):
         msg = rlxm.from_wire(data)
         res = self.agent.dataReceived(msg)
-        self.sendString(res)
+        self.send_string(res)
 
-    def sendString(self, data):
+    def send_string(self, data):
         self.write_string(rlxm.to_wire(data))
 
-    def connectionLost(self, reason):
+    def connection_lost(self, reason):
         pass
 
-    def protocolLoop(self):
+    def protocol_loop(self):
         reason = None
         try:
-            self.connectionMade()
+            self.connection_made()
             while True:
                 data = self.read_string()
-                self.stringReceived(data)
+                self.string_received(data)
 
         except NetStringClosed:
             reason = 'Connection dropped'
@@ -47,8 +47,8 @@ class RLXProtocol(NetString):
                        'for connection %s:%d') % self.address)
             log.error(traceback.format_exc())
         finally:
-            self.connectionLost(reason)
+            self.connection_lost(reason)
 
 
 def adoptConnection(skt, addr):
-    RLXProtocol(skt, addr).protocolLoop()
+    RLXProtocol(skt, addr).protocol_loop()
