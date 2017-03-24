@@ -2,7 +2,7 @@ import grpc
 
 import bridge_pb2
 
-from bridge_serializer import BridgeSerializer
+from bridge_message import BridgeMessage
 
 
 class BridgeConnection(object):
@@ -10,6 +10,6 @@ class BridgeConnection(object):
         self._stub = bridge_pb2.BridgeStub(grpc.insecure_channel('%s:%d' % server))
 
     def run(self, ops, feed_dict):
-        messages = BridgeSerializer.serialize([ops, feed_dict])
+        messages = BridgeMessage.serialize([ops, feed_dict])
         result = self._stub.Run(messages)
-        return list(BridgeSerializer.deserialize(result))
+        return list(BridgeMessage.deserialize(result))

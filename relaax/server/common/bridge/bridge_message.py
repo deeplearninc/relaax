@@ -4,31 +4,31 @@ import types
 import bridge_pb2
 
 
-class BridgeSerializer(object):
+class BridgeMessage(object):
 
     @staticmethod
     def serialize(value):
-        return BridgeSerializer.serialize_recursive(value, dict_key=None)
+        return BridgeMessage.serialize_recursive(value, dict_key=None)
 
     @staticmethod
     def deserialize(messages):
-        value, _ = BridgeSerializer.deserialize_recursive(next(messages), messages)
+        value, _ = BridgeMessage.deserialize_recursive(next(messages), messages)
         the_end = object()
         assert next(messages, the_end) == the_end
         return value
 
     @staticmethod
     def serialize_recursive(value, dict_key):
-        return BridgeSerializer.SERIALIZERS[type(value)](value, dict_key)
+        return BridgeMessage.SERIALIZERS[type(value)](value, dict_key)
 
     @staticmethod
     def deserialize_recursive(message, messages):
-        return BridgeSerializer.DESERIALIZERS[message.item_type](message, messages)
+        return BridgeMessage.DESERIALIZERS[message.item_type](message, messages)
 
     def serialize_list(value, dict_key):
         yield bridge_pb2.Item(item_type=bridge_pb2.Item.LIST_OPEN)
         for item in value:
-            for message in BridgeSerializer.serialize_recursive(item, dict_key=dict_key):
+            for message in BridgeMessage.serialize_recursive(item, dict_key=dict_key):
                 yield message
         yield bridge_pb2.Item(item_type=bridge_pb2.Item.LIST_CLOSE, dict_key=dict_key)
 
@@ -38,12 +38,12 @@ class BridgeSerializer(object):
             message = next(messages)
             if message.item_type == bridge_pb2.Item.LIST_CLOSE:
                 return value, message
-            value.append(BridgeSerializer.deserialize_recursive(message, messages)[0])
+            value.append(BridgeMessage.deserialize_recursive(message, messages)[0])
 
     def serialize_dict(value, dict_key):
         yield bridge_pb2.Item(item_type=bridge_pb2.Item.DICT_OPEN)
         for key, item in value.iteritems():
-            for message in BridgeSerializer.serialize_recursive(item, dict_key=key):
+            for message in BridgeMessage.serialize_recursive(item, dict_key=key):
                 yield message
         yield bridge_pb2.Item(item_type=bridge_pb2.Item.DICT_CLOSE, dict_key=dict_key)
 
@@ -53,7 +53,7 @@ class BridgeSerializer(object):
             message = next(messages)
             if message.item_type == bridge_pb2.Item.DICT_CLOSE:
                 return value, message
-            item, last_message = BridgeSerializer.deserialize_recursive(message, messages)
+            item, last_message = BridgeMessage.deserialize_recursive(message, messages)
             value[last_message.dict_key] = item
 
     def serialize_none(value, dict_key):
@@ -90,7 +90,7 @@ class BridgeSerializer(object):
         # TODO: select more appropriate block size
         block_size = 1024 * 1024
 
-        for block, last in BridgeSerializer.slice_ndarray(array, block_size):
+        for block, last in BridgeMessage.slice_ndarray(array, block_size):
             assert 0 < len(block) <= block_size
             if last:
                 yield bridge_pb2.Item(

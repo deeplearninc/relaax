@@ -3,7 +3,7 @@ import grpc
 
 import bridge_pb2
 
-from bridge_serializer import BridgeSerializer
+from bridge_message import BridgeMessage
 
 
 class BridgeServer(object):
@@ -21,6 +21,6 @@ class Servicer(bridge_pb2.BridgeServicer):
         self.session = session
 
     def Run(self, request_iterator, context):
-        ops, feed_dict = BridgeSerializer.deserialize(request_iterator)
+        ops, feed_dict = BridgeMessage.deserialize(request_iterator)
         result = self.session.run(ops, feed_dict)
-        return BridgeSerializer.serialize(result)
+        return BridgeMessage.serialize(result)

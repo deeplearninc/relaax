@@ -4,7 +4,7 @@ import numpy
 import types
 import unittest
 
-from relaax.server.common.bridge.bridge_serializer import BridgeSerializer
+from relaax.server.common.bridge.bridge_message import BridgeMessage
 
 
 class TestBridgeProtocol(unittest.TestCase):
@@ -78,10 +78,10 @@ class TestBridgeProtocol(unittest.TestCase):
         })
 
     def write(self, value):
-        return BridgeSerializer.serialize(value)
+        return BridgeMessage.serialize(value)
 
     def read(self, messages):
-        return BridgeSerializer.deserialize(messages)
+        return BridgeMessage.deserialize(messages)
 
     def check_protocol(self, value):
         self.check_are_equal(value, self.read(self.write(value)))
