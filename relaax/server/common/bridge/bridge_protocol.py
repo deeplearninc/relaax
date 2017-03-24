@@ -1,4 +1,5 @@
 import numpy
+import types
 
 import bridge_pb2
 
@@ -7,7 +8,7 @@ class BridgeProtocol(object):
 
     @staticmethod
     def build_item_messages(value):
-        return BridgeProtocol._build_item_messages(value, dict_key=None)
+        return BridgeProtocol.build_item_messages_recursive(value, dict_key=None)
 
     @staticmethod
     def parse_item_messages(messages):
@@ -17,46 +18,40 @@ class BridgeProtocol(object):
         return value
 
     @staticmethod
-    def _build_item_messages(value, dict_key):
+    def build_item_messages_recursive(value, dict_key):
+        method = BridgeProtocol.BUILD_ITEM_MESSAGES_BY_TYPE[type(value)]
+        return method(value, dict_key)
 
-        if isinstance(value, list):
-            yield bridge_pb2.Item(item_type=bridge_pb2.Item.LIST_OPEN)
-            for item in value:
-                for message in BridgeProtocol._build_item_messages(item, dict_key=dict_key):
-                    yield message
-            yield bridge_pb2.Item(item_type=bridge_pb2.Item.LIST_CLOSE, dict_key=dict_key)
-
-        elif isinstance(value, dict):
-            yield bridge_pb2.Item(item_type=bridge_pb2.Item.DICT_OPEN)
-            for key, item in value.iteritems():
-                for message in BridgeProtocol._build_item_messages(item, dict_key=key):
-                    yield message
-            yield bridge_pb2.Item(item_type=bridge_pb2.Item.DICT_CLOSE, dict_key=dict_key)
-
-        elif value is None:
-            yield bridge_pb2.Item(item_type=bridge_pb2.Item.NONE, dict_key=dict_key)
-
-        elif isinstance(value, bool):
-            yield bridge_pb2.Item(item_type=bridge_pb2.Item.BOOL, dict_key=dict_key, bool_value=value)
-
-        elif isinstance(value, int):
-            yield bridge_pb2.Item(item_type=bridge_pb2.Item.INT, dict_key=dict_key, int_value=value)
-
-        elif isinstance(value, float):
-            yield bridge_pb2.Item(item_type=bridge_pb2.Item.FLOAT, dict_key=dict_key, float_value=value)
-
-        elif isinstance(value, str):
-            yield bridge_pb2.Item(item_type=bridge_pb2.Item.STR, dict_key=dict_key, str_value=value)
-
-        elif isinstance(value, numpy.ndarray):
-            for message in BridgeProtocol._build_numpy_array_item_messages(value, dict_key=dict_key):
+    def build_item_messages_for_list(value, dict_key):
+        yield bridge_pb2.Item(item_type=bridge_pb2.Item.LIST_OPEN)
+        for item in value:
+            for message in BridgeProtocol.build_item_messages_recursive(item, dict_key=dict_key):
                 yield message
+        yield bridge_pb2.Item(item_type=bridge_pb2.Item.LIST_CLOSE, dict_key=dict_key)
 
-        else:
-            assert False
+    def build_item_messages_for_dict(value, dict_key):
+        yield bridge_pb2.Item(item_type=bridge_pb2.Item.DICT_OPEN)
+        for key, item in value.iteritems():
+            for message in BridgeProtocol.build_item_messages_recursive(item, dict_key=key):
+                yield message
+        yield bridge_pb2.Item(item_type=bridge_pb2.Item.DICT_CLOSE, dict_key=dict_key)
 
-    @staticmethod
-    def _build_numpy_array_item_messages(array, dict_key):
+    def build_item_messages_for_none(value, dict_key):
+        yield bridge_pb2.Item(item_type=bridge_pb2.Item.NONE, dict_key=dict_key)
+
+    def build_item_messages_for_bool(value, dict_key):
+        yield bridge_pb2.Item(item_type=bridge_pb2.Item.BOOL, dict_key=dict_key, bool_value=value)
+
+    def build_item_messages_for_int(value, dict_key):
+        yield bridge_pb2.Item(item_type=bridge_pb2.Item.INT, dict_key=dict_key, int_value=value)
+
+    def build_item_messages_for_float(value, dict_key):
+        yield bridge_pb2.Item(item_type=bridge_pb2.Item.FLOAT, dict_key=dict_key, float_value=value)
+
+    def build_item_messages_for_str(value, dict_key):
+        yield bridge_pb2.Item(item_type=bridge_pb2.Item.STR, dict_key=dict_key, str_value=value)
+
+    def build_item_messages_for_ndarray(array, dict_key):
         # TODO: select more appropriate block size
         block_size = 1024 * 1024
 
@@ -165,3 +160,14 @@ class BridgeProtocol(object):
 
         else:
             assert False
+
+    BUILD_ITEM_MESSAGES_BY_TYPE = {
+        list          : build_item_messages_for_list   ,
+        dict          : build_item_messages_for_dict   ,
+        types.NoneType: build_item_messages_for_none   ,
+        bool          : build_item_messages_for_bool   ,
+        int           : build_item_messages_for_int    ,
+        float         : build_item_messages_for_float  ,
+        str           : build_item_messages_for_str    ,
+        numpy.ndarray : build_item_messages_for_ndarray
+    }
