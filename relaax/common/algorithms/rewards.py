@@ -108,7 +108,7 @@ class DiscountedReward(object):
         # additional operations for normalization the resulting rewards wrt its mean and std
         mean_centered = self._compute - tf.reduce_mean(self._compute)
         epsilon = tf.constant(1e-20)    # to prevent zero dividing when all rewards are equal to 0
-        self._normalize = mean_centered / tf.sqrt(tf.nn.moments(mean_centered, axes=[0])[1]) + epsilon
+        self._normalize = mean_centered / tf.sqrt(tf.nn.moments(mean_centered, axes=[0])[1] + epsilon)
 
     def __call__(self, sess, rewards, normalize=False):
         """Returns computed discounted rewards as column vector.
