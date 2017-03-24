@@ -159,23 +159,23 @@ class BridgeSerializer(object):
             yield data[i:], True
 
     SERIALIZERS = {
-        list          : serialize_list   ,
-        dict          : serialize_dict   ,
-        types.NoneType: serialize_none   ,
-        bool          : serialize_bool   ,
-        int           : serialize_int    ,
-        float         : serialize_float  ,
-        str           : serialize_str    ,
-        numpy.ndarray : serialize_ndarray
+        list:           serialize_list,
+        dict:           serialize_dict,
+        types.NoneType: serialize_none,
+        bool:           serialize_bool,
+        int:            serialize_int,
+        float:          serialize_float,
+        str:            serialize_str,
+        numpy.ndarray:  serialize_ndarray
     }
 
     DESERIALIZERS = {
-        bridge_pb2.Item.LIST_OPEN  : deserialize_list   ,
-        bridge_pb2.Item.DICT_OPEN  : deserialize_dict   ,
-        bridge_pb2.Item.NONE       : deserialize_none   ,
-        bridge_pb2.Item.BOOL       : deserialize_bool   ,
-        bridge_pb2.Item.INT        : deserialize_int    ,
-        bridge_pb2.Item.FLOAT      : deserialize_float  ,
-        bridge_pb2.Item.STR        : deserialize_str    ,
+        bridge_pb2.Item.LIST_OPEN:   deserialize_list,
+        bridge_pb2.Item.DICT_OPEN:   deserialize_dict,
+        bridge_pb2.Item.NONE:        deserialize_none,
+        bridge_pb2.Item.BOOL:        deserialize_bool,
+        bridge_pb2.Item.INT:         deserialize_int,
+        bridge_pb2.Item.FLOAT:       deserialize_float,
+        bridge_pb2.Item.STR:         deserialize_str,
         bridge_pb2.Item.NUMPY_ARRAY: deserialize_ndarray
     }
