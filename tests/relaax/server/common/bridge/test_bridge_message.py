@@ -21,7 +21,7 @@ class TestBridgeProtocol(unittest.TestCase):
         self.assertEquals(self.read(iter(messages)), 0)
 
     def test_scalars(self):
-        for v in (None, False, True, 0, -1, 140, 3.14, 'the string'):
+        for v in (None, False, True, 0, -1, 140, 3.14, 'the string', numpy.int32(-16)):
             self.check_protocol(v)
 
     def test_list(self):
@@ -94,6 +94,7 @@ class TestBridgeProtocol(unittest.TestCase):
             types.NoneType: self.assertEquals,
             bool:           self.assertEquals,
             int:            self.assertEquals,
+            numpy.int32:    self.assertEquals,
             float:          self.assertEquals,
             str:            self.assertEquals,
             numpy.ndarray:  self.check_are_ndarrays_equal

@@ -168,6 +168,7 @@ class BridgeMessage(object):
         NoneMarshal(),
         ScalarMarshal(bridge_pb2.Item.BOOL, bool, 'bool_value'),
         ScalarMarshal(bridge_pb2.Item.INT, int, 'int_value'),
+        ScalarMarshal(bridge_pb2.Item.NUMPY_INT_32, numpy.int32, 'int_value'),
         ScalarMarshal(bridge_pb2.Item.FLOAT, float, 'float_value'),
         ScalarMarshal(bridge_pb2.Item.STR, str, 'str_value'),
         NdarrayMarshal(),
