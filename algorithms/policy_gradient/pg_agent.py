@@ -69,7 +69,9 @@ class PGAgent(object):
     def episode_step(self, reward, state):
         # if state is None then skipping this episode
         # there is no action for None state
-        if state is None:
+        if state is None:   # terminal is reached
+            self.rewards.append(reward)
+            self.episode_t += 1
             return None
 
         if state.ndim > 1:
@@ -117,8 +119,6 @@ class PGAgent(object):
 
     # run agent's policy and get action
     def action_from_policy(self, state):
-        if state:
-            action_probabilities = self.sess.run(
-                self.nn.policy, feed_dict={self.nn.state: [state]})
-            return action_probabilities
-        return None
+        action_probabilities = self.sess.run(
+            self.nn.policy, feed_dict={self.nn.state: [state]})
+        return action_probabilities

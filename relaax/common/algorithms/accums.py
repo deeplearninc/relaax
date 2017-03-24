@@ -16,7 +16,6 @@ def accumulate(obj, state, reward, probs):
         probs: Action's probability distribution to select
             an action and store it in object's action list.
     """
-
     obj.states.append(state)
 
     # define action number from a probability distribution
@@ -28,9 +27,8 @@ def accumulate(obj, state, reward, probs):
 
     obj.actions.append(action_vec)
 
-    if reward is None:
-        reward = 0
-    obj.rewards.append(reward)
+    if reward is not None:
+        obj.rewards.append(reward)
 
     # increase reward and timestep accumulators
     obj.episode_reward += reward
