@@ -21,12 +21,24 @@ class BridgeSerializer(object):
     def serialize_recursive(value, dict_key):
         return BridgeSerializer.SERIALIZERS[type(value)](value, dict_key)
 
+    @staticmethod
+    def deserialize_recursive(message, messages):
+        return BridgeSerializer.DESERIALIZERS[message.item_type](message, messages)
+
     def serialize_list(value, dict_key):
         yield bridge_pb2.Item(item_type=bridge_pb2.Item.LIST_OPEN)
         for item in value:
             for message in BridgeSerializer.serialize_recursive(item, dict_key=dict_key):
                 yield message
         yield bridge_pb2.Item(item_type=bridge_pb2.Item.LIST_CLOSE, dict_key=dict_key)
+
+    def deserialize_list(message, messages):
+        value = []
+        while True:
+            message = next(messages)
+            if message.item_type == bridge_pb2.Item.LIST_CLOSE:
+                return value, message
+            value.append(BridgeSerializer.deserialize_recursive(message, messages)[0])
 
     def serialize_dict(value, dict_key):
         yield bridge_pb2.Item(item_type=bridge_pb2.Item.DICT_OPEN)
@@ -35,20 +47,44 @@ class BridgeSerializer(object):
                 yield message
         yield bridge_pb2.Item(item_type=bridge_pb2.Item.DICT_CLOSE, dict_key=dict_key)
 
+    def deserialize_dict(message, messages):
+        value = {}
+        while True:
+            message = next(messages)
+            if message.item_type == bridge_pb2.Item.DICT_CLOSE:
+                return value, message
+            item, last_message = BridgeSerializer.deserialize_recursive(message, messages)
+            value[last_message.dict_key] = item
+
     def serialize_none(value, dict_key):
         yield bridge_pb2.Item(item_type=bridge_pb2.Item.NONE, dict_key=dict_key)
+
+    def deserialize_none(message, messages):
+        return None, message
 
     def serialize_bool(value, dict_key):
         yield bridge_pb2.Item(item_type=bridge_pb2.Item.BOOL, dict_key=dict_key, bool_value=value)
 
+    def deserialize_bool(message, messages):
+        return message.bool_value, message
+
     def serialize_int(value, dict_key):
         yield bridge_pb2.Item(item_type=bridge_pb2.Item.INT, dict_key=dict_key, int_value=value)
+
+    def deserialize_int(message, messages):
+        return int(message.int_value), message
 
     def serialize_float(value, dict_key):
         yield bridge_pb2.Item(item_type=bridge_pb2.Item.FLOAT, dict_key=dict_key, float_value=value)
 
+    def deserialize_float(message, messages):
+        return message.float_value, message
+
     def serialize_str(value, dict_key):
         yield bridge_pb2.Item(item_type=bridge_pb2.Item.STR, dict_key=dict_key, str_value=value)
+
+    def deserialize_str(message, messages):
+        return str(message.str_value), message
 
     def serialize_ndarray(array, dict_key):
         # TODO: select more appropriate block size
@@ -76,65 +112,6 @@ class BridgeSerializer(object):
                     )
                 )
 
-    @staticmethod
-    def slice_ndarray(array, block_size):
-        assert block_size > 0
-
-        data = array.data
-        size = len(data)
-
-        # optimization to avoid extra data copying if array data fits to one block
-        # TODO: compare actual performance
-        if size <= block_size:
-            bytes_ = array.tobytes()
-            assert size == len(bytes_)
-            yield bytes_, True
-        else:
-            i = 0
-            while True:
-                ii = i + block_size
-                if ii >= size:
-                    break
-                yield data[i:ii], False
-                i = ii
-            yield data[i:], True
-
-    @staticmethod
-    def deserialize_recursive(message, messages):
-        return BridgeSerializer.DESERIALIZERS[message.item_type](message, messages)
-
-    def deserialize_list(message, messages):
-        value = []
-        while True:
-            message = next(messages)
-            if message.item_type == bridge_pb2.Item.LIST_CLOSE:
-                return value, message
-            value.append(BridgeSerializer.deserialize_recursive(message, messages)[0])
-
-    def deserialize_dict(message, messages):
-        value = {}
-        while True:
-            message = next(messages)
-            if message.item_type == bridge_pb2.Item.DICT_CLOSE:
-                return value, message
-            item, last_message = BridgeSerializer.deserialize_recursive(message, messages)
-            value[last_message.dict_key] = item
-
-    def deserialize_none(message, messages):
-        return None, message
-
-    def deserialize_bool(message, messages):
-        return message.bool_value, message
-
-    def deserialize_int(message, messages):
-        return int(message.int_value), message
-
-    def deserialize_float(message, messages):
-        return message.float_value, message
-
-    def deserialize_str(message, messages):
-        return str(message.str_value), message
-
     def deserialize_ndarray(message, messages):
         data = []
         while True:
@@ -158,6 +135,28 @@ class BridgeSerializer(object):
         )
         return value, message
 
+    @staticmethod
+    def slice_ndarray(array, block_size):
+        assert block_size > 0
+
+        data = array.data
+        size = len(data)
+
+        # optimization to avoid extra data copying if array data fits to one block
+        # TODO: compare actual performance
+        if size <= block_size:
+            bytes_ = array.tobytes()
+            assert size == len(bytes_)
+            yield bytes_, True
+        else:
+            i = 0
+            while True:
+                ii = i + block_size
+                if ii >= size:
+                    break
+                yield data[i:ii], False
+                i = ii
+            yield data[i:], True
 
     SERIALIZERS = {
         list          : serialize_list   ,
