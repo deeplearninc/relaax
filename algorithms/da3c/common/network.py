@@ -208,10 +208,10 @@ class _GameACLSTMNetworkShared(_GameACNetwork):
         self.initial_lstm_state = tf.contrib.rnn.LSTMStateTuple(self.initial_lstm_state0,
                                                                 self.initial_lstm_state1)
 
-        # Unrolling LSTM up to EPISODE_LEN time steps. (=5 time steps)
-        # When episode terminates unrolling time steps becomes less than LOCAL_TIME_STEP.
-        # Unrolling step size is applied via self.step_size placeholder.
-        # When forward propagating, step_size is 1.
+        # Unrolling LSTM up to EPISODE_LEN time steps (=5 time steps)
+        # When episode terminates unrolling time steps becomes less than LOCAL_TIME_STEP
+        # Unrolling step size is applied via self.step_size placeholder
+        # When forward propagating, step_size is 1
         # (time_major = False, so output shape is [batch_size, max_time, cell.output_size])
         with tf.variable_scope('LSTM') as scope:
             self.lstm_outputs, self.lstm_state = tf.nn.dynamic_rnn(self.lstm,
