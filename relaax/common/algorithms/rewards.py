@@ -6,7 +6,7 @@ import tensorflow as tf
 import numpy as np
 
 
-def discounted_reward(rewards, gamma, normalize=True, constraint=False):
+def discounted_reward(rewards, gamma=0.99, normalize=True, constraint=False):
     """Computes discounted sums of rewards along 0-th dimension.
 
     y[t] = x[t] + gamma*x[t+1] + gamma^2*x[t+2] + ... + gamma^k x[t+k],
@@ -47,21 +47,21 @@ def discounted_reward(rewards, gamma, normalize=True, constraint=False):
     return discounted_r
 
 
-def get_gamma_operator(gamma_, batch_size_):
+def get_gamma_operator(batch_size_, gamma_=0.99):
     """Computes gamma_operator wrt batch (buffer) size & gamma.
 
     Args:
-        gamma_ (float): Discount factor.
         batch_size_ (int): The upper limit of the powers to compute.
+        gamma_ (float): Discount factor.
 
     Returns:
         gamma_operator (numpy.ndarray): triangle matrix with powers of gamma.
 
     Examples
     ----------
-    >>> gamma = 0.95
     >>> batch_size = 3
-    >>> print(get_gamma_operator(gamma, batch_size))
+    >>> gamma = 0.95
+    >>> print(get_gamma_operator(batch_size, gamma))
     >>> [[1.    0.95    0.9025]
     >>>  [0.    1.      0.95  ]
     >>>  [0.    0.      1.    ]
@@ -123,7 +123,7 @@ class DiscountedRewardFull(object):
     >>> rewards = [1, 0, 0, 1, 0,
     >>>            0, 0, 1, 1, 1]
     >>> gamma = 0.95
-    >>> dr_caller = DiscountedRewardFull(gamma, len(rewards))
+    >>> dr_caller = DiscountedRewardFull(len(rewards), gamma)
     >>> with tf.Session() as sess:
     >>>    sess.run(tf.variables_initializer(tf.global_variables()))
     >>>    # we have to rebuild rewards list to numpy column vector with `np.vstack`
@@ -140,12 +140,12 @@ class DiscountedRewardFull(object):
     ...  [ 1.95000005]
     ...  [ 1.        ]]
     """
-    def __init__(self, gamma_, batch_size_):
+    def __init__(self, batch_size_, gamma_=0.99):
         """Compute gamma operator wrt batch (buffer) size & define ops.
 
         Args:
-            gamma_ (float): Discount factor.
             batch_size_ (int): The upper limit of the powers to compute.
+            gamma_ (float): Discount factor.
         """
 
         # create array of gamma's powers from [0..batch_size)

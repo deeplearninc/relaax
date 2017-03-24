@@ -98,7 +98,7 @@ class PGAgent(object):
         return self.sess.run(self.nn.partial_gradients, feed_dict={
                              self.nn.state: self.states,
                              self.nn.action: self.actions,
-                             self.nn.discounted_reward: discounted_reward()})
+                             self.nn.discounted_reward: discounted_reward(np.vstack(self.rewards))})
 
     # update PS with leaned policy
     def update_shared_parameters(self, partial_gradients):
