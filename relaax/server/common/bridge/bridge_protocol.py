@@ -73,7 +73,7 @@ class BridgeProtocol(object):
             yield bridge_pb2.Item(
                 item_type=bridge_pb2.Item.NUMPY_ARRAY,
                 dict_key=dict_key,
-                numpy_array_value = bridge_pb2.Item.NumpyArray(
+                numpy_array_value=bridge_pb2.Item.NumpyArray(
                     last=True,
                     dtype=dtype,
                     shape=shape,
@@ -88,7 +88,7 @@ class BridgeProtocol(object):
                     yield bridge_pb2.Item(
                         item_type=bridge_pb2.Item.NUMPY_ARRAY,
                         dict_key=dict_key,
-                        numpy_array_value = bridge_pb2.Item.NumpyArray(
+                        numpy_array_value=bridge_pb2.Item.NumpyArray(
                             last=True,
                             dtype=dtype,
                             shape=shape,
@@ -98,7 +98,7 @@ class BridgeProtocol(object):
                 else:
                     yield bridge_pb2.Item(
                         item_type=bridge_pb2.Item.NUMPY_ARRAY,
-                        numpy_array_value = bridge_pb2.Item.NumpyArray(
+                        numpy_array_value=bridge_pb2.Item.NumpyArray(
                             last=False,
                             data=data[i:ii]
                         )

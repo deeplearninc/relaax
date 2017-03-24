@@ -69,7 +69,7 @@ class TestBridgeProtocol(unittest.TestCase):
         self.check_protocol({
             'one': [
                 'a',
-                { 
+                {
                     'two': numpy.zeros((1000, 1000)),
                     'three': numpy.array([[1, 2], [3, 4.5]])
                 }
