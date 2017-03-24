@@ -2,15 +2,13 @@ import time
 import errno
 import socket
 
+from fixtures.mock_utils import MockUtils
 from fixtures.mock_socket import MockSocket
 from relaax.common.rlx_netstring import NetString
 from relaax.client.rlx_client import RlxClient, RlxClientException
 
 
 class TestRlxClient:
-
-    def _raise(self, exception):
-        raise exception
 
     def test_connect(self, monkeypatch):
         skt = MockSocket.create()
@@ -50,7 +48,7 @@ class TestRlxClient:
         monkeypatch.setattr(
             NetString,
             '__init__',
-            lambda x, y: self._raise(RlxClientException('unknown bug')))
+            lambda x, y: MockUtils.raise_(RlxClientException('unknown bug')))
         try:
             RlxClient('localhost:7000').connect()
             assert False
@@ -137,7 +135,7 @@ class TestRlxClient:
 
     def test_low_level_exception_on_exchange(self, monkeypatch):
         transport = NetString('skt')
-        transport.write_string = lambda x: self._raise(Exception('some error'))
+        transport.write_string = lambda x: MockUtils.raise_(Exception('some error'))
         client = RlxClient('localhost:7000')
         client.transport = transport
         client.skt = 'skt'
