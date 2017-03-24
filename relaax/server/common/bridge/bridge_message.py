@@ -27,7 +27,7 @@ class BridgeMessage(object):
 
     class NoneMarshal(object):
         def __init__(self):
-            self.type = types.NoneType
+            self.value_type = types.NoneType
             self.item_type = bridge_pb2.Item.NONE
 
         def serialize(self, value, dict_key):
@@ -37,9 +37,9 @@ class BridgeMessage(object):
             return None, message
 
     class ScalarMarshal(object):
-        def __init__(self, item_type, type, value_attr):
+        def __init__(self, item_type, value_type, value_attr):
             self.item_type = item_type
-            self.type = type
+            self.value_type = value_type
             self.value_attr = value_attr
 
         def serialize(self, value, dict_key):
@@ -48,11 +48,11 @@ class BridgeMessage(object):
             yield item
 
         def deserialize(self, message, messages):
-            return self.type(getattr(message, self.value_attr)), message
+            return self.value_type(getattr(message, self.value_attr)), message
 
     class NdarrayMarshal(object):
         def __init__(self):
-            self.type = numpy.ndarray
+            self.value_type = numpy.ndarray
             self.item_type = bridge_pb2.Item.NUMPY_ARRAY
 
         def serialize(self, array, dict_key):
@@ -122,7 +122,7 @@ class BridgeMessage(object):
 
     class ListMarshal(object):
         def __init__(self):
-            self.type = list
+            self.value_type = list
             self.item_type = bridge_pb2.Item.LIST_OPEN
 
         def serialize(self, value, dict_key):
@@ -142,7 +142,7 @@ class BridgeMessage(object):
 
     class DictMarshal(object):
         def __init__(self):
-            self.type = dict
+            self.value_type = dict
             self.item_type = bridge_pb2.Item.DICT_OPEN
 
         def serialize(self, value, dict_key):
@@ -164,7 +164,7 @@ class BridgeMessage(object):
     SERIALIZERS = {}
     DESERIALIZERS = {}
 
-    for converter in [
+    for marshaller in [
         NoneMarshal(),
         ScalarMarshal(bridge_pb2.Item.BOOL, bool, 'bool_value'),
         ScalarMarshal(bridge_pb2.Item.INT, int, 'int_value'),
@@ -175,7 +175,7 @@ class BridgeMessage(object):
         ListMarshal(),
         DictMarshal()
     ]:
-        assert converter.type not in SERIALIZERS
-        SERIALIZERS[converter.type] = converter.serialize
-        assert converter.item_type not in DESERIALIZERS
-        DESERIALIZERS[converter.item_type] = converter.deserialize
+        assert marshaller.value_type not in SERIALIZERS
+        SERIALIZERS[marshaller.value_type] = marshaller.serialize
+        assert marshaller.item_type not in DESERIALIZERS
+        DESERIALIZERS[marshaller.item_type] = marshaller.deserialize
