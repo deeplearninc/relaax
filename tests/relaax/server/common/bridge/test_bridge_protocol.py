@@ -77,10 +77,10 @@ class TestBridgeProtocol(unittest.TestCase):
         })
 
     def write(self, value):
-        return BridgeProtocol.build_item_messages(value)
+        return BridgeProtocol.build_messages(value)
 
     def read(self, messages):
-        return BridgeProtocol.parse_item_messages(messages)
+        return BridgeProtocol.parse_messages(messages)
 
     def check_protocol(self, value):
         self.check_is_equal(value, self.read(self.write(value)))

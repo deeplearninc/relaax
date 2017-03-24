@@ -21,6 +21,6 @@ class Servicer(bridge_pb2.BridgeServicer):
         self.session = session
 
     def Run(self, request_iterator, context):
-        ops, feed_dict = BridgeProtocol.parse_item_messages(request_iterator)
+        ops, feed_dict = BridgeProtocol.parse_messages(request_iterator)
         result = self.session.run(ops, feed_dict)
-        return BridgeProtocol.build_item_messages(result)
+        return BridgeProtocol.build_messages(result)
