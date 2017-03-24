@@ -25,7 +25,7 @@ class BridgeMessage(object):
     def deserialize_recursive(message, messages):
         return BridgeMessage.DESERIALIZERS[message.item_type](message, messages)
 
-    class NoneConverter(object):
+    class NoneMarshal(object):
         def __init__(self):
             self.type = types.NoneType
             self.item_type = bridge_pb2.Item.NONE
@@ -36,7 +36,7 @@ class BridgeMessage(object):
         def deserialize(self, message, messages):
             return None, message
 
-    class ScalarConverter(object):
+    class ScalarMarshal(object):
         def __init__(self, item_type, type, value_attr):
             self.item_type = item_type
             self.type = type
@@ -50,7 +50,7 @@ class BridgeMessage(object):
         def deserialize(self, message, messages):
             return self.type(getattr(message, self.value_attr)), message
 
-    class NdarrayConverter(object):
+    class NdarrayMarshal(object):
         def __init__(self):
             self.type = numpy.ndarray
             self.item_type = bridge_pb2.Item.NUMPY_ARRAY
@@ -120,7 +120,7 @@ class BridgeMessage(object):
                 for i in xrange(0, size, block_size):
                     yield data[i:i + block_size], i + block_size >= size
 
-    class ListConverter(object):
+    class ListMarshal(object):
         def __init__(self):
             self.type = list
             self.item_type = bridge_pb2.Item.LIST_OPEN
@@ -140,7 +140,7 @@ class BridgeMessage(object):
                     return value, message
                 value.append(BridgeMessage.deserialize_recursive(message, messages)[0])
 
-    class DictConverter(object):
+    class DictMarshal(object):
         def __init__(self):
             self.type = dict
             self.item_type = bridge_pb2.Item.DICT_OPEN
@@ -165,14 +165,14 @@ class BridgeMessage(object):
     DESERIALIZERS = {}
 
     for converter in [
-        NoneConverter(),
-        ScalarConverter(bridge_pb2.Item.BOOL, bool, 'bool_value'),
-        ScalarConverter(bridge_pb2.Item.INT, int, 'int_value'),
-        ScalarConverter(bridge_pb2.Item.FLOAT, float, 'float_value'),
-        ScalarConverter(bridge_pb2.Item.STR, str, 'str_value'),
-        NdarrayConverter(),
-        ListConverter(),
-        DictConverter()
+        NoneMarshal(),
+        ScalarMarshal(bridge_pb2.Item.BOOL, bool, 'bool_value'),
+        ScalarMarshal(bridge_pb2.Item.INT, int, 'int_value'),
+        ScalarMarshal(bridge_pb2.Item.FLOAT, float, 'float_value'),
+        ScalarMarshal(bridge_pb2.Item.STR, str, 'str_value'),
+        NdarrayMarshal(),
+        ListMarshal(),
+        DictMarshal()
     ]:
         assert converter.type not in SERIALIZERS
         SERIALIZERS[converter.type] = converter.serialize
