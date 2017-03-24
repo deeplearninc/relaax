@@ -101,7 +101,6 @@ class BridgeProtocol(object):
 
     @staticmethod
     def _parse_item_messages(message, messages):
-        data = []
         if message.item_type == bridge_pb2.Item.LIST_OPEN:
             value = []
             while True:
