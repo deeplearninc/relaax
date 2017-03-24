@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import numpy
+import types
 import unittest
 
 from relaax.server.common.bridge.bridge_serializer import BridgeSerializer
@@ -83,45 +84,34 @@ class TestBridgeProtocol(unittest.TestCase):
         return BridgeSerializer.deserialize(messages)
 
     def check_protocol(self, value):
-        self.check_is_equal(value, self.read(self.write(value)))
+        self.check_are_equal(value, self.read(self.write(value)))
 
-    def check_is_equal(self, a, b):
+    def check_are_equal(self, a, b):
         self.assertEquals(type(a), type(b))
+        {
+            list:           self.check_are_lists_equal,
+            dict:           self.check_are_dicts_equal,
+            types.NoneType: self.assertEquals,
+            bool:           self.assertEquals,
+            int:            self.assertEquals,
+            float:          self.assertEquals,
+            str:            self.assertEquals,
+            numpy.ndarray:  self.check_are_ndarrays_equal
+        }[type(a)](a, b)
 
-        if isinstance(a, list):
-            self.assertEquals(len(a), len(b))
-            for aa, bb in zip(a, b):
-                self.check_is_equal(aa, bb)
+    def check_are_lists_equal(self, a, b):
+        self.assertEquals(len(a), len(b))
+        for aa, bb in zip(a, b):
+            self.check_are_equal(aa, bb)
 
-        elif isinstance(a, dict):
-            self.assertEquals(set(a), set(b))
-            for key in a:
-                self.assertTrue(isinstance(key, str))
-                self.check_is_equal(a[key], b[key])
+    def check_are_dicts_equal(self, a, b):
+        self.assertEquals(set(a), set(b))
+        for key in a:
+            self.assertTrue(isinstance(key, str))
+            self.check_are_equal(a[key], b[key])
 
-        elif a is None:
-            self.assertEquals(a, b)
-
-        elif isinstance(a, bool):
-            self.assertEquals(a, b)
-
-        elif isinstance(a, int):
-            self.assertEquals(a, b)
-
-        elif isinstance(a, long):
-            self.assertEquals(a, b)
-
-        elif isinstance(a, float):
-            self.assertEquals(a, b)
-
-        elif isinstance(a, str):
-            self.assertEquals(a, b)
-
-        elif isinstance(a, numpy.ndarray):
-            self.assertTrue((a == b).all())
-
-        else:
-            assert False
+    def check_are_ndarrays_equal(self, a, b):
+        self.assertTrue((a == b).all())
 
 
 if __name__ == '__main__':
