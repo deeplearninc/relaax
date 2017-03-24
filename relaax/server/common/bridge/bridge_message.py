@@ -149,14 +149,8 @@ class BridgeMessage(object):
             assert size == len(bytes_)
             yield bytes_, True
         else:
-            i = 0
-            while True:
-                ii = i + block_size
-                if ii >= size:
-                    break
-                yield data[i:ii], False
-                i = ii
-            yield data[i:], True
+            for i in xrange(0, size, block_size):
+                yield data[i:i + block_size], i + block_size >= size
 
     SERIALIZERS = {
         list:           serialize_list,
