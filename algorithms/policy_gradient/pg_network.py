@@ -83,7 +83,7 @@ class PolicyNN(Weights):
 
     @define_input
     def state(self):
-        return tf.placeholder(tf.float32, [None, config.state_size])
+        return tf.placeholder(tf.float32, [None] + config.state_size)
 
     @define_input
     def action(self):
