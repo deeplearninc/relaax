@@ -62,16 +62,16 @@ class TestBridgeProtocol(unittest.TestCase):
         self.check_protocol(numpy.array([[1, 2], [3, 4.5]]))
 
     def test_large_numpy_array(self):
-        messages = list(self.write(numpy.zeros((1000, 1000), dtype=numpy.float)))
+        messages = list(self.write(numpy.arange(0, 1000000, dtype=numpy.float)))
         self.assertEquals(len(messages), 8)
-        self.assertTrue((self.read(iter(messages)) == numpy.zeros((1000, 1000), dtype=numpy.float)).all())
+        self.assertTrue((self.read(iter(messages)) == numpy.arange(0, 1000000, dtype=numpy.float)).all())
 
     def test_everything(self):
         self.check_protocol({
             'one': [
                 'a',
                 {
-                    'two': numpy.zeros((1000, 1000)),
+                    'two': numpy.arange(0, 1000000, dtype=numpy.float),
                     'three': numpy.array([[1, 2], [3, 4.5]])
                 }
             ]
