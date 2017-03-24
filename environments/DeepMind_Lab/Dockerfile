@@ -100,19 +100,14 @@ RUN git clone https://github.com/deepmind/lab.git
 WORKDIR /opt/lab
 # headless=glx | headless=false
 RUN bazel build :deepmind_lab.so --define headless=osmesa \
-    && bazel run :random_agent --define headless=osmesa \
-    && mkdir /opt/relaax
+    && bazel run :random_agent --define headless=osmesa
 
-# Add RELAAX to the image
-COPY algorithms /opt/relaax/algorithms
-COPY bin /opt/relaax/bin
-COPY config /opt/relaax/config
-COPY environments /opt/relaax/environments
-COPY relaax /opt/relaax/relaax
-COPY setup.py /opt/relaax/
-
-WORKDIR /opt/relaax
-RUN pip install -e . \
+# Install RELAAX
+WORKDIR /opt
+RUN git clone https://github.com/deeplearninc/relaax.git \
+    && cd relaax \
+    && git checkout v2_dockers \
+    && pip install -e . \
     && cp /opt/relaax/environments/DeepMind_Lab/startup.sh / \
     && cp /opt/relaax/environments/DeepMind_Lab/supervisord.conf /etc/supervisor/conf.d/ \
     && cp /opt/relaax/environments/DeepMind_Lab/run_env / \
