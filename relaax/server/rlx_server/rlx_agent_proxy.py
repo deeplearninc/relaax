@@ -10,7 +10,7 @@ log = logging.getLogger(__name__)
 class RLXAgentProxy(object):
 
     def __init__(self):
-        connection = BridgeConnection('%s:%d' % options.parameter_server)
+        connection = BridgeConnection(options.parameter_server)
         self.agent = options.algorithm_module.Agent(connection)
 
     def init(self, ignore=None):
