@@ -5,7 +5,7 @@ from pg_config import config
 from pg_network import PolicyNN
 
 from relaax.common.algorithms.rewards import discounted_reward
-from relaax.common.algorithms.acts import choose_action
+from relaax.common.algorithms.accums import accumulate
 
 
 # PGAgent implements training regime for Policy Gradient algorithm
@@ -23,8 +23,6 @@ class PGAgent(object):
         self.exploit = exploit
         # count global steps between all agents
         self.global_t = 0
-        # count of episodes run by agent
-        self.local_t = 0
         # reset variables used
         # to run single episode
         self.reset_episode()
@@ -76,9 +74,9 @@ class PGAgent(object):
 
         if state.ndim > 1:
             state = state.flatten()
-        action = self.action_from_policy(state)
-        # accumulate experience
-        self.accumulate(state, reward, action)
+        probs = self.action_from_policy(state)
+        # accumulate experience & retrieve action as simple number
+        action = accumulate(self, state, reward, probs)
 
         return action
 
@@ -89,8 +87,6 @@ class PGAgent(object):
             partial_gradients = self.train_policy()
             self.update_shared_parameters(partial_gradients)
         self.reset_episode()
-        # increase number of completed episodes
-        self.local_t = 0
 
 # Helper methods
 
@@ -106,7 +102,7 @@ class PGAgent(object):
         self.ps.run(
             "apply_gradients", feed_dict={"gradients": partial_gradients})
 
-    #
+    # reset training auxiliary counters and accumulators
     def reset_episode(self):
         self.episode_reward, self.episode_t = 0, 0
         self.rewards, self.states, self.actions = [], [], []
@@ -123,20 +119,5 @@ class PGAgent(object):
         if state:
             action_probabilities = self.sess.run(
                 self.nn.policy, feed_dict={self.nn.state: [state]})
-            return choose_action(action_probabilities)
+            return action_probabilities
         return None
-
-    # accumulate experience:
-    # state, reward, and actions for policy training
-    def accumulate(self, state, reward, action):
-        self.states.append(state)
-
-        # one-hot vector to store taken action
-        action_vec = np.zeros([config.action_size])
-        action_vec[action] = 1
-        self.actions.append(action_vec)
-
-        if reward is None:
-            reward = 0
-        self.episode_reward += reward
-        self.rewards.append(reward)
