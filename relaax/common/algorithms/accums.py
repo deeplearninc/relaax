@@ -30,8 +30,11 @@ def accumulate(obj, state, reward, probs):
 
     if reward is None:
         reward = 0
-    obj.episode_reward += reward
     obj.rewards.append(reward)
+
+    # increase reward and timestep accumulators
+    obj.episode_reward += reward
+    obj.episode_t += 1
 
     return action
 

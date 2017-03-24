@@ -75,6 +75,7 @@ class PGAgent(object):
         if state.ndim > 1:
             state = state.flatten()
         probs = self.action_from_policy(state)
+
         # accumulate experience & retrieve action as simple number
         action = accumulate(self, state, reward, probs)
 
