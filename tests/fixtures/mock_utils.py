@@ -1,3 +1,4 @@
+from collections import namedtuple
 
 
 class MockUtils(object):
@@ -8,10 +9,11 @@ class MockUtils(object):
 
     @staticmethod
     def called_with(target, method, monkeypatch):
-        def method_mock(*args):
-            called_with[0] = args[1]
+        def method_mock(*args, **kwargs):
+            called_with.args = args
+            called_with.kwargs = kwargs
 
-        called_with = [None]
+        called_with = namedtuple('CalledWith', 'args kwargs')
         monkeypatch.setattr(target, method, method_mock)
         return called_with
 

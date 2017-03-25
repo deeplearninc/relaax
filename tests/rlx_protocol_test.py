@@ -34,7 +34,7 @@ class TestRlxProtocol:
             self.protocol.protocol_loop()
             assert False
         except:
-            assert called_with[0] == 'Unknown error'
+            assert called_with.args[1] == 'Unknown error'
 
     def test_protocol_loop_netstring_exception(self, monkeypatch):
         monkeypatch.setattr(RLXProtocol, 'read_string',
@@ -44,7 +44,7 @@ class TestRlxProtocol:
             self.protocol.protocol_loop()
             assert False
         except:
-            assert called_with[0] == 'Connection dropped'
+            assert called_with.args[1] == 'Connection dropped'
 
     def test_connection_lost_do_nothing_wrong(self):
         try:
@@ -60,4 +60,4 @@ class TestRlxProtocol:
         protocol.agent.data_received = lambda x: x
         called_with = MockUtils.called_with(RLXProtocol, 'write_string', monkeypatch)
         protocol.string_received(data)
-        assert called_with[0] == data
+        assert called_with.args[1] == data
