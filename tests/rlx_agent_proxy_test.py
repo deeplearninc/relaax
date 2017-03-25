@@ -12,12 +12,14 @@ class TestRLXAgentProxy:
     @classmethod
     def setup_class(cls):
         options.algorithm_module = Mock()
-        cls.ap = RLXAgentProxy()
-        cls.ap.agent = Mock()
 
     @classmethod
     def teardown_class(cls):
         cmdl.restore()
+
+    def setup_method(self, method):
+        self.ap = RLXAgentProxy()
+        self.ap.agent = Mock()
 
     def test_agent_init_done(self):
         self.ap.agent.init = lambda: True
