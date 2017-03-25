@@ -1,148 +1,83 @@
 import numpy
 import types
-
 import bridge_pb2
 
 
-class BridgeMessage(object):
+class MessageStream(object):
+    def __init__(self, messages):
+        self.messages = messages
+        self.first = next(messages)
 
-    @staticmethod
-    def serialize(value):
-        return BridgeMessage.serialize_recursive(value, dict_key=None)
+    def next(self):
+        self.first = next(self.messages)
+        return self.first
 
-    @staticmethod
-    def deserialize(messages):
-        value, _ = BridgeMessage.deserialize_recursive(next(messages), messages)
-        the_end = object()
-        assert next(messages, the_end) == the_end
-        return value
 
-    @staticmethod
-    def serialize_recursive(value, dict_key):
-        return BridgeMessage.SERIALIZERS[type(value)](value, dict_key)
+class BaseMarshal(object):
+    def __init__(self, item_type, value_type):
+        self.item_type = item_type
+        self.value_type = value_type
 
-    @staticmethod
-    def deserialize_recursive(message, messages):
-        return BridgeMessage.DESERIALIZERS[message.item_type](message, messages)
 
-    def serialize_list(value, dict_key):
-        yield bridge_pb2.Item(item_type=bridge_pb2.Item.LIST_OPEN)
-        for item in value:
-            for message in BridgeMessage.serialize_recursive(item, dict_key=dict_key):
-                yield message
-        yield bridge_pb2.Item(item_type=bridge_pb2.Item.LIST_CLOSE, dict_key=dict_key)
+class MarshalNone(BaseMarshal):
+    def serialize(self, value, dict_key):
+        yield bridge_pb2.Item(item_type=self.item_type, dict_key=dict_key)
 
-    def deserialize_list(message, messages):
-        value = []
-        while True:
-            message = next(messages)
-            if message.item_type == bridge_pb2.Item.LIST_CLOSE:
-                return value, message
-            value.append(BridgeMessage.deserialize_recursive(message, messages)[0])
+    def deserialize(self, stream):
+        return None
 
-    def serialize_dict(value, dict_key):
-        yield bridge_pb2.Item(item_type=bridge_pb2.Item.DICT_OPEN)
-        for key, item in value.iteritems():
-            for message in BridgeMessage.serialize_recursive(item, dict_key=key):
-                yield message
-        yield bridge_pb2.Item(item_type=bridge_pb2.Item.DICT_CLOSE, dict_key=dict_key)
 
-    def deserialize_dict(message, messages):
-        value = {}
-        while True:
-            message = next(messages)
-            if message.item_type == bridge_pb2.Item.DICT_CLOSE:
-                return value, message
-            item, last_message = BridgeMessage.deserialize_recursive(message, messages)
-            value[last_message.dict_key] = item
+class MarshalScalar(BaseMarshal):
+    def __init__(self, item_type, value_type, value_attr):
+        super(MarshalScalar, self).__init__(item_type, value_type)
+        self.value_attr = value_attr
 
-    def serialize_none(value, dict_key):
-        yield bridge_pb2.Item(item_type=bridge_pb2.Item.NONE, dict_key=dict_key)
+    def serialize(self, value, dict_key):
+        item = bridge_pb2.Item(item_type=self.item_type, dict_key=dict_key)
+        setattr(item, self.value_attr, value)
+        yield item
 
-    def deserialize_none(message, messages):
-        return None, message
+    def deserialize(self, stream):
+        return self.value_type(getattr(stream.first, self.value_attr))
 
-    def serialize_bool(value, dict_key):
-        yield bridge_pb2.Item(item_type=bridge_pb2.Item.BOOL, dict_key=dict_key, bool_value=value)
 
-    def deserialize_bool(message, messages):
-        return message.bool_value, message
-
-    def serialize_int(value, dict_key):
-        yield bridge_pb2.Item(item_type=bridge_pb2.Item.INT, dict_key=dict_key, int_value=value)
-
-    def deserialize_int(message, messages):
-        return int(message.int_value), message
-
-    def serialize_numpy_int_32(value, dict_key):
-        yield bridge_pb2.Item(item_type=bridge_pb2.Item.NUMPY_INT_32, dict_key=dict_key, int_value=value)
-
-    def deserialize_numpy_int_32(message, messages):
-        return numpy.int32(message.int_value), message
-
-    def serialize_float(value, dict_key):
-        yield bridge_pb2.Item(item_type=bridge_pb2.Item.FLOAT, dict_key=dict_key, float_value=value)
-
-    def deserialize_float(message, messages):
-        return message.float_value, message
-
-    def serialize_str(value, dict_key):
-        yield bridge_pb2.Item(item_type=bridge_pb2.Item.STR, dict_key=dict_key, str_value=value)
-
-    def deserialize_str(message, messages):
-        return str(message.str_value), message
-
-    def serialize_ndarray(array, dict_key):
+class MarshalNdarray(BaseMarshal):
+    def serialize(self, array, dict_key):
         # TODO: select more appropriate block size
         block_size = 1024 * 1024
 
-        for block, last in BridgeMessage.slice_ndarray(array, block_size):
+        for block, last in self.slice_ndarray(array, block_size):
             assert 0 < len(block) <= block_size
-            if last:
-                yield bridge_pb2.Item(
-                    item_type=bridge_pb2.Item.NUMPY_ARRAY,
-                    dict_key=dict_key,
-                    numpy_array_value=bridge_pb2.Item.NumpyArray(
-                        last=True,
-                        dtype=str(array.dtype),
-                        shape=array.shape,
-                        data=block
-                    )
+            yield bridge_pb2.Item(
+                item_type=self.item_type,
+                dict_key=dict_key if last else None,
+                numpy_array_value=bridge_pb2.Item.NumpyArray(
+                    last=last,
+                    dtype=str(array.dtype) if last else None,
+                    shape=array.shape if last else None,
+                    data=block
                 )
-            else:
-                yield bridge_pb2.Item(
-                    item_type=bridge_pb2.Item.NUMPY_ARRAY,
-                    numpy_array_value=bridge_pb2.Item.NumpyArray(
-                        last=False,
-                        data=block
-                    )
-                )
+            )
 
-    def deserialize_ndarray(message, messages):
+    def deserialize(self, stream):
         data = []
         while True:
-            assert message.item_type == bridge_pb2.Item.NUMPY_ARRAY
-            data.append(message.numpy_array_value.data)
-            if message.numpy_array_value.last:
+            assert stream.first.item_type == self.item_type
+            data.append(stream.first.numpy_array_value.data)
+            if stream.first.numpy_array_value.last:
                 break
-            message = next(messages)
-
-        # optimization to avoid extra data copying if array data fits to one block
-        # TODO: compare actual performance
-        if len(data) == 1:
-            buffer_ = data[0]
-        else:
-            buffer_ = ''.join(data)
+            stream.next()
 
         value = numpy.ndarray(
-            shape=message.numpy_array_value.shape,
-            dtype=numpy.dtype(message.numpy_array_value.dtype),
-            buffer=buffer_
+            shape=stream.first.numpy_array_value.shape,
+            dtype=numpy.dtype(stream.first.numpy_array_value.dtype),
+            # optimization to avoid extra data copying if array data fits to one block
+            # TODO: compare actual performance
+            buffer=data[0] if len(data) == 1 else ''.join(data)
         )
-        return value, message
+        return value
 
-    @staticmethod
-    def slice_ndarray(array, block_size):
+    def slice_ndarray(self, array, block_size):
         assert block_size > 0
 
         data = array.data
@@ -158,26 +93,82 @@ class BridgeMessage(object):
             for i in xrange(0, size, block_size):
                 yield data[i:i + block_size], i + block_size >= size
 
-    SERIALIZERS = {
-        list:           serialize_list,
-        dict:           serialize_dict,
-        types.NoneType: serialize_none,
-        bool:           serialize_bool,
-        int:            serialize_int,
-        numpy.int32:    serialize_numpy_int_32,
-        float:          serialize_float,
-        str:            serialize_str,
-        numpy.ndarray:  serialize_ndarray
-    }
 
-    DESERIALIZERS = {
-        bridge_pb2.Item.LIST_OPEN:    deserialize_list,
-        bridge_pb2.Item.DICT_OPEN:    deserialize_dict,
-        bridge_pb2.Item.NONE:         deserialize_none,
-        bridge_pb2.Item.BOOL:         deserialize_bool,
-        bridge_pb2.Item.INT:          deserialize_int,
-        bridge_pb2.Item.NUMPY_INT_32: deserialize_numpy_int_32,
-        bridge_pb2.Item.FLOAT:        deserialize_float,
-        bridge_pb2.Item.STR:          deserialize_str,
-        bridge_pb2.Item.NUMPY_ARRAY:  deserialize_ndarray
-    }
+class MarshalContainer(BaseMarshal):
+    def __init__(self, item_type, value_type, end_item_type):
+        super(MarshalContainer, self).__init__(item_type, value_type)
+        self.end_item_type = end_item_type
+
+    def serialize(self, value, dict_key):
+        yield bridge_pb2.Item(item_type=self.item_type)
+        for key, item in self.items(value):
+            for message in BridgeMessage.serialize_any(item, dict_key=key):
+                yield message
+        yield bridge_pb2.Item(item_type=self.end_item_type, dict_key=dict_key)
+
+    def deserialize(self, stream):
+        container = self.value_type()
+        while stream.next().item_type != self.end_item_type:
+            self.insert_item(container, BridgeMessage.deserialize_any(stream), stream.first)
+        return container
+
+
+class MarshalList(MarshalContainer):
+    def items(self, container):
+        return ((None, item) for item in container)
+
+    def insert_item(self, container, item, _):
+        container.append(item)
+
+
+class MarshalDict(MarshalContainer):
+    def items(self, container):
+        return container.iteritems()
+
+    def insert_item(self, container, item, last_message):
+        container[last_message.dict_key] = item
+
+
+class BridgeMessage(object):
+    @classmethod
+    def serialize(cls, value):
+        return cls.serialize_any(value, dict_key=None)
+
+    @classmethod
+    def deserialize(cls, messages):
+        value = cls.deserialize_any(MessageStream(messages))
+        the_end = object()
+        assert next(messages, the_end) == the_end
+        return value
+
+    @classmethod
+    def serialize_any(cls, value, dict_key):
+        return cls.SERIALIZERS[type(value)](value, dict_key)
+
+    @classmethod
+    def deserialize_any(cls, stream):
+        return cls.DESERIALIZERS[stream.first.item_type](stream)
+
+    @classmethod
+    def initialize(cls):
+        cls.SERIALIZERS = {}
+        cls.DESERIALIZERS = {}
+
+        for marshaller in [
+            MarshalNone(bridge_pb2.Item.NONE, types.NoneType),
+            MarshalScalar(bridge_pb2.Item.BOOL, bool, 'bool_value'),
+            MarshalScalar(bridge_pb2.Item.INT, int, 'int_value'),
+            MarshalScalar(bridge_pb2.Item.NUMPY_INT_32, numpy.int32, 'int_value'),
+            MarshalScalar(bridge_pb2.Item.FLOAT, float, 'float_value'),
+            MarshalScalar(bridge_pb2.Item.STR, str, 'str_value'),
+            MarshalNdarray(bridge_pb2.Item.NUMPY_ARRAY, numpy.ndarray),
+            MarshalList(bridge_pb2.Item.LIST_OPEN, list, bridge_pb2.Item.LIST_CLOSE),
+            MarshalDict(bridge_pb2.Item.DICT_OPEN, dict, bridge_pb2.Item.DICT_CLOSE)
+        ]:
+            assert marshaller.value_type not in cls.SERIALIZERS
+            cls.SERIALIZERS[marshaller.value_type] = marshaller.serialize
+            assert marshaller.item_type not in cls.DESERIALIZERS
+            cls.DESERIALIZERS[marshaller.item_type] = marshaller.deserialize
+
+
+BridgeMessage.initialize()
