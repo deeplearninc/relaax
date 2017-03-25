@@ -5,7 +5,6 @@ import types
 import unittest
 
 from relaax.server.common.bridge.bridge_message import BridgeMessage
-from relaax.server.common.bridge.bridge_message_2 import BridgeMessage2
 
 
 class TestBridgeProtocol(unittest.TestCase):
@@ -114,14 +113,6 @@ class TestBridgeProtocol(unittest.TestCase):
 
     def check_are_ndarrays_equal(self, a, b):
         self.assertTrue((a == b).all())
-
-
-class TestBridgeProtocol2(TestBridgeProtocol):
-    def write(self, value):
-        return BridgeMessage2.serialize(value)
-
-    def read(self, messages):
-        return BridgeMessage2.deserialize(messages)
 
 
 if __name__ == '__main__':
