@@ -11,10 +11,11 @@ class ConfigYaml(Namespace):
         super(ConfigYaml, self).__init__()
 
     def load_from_file(self, filename):
-        if filename is not None:
-            with open(filename, 'r') as f:
-                self.load_to_namespace(
-                    self, ruamel.yaml.load(f, Loader=ruamel.yaml.Loader))
+        if not isinstance(filename, str) or len(filename) == 0:
+            raise ValueError("please provide yaml file name")
+        with open(filename, 'r') as f:
+            self.load_to_namespace(
+                self, ruamel.yaml.load(f, Loader=ruamel.yaml.Loader))
 
     def merge_namespace(self, namespace):
         for name in vars(namespace):
