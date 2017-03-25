@@ -1,11 +1,12 @@
-import numpy as np
 import tensorflow as tf
 
 from pg_config import config
 from pg_network import PolicyNN
 
-from relaax.common.algorithms.rewards import discounted_reward
 from relaax.common.algorithms.accums import accumulate
+from relaax.common.algorithms.acts import action_from_policy
+from relaax.common.algorithms.sync import load_shared_parameters, update_shared_parameters
+from relaax.common.algorithms.train import train_policy
 
 
 # PGAgent implements training regime for Policy Gradient algorithm
@@ -62,7 +63,7 @@ class PGAgent(object):
 
     # load shared parameters from PS
     def begin_episode(self):
-        self.load_shared_parameters()
+        load_shared_parameters(self)
 
     # every episode step calculate action
     # by running policy and accumulate experience
@@ -76,7 +77,7 @@ class PGAgent(object):
 
         if state.ndim > 1:
             state = state.flatten()
-        probs = self.action_from_policy(state)
+        probs = action_from_policy(self, state)
 
         # accumulate experience & retrieve action as simple number
         action = accumulate(self, state, reward, probs)
@@ -87,38 +88,12 @@ class PGAgent(object):
     # and update shared NN parameters
     def end_episode(self):
         if (self.episode_t > 1) and (not self.exploit):
-            partial_gradients = self.train_policy()
-            self.update_shared_parameters(partial_gradients)
+            partial_gradients = train_policy(self)
+            update_shared_parameters(self, partial_gradients)
         self.reset_episode()
 
-# Helper methods
-
-    # train policy with accumulated states, rewards and actions
-    def train_policy(self):
-        return self.sess.run(self.nn.partial_gradients, feed_dict={
-                             self.nn.state: self.states,
-                             self.nn.action: self.actions,
-                             self.nn.discounted_reward: discounted_reward(np.vstack(self.rewards))})
-
-    # update PS with leaned policy
-    def update_shared_parameters(self, partial_gradients):
-        self.ps.run(
-            "apply_gradients", feed_dict={"gradients": partial_gradients})
-
     # reset training auxiliary counters and accumulators
+    # (also needs to create auxiliary members -> don't move)
     def reset_episode(self):
         self.episode_reward, self.episode_t = 0, 0
         self.rewards, self.states, self.actions = [], [], []
-
-    # reload policy weights from PS
-    def load_shared_parameters(self):
-        weights = self.ps.run("weights")
-        self.sess.run(
-            self.nn.assign_weights,
-            feed_dict={self.nn.shared_wights: weights})
-
-    # run agent's policy and get action
-    def action_from_policy(self, state):
-        action_probabilities = self.sess.run(
-            self.nn.policy, feed_dict={self.nn.state: [state]})
-        return action_probabilities
