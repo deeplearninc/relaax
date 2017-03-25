@@ -20,7 +20,7 @@ class RLXProtocol(NetString):
 
     def string_received(self, data):
         msg = rlxm.from_wire(data)
-        res = self.agent.dataReceived(msg)
+        res = self.agent.data_received(msg)
         self.send_string(res)
 
     def send_string(self, data):

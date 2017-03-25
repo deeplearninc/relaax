@@ -57,7 +57,7 @@ class TestRlxProtocol:
         data = json.dumps({'response': 'ready'})
         protocol = RLXProtocol('socket', ('localhost', 7000))
         protocol.agent = Mock()
-        protocol.agent.dataReceived = lambda x: x
+        protocol.agent.data_received = lambda x: x
         called_with = MockUtils.called_with(RLXProtocol, 'write_string', monkeypatch)
         protocol.string_received(data)
         assert called_with[0] == data
