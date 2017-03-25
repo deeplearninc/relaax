@@ -40,8 +40,11 @@ class RlxClient(object):
                 ret = rlxm.from_wire(self.transport.read_string())
             except Exception as e:
                 raise RlxClientException(str(e))
-            if ret['response'] == 'error':
-                raise RlxClientException(ret['message'])
+            if not ('response' in ret):
+                raise RlxClientException("wring message format")
+            elif ret['response'] == 'error':
+                raise RlxClientException(
+                    ret['message'] if 'message' in ret else "unknown error")
         else:
             raise RlxClientException("no connection is available.")
         return ret
@@ -73,8 +76,7 @@ class RlxClient(object):
                 self.skt = s
                 break
             except socket.error as e:
-                if s is not None:
-                    s.close()
+                s.close()
                 count += 1
                 if count < retry:
                     time.sleep(random.uniform(0.5, 6))
