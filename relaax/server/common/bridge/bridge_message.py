@@ -13,13 +13,13 @@ class MessageStream(object):
         return self.first
 
 
-class BaseMarshal(object):
+class BaseMarshaller(object):
     def __init__(self, item_type, value_type):
         self.item_type = item_type
         self.value_type = value_type
 
 
-class MarshalNone(BaseMarshal):
+class NoneMarshaller(BaseMarshaller):
     def serialize(self, value, dict_key):
         yield bridge_pb2.Item(item_type=self.item_type, dict_key=dict_key)
 
@@ -27,9 +27,9 @@ class MarshalNone(BaseMarshal):
         return None
 
 
-class MarshalScalar(BaseMarshal):
+class ScalarMarshaller(BaseMarshaller):
     def __init__(self, item_type, value_type, value_attr):
-        super(MarshalScalar, self).__init__(item_type, value_type)
+        super(ScalarMarshaller, self).__init__(item_type, value_type)
         self.value_attr = value_attr
 
     def serialize(self, value, dict_key):
@@ -41,7 +41,7 @@ class MarshalScalar(BaseMarshal):
         return self.value_type(getattr(stream.first, self.value_attr))
 
 
-class MarshalNdarray(BaseMarshal):
+class NdarrayMarshaller(BaseMarshaller):
     def serialize(self, array, dict_key):
         # TODO: select more appropriate block size
         block_size = 1024 * 1024
@@ -94,9 +94,9 @@ class MarshalNdarray(BaseMarshal):
                 yield data[i:i + block_size], i + block_size >= size
 
 
-class MarshalContainer(BaseMarshal):
+class ContainerMarshaller(BaseMarshaller):
     def __init__(self, item_type, value_type, end_item_type):
-        super(MarshalContainer, self).__init__(item_type, value_type)
+        super(ContainerMarshaller, self).__init__(item_type, value_type)
         self.end_item_type = end_item_type
 
     def serialize(self, value, dict_key):
@@ -113,7 +113,7 @@ class MarshalContainer(BaseMarshal):
         return container
 
 
-class MarshalList(MarshalContainer):
+class ListMarshaller(ContainerMarshaller):
     def items(self, container):
         return ((None, item) for item in container)
 
@@ -121,7 +121,7 @@ class MarshalList(MarshalContainer):
         container.append(item)
 
 
-class MarshalDict(MarshalContainer):
+class DictMarshaller(ContainerMarshaller):
     def items(self, container):
         return container.iteritems()
 
@@ -155,15 +155,15 @@ class BridgeMessage(object):
         cls.DESERIALIZERS = {}
 
         for marshaller in [
-            MarshalNone(bridge_pb2.Item.NONE, types.NoneType),
-            MarshalScalar(bridge_pb2.Item.BOOL, bool, 'bool_value'),
-            MarshalScalar(bridge_pb2.Item.INT, int, 'int_value'),
-            MarshalScalar(bridge_pb2.Item.NUMPY_INT_32, numpy.int32, 'int_value'),
-            MarshalScalar(bridge_pb2.Item.FLOAT, float, 'float_value'),
-            MarshalScalar(bridge_pb2.Item.STR, str, 'str_value'),
-            MarshalNdarray(bridge_pb2.Item.NUMPY_ARRAY, numpy.ndarray),
-            MarshalList(bridge_pb2.Item.LIST_OPEN, list, bridge_pb2.Item.LIST_CLOSE),
-            MarshalDict(bridge_pb2.Item.DICT_OPEN, dict, bridge_pb2.Item.DICT_CLOSE)
+            NoneMarshaller(bridge_pb2.Item.NONE, types.NoneType),
+            ScalarMarshaller(bridge_pb2.Item.BOOL, bool, 'bool_value'),
+            ScalarMarshaller(bridge_pb2.Item.INT, int, 'int_value'),
+            ScalarMarshaller(bridge_pb2.Item.NUMPY_INT_32, numpy.int32, 'int_value'),
+            ScalarMarshaller(bridge_pb2.Item.FLOAT, float, 'float_value'),
+            ScalarMarshaller(bridge_pb2.Item.STR, str, 'str_value'),
+            NdarrayMarshaller(bridge_pb2.Item.NUMPY_ARRAY, numpy.ndarray),
+            ListMarshaller(bridge_pb2.Item.LIST_OPEN, list, bridge_pb2.Item.LIST_CLOSE),
+            DictMarshaller(bridge_pb2.Item.DICT_OPEN, dict, bridge_pb2.Item.DICT_CLOSE)
         ]:
             assert marshaller.value_type not in cls.SERIALIZERS
             cls.SERIALIZERS[marshaller.value_type] = marshaller.serialize
