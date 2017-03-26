@@ -21,9 +21,9 @@ class TestRlxProtocol:
         cmdl.restore()
 
     def test_adopt_connection_call_protocol_loop(self, monkeypatch):
-        called_once = MockUtils.called_once(RLXProtocol, 'protocol_loop', monkeypatch)
+        called_once = MockUtils.count_calls(RLXProtocol, 'protocol_loop', monkeypatch)
         adoptConnection('socket', ('localhost', 7000))
-        assert called_once[0] == 1
+        assert called_once.times == 1
 
     def test_protocol_loop_general_exception(self, monkeypatch):
         monkeypatch.setattr(RLXProtocol, 'read_string', lambda x: '')

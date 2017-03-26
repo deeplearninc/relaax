@@ -81,10 +81,10 @@ class TestBaseConfig:
             assert str(e) == 'Invalid log level: WRONG'
 
     def test_load(self, monkeypatch):
-        called_load_command_line = MockUtils.called_once(self.config, 'load_command_line', monkeypatch)
-        called_load_from_yaml = MockUtils.called_once(self.config, 'load_from_yaml', monkeypatch)
-        called_setup_logger = MockUtils.called_once(self.config, 'setup_logger', monkeypatch)
+        called_load_command_line = MockUtils.count_calls(self.config, 'load_command_line', monkeypatch)
+        called_load_from_yaml = MockUtils.count_calls(self.config, 'load_from_yaml', monkeypatch)
+        called_setup_logger = MockUtils.count_calls(self.config, 'setup_logger', monkeypatch)
         self.config.load()
-        assert called_load_command_line[0] == 1
-        assert called_load_from_yaml[0] == 1
-        assert called_setup_logger[0] == 1
+        assert called_load_command_line.times == 1
+        assert called_load_from_yaml.times == 1
+        assert called_setup_logger.times == 1

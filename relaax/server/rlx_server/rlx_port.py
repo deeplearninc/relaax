@@ -11,21 +11,21 @@ log = logging.getLogger(__name__)
 class RLXPort():
 
     @classmethod
-    def listen(self, server_address):
-        self.listener = socket.socket()
+    def listen(cls, server_address):
+        cls.listener = socket.socket()
         try:
-            self.listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            self.listener.bind(server_address)
-            self.listener.listen(100)
+            cls.listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            cls.listener.bind(server_address)
+            cls.listener.listen(100)
             log.debug("Started and listening on %s:%d" % server_address)
 
             while True:
                 try:
-                    connection, address = self.listener.accept()
+                    connection, address = cls.listener.accept()
                     log.debug("Accepted connection, starting worker")
                 except socket.error as e:
-                    if self.handle_accept_socket_exeption(e):
-                        connection
+                    if cls.handle_accept_socket_exeption(e):
+                        continue
                     raise
                 except KeyboardInterrupt:
                     # Swallow KeyboardInterrupt
@@ -36,8 +36,8 @@ class RLXPort():
                     try:
                         pid = os.fork()
                     except OSError as e:
-                        log.critical(
-                            'OSError {}:{}'.format(server_address, e.message))
+                        log.critical('OSError {}: {}'.format(address, e.message))
+
                     if pid == 0:
                         RLXWorker.run(connection, address)
                         break
@@ -47,10 +47,10 @@ class RLXPort():
                     connection.close()
         finally:
             log.debug('Closing listening socket')
-            self.listener.close()
+            cls.listener.close()
 
     @classmethod
-    def handle_accept_socket_exeption(error):
+    def handle_accept_socket_exeption(cls, error):
         if error[0] in (errno.EWOULDBLOCK, errno.EAGAIN):
             # Try again
             return True  # continue accept loop
