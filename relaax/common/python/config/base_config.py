@@ -29,7 +29,8 @@ class BaseConfig(ConfigYaml):
 
     def load_from_yaml(self):
         try:
-            self.load_from_file(self.config)
+            if self.config:
+                self.load_from_file(self.config)
             self.process_after_loaded()
         except:
             log.critical("Can't load configuration file")

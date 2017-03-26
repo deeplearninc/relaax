@@ -36,13 +36,22 @@ class TestBaseConfig:
             'log_level': 'DEBUG',
             'relaax_rlx_server': Namespace(bind='localhost:7001', log_level='DEBUG')}
 
-    def test_load_from_yaml_without_config_file(self):
+    def test_load_from_yaml_with_wrog_config_file_name(self):
         try:
-            self.config.config = None
+            self.config.config = "wrong file name"
             self.config.load_from_yaml()
             assert False
         except Exception as e:
-            assert str(e) == 'please provide yaml file name'
+            assert str(e) == '[Errno 2] No such file or directory: \'wrong file name\''
+
+    def test_load_from_yaml_with_no_config_file_name(self):
+        try:
+            self.config.config = None
+            self.config.log_level = None
+            self.config.load_from_yaml()
+            assert True
+        except Exception:
+            assert False
 
     def test_process_after_loaded(self):
         self.config.log_level = None
