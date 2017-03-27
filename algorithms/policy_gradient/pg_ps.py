@@ -12,7 +12,7 @@ class PGParameterServer(ParameterServerBase):
         self.session = tf.Session()
         self.session.run(tf.global_variables_initializer())
 
-    def run(self, ops, feed_dict):
+    def run(self, ops, feed_dict={}):
         return self.on_run(self.session, self.graph, ops, feed_dict)
 
 
