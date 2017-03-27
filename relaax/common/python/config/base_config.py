@@ -29,9 +29,10 @@ class BaseConfig(ConfigYaml):
 
     def load_from_yaml(self):
         try:
-            self.load_from_file(self.config)
+            if self.config:
+                self.load_from_file(self.config)
             self.process_after_loaded()
-        except Exception:
+        except:
             log.critical("Can't load configuration file")
             raise
 
@@ -43,7 +44,7 @@ class BaseConfig(ConfigYaml):
         log_level = getattr(log, self.log_level.upper(), None)
 
         if not isinstance(log_level, int):
-            raise ValueError('Invalid log level: %s' % log_level)
+            raise ValueError('Invalid log level: %s' % self.log_level)
 
         if self.get('short_log_messages', False):
             format = '%(message)s'

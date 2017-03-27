@@ -75,7 +75,7 @@ class CmdlRun(object):
 
     def run_one_client(self, process_name, manager):
         manager.add_process(
-            process_name, '%s python %s' % (self.nobuffer, options.client))
+            process_name, '%s python %s %s' % (self.nobuffer, options.client, self.cmdl))
 
 
 def main():

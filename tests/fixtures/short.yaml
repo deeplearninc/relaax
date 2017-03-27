@@ -1,0 +1,6 @@
+environment:
+  client: client/sample_exchange.py
+
+relaax-rlx-server:
+  --bind: localhost:7001
+  --log-level: DEBUG

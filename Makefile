@@ -37,9 +37,12 @@ clean-test:
 lint:
 	flake8
 
+
+tt=tests/
+
 test: clean-test
 	mkdir coverage
-	pytest --cov=relaax --cov-report html:coverage tests/
+	pytest --cov=relaax --cov-report html:coverage ${tt}
 
 docs:
 	$(MAKE) -C doc html

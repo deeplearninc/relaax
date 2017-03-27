@@ -21,7 +21,7 @@ class RLXProtocol(NetstringReceiver):
 
     def stringReceived(self, data):
         msg = rlxm.from_wire(data)
-        res = self.agent.dataReceived(msg)
+        res = self.agent.data_received(msg)
         self.sendString(rlxm.to_wire(res))
 
     def connectionLost(self, reason):

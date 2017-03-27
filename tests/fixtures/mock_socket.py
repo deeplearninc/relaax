@@ -8,6 +8,15 @@ class MockSocket(object):
         self.input = sout
         self.opened = True
 
+    def bind(self, address):
+        self.address = address
+
+    def listen(self, *args):
+        pass
+
+    def accept(self, *args):
+        return self.create(), self.address
+
     def setsockopt(self, *args):
         pass
 

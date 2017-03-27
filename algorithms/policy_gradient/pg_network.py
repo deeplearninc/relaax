@@ -76,7 +76,7 @@ class PolicyNN(Weights):
         self.state
         self.action
         self.discounted_reward
-        self.shared_wights
+        self.shared_weights
         self.policy
         self.partial_gradients
         self.assign_weights
@@ -94,7 +94,7 @@ class PolicyNN(Weights):
         return tf.placeholder(tf.float32)
 
     @define_input
-    def shared_wights(self):
+    def shared_weights(self):
         # placeholders to apply weights to shared parameters
         return [tf.placeholder(v.dtype, v.get_shape()) for v in self.weights]
 
@@ -120,7 +120,7 @@ class PolicyNN(Weights):
     @define_scope
     def assign_weights(self):
         return tf.group(*[
-            tf.assign(v, p) for v, p in zip(self.weights, self.shared_wights)])
+            tf.assign(v, p) for v, p in zip(self.weights, self.shared_weights)])
 
 
 if __name__ == '__main__':

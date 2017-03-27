@@ -14,7 +14,7 @@ def sample_exchange():
         print "on init: ", res
 
         # update agent with state and reward
-        count, max_episodes = 0, 1000
+        count, max_episodes = 0, 100
         while count < max_episodes:
             try:
                 # if it is terminal state, set terminal to True
