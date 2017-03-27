@@ -44,5 +44,4 @@ class TestConfigYaml:
 
     def test_get_default_with_path(self):
         value = 'value of attr2'
-        assert self.yaml.get('attr1/attr2',value) == value
-
+        assert self.yaml.get('attr1/attr2', value) == value
