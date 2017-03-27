@@ -75,8 +75,7 @@ class PGAgent(object):
             self.episode_t += 1
             return None
 
-        if state.ndim > 1:
-            state = state.flatten()
+        state = state.flatten()
         probs = action_from_policy(self, state)
 
         # accumulate experience & retrieve action as simple number
