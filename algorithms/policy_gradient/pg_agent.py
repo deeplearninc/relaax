@@ -18,10 +18,6 @@ class PGAgent(object):
     # waiting for agent to initialize
     def init(self, exploit=False):
         self.exploit = exploit
-        # count global steps between all agents
-        self.global_t = 0
-        # count of episodes run by agent
-        self.local_t = 0
         # reset variables used
         # to run single episode
         self.reset_episode()
@@ -86,8 +82,6 @@ class PGAgent(object):
             partial_gradients = self.train_policy()
             self.update_shared_parameters(partial_gradients)
         self.reset_episode()
-        # increase number of completed episodes
-        self.local_t = 0
 
 # Helper methods
 
