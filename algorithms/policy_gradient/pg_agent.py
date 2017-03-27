@@ -122,7 +122,7 @@ class PGAgent(object):
         weights = self.ps.run("weights")
         self.sess.run(
             self.nn.assign_weights,
-            feed_dict={self.nn.shared_wights: weights})
+            feed_dict={self.nn.shared_weights: weights})
 
     # run agent's policy and get action
     def action_from_policy(self, state):
