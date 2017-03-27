@@ -20,7 +20,11 @@ class RLXAgentProxy(object):
             return {'response': 'error', 'message': 'can\'t initialize agent'}
 
     def update(self, data):
-        action = self.agent.update(data)
+        action = self.agent.update(
+            reward=data['reward'],
+            state=data['state'],
+            terminal=data['terminal']
+        )
         return {'response': 'action', 'data': action}
 
     def reset(self, ignore=None):
