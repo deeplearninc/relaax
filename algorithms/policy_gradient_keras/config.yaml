@@ -30,7 +30,7 @@ algorithm:
   path: algorithms/sample
 
   action_size: 2                  # action size for the given environment
-  state_size: [3]                 # array of dimensions for the input observation
+  state_shape: [3]                # array of dimensions for the input observation
   hidden_layers: [10, 20, 10]
   learning_rate: 1e-4
   rewards_gamma: 0.99             # rewards discount factor
