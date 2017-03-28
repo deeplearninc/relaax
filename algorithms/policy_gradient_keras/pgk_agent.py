@@ -48,7 +48,7 @@ class PGAgent(object):
 # Episode states
     # load shared parameters from PS
     def begin_episode(self):
-        self.agent.net.set_weights(self.ps.model.net.get_weights)
+        self.agent.net.set_weights(self.ps.model.net.get_weights())
 
     # every episode step calculate action
     # by running policy and accumulate experience
