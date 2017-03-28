@@ -65,9 +65,9 @@ class CmdlRun(object):
                 log.info(color_seq + "No client specified" + reset_seq)
 
     def run_all_clients(self, manager):
-        if options.concurrent_clients > 1:
+        if options.concurrent > 1:
             count = 0
-            while count < options.concurrent_clients:
+            while count < options.concurrent:
                 self.run_one_client('client-%d' % count, manager)
                 count += 1
         else:

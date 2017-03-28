@@ -10,19 +10,21 @@ class CmdlConfig(BaseConfig):
 
     def load_from_cmdl(self, parser):
         add = parser.add_argument
+        add('-c', '--config', type=str, default='relaax.yaml', required=False,
+            metavar='config.yaml', help='Relaax configuraion yaml file. Default: relaax.yaml')
         add('-r', '--run', type=str, default='all', required=False,
-            choices=('all', 'client', 'servers',
-                     'rlx-server', 'parameter-server'),
-            help='List of system components to run: client, servers, or all')
-        add('-c', '--config', type=str, default=None, required=True,
-            help='RELAAX config yaml file')
-        add('-cl', '--client', type=str, default=None,
-            help='Environment/Client to run')
-        add('-cc', '--concurrent-clients', type=int, default=1,
-            help='Number of environments/clients to run at the same time')
-        add('-ll', '--log-level', type=str, default=None,
+            choices=('all', 'client', 'servers', 'rlx-server', 'parameter-server'),
+            metavar='all|client|servers|rlx-server|parameter-server',
+            help='List of system components to run. Default: all')
+        add('-cl', '--client', type=str, default=None, metavar='file-name',
+            help=('Name of the environment/client file to run. '
+                  'If no file name is provided, relaax will try run client specified in config.'))
+        add('-co', '--concurrent', type=int, default=1, metavar='integer',
+            help='Number of environments/clients to run at the same time. Default: 1')
+        add('-ll', '--log-level', type=str, default='INFO',
             choices=('DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'),
-            help='Logging level')
+            metavar='DEBUG|INFO|WARNING|ERROR|CRITICAL',
+            help='Logging level. Default: INFO')
 
     def process_after_loaded(self):
         self.cmdl_log_level = self.get("log_level")
