@@ -12,7 +12,8 @@ def agent_model():
         FullyConnected(layer, activation='elu', init='glorot_uniform')
     FullyConnected(cfg.action_size, activation='softmax', init='glorot_uniform')
 
-    model.compute_gradients = ComputeGradients(SimpleLoss())
+    model.loss = SimpleLoss()
+    model.compute_gradients = ComputeGradients(model.loss)
 
     return model
 
