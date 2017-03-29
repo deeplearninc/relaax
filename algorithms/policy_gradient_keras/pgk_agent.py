@@ -99,7 +99,7 @@ class PGAgent(object):
             probs: Action's probability distribution to select
                 an action and store it in object's action list.
         """
-        self..states.append(state)
+        self.states.append(state)
 
         # define action number from a probability distribution
         action = self.choose_action(probs)
