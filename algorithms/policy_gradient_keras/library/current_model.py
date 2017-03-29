@@ -1,11 +1,8 @@
 
-class Model(object):
-    pass
-
 model = Model()
 
 def reset_model(model):
-    model = Model()
+    model = DummyModel()
 
 
 class DummyModel(object):
