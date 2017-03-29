@@ -3,8 +3,11 @@ from library.utils import ComputeGradients, ApplyGradients
 from library.optimizers import Adam
 
 
-class AgentModel():
+class AgentModel(object):
     def __init__(self):
+        self.build_model()
+
+    def build_model(self):
         cfg = PGConfig.preprocess()
 
         SequentialModel()
@@ -14,11 +17,11 @@ class AgentModel():
         FullyConnected(cfg.action_size, activation='softmax', init='glorot_uniform')
 
         model.loss = SimpleLoss()
-        model.compute_gradients = ComputeGradients(model.loss)
+        self.compute_gradients = ComputeGradients(model.loss)
 
     @property
     def compute_gradients(self):
-        return model.compute_gradients
+        return self.model.compute_gradients
 
 
 def parameter_server_model():
