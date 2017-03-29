@@ -88,7 +88,7 @@ class PGAgent(object):
         r = np.random.rand() * values[-1]
         return np.searchsorted(values, r)
 
-
+    # TODO: extract accumulate
     def act(self, state, reward, probs):
         """Accumulate experience wrt state, actions and reward for agent's instance.
 
