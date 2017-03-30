@@ -1,0 +1,3 @@
+
+class Gradients(object):
+    pass

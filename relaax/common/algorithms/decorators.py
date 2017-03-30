@@ -1,50 +1,54 @@
-import functools
-import tensorflow as tf
+# sub-graph
+class SubGraph(object):
 
+    def __init__(self, obj, func):
+        self._obj = obj
+        self._func = func
+        self._assembled = False
+        self._pointer = None
 
-def doublewrap(function):
-    """
-    A decorator decorator, allowing to use the decorator to be used without
-    parentheses if not arguments are provided. All arguments must be optional.
-    """
-    @functools.wraps(function)
-    def decorator(*args, **kwargs):
-        if len(args) == 1 and len(kwargs) == 0 and callable(args[0]):
-            return function(args[0])
-        else:
-            return lambda wrapee: function(wrapee, *args, **kwargs)
-    return decorator
+    def __call__(self, *args, **kwargs):
+        return self.__pointer()
 
-
-@doublewrap
-def define_scope(function, scope=None, *args, **kwargs):
-    """
-    A decorator for functions that define TensorFlow operations. The wrapped
-    function will only be executed once. Subsequent calls to it will directly
-    return the result so that operations are added to the graph only once.
-
-    The operations added by the function live within a tf.variable_scope(). If
-    this decorator is used with arguments, they will be forwarded to the
-    variable scope. The scope name defaults to the name of the wrapped
-    function.
-    """
-    attribute = '_cache_' + function.__name__
-    name = scope or function.__name__
+    def assemble(self, *args, **kwargs):
+        if not self._assembled:
+            self._assembled = True
+            self._pointer = self._func(self._obj, *args, **kwargs)
+        return self
 
     @property
-    @functools.wraps(function)
-    def decorator(self):
-        if not hasattr(self, '__operations__'):
-            self.__operations__ = {}
+    def tensor(self):
+        return self.__pointer()
 
-        if not hasattr(self, attribute):
-            with tf.variable_scope(name, *args, **kwargs):
-                operation = function(self)
-                setattr(self, attribute, operation)
-                self.__operations__[function.__name__] = operation
-        return getattr(self, attribute)
-    return decorator
+    @property
+    def op(self):
+        return self.__pointer()
+
+    def __pointer(self):
+        if not self._assembled:
+            print 'please use assemble to build sub-graph'
+        return self._pointer
 
 
-define_input = define_scope
-define_output = define_scope
+# define_subgraph decorator
+OPS_CACHE_NAME = '__subgraph_operations__'
+
+
+class define_subgraph(object):
+
+    def __init__(self, func):
+        self._func = func
+        self._attribute = '_cache_' + func.__name__
+
+    def __get__(self, instance, cls):
+        if not hasattr(instance, self._attribute):
+            subgraph = SubGraph(instance, self._func)
+            self.add_to_ops(instance, subgraph)
+            setattr(instance, self._attribute, subgraph)
+        return getattr(instance, self._attribute)
+
+    def add_to_ops(self, instance, subgraph):
+        if not hasattr(instance, OPS_CACHE_NAME):
+            setattr(instance, OPS_CACHE_NAME, {})
+        cache = getattr(instance, OPS_CACHE_NAME)
+        cache[subgraph._func.__name__] = subgraph
