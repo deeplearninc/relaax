@@ -28,12 +28,12 @@ class SharedParameters(BaseModel):
 
     @define_subgraph
     def weights(self):
-        return Weights.assemble(shapes=config.hidden_layers, initializer=Xavier())
+        return Weights().assemble(shapes=config.hidden_layers, initializer=Xavier())
 
     @define_subgraph
     def gradients(self):
         # placeholders to apply gradients to shared parameters
-        return Placeholders.assemble(variables=self.weights.ops)
+        return Placeholders().assemble(variables=self.weights.ops)
 
     @define_subgraph
     def apply_gradients(self):
@@ -68,21 +68,21 @@ class PolicyModel(BaseModel):
 
     @define_subgraph
     def policy(self):
-        return FullyConnected.assemble_from_weights(input=self.state, weigths=self.weights.ops)
+        return FullyConnected().assemble_from_weights(input=self.state, weigths=self.weights.ops)
 
     @define_subgraph
     def loss(self):
-        return SimpleLoss.assemble(
+        return SimpleLoss().assemble(
                 output=self.action, weights=self.weights.ops, discounted_reward=self.discounted_reward.op)
 
     @define_subgraph
     def partial_gradients(self):
-        return Gradients(loss=self.loss, variables=self.weights)
+        return Gradients().assemble(loss=self.loss, variables=self.weights)
 
     @define_subgraph
     def shared_weights(self):
         # placeholders to apply weights to shared parameters
-        return Placeholders.assemble(variables=self.weights.ops)
+        return Placeholders().assemble(variables=self.weights.ops)
 
     @define_subgraph
     def assign_weights(self):
