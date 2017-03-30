@@ -1,10 +1,9 @@
 import logging
-import tensorflow as tf
-import numpy as mp
+import numpy as np
 
 from relaax.common.algorithms.decorators import define_scope, define_input
-from pg_config import config
 
+from pg_config import config
 from lib.models import BaseModel
 from lib.losses import SimpleLoss
 from lib.weights import Weights
