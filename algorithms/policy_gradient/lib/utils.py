@@ -7,6 +7,14 @@ from relaax.common.python.config.loaded_config import options
 log = logging.getLogger(__name__)
 
 
+class Placeholders(SubGraph):
+    def build(self, ops):
+        return [
+            tf.Placeholder(dtype=op.dtype, shape=op.get_shape())
+            for op in ops
+        ]
+
+
 def discounted_reward(self, rewards, gamma):
     # take 1D float array of rewards and compute discounted reward
     rewards = np.vstack(rewards)
