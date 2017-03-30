@@ -11,6 +11,7 @@ from lib.weights import Weights
 from lib.networks import FullyConnected
 from lib.utils import assemble_and_show_graphs, Placeholder
 from lib.optimizers import Adam
+from lib.gradients import Gradients
 from lib.initializers import Xavier
 
 
@@ -61,7 +62,7 @@ class PolicyModel(BaseModel):
 
     @define_input
     def discounted_reward(self):
-        return tf.placeholder(tf.float32)
+        return Placeholder(np.float32)
 
     @define_scope
     def weights(self):
@@ -78,7 +79,7 @@ class PolicyModel(BaseModel):
 
     @define_scope
     def partial_gradients(self):
-        return tf.gradients(self.loss, self.weights)
+        return Gradients(loss=self.loss, variables=self.weights)
 
     @define_input
     def shared_weights(self):
