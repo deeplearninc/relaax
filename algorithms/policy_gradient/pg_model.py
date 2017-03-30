@@ -25,15 +25,15 @@ class SharedParameters(object):
         self.gradients
         self.apply_gradients
 
+    @define_input
+    def gradients(self):
+        # placeholders to apply gradients to shared parameters
+        return [tf.placeholder(v.dtype, v.get_shape()) for v in self.weights]
+
     @define_scope(initializer=tf.contrib.layers.xavier_initializer())
     def weights(self):
         return Weights.assemble(
             config.state_size, config.action_size, config.hidden_layers)
-
-    @define_scope
-    def gradients(self):
-        # placeholders to apply gradients to shared parameters
-        return [tf.placeholder(v.dtype, v.get_shape()) for v in self.weights]
 
     @define_scope
     def apply_gradients(self):
