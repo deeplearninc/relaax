@@ -1,103 +1,93 @@
 import logging
 import tensorflow as tf
+import numpy as mp
 
 from relaax.common.algorithms.decorators import define_scope, define_input
 from pg_config import config
 
-from lib.loss import SimpleLoss
+from lib.models import BaseModel
+from lib.losses import SimpleLoss
 from lib.weights import Weights
 from lib.networks import FullyConnected
-from lib.utils import assemble_and_show_graphs
+from lib.utils import assemble_and_show_graphs, Placeholder
+from lib.optimizers import Adam
+from lib.initializers import Xavier
+
 
 log = logging.getLogger("policy_gradient")
 
 
 # Weights of the policy are shared across
 # all agents and stored on the parameter server
-class SharedParameters(object):
-
-    def __init__(self):
-        self.assemble()
-
+class SharedParameters(BaseModel):
     def assemble(self):
         # Build TF graph
-        self.weights
-        self.gradients
-        self.apply_gradients
+        self.weights.assemble
+        self.gradients.assemble
+        self.apply_gradients.assemble
+
+    @define_input
+    def weights(self):
+        return Weights.assemble(shapes=config.hidden_layers, initializer=Xavier())
 
     @define_input
     def gradients(self):
         # placeholders to apply gradients to shared parameters
-        return [tf.placeholder(v.dtype, v.get_shape()) for v in self.weights]
+        return Placeholders.assemble(variables=self.weights.ops)
 
-    @define_scope(initializer=tf.contrib.layers.xavier_initializer())
-    def weights(self):
-        return Weights.assemble(
-            config.state_size, config.action_size, config.hidden_layers)
-
-    @define_scope
+    @define_input
     def apply_gradients(self):
         # apply gradients to weights
-        optimizer = tf.train.AdamOptimizer(learning_rate=config.learning_rate)
-        return optimizer.apply_gradients(zip(self.gradients, self.weights))
+        optimizer = Adam(learning_rate=self.config.learning_rate)
+        return optimizer.apply_gradients.assemble(self.gradients.ops, self.weights.ops)
 
 
 # Policy run by Agent(s)
-class PolicyModel(Weights):
-
-    def __init__(self):
-        self.assemble()
-
+class PolicyModel(BaseModel):
     def assemble(self):
         # Build TF graph
-        self.weights
-        self.state
-        self.action
-        self.discounted_reward
-        self.shared_weights
-        self.policy
-        self.partial_gradients
-        self.assign_weights
+        self.weights.assemble
+        self.state.assemble
+        self.action.assemble
+        self.discounted_reward.assemble
+        self.shared_weights.assemble
+        self.policy.assemble
+        self.partial_gradients.assemble
+        self.assign_weights.assemble
 
     @define_input
     def state(self):
-        return tf.placeholder(tf.float32, [None, config.state_size])
-
-    @define_input
-    def action(self):
-        return tf.placeholder(tf.float32, [None, config.action_size])
+        return Placeholder(np.float32, (None, config.state_size))
 
     @define_input
     def discounted_reward(self):
         return tf.placeholder(tf.float32)
 
-    @define_input
-    def shared_weights(self):
-        # placeholders to apply weights to shared parameters
-        return [tf.placeholder(v.dtype, v.get_shape()) for v in self.weights]
-
     @define_scope
     def weights(self):
-        return Weights.assemble(
-            config.state_size, config.action_size, config.hidden_layers)
+        return Weights.assemble(shapes=config.hidden_layers)
 
     @define_scope
     def policy(self):
-        return FullyConnected.assemble_from_weights(self.state, self.weights)
+        return FullyConnected.assemble_from_weights(input=self.state, self.weights.ops)
 
     @define_scope
     def loss(self):
         return SimpleLoss.assemble(
-            t_action=self.action, t_policy=self.policy, t_discounted_reward=self.discounted_reward)
+                output=self.action, weights=self.weights.ops, discounted_reward=self.discounted_reward.op)
 
     @define_scope
     def partial_gradients(self):
         return tf.gradients(self.loss, self.weights)
 
+    @define_input
+    def shared_weights(self):
+        # placeholders to apply weights to shared parameters
+        return Placeholders.assemble(variables=self.weights.ops)
+
     @define_scope
     def assign_weights(self):
-        return tf.group(*[
-            tf.assign(v, p) for v, p in zip(self.weights, self.shared_weights)])
+        return Assign.assemble(self.weights.ops, self.shared_weights.ops)])
 
 
 if __name__ == '__main__':
