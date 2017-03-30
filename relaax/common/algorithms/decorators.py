@@ -1,11 +1,12 @@
 # sub-graph
 class SubGraph(object):
 
-    def __init__(self, obj, func):
-        self._obj = obj
-        self._func = func
+    def init(self, obj=None, func=None):
+        self._obj = self if obj is None else obj
+        self._func = self.build if func is None else func
         self._assembled = False
         self._pointer = None
+        return self
 
     def __call__(self, *args, **kwargs):
         return self.__pointer()
@@ -42,7 +43,7 @@ class define_subgraph(object):
 
     def __get__(self, instance, cls):
         if not hasattr(instance, self._attribute):
-            subgraph = SubGraph(instance, self._func)
+            subgraph = SubGraph().init(instance, self._func)
             self.add_to_ops(instance, subgraph)
             setattr(instance, self._attribute, subgraph)
         return getattr(instance, self._attribute)

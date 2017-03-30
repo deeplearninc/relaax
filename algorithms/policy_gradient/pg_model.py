@@ -22,12 +22,13 @@ log = logging.getLogger("policy_gradient")
 class SharedParameters(BaseModel):
     def assemble(self):
         # Build TF graph
-        self.weights.assemble
-        self.gradients.assemble
-        self.apply_gradients.assemble
+        self.weights.assemble()
+        self.gradients.assemble()
+        self.apply_gradients.assemble()
 
     @define_subgraph
     def weights(self):
+        Weights()
         return Weights().assemble(shapes=config.hidden_layers, initializer=Xavier())
 
     @define_subgraph
@@ -46,13 +47,13 @@ class SharedParameters(BaseModel):
 class PolicyModel(BaseModel):
     def assemble(self):
         # Build TF graph
-        self.weights.assemble
-        self.state.assemble
-        self.discounted_reward.assemble
-        self.shared_weights.assemble
-        self.policy.assemble
-        self.partial_gradients.assemble
-        self.assign_weights.assemble
+        self.weights.assemble()
+        self.state.assemble()
+        self.discounted_reward.assemble()
+        self.shared_weights.assemble()
+        self.policy.assemble()
+        self.partial_gradients.assemble()
+        self.assign_weights.assemble()
 
     @define_subgraph
     def state(self):
