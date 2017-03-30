@@ -5,8 +5,8 @@ from relaax.common.algorithms.decorators import define_scope, define_input
 
 from pg_config import config
 from lib.models import BaseModel
-from lib.losses import SimpleLoss
 from lib.weights import Weights
+from lib.losses import SimpleLoss
 from lib.networks import FullyConnected
 from lib.utils import assemble_and_show_graphs, Placeholder
 from lib.optimizers import Adam

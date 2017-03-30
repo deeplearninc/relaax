@@ -1,38 +1,23 @@
 import tensorflow as tf
 
+from sub_graph import SubGraph
 
-class Weights(object):
+
+class Weights(SubGraph):
     """Holder for variables representing weights of the fully connected NN."""
 
-    @classmethod
-    def assemble(cls, input_size, output_size, hidden_layers):
+    def build(self, shapes, initializer):
         """Assemble weights of the NN into tf graph.
 
         Args:
-            input_size: input layer size
-            output_size: output layer size
-            hidden_layers: sizes of the hidden layers
+            shapes: sizes of the weights variables
+            initializer: initializer for variables
 
         Returns:
             list to the 'weights' tensors in the graph
 
         """
-        weights = []
-
-        def add_layer(name, input_size, layer_size):
-            return weights.append(
-                tf.get_variable(name, shape=[input_size, layer_size]))
-
-        # input layer weights
-        add_layer('W0', input_size, hidden_layers[0])
-
-        # hidden layer weights
-        nlayers = len(hidden_layers)
-        for i in range(0, nlayers - 1):
-            add_layer(
-                'W%d' % (i + 1), hidden_layers[i], hidden_layers[i + 1])
-
-        # output layer weights
-        add_layer('W%d' % nlayers, hidden_layers[-1], output_size)
-
-        return weights
+        return [
+            tf.Variable(shape=shape, initializer=initializer.tf_initializer())
+            for shape in shapes
+        ]
