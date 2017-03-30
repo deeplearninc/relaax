@@ -1,11 +1,11 @@
-from current_model import model
+import tensorflow as tf
 
 
-def compute_gradients(loss):
-    return tf.gradients(loss, model.trainable_weights)
+class Utils(object):
+    @staticmethod
+    def placeholder(shape):
+        return tf.placeholder(shape=shape)
 
-def apply_gradients(optimizer):
-    model.gradients = [
-        tf.placeholder(v.dtype, v.get_shape()) for v in model.trainable_weights
-    ]
-    model.optimizer = optimizer 
+    @staticmethod
+    def weights(shape):
+        return tf.Variable(shape=shape)

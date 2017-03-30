@@ -1,4 +1,10 @@
-from . import *
+import tensorflow as tf
+
+
+class Loss(object):
+    @staticmethod
+    def simple_loss(self, output):
+        return SimpleLoss(output)
 
 
 class SimpleLoss(object):
@@ -9,3 +15,4 @@ class SimpleLoss(object):
         log_like = tf.log(tf.reduce_sum(tf.multiply(self.act, output)))
 
         self.eval = -tf.reduce_mean(log_like * self.adv)
+

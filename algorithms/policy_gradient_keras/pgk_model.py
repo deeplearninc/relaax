@@ -1,39 +1,73 @@
-from library.current_model import model
-from library.utils import ComputeGradients, ApplyGradients
-from library.optimizers import Adam
+from library.base_model import BaseModel
+from library.utils import Utils
+from library.layers import Layers
+from library.loss import Loss
+from library.optimizers import Optimizers
 
 
-class BaseModel(object):
-    def __init__(self):
-        self.cfg = PGConfig.preprocess()
-        self.build_model()
-
-
-
-class AgentModel(object):
+class AgentModel(BaseModel):
     def build_model(self):
+        self.state
+        self.layers
+        self.output
+        self.loss
+        self.compute_gradients
 
-        SequentialModel()
-        Input(self.cfg.state_size,)
-        for layer in self.cfg.hidden_layers:
-            FullyConnected(layer, activation='elu', init='glorot_uniform')
-        FullyConnected(self.cfg.action_size, activation='softmax', init='glorot_uniform')
+    @define_scope
+    def state(self):
+        return Utils.placeholder(shape=self.cfg.state_size)
 
-        model.loss = SimpleLoss()
-        self.compute_gradients = ComputeGradients(model.loss)
+    @define_scope
+    def layers(self):
+        layers = []
+        last_layer = self.state
+        for shape in self.cfg.hidden_layers:
+            last_layer = Layers.fully_connected(
+                shape=shape,
+                activation='elu',
+                init='glorot_uniform',
+                input=last_layer
+            )
+            layers.append(last_layer)
+        return layers
 
-    @property
+    @define_scope
+    def output(self):
+        last_layer = self.state if len(self.layers) == 0 else self.layers[-1]
+        return Layers.fully_connected(
+            shape=self.cfg.action_size,
+            activation='softmax',
+            init='glorot_uniform',
+            input=last_layer
+        )
+
+    @define_scope
+    def loss(self):
+        return Loss.simple_loss(self.output)
+
+    @define_scope
     def compute_gradients(self):
-        return self.model.compute_gradients
+        return Gradients.compute_gradients(self.loss)
 
 
-def parameter_server_model():
-    cfg = PGConfig.preprocess()
+class ParameterServerModel(BaseModel):
+    def build_model(self):
+        self.weights
+        self.apply_gradients
 
-    model = DummyModel()
-    for layer in cfg.hidden_layers:
-        Weights(layer)
+    @define_scope
+    def gradients(self):
+        return [
+            Utils.placeholder(shape=shape) for shape in self.cfg.hidden_layers
+        ]
 
-    model.apply_gradients = ApplyGradients(Adam())
+    @define_scope
+    def weights(self):
+        return [
+            Utils.weights(shape=shape) for shape in self.cfg.hidden_layers
+        ]
 
-    return model
+    @define_scope
+    def apply_gradients(self):
+        adam = Optimizers.adam(self.cfg.learning_rate)
+        return adam.apply_gradients(self.weights, self.gradients)
