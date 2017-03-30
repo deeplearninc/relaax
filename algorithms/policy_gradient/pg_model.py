@@ -57,11 +57,11 @@ class PolicyModel(BaseModel):
 
     @define_input
     def state(self):
-        return Placeholder(np.float32, (None, config.state_size))
+        return Placeholder(dtype=np.float32, shape=(None, config.state_size))
 
     @define_input
     def discounted_reward(self):
-        return Placeholder(np.float32)
+        return Placeholder(dtype=np.float32)
 
     @define_scope
     def weights(self):
