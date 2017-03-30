@@ -1,7 +1,7 @@
 import tensorflow as tf
 
 
-class Loss(object):
+class SimpleLoss(object):
 
     @classmethod
     def assemble(cls, t_action, t_policy, t_discounted_reward):

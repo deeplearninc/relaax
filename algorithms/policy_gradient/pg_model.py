@@ -4,9 +4,9 @@ import tensorflow as tf
 from relaax.common.algorithms.decorators import define_scope, define_input
 from pg_config import config
 
-from lib.loss import Loss
+from lib.loss import SimpleLoss
 from lib.weights import Weights
-from lib.fc_network import FullyConnected
+from lib.networks import FullyConnected
 from lib.utils import assemble_and_show_graphs
 
 log = logging.getLogger("policy_gradient")
@@ -87,7 +87,7 @@ class PolicyModel(Weights):
 
     @define_scope
     def loss(self):
-        return Loss.assemble(
+        return SimpleLoss.assemble(
             t_action=self.action, t_policy=self.policy, t_discounted_reward=self.discounted_reward)
 
     @define_scope
