@@ -1,7 +1,10 @@
+import tensorflow as tf
+
 
 class Subgraph(object):
     def __init__(self, *args, **kwargs):
-        self.__pointer = self.build(*args, **kwargs)
+        with tf.variable_scope(type(self).__name__):
+            self.__pointer = self.build(*args, **kwargs)
 
     @property
     def tensor(self):
