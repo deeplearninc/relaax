@@ -8,11 +8,16 @@ from relaax.common.algorithms.decorators import SubGraph
 log = logging.getLogger(__name__)
 
 
+class Placeholder(SubGraph):
+    def build(self, dtype, shape):
+        return tf.placeholder(dtype=dtype, shape=shape)
+
+
 class Placeholders(SubGraph):
-    def build(self, ops):
+    def build(self, variables=None):
         return [
-            tf.Placeholder(dtype=op.dtype, shape=op.get_shape())
-            for op in ops
+            tf.placeholder(dtype=v.dtype, shape=v.get_shape())
+            for v in variables
         ]
 
 

@@ -1,4 +1,5 @@
 import tensorflow as tf
+import numpy as np
 
 from relaax.common.algorithms.decorators import SubGraph
 
@@ -6,8 +7,7 @@ from relaax.common.algorithms.decorators import SubGraph
 class Weights(SubGraph):
     """Holder for variables representing weights of the fully connected NN."""
 
-    @staticmethod
-    def build(self, shapes, initializer):
+    def build(self, shapes, initializer=None):
         """Assemble weights of the NN into tf graph.
 
         Args:
@@ -19,6 +19,6 @@ class Weights(SubGraph):
 
         """
         return [
-            tf.Variable(shape=shape, initializer=initializer.tf_initializer())
+            tf.Variable(initial_value=np.zeros(shape=shape))
             for shape in shapes
         ]

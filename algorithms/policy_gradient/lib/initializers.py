@@ -1,3 +1,4 @@
 
 class Xavier(object):
-    pass
+    def tf_initializer(self):
+        pass

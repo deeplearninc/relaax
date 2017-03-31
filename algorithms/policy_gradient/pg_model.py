@@ -8,7 +8,7 @@ from lib.models import BaseModel
 from lib.weights import Weights
 from lib.losses import SimpleLoss
 from lib.networks import FullyConnected
-from lib.utils import assemble_and_show_graphs, Placeholders
+from lib.utils import assemble_and_show_graphs, Placeholder, Placeholders
 from lib.optimizers import Adam
 from lib.gradients import Gradients
 from lib.initializers import Xavier
@@ -28,19 +28,18 @@ class SharedParameters(BaseModel):
 
     @define_subgraph
     def weights(self):
-        Weights()
-        return Weights().assemble(shapes=config.hidden_layers, initializer=Xavier())
+        return Weights().assemble(shapes=config.hidden_layers, initializer=Xavier()).op
 
     @define_subgraph
     def gradients(self):
         # placeholders to apply gradients to shared parameters
-        return Placeholders().assemble(variables=self.weights.ops)
+        return Placeholders().assemble(variables=self.weights.op).op
 
     @define_subgraph
     def apply_gradients(self):
         # apply gradients to weights
-        optimizer = Adam(learning_rate=self.config.learning_rate)
-        return optimizer.apply_gradients.assemble(self.gradients.ops, self.weights.ops)
+        optimizer = Adam(learning_rate=config.learning_rate)
+        return optimizer.apply_gradients().assemble(self.gradients.op, self.weights.op).op
 
 
 # Policy run by Agent(s)
@@ -57,24 +56,24 @@ class PolicyModel(BaseModel):
 
     @define_subgraph
     def state(self):
-        return Placeholder(dtype=np.float32, shape=(None, config.state_size))
+        return Placeholder().assemble(dtype=np.float32, shape=(None, config.state_size))
 
     @define_subgraph
     def discounted_reward(self):
-        return Placeholder(dtype=np.float32)
+        return Placeholder().assemble(dtype=np.float32, shape=None)
 
     @define_subgraph
     def weights(self):
-        return Weights.assemble(shapes=config.hidden_layers)
+        return Weights().assemble(shapes=config.hidden_layers).op
 
     @define_subgraph
     def policy(self):
-        return FullyConnected().assemble_from_weights(input=self.state, weigths=self.weights.ops)
+        return FullyConnected().assemble_from_weights(input=self.state, weigths=self.weights.op)
 
     @define_subgraph
     def loss(self):
         return SimpleLoss().assemble(
-                output=self.action, weights=self.weights.ops, discounted_reward=self.discounted_reward.op)
+                output=self.action, weights=self.weights.op, discounted_reward=self.discounted_reward.op)
 
     @define_subgraph
     def partial_gradients(self):
@@ -83,11 +82,11 @@ class PolicyModel(BaseModel):
     @define_subgraph
     def shared_weights(self):
         # placeholders to apply weights to shared parameters
-        return Placeholders().assemble(variables=self.weights.ops)
+        return Placeholders().assemble(variables=self.weights.op)
 
     @define_subgraph
     def assign_weights(self):
-        return Assign.assemble(self.weights.ops, self.shared_weights.ops)
+        return Assign.assemble(self.weights.op, self.shared_weights.op)
 
 
 if __name__ == '__main__':

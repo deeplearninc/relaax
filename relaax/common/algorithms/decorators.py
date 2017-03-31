@@ -2,7 +2,7 @@
 class SubGraph(object):
 
     def __init__(self, obj=None, func=None):
-        self._obj = self if obj is None else obj
+        self._obj = obj
         self._func = self.build if func is None else func
         self._assembled = False
         self._pointer = None
@@ -13,7 +13,10 @@ class SubGraph(object):
     def assemble(self, *args, **kwargs):
         if not self._assembled:
             self._assembled = True
-            self._pointer = self._func(self._obj, *args, **kwargs)
+            if self._obj is None:
+                self._pointer = self._func(*args, **kwargs)
+            else:
+                self._pointer = self._func(self._obj, *args, **kwargs)
         return self
 
     @property
