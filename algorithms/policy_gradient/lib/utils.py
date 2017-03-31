@@ -3,18 +3,18 @@ import numpy as np
 import tensorflow as tf
 
 from relaax.common.python.config.loaded_config import options
-from relaax.common.algorithms.decorators import SubGraph
+from relaax.common.algorithms.subgraph import Subgraph
 
 log = logging.getLogger(__name__)
 
 
-class Placeholder(SubGraph):
-    def build(self, dtype, shape):
+class Placeholder(Subgraph):
+    def assemble(self, dtype, shape):
         return tf.placeholder(dtype=dtype, shape=shape)
 
 
-class Placeholders(SubGraph):
-    def build(self, variables=None):
+class Placeholders(Subgraph):
+    def assemble(self, variables=None):
         return [
             tf.placeholder(dtype=v.dtype, shape=v.get_shape())
             for v in variables

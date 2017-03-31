@@ -6,21 +6,23 @@ class SubgraphMeta(type):
         cls = super(SubgraphMeta, meta).__new__(meta, name, bases, dct)
         if hasattr(cls, 'assemble'):
             assemble = getattr(cls, 'assemble')
-            factory = getattr(bases[0], '__factory__')
-            setattr(cls, 'assemble', functools.partial(factory, cls, assemble))
+            setattr(cls, 'assemble', functools.partial(meta.factory, cls, assemble))
+            setattr(cls, '__former_assemble__', assemble)
         return cls
+
+    @staticmethod
+    def factory(target, method, *args, **kwargs):
+        instance = target(method)
+        instance._instance = instance
+        return instance._build(*args, **kwargs)
 
 
 class Subgraph(object):
     __metaclass__ = SubgraphMeta
 
-    @staticmethod
-    def __factory__(target, method, *args, **kwargs):
-        instance = target(method)
-        instance._instance = instance
-        return instance._build(*args, **kwargs)
-
     def __init__(self, func=None, instance=None):
+        if func is None:
+            func = self.__former_assemble__
         self._func = func
         self._instance = instance
         setattr(self, 'assemble', self._build)

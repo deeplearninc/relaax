@@ -1,3 +1,4 @@
 
 class Gradients(object):
-    pass
+    def assemble(self, loss, variables):
+        pass

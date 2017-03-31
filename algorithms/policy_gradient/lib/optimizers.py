@@ -1,6 +1,6 @@
 import tensorflow as tf
 
-from relaax.common.algorithms.decorators import SubGraph
+from relaax.common.algorithms.subgraph import Subgraph
 
 
 class Adam(object):
@@ -11,10 +11,10 @@ class Adam(object):
         return ApplyGradients(self.optimizer)
 
 
-class ApplyGradients(SubGraph):
+class ApplyGradients(Subgraph):
     def __init__(self, optimizer):
         super(ApplyGradients, self).__init__()
         self.optimizer = optimizer
 
-    def build(self, gradients, weights):
+    def assemble(self, gradients, weights):
         return self.optimizer.apply_gradients(zip(gradients, weights))
