@@ -23,6 +23,7 @@ training/checkpoint*
 **/logs/*
 Session.vim
 tags
+sample/log
 
 # Setuptools distribution and build folders
 /dist/

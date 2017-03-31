@@ -68,7 +68,7 @@ class PolicyModel(BaseModel):
 
     @define_subgraph
     def policy(self):
-        return FullyConnected().assemble_from_weights(input=self.state, weigths=self.weights.op).op
+        return FullyConnected().assemble(input=self.state, weigths=self.weights.op)
 
     @define_subgraph
     def loss(self):
