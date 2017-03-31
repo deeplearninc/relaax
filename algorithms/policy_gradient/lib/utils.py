@@ -8,27 +8,6 @@ from relaax.common.algorithms.subgraph import Subgraph
 log = logging.getLogger(__name__)
 
 
-class Placeholder(Subgraph):
-    def build(self, shape, dtype=np.float32):
-        return tf.placeholder(shape=shape, dtype=dtype)
-
-
-class Placeholders(Subgraph):
-    def build(self, variables=[]):
-        return [
-            tf.placeholder(v.dtype, v.get_shape())
-            for v in variables.node
-        ]
-
-
-class Assign(Subgraph):
-    def build(self, variables, values):
-        return [
-            tf.assign(variable, value)
-            for variable, value in zip(variables.node, values.node)
-        ]
-
-
 def discounted_reward(self, rewards, gamma):
     # take 1D float array of rewards and compute discounted reward
     rewards = np.vstack(rewards)
