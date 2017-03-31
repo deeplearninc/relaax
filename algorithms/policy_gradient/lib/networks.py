@@ -1,12 +1,13 @@
 import tensorflow as tf
 
+from relaax.common.algorithms.subgraph import Subgraph
 
-class FullyConnected(object):
+
+class FullyConnected(Subgraph):
     """Builds fully connected neural network."""
 
-    @classmethod
-    def assemble(cls, state, weights):
-        last = state
-        for w in weights:
+    def build(self, state, weights):
+        last = state.op
+        for w in weights.op:
             last = tf.nn.relu(tf.matmul(last, w))
         return tf.nn.softmax(last)

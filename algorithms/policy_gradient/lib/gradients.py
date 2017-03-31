@@ -1,4 +1,6 @@
+from relaax.common.algorithms.subgraph import Subgraph
 
-class Gradients(object):
-    def assemble(self, loss, variables):
+
+class Gradients(Subgraph):
+    def build(self, loss, variables):
         pass

@@ -1,12 +1,12 @@
 import tensorflow as tf
 
+from relaax.common.algorithms.subgraph import Subgraph
 
-class SimpleLoss(object):
-    @classmethod
-    def assemble(cls, action, policy, discounted_reward):
+
+class Loss(Subgraph):
+    def build(self, action, policy, discounted_reward):
         # making actions that gave good advantage (reward over time) more likely,
         # and actions that didn't less likely.
 
-        print type(policy)
-        log_like = tf.log(tf.reduce_sum(action * policy))
-        return -tf.reduce_mean(log_like * discounted_reward)
+        log_like = tf.log(tf.reduce_sum(action.op * policy.op))
+        return -tf.reduce_mean(log_like * discounted_reward.op)

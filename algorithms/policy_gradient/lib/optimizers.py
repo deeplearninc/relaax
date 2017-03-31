@@ -7,14 +7,10 @@ class Adam(object):
     def __init__(self, learning_rate=0.001):
         self.optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
 
-    def apply_gradients(self):
-        return ApplyGradients(self.optimizer)
+    def apply_gradients(self, gradients, weights):
+        return ApplyGradients(self.optimizer, gradients, weights)
 
 
 class ApplyGradients(Subgraph):
-    def __init__(self, optimizer):
-        super(ApplyGradients, self).__init__()
-        self.optimizer = optimizer
-
-    def assemble(self, gradients, weights):
-        return self.optimizer.apply_gradients(zip(gradients, weights))
+    def build(self, optimizer, gradients, weights):
+        return optimizer.apply_gradients(zip(gradients.op, weights.op))
