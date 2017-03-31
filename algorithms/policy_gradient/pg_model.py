@@ -43,5 +43,4 @@ class PolicyModel(Subgraph):
 
 
 if __name__ == '__main__':
-    assemble_and_show_graphs(
-        parameter_server=SharedParameters, agent=PolicyModel)
+    assemble_and_show_graphs(SharedParameters, PolicyModel)

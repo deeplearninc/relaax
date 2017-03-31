@@ -52,11 +52,9 @@ def choose_action(probabilities):
     return np.searchsorted(values, r)
 
 
-def assemble_and_show_graphs(agent, parameter_server):
-    with tf.variable_scope('parameter_server'):
-        parameter_server()
-    with tf.variable_scope('agent'):
-        agent()
+def assemble_and_show_graphs(*graphs):
+    for graph in graphs:
+        graph()
     log_dir = options.get("agent/log_dir", "log/")
     log.info(('Writing TF summary to %s. '
               'Please use tensorboad to watch.') % log_dir)
