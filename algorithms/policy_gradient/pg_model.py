@@ -28,12 +28,12 @@ class SharedParameters(BaseModel):
 
     @define_subgraph
     def weights(self):
-        return Weights().assemble(shapes=config.hidden_layers, initializer=Xavier()).op
+        return Weights.assemble(shapes=config.hidden_layers, initializer=Xavier()).op
 
     @define_subgraph
     def gradients(self):
         # placeholders to apply gradients to shared parameters
-        return Placeholders().assemble(variables=self.weights.op).op
+        return Placeholders.assemble(variables=self.weights.op).op
 
     @define_subgraph
     def apply_gradients(self):
@@ -56,28 +56,28 @@ class PolicyModel(BaseModel):
 
     @define_subgraph
     def state(self):
-        return Placeholder().assemble(dtype=np.float32, shape=(None, config.state_size))
+        return Placeholder().assemble(dtype=np.float32, shape=(None, config.state_size)).tensor
 
     @define_subgraph
     def discounted_reward(self):
-        return Placeholder().assemble(dtype=np.float32, shape=None)
+        return Placeholder().assemble(dtype=np.float32, shape=None).tensor
 
     @define_subgraph
     def weights(self):
-        return Weights().assemble(shapes=config.hidden_layers).op
+        return Weights().assemble(shapes=config.hidden_layers).tensor
 
     @define_subgraph
     def policy(self):
-        return FullyConnected().assemble_from_weights(input=self.state, weigths=self.weights.op)
+        return FullyConnected().assemble_from_weights(input=self.state, weigths=self.weights.op).op
 
     @define_subgraph
     def loss(self):
         return SimpleLoss().assemble(
-                output=self.action, weights=self.weights.op, discounted_reward=self.discounted_reward.op)
+            output=self.action, weights=self.weights.op, discounted_reward=self.discounted_reward.op).op
 
     @define_subgraph
     def partial_gradients(self):
-        return Gradients().assemble(loss=self.loss, variables=self.weights)
+        return Gradients().assemble(loss=self.loss.op, variables=self.weights.tensor).op
 
     @define_subgraph
     def shared_weights(self):

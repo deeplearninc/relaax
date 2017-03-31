@@ -125,6 +125,3 @@ class PGAgent(object):
     def update_shared_parameters(self, partial_gradients):
         self.ps.run(
             "apply_gradients", feed_dict={"gradients": partial_gradients})
-
-
-
