@@ -6,7 +6,7 @@ from lib.weights import Weights
 from lib.losses import Loss
 from lib.networks import FullyConnected
 from lib.utils import assemble_and_show_graphs, Placeholder, Placeholders, Assign
-from lib.optimizers import Adam
+from lib.optimizers import ApplyGradients, Adam
 from lib.gradients import Gradients
 from lib.initializers import Xavier
 
@@ -18,9 +18,11 @@ class SharedParameters(Subgraph):
         # Build TF graph
         self.weights = Weights(initializer=Xavier())
         self.gradients = Placeholders(variables=self.weights)
-        self.apply_gradients = Adam(
-            learning_rate=config.learning_rate
-        ).apply_gradients(self.gradients, self.weights)
+        self.apply_gradients = ApplyGradients(
+            Adam(learning_rate=config.learning_rate),
+            self.gradients,
+            self.weights
+        )
 
 
 # Policy run by Agent(s)
