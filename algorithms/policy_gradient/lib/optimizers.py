@@ -13,4 +13,4 @@ class Adam(object):
 
 class ApplyGradients(Subgraph):
     def build(self, optimizer, gradients, weights):
-        return optimizer.apply_gradients(zip(gradients.op, weights.op))
+        return optimizer.apply_gradients(zip(gradients.node, weights.node))

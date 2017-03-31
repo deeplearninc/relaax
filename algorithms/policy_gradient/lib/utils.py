@@ -17,7 +17,7 @@ class Placeholders(Subgraph):
     def build(self, variables=[]):
         return [
             tf.placeholder(v.dtype, v.get_shape())
-            for v in variables.op
+            for v in variables.node
         ]
 
 
@@ -25,7 +25,7 @@ class Assign(Subgraph):
     def build(self, variables, values):
         return [
             tf.assign(variable, value)
-            for variable, value in zip(variables.op, values.op)
+            for variable, value in zip(variables.node, values.node)
         ]
 
 
