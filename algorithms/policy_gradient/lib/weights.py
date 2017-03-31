@@ -9,7 +9,7 @@ from pg_config import config
 class Weights(Subgraph):
     """Holder for variables representing weights of the fully connected NN."""
 
-    def assemble(self, initializer=None):
+    def build(self, initializer=None):
         """Assemble weights of the NN into tf graph.
 
         Args:

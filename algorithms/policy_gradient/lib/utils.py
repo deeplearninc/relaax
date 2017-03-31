@@ -9,15 +9,23 @@ log = logging.getLogger(__name__)
 
 
 class Placeholder(Subgraph):
-    def assemble(self, dtype, shape):
-        return tf.placeholder(dtype=dtype, shape=shape)
+    def build(self, shape, dtype=np.float32):
+        return tf.placeholder(shape=shape, dtype=dtype)
 
 
 class Placeholders(Subgraph):
-    def assemble(self, variables=None):
+    def build(self, variables=[]):
         return [
-            tf.placeholder(dtype=v.dtype, shape=v.get_shape())
-            for v in variables
+            tf.placeholder(v.dtype, v.get_shape())
+            for v in variables.node
+        ]
+
+
+class Assign(Subgraph):
+    def build(self, variables, values):
+        return [
+            tf.assign(variable, value)
+            for variable, value in zip(variables.node, values.node)
         ]
 
 
@@ -44,11 +52,9 @@ def choose_action(probabilities):
     return np.searchsorted(values, r)
 
 
-def assemble_and_show_graphs(agent, parameter_server):
-    with tf.variable_scope('parameter_server'):
-        parameter_server()
-    with tf.variable_scope('agent'):
-        agent()
+def assemble_and_show_graphs(*graphs):
+    for graph in graphs:
+        graph()
     log_dir = options.get("agent/log_dir", "log/")
     log.info(('Writing TF summary to %s. '
               'Please use tensorboad to watch.') % log_dir)
