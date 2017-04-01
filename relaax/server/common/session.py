@@ -59,7 +59,7 @@ class Session(object):
         except StopIteration:
             pass
         return result
-    
+
     def build_list(self, pattern, i):
         if isinstance(pattern, (tuple, list)):
             return [self.build_list(p, i) for p in pattern]

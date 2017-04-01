@@ -1,5 +1,3 @@
-import tensorflow as tf
-
 from relaax.server.common.session import Session
 
 from lib.experience import Experience

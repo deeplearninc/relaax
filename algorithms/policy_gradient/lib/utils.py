@@ -3,7 +3,6 @@ import numpy as np
 import tensorflow as tf
 
 from relaax.common.python.config.loaded_config import options
-from relaax.common.algorithms.subgraph import Subgraph
 
 log = logging.getLogger(__name__)
 

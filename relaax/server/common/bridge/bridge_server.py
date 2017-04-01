@@ -33,4 +33,3 @@ class Servicer(bridge_pb2.BridgeServicer):
 
     def map_feed_dict(self, feed_dict):
         return {getattr(self.session.graph, k): v for k, v in feed_dict.iteritems()}
-

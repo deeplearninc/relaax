@@ -1,5 +1,3 @@
-import numpy as np
-
 from relaax.common.python.config.loaded_config import options
 
 

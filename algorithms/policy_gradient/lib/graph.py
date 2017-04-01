@@ -60,9 +60,9 @@ class Weights(Subgraph):
 
         """
 
-        state_size=config.state_size
-        hidden_sizes=config.hidden_layers
-        action_size=config.action_size
+        state_size = config.state_size
+        hidden_sizes = config.hidden_layers
+        action_size = config.action_size
 
         shapes = zip([state_size] + hidden_sizes, hidden_sizes + [action_size])
         return [
