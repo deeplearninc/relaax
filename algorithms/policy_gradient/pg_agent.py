@@ -1,5 +1,7 @@
 import tensorflow as tf
 
+from relaax.server.common.session import Session
+
 from lib.experience import Experience
 from lib.utils import discounted_reward, choose_action
 
@@ -30,8 +32,7 @@ class PGAgent(object):
         # Build TF graph
         self.model = PolicyModel()
         # Initialize TF
-        self.sess = tf.Session()
-        self.sess.run(tf.global_variables_initializer())
+        self.sess = Session(self.model)
 
         return True
 
@@ -63,19 +64,16 @@ class PGAgent(object):
 
     # load shared parameters from PS
     def begin_episode(self):
-        load_shared_parameters(self)
+        self.load_shared_parameters()
 
     # every episode step calculate action
     # by running policy and accumulate experience
     def episode_step(self, reward, state):
         # if state is None then skipping this episode
         # there is no action for None state
-       if state is None:
+        if state is None:
             return None
 
-        if state.ndim > 1:
-            state = state.flatten()
-        
         action = self.action_from_policy(state)
         self.experience.accumulate(state, reward, action)
 
@@ -99,16 +97,19 @@ class PGAgent(object):
 
     # reload policy weights from PS
     def load_shared_parameters(self):
-        weights = self.ps.run("weights")
+        weights, = self.ps.run([self.ps.graph.weights])
         self.sess.run(
-            self.model.assign_weights,
-            feed_dict={self.model.shared_weights: weights})
+            [self.sess.graph.assign_weights],
+            feed_dict={self.sess.graph.shared_weights: weights}
+        )
 
     # run policy and get action
     def action_from_policy(self, state):
         if state:
             action_probabilities = self.sess.run(
-                self.model.policy, feed_dict={self.model.state: [state]})
+                [self.model.policy],
+                feed_dict={self.model.state: [state]}
+            )
             return choose_action(action_probabilities)
         return None
 

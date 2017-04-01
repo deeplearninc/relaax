@@ -31,7 +31,7 @@ algorithm:
   use_system_ps: false
 
   action_size: 2                  # action size for the given environment
-  state_shape: [3]                # array of dimensions for the input observation
+  state_size: 2
   hidden_layers: [200,400,200]
   history_len: 1                  # number of observations to stack in state
   episode_len: 5                  # local loop size for one episode

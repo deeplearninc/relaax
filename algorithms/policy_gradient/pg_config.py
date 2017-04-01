@@ -1,15 +1,12 @@
 import numpy as np
+
 from relaax.common.python.config.loaded_config import options
 
 
 class PGConfig(object):
-
     @classmethod
     def preprocess(cls):
-        config = options.get('algorithm')
-        # flatten state
-        config.state_size = np.prod(np.array(config.state_size))
-        return config
+        return options.get('algorithm')
 
 
 config = PGConfig.preprocess()

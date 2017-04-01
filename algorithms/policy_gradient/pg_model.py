@@ -2,13 +2,9 @@ from pg_config import config
 
 from relaax.common.algorithms.subgraph import Subgraph
 
-from lib.weights import Weights
-from lib.losses import Loss
-from lib.networks import FullyConnected
-from lib.utils import assemble_and_show_graphs, Placeholder, Placeholders, Assign
-from lib.optimizers import ApplyGradients, Adam
-from lib.gradients import Gradients
-from lib.initializers import Xavier
+from lib.graph import Weights, Loss, FullyConnected, Placeholder, Placeholders
+from lib.graph import Assign, ApplyGradients, Adam, Gradients, Xavier, Initialize
+from lib.utils import assemble_and_show_graphs
 
 
 # Weights of the policy are shared across
@@ -23,6 +19,7 @@ class SharedParameters(Subgraph):
             self.gradients,
             self.weights
         )
+        self.initialize = Initialize()
 
 
 # Policy run by Agent(s)
@@ -42,6 +39,7 @@ class PolicyModel(Subgraph):
         )
         self.partial_gradients = Gradients(loss=self.loss, variables=self.weights)
         self.assign_weights = Assign(self.weights, self.shared_weights)
+        self.initialize = Initialize()
 
 
 if __name__ == '__main__':

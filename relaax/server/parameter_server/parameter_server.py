@@ -38,7 +38,7 @@ class ParameterServer(object):
             log.info("Staring parameter server server on %s:%d" % options.bind)
 
             # keep the server or else GC will stop it
-            server = BridgeServer(options.bind, ps)
+            server = BridgeServer(options.bind, ps.session)
             server.start()
 
             while True:

@@ -105,3 +105,8 @@ class Adam(Subgraph):
 class Gradients(Subgraph):
     def build(self, loss, variables):
         pass
+
+
+class Initialize(Subgraph):
+    def build(self):
+        return tf.global_variables_initializer()
