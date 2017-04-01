@@ -104,7 +104,7 @@ class Adam(Subgraph):
 
 class Gradients(Subgraph):
     def build(self, loss, variables):
-        pass
+        return tf.gradients(loss.node, variables.node)
 
 
 class Initialize(Subgraph):
