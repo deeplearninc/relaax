@@ -8,7 +8,7 @@ from relaax.common.algorithms.subgraph import Subgraph
 log = logging.getLogger(__name__)
 
 
-def discounted_reward(self, rewards, gamma):
+def discounted_reward(rewards, gamma):
     # take 1D float array of rewards and compute discounted reward
     rewards = np.vstack(rewards)
     discounted_reward = np.zeros_like(rewards)
