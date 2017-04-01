@@ -1,3 +1,4 @@
+import itertools
 import tensorflow as tf
 
 
@@ -7,45 +8,59 @@ class Session(object):
         self.graph = graph
 
     def run(self, ops, feed_dict={}):
-        return self.build_list(ops, self.session.run(
-            list(self.flatten_list(ops)),
-            feed_dict=self.flatten_dict(feed_dict)
+        return self.build_result(ops, self.session.run(
+            list(self.flatten_ops(ops)),
+            feed_dict=self.flatten_feed_dict(feed_dict)
         ))
 
-    def flatten_list(self, values):
-        for value in values:
-            for vv in self.flatten_l(value.node):
-                yield vv
-
-    def flatten_l(self, v):
-        if isinstance(v, (tuple, list)):
-            for vv in v:
-                for vvv in self.flatten_l(vv):
-                    yield vv
-        else:
+    def flatten_ops(self, ops):
+        for v in self.traverse_values((op.node for op in ops)):
             yield v
 
-    def flatten_dict(self, feed_dict):
-        return {k: v for k, v in self.flatten_d(feed_dict)}
+    def traverse_values(self, values):
+        for value in values:
+            for v in self.traverse_value(value):
+                yield v
 
-    def flatten_d(self, feed_dict):
-        for key, v in feed_dict.iteritems():
-            k = key.node
-            if isinstance(k, (tuple, list)):
-                assert isinstance(v, (tuple, list))
-                assert len(k) == len(v)
-                for kk, vv in zip(k, v):
-                    yield kk, vv
-            else:
+    def traverse_value(self, value):
+        if isinstance(value, (tuple, list)):
+            for v in self.traverse_values(value):
+                yield v
+        else:
+            yield value
+
+    def flatten_feed_dict(self, feed_dict):
+        return {k: v for k, v in self.traverse_pairs(
+            ((k.node, v) for k, v in feed_dict.iteritems())
+        )}
+
+    def traverse_pairs(self, pairs):
+        for pair in pairs:
+            for k, v in self.traverse_pair(pair):
                 yield k, v
 
-    def build_list(self, ops, flat_list):
+    def traverse_pair(self, pair):
+        key, value = pair
+        if isinstance(key, (tuple, list)):
+            assert isinstance(value, (tuple, list))
+            assert len(key) == len(value)
+            for k, v in self.traverse_pairs(itertools.izip(key, value)):
+                yield k, v
+        else:
+            assert isinstance(key, tf.Tensor)
+            yield key, value
+
+    def build_result(self, ops, flat_list):
         i = iter(flat_list)
-        return [self.build_l(op.node, i) for op in ops]
+        result = [self.build_list(op.node, i) for op in ops]
+        try:
+            next(i)
+            assert False
+        except StopIteration:
+            pass
+        return result
     
-    def build_l(self, pattern, i):
+    def build_list(self, pattern, i):
         if isinstance(pattern, (tuple, list)):
-            return [self.build_l(p, i) for p in pattern]
+            return [self.build_list(p, i) for p in pattern]
         return next(i)
-
-
