@@ -25,7 +25,7 @@ class PGAgent(object):
         # count global steps between all agents
         self.global_t = 0
         # experience accumulated through episode
-        self.experience = Experience(config.action_size) 
+        self.experience = Experience(config.action_size)
         # reset variables used
         # to run single episode
         self.reset_episode()
@@ -76,6 +76,7 @@ class PGAgent(object):
 
         action = self.action_from_policy(state)
         self.experience.accumulate(state, reward, action)
+        self.episode_t += 1
 
         return action
 
@@ -105,24 +106,32 @@ class PGAgent(object):
 
     # run policy and get action
     def action_from_policy(self, state):
-        if state:
-            action_probabilities = self.sess.run(
-                [self.model.policy],
-                feed_dict={self.model.state: [state]}
-            )
-            return choose_action(action_probabilities)
-        return None
+        if state is None:
+            return None
+        action_probabilities, = self.sess.run(
+            [self.sess.graph.policy],
+            feed_dict={self.sess.graph.state: [state]}
+        )
+        return choose_action(action_probabilities)
 
     # train policy with accumulated states, rewards and actions
     def train_policy(self):
-        return self.sess.run(self.model.partial_gradients, 
-                             feed_dict={
-                                self.model.state: self.experience.states,
-                                self.model.action: self.experience.actions,
-                                self.model.discounted_reward: discounted_reward(
-                                    self.experience.rewards, config.GAMMA)})
+        partial_gradients, = self.sess.run(
+            [self.sess.graph.partial_gradients],
+            feed_dict={
+                self.sess.graph.state: self.experience.states,
+                self.sess.graph.action: self.experience.actions,
+                self.sess.graph.discounted_reward: discounted_reward(
+                    self.experience.rewards,
+                    config.GAMMA
+                )
+            }
+        )
+        return partial_gradients
 
     # update PS with learned policy
     def update_shared_parameters(self, partial_gradients):
         self.ps.run(
-            "apply_gradients", feed_dict={"gradients": partial_gradients})
+            [self.ps.graph.apply_gradients],
+            feed_dict={self.ps.graph.gradients: partial_gradients}
+        )
