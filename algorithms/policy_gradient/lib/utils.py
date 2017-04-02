@@ -10,14 +10,13 @@ log = logging.getLogger(__name__)
 def discounted_reward(rewards, gamma):
     # take 1D float array of rewards and compute discounted reward
     rewards = np.vstack(rewards)
-    discounted_reward = np.zeros_like(rewards)
+    discounted_reward = np.zeros_like(rewards, dtype=np.float32)
     running_add = 0
     for t in reversed(xrange(0, rewards.size)):
         running_add = running_add * gamma + rewards[t]
         discounted_reward[t] = running_add
     # size the rewards to be unit normal
     # it helps control the gradient estimator variance
-    discounted_reward = discounted_reward.astype(np.float64)
     discounted_reward -= np.mean(discounted_reward)
     discounted_reward /= np.std(discounted_reward) + 1e-20
 
