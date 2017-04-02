@@ -55,6 +55,7 @@ def run():
 
     except Exception as e:
         print("Something went wrong: ", e)
+        raise
 
     finally:
         # disconnect from the server
