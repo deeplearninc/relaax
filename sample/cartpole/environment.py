@@ -44,10 +44,8 @@ def run():
             while not terminal:
                     # if it is terminal state, set terminal to True
                     action = client.update(reward, state, terminal)
-
-                    reward, terminal = game.act(action)
+                    reward, terminal = game.act(action['data'])
                     state = game.state()
-                    print("action:", action)
 
         # reset agent
         res = client.reset()
