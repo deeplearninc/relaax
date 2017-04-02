@@ -11,7 +11,7 @@
 # python client/sample_exchange.py
 
 environment:
-  client: client/sample_exchange.py
+  client: cartpole/main
 
 relaax-parameter-server:
   --bind: localhost:7000
@@ -31,7 +31,7 @@ algorithm:
   use_system_ps: false
 
   action_size: 2                  # action size for the given environment
-  state_size: 2
+  state_size: 4
   hidden_layers: [200,400,200]
   history_len: 1                  # number of observations to stack in state
   episode_len: 5                  # local loop size for one episode
