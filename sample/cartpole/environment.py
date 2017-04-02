@@ -39,14 +39,15 @@ def run():
         while True:
             game.reset()
             state = game.state()
-            reward = 0  #reward = None
+            reward, episode_reward = None, 0  # reward = 0 | None
             terminal = False
             while not terminal:
                     # if it is terminal state, set terminal to True
                     action = client.update(reward, state, terminal)
                     reward, terminal = game.act(action['data'])
+                    episode_reward += reward
                     state = game.state()
-
+            print('Episode reward:', episode_reward)
         # reset agent
         res = client.reset()
         print("on reset:", res)
