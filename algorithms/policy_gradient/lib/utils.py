@@ -24,6 +24,7 @@ def discounted_reward(rewards, gamma):
 
 
 def choose_action(probabilities):
+    return np.argmax(probabilities)
     values = np.cumsum(probabilities)
     r = np.random.rand() * values[-1]
     return np.searchsorted(values, r)
