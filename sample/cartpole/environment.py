@@ -35,6 +35,7 @@ def run():
         # give agent a moment to load and initialize
         res = client.init()
         print("on init: ", res)
+        episode_cnt = 0
 
         while True:
             game.reset()
@@ -47,7 +48,8 @@ def run():
                     reward, terminal = game.act(action['data'])
                     episode_reward += reward
                     state = game.state()
-            print('Episode reward:', episode_reward)
+            episode_cnt += 1
+            print('Game:', episode_cnt, '| Episode reward:', episode_reward)
         # reset agent
         res = client.reset()
         print("on reset:", res)
