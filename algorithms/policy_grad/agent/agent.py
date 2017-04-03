@@ -1,4 +1,5 @@
 from __future__ import print_function
+from six import moves
 
 import numpy as np
 import tensorflow as tf
@@ -126,13 +127,12 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
 
     def discounted_reward(self, r):
         """ take 1D float array of rewards and compute discounted reward """
-        discounted_r = np.zeros_like(r)
+        discounted_r = np.zeros_like(r, dtype=np.float32)
         running_add = 0
-        for t in reversed(xrange(0, r.size)):
+        for t in reversed(moves.xrange(0, discounted_r.size)):
             running_add = running_add * self._config.GAMMA + r[t]
             discounted_r[t] = running_add
         # size the rewards to be unit normal (helps control the gradient estimator variance)
-        discounted_r = discounted_r.astype(np.float64)
         discounted_r -= np.mean(discounted_r)
         discounted_r /= np.std(discounted_r) + 1e-20
         return discounted_r
