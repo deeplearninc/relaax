@@ -3,9 +3,9 @@ import tensorflow as tf
 
 
 class Session(object):
-    def __init__(self, graph):
+    def __init__(self, model):
         self.session = tf.Session()
-        self.graph = graph
+        self.model = model
 
     def run(self, ops, feed_dict={}):
         return self.build_result(ops, self.session.run(

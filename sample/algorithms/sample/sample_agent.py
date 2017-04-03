@@ -18,17 +18,19 @@ class SampleAgent(object):
 
         return self._is_ok()
 
-    def update(self, data):
-        log.info("processing update: " + str(data))
+    def update(self, reward, state, terminal):
+        log.info("processing state: " + str(state))
 
         if self._is_sleep():
             time.sleep(0.02)
 
         action = self.ps.run(
-            ops=['act'], feed_dict={'state': np.array(data['state'])})
+            [self.ps.model.act],
+            feed_dict={self.ps.model.state: np.array(state)}
+        )
 
         log.info("global step:" +
-                 str(self.ps.run(ops=['step'], feed_dict={})[0]))
+                 str(self.ps.run([self.ps.model.step])[0]))
 
         return action[0]
 

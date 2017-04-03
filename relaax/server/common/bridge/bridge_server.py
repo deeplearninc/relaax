@@ -29,7 +29,7 @@ class Servicer(bridge_pb2.BridgeServicer):
         return BridgeMessage.serialize(result)
 
     def map_ops(self, ops):
-        return [getattr(self.session.graph, op) for op in ops]
+        return [getattr(self.session.model, op) for op in ops]
 
     def map_feed_dict(self, feed_dict):
-        return {getattr(self.session.graph, k): v for k, v in feed_dict.iteritems()}
+        return {getattr(self.session.model, k): v for k, v in feed_dict.iteritems()}

@@ -96,10 +96,10 @@ class PGAgent(object):
 
     # reload policy weights from PS
     def load_shared_parameters(self):
-        weights, = self.ps.run([self.ps.graph.weights])
+        weights, = self.ps.run([self.ps.model.weights])
         self.sess.run(
-            [self.sess.graph.assign_weights],
-            feed_dict={self.sess.graph.shared_weights: weights}
+            [self.sess.model.assign_weights],
+            feed_dict={self.sess.model.shared_weights: weights}
         )
 
     # run policy and get action
@@ -107,19 +107,19 @@ class PGAgent(object):
         if state is None:
             return None
         action_probabilities, = self.sess.run(
-            [self.sess.graph.policy],
-            feed_dict={self.sess.graph.state: [state]}
+            [self.sess.model.policy],
+            feed_dict={self.sess.model.state: [state]}
         )
         return choose_action(action_probabilities)
 
     # train policy with accumulated states, rewards and actions
     def train_policy(self):
         partial_gradients, = self.sess.run(
-            [self.sess.graph.partial_gradients],
+            [self.sess.model.partial_gradients],
             feed_dict={
-                self.sess.graph.state: self.experience.states,
-                self.sess.graph.action: self.experience.actions,
-                self.sess.graph.discounted_reward: discounted_reward(
+                self.sess.model.state: self.experience.states,
+                self.sess.model.action: self.experience.actions,
+                self.sess.model.discounted_reward: discounted_reward(
                     self.experience.rewards,
                     config.GAMMA
                 )
@@ -130,6 +130,6 @@ class PGAgent(object):
     # update PS with learned policy
     def update_shared_parameters(self, partial_gradients):
         self.ps.run(
-            [self.ps.graph.apply_gradients],
-            feed_dict={self.ps.graph.gradients: partial_gradients}
+            [self.ps.model.apply_gradients],
+            feed_dict={self.ps.model.gradients: partial_gradients}
         )
