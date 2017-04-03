@@ -26,9 +26,9 @@ class SharedParameters(Subgraph):
 class PolicyModel(Subgraph):
     def build(self):
         # Build TF graph
-        weights = Weights()
-        self.ph_weights = Placeholder(weights.variables)
-        self.assign_weights = weights.assign_weights(self.ph_weights)
+        placehoders Placeholder(...) as ph_weights
+            weights = Weights()
+            self.assign_weights = weights.assign_weights(ph_weights)
 
         self.ph_state = Placeholder((None, config.state_size))
         self.policy = FullyConnected(state=self.ph_state, weights=weights.variables)
@@ -39,9 +39,8 @@ class PolicyModel(Subgraph):
         self.partial_gradients = PartialGradients(
             SimpleLoss(
                 ph_action=self.ph_action,
-                ph_discounted_reward=self.ph_discounted_reward
-                policy=self.policy # self.ph_state
-                )
+                ph_discounted_reward=self.ph_discounted_reward,
+                policy=self.policy # self.ph_state)
             weights=weights.variables)
 
         self.initialize = Initialize()
