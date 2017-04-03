@@ -37,9 +37,11 @@ class PolicyModel(Subgraph):
         self.ph_action_probability = Placeholder((None, config.action_size))
         self.ph_discounted_reward = Placeholder((None, 1))
         self.partial_gradients = PartialGradients(
-            ph_action=self.ph_action,
-            ph_action_probability=self.ph_action_probability,
-            ph_discounted_reward=self.ph_discounted_reward, 
+            SimpleLoss(
+                ph_action=self.ph_action,
+                ph_discounted_reward=self.ph_discounted_reward
+                policy=self.policy # self.ph_state
+                )
             weights=weights.variables)
 
         self.initialize = Initialize()
