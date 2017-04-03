@@ -26,9 +26,9 @@ class SharedParameters(Subgraph):
 class PolicyModel(Subgraph):
     def build(self):
         # Build TF graph
-        weights = Weights()
-        self.ph_weights = self.ph_weights
-        self.assign_weights = self.assign_weights
+        self.ph_weights = Placeholder(config...)
+        weights = Weights(self.ph_weights)
+        self.assign_weights = weights.assign_weights(self.ph_weights)
 
         self.ph_state = Placeholder((None, config.state_size))
         self.policy = FullyConnected(state=self.ph_state, weights=weights.variables)
