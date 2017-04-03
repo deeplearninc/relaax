@@ -29,16 +29,16 @@ class PolicyModel(Subgraph):
         self.state = Placeholder((None, config.state_size))
         self.action = Placeholder((None, config.action_size))
         self.discounted_reward = Placeholder((None, 1))
-        self.weights = Weights()
-        self.shared_weights = Placeholders(variables=self.weights)
-        self.policy = FullyConnected(state=self.state, weights=self.weights)
-        self.loss = Loss(
+        weights = Weights()
+        self.shared_weights = Placeholders(variables=weights)
+        self.policy = FullyConnected(state=self.state, weights=weights)
+        loss = Loss(
             action=self.action,
             policy=self.policy,
             discounted_reward=self.discounted_reward
         )
-        self.partial_gradients = Gradients(loss=self.loss, variables=self.weights)
-        self.assign_weights = Assign(self.weights, self.shared_weights)
+        self.partial_gradients = Gradients(loss=loss, variables=weights)
+        self.assign_weights = Assign(weights, self.shared_weights)
         self.initialize = Initialize()
 
 
