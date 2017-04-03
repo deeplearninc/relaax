@@ -26,15 +26,15 @@ class SharedParameters(Subgraph):
 class PolicyModel(Subgraph):
     def build(self):
         # Build TF graph
-        self.ph_weights = Placeholder(config...)
-        weights = Weights(self.ph_weights)
+        weights = Weights()
+        self.ph_weights = Placeholder(weights.variables)
         self.assign_weights = weights.assign_weights(self.ph_weights)
 
         self.ph_state = Placeholder((None, config.state_size))
         self.policy = FullyConnected(state=self.ph_state, weights=weights.variables)
 
         self.ph_action = Placeholder((None, config.action_size))
-        self.ph_action_probability = Placeholder(...)
+        self.ph_action_probability = Placeholder((None, config.action_size))
         self.ph_discounted_reward = Placeholder((None, 1))
         self.partial_gradients = PartialGradients(
             ph_action=self.ph_action,
