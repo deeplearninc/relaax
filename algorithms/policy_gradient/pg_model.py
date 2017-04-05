@@ -217,7 +217,7 @@ class PolicyModelE(Subgraph):
         pass
 
 
-# 'entry' calls
+# 'build_op' calls on external functions
 class PolicyModelF(Subgraph):
     def build_graph(self):
         # Build TF graph
@@ -255,7 +255,7 @@ class PolicyModelF(Subgraph):
         self.build_op(self.partial_gradients, state, action, action_probability, discounted_reward)
 
 
-# 'entry' calls
+# 'build_op' calls
 class PolicyModelG(Subgraph):
     def build_graph(self):
         # Build TF graph
