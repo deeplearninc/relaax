@@ -26,7 +26,8 @@ class SharedParameters(Subgraph):
 class PolicyModel(Subgraph):
     def build_graph(self):
         # Build graph
-        sg_weights = Variables([config.state_size] + config.hidden_sizes + [config.action_size])
+        sg_weights = Variables([config.state_size] + config.hidden_sizes + [config.action_size],
+                               initializer=Xavier())    # if provided
         ph_weights = Placeholders(sg_weights)
 
         ph_state = Placeholder((None, config.state_size))
