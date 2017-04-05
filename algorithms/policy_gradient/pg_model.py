@@ -25,8 +25,7 @@ class SharedParameters(Subgraph):
 # Policy run by Agent(s)
 class PolicyModel(Subgraph):
     def build_graph(self):
-        # Build TF graph
-
+        # Build graph
         sg_weights = Variables([config.state_size] + config.hidden_sizes + [config.action_size])
         ph_weights = Placeholders(sg_weights)
 
