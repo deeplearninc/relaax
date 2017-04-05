@@ -226,6 +226,8 @@ class PolicyModelF(Subgraph):
         ph_weights = Placeholders(sg_weights)
 
         ph_state = Placeholder((None, config.state_size))
+        ph_action = Placeholder((None, config.action_size))
+        ph_discounted_reward = Placeholder((None, 1))
 
         sg_fully_connected = FullyConnected(ph_state, sg_weights)
         sg_policy_loss = PolicyLoss(
@@ -235,9 +237,6 @@ class PolicyModelF(Subgraph):
         )
 
         sg_policy = Policy(sg_fully_connected, sg_policy_loss)
-
-        ph_action = Placeholder((None, config.action_size))
-        ph_discounted_reward = Placeholder((None, 1))
 
         self.op_assign_weights = sg_weights.assign(ph_weights)
         self.op_get_action = sg_policy.get_action(ph_state)
