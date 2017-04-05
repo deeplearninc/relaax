@@ -233,7 +233,7 @@ class PolicyModelF(Subgraph):
         sg_policy_loss = PolicyLoss(
             action=ph_action,
             discounted_reward=ph_discounted_reward,
-            parameter=sg_fully_connected 
+            network=sg_fully_connected 
         )
 
         sg_policy = Policy(sg_fully_connected, sg_policy_loss)
