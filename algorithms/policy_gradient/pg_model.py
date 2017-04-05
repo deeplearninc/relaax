@@ -235,7 +235,6 @@ class PolicyModelF(Subgraph):
         sg_policy_loss = PolicyLoss(
             action=ph_action,
             discounted_reward=ph_discounted_reward,
-            weights=sg_weights,
             policy=sg_policy
         )
 
