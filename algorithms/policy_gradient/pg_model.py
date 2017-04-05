@@ -224,26 +224,26 @@ class PolicyModelF(Subgraph):
         ph_weights = Placeholders()
         weights = Weights()
 
-        state = Placeholder((None, config.state_size))
+        ph_state = Placeholder((None, config.state_size))
 
-        policy = FullyConnected(state, weights)
+        policy = Policy(ph_state, weights)
 
-        action = Placeholder((None, config.action_size))
-        action_probability = Placeholder((None, config.action_size))
-        discounted_reward = Placeholder((None, 1))
+        ph_action = Placeholder((None, config.action_size))
+        ph_action_probability = Placeholder((None, config.action_size))
+        ph_discounted_reward = Placeholder((None, 1))
 
         partial_gradients = PartialGradients(
             SimpleLoss(
-                action=action,
-                discounted_reward=discounted_reward,
-                policy=self.policy # state
+                action=ph_action,
+                discounted_reward=ph_discounted_reward,
+                policy=self.policy # ph_state
             ),
             weights
         )
 
-        self.op_assign_weights = weights.assign_weights(ph_weights)
-        self.op_get_action = policy.get_action(state)
-        self.op_calc_partial_gradients = partial_gradients.calc_partial_gradients(state, action, action_probability, discounted_reward)
+        self.op_assign_weights = weights.assign(ph_weights)
+        self.op_get_action = policy.get_action(ph_state)
+        self.op_calc_partial_gradients = partial_gradients.calc(ph_state, ph_action, ph_action_probability, ph_discounted_reward)
         self.op_initialize = Initialize()
 
 
