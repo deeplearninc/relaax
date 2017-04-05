@@ -13,6 +13,9 @@ class Session(object):
             feed_dict=self.flatten_feed_dict(feed_dict)
         ))
 
+    def __getattr__(self, name):
+        return SessionMethod(getattr(self.model, name))
+
     def flatten_ops(self, ops):
         for v in self.traverse_values((op.node for op in ops)):
             yield v
@@ -64,3 +67,14 @@ class Session(object):
         if isinstance(pattern, (tuple, list)):
             return [self.build_list(p, i) for p in pattern]
         return next(i)
+
+
+class SessionMethod(object):
+    def __init__(self, session, subgraph):
+        self.session = session
+        self.subgraph = subgraph
+        self.node = subgraph.node
+
+    def __call__(self, **kwargs):
+        result, = self.session.run([self.subgraph], feed_dict=kwargs)
+        return result
