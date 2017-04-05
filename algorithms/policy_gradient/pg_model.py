@@ -221,8 +221,12 @@ class PolicyModelE(Subgraph):
 class PolicyModelF(Subgraph):
     def build_graph(self):
         # Build TF graph
-        ph_weights = Placeholders()
-        weights = Weights()
+        weights = Weights(
+            state_size=config.state_size
+            hidden_sizes=config.hidden_layers
+            action_size=config.action_size
+        )
+        ph_weights = Placeholders(weights)
 
         ph_state = Placeholder((None, config.state_size))
 
