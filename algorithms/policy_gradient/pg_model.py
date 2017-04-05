@@ -236,14 +236,14 @@ class PolicyModelF(Subgraph):
             SimpleLoss(
                 action=ph_action,
                 discounted_reward=ph_discounted_reward,
-                policy=sg_policy # ph_state
+                policy=sg_policy
             ),
             sg_weights
         )
 
         self.op_assign_weights = sg_weights.assign(ph_weights)
         self.op_get_action = sg_policy.get_action(ph_state)
-        self.op_calc_partial_gradients = sg_partial_gradients.calc(ph_state, ph_action, ph_discounted_reward)
+        self.op_partial_gradients = sg_partial_gradients.compute(ph_state, ph_action, ph_discounted_reward)
         self.op_initialize = Initialize()
 
 
