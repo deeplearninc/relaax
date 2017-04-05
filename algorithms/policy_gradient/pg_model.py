@@ -217,5 +217,97 @@ class PolicyModelE(Subgraph):
         pass
 
 
+# 'entry' calls
+class PolicyModelF(Subgraph):
+    def build_graph(self):
+        # Build TF graph
+        ph_weights = Placeholders()
+        weights = Weights()
+
+        self.assign = Assign(weights, ph_weights)
+
+        state = Placeholder((None, config.state_size))
+
+        self.policy = FullyConnected(state, weights)
+
+        action = Placeholder((None, config.action_size))
+        action_probability = Placeholder((None, config.action_size))
+        discounted_reward = Placeholder((None, 1))
+
+        self.partial_gradients = PartialGradients(
+            SimpleLoss(
+                action=action,
+                discounted_reward=discounted_reward,
+                policy=self.policy # state
+            ),
+            weights
+        )
+
+        self.initialize = Initialize()
+
+    def assign_weights(ph_weights):
+        self.build_op(self.assign, weights=ph_weights)
+
+    def policy(state):
+        self.build_op(self.policy, state=state)
+
+    def partial_gradients(state, action, action_probability, discounted_reward):
+        self.build_op(self.partial_gradients, state, action, action_probability, discounted_reward)
+
+
+# 'entry' calls
+class PolicyModelG(Subgraph):
+    def build_graph(self):
+        # Build TF graph
+        ph_weights = Placeholders()
+        weights = Weights()
+
+        assign = Assign(weights, ph_weights)
+
+        state = Placeholder((None, config.state_size))
+
+        policy = FullyConnected(state, weights)
+
+        action = Placeholder((None, config.action_size))
+        action_probability = Placeholder((None, config.action_size))
+        discounted_reward = Placeholder((None, 1))
+
+        partial_gradients = PartialGradients(
+            SimpleLoss(
+                action=action,
+                discounted_reward=discounted_reward,
+                policy=policy # state
+            ),
+            weights
+        )
+
+        initialize = Initialize()
+
+        self.assign_weights = self.build_op(assign, ph_weights)
+        self.policy = self.build_op(policy, state=state)
+        self.partial_gradients = self.build_op(partial_gradients, state, action, action_probability, discounted_reward)
+        self.initialize = self.build_op(initialize)
+
+
+
+class Weights(Subgrapg):
+
+    def build_graph(state_size,hidden_sizes,action_size):
+        
+        self.assign = [
+            tf.assign(variable, value)
+            for variable, value in zip(variables.node, values.node)
+        ]
+
+        shapes = zip([state_size] + hidden_sizes, hidden_sizes + [action_size])
+        return [
+            tf.Variable(initial_value=initializer(shape=shape, dtype=np.float32))
+            for shape in shapes
+        ]
+
+    def assign_weights(ph_weights):
+        self.build_op(self.assign,weights=ph_weights)
+
+
 if __name__ == '__main__':
     assemble_and_show_graphs(SharedParameters, PolicyModel)
