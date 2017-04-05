@@ -222,30 +222,29 @@ class PolicyModelF(Subgraph):
     def build_graph(self):
         # Build TF graph
 
-        size = [config.state_size] + config.hidden_sizes + [config.action_size]
-        weights = Variables(size)
-        ph_weights = Placeholders(weights)
+        sg_weights = Variables([config.state_size] + config.hidden_sizes + [config.action_size])
+        ph_weights = Placeholders(sg_weights)
 
         ph_state = Placeholder((None, config.state_size))
 
-        policy = Policy(ph_state, weights)
+        sg_policy = Policy(ph_state, sg_weights)
 
         ph_action = Placeholder((None, config.action_size))
         ph_action_probability = Placeholder((None, config.action_size))
         ph_discounted_reward = Placeholder((None, 1))
 
-        partial_gradients = PartialGradients(
+        sg_partial_gradients = PartialGradients(
             SimpleLoss(
                 action=ph_action,
                 discounted_reward=ph_discounted_reward,
-                policy=self.policy # ph_state
+                policy=sg_policy # ph_state
             ),
-            weights
+            sg_weights
         )
 
-        self.op_assign_weights = weights.assign(ph_weights)
-        self.op_get_action = policy.get_action(ph_state)
-        self.op_calc_partial_gradients = partial_gradients.calc(ph_state, ph_action, ph_action_probability, ph_discounted_reward)
+        self.op_assign_weights = sg_weights.assign(ph_weights)
+        self.op_get_action = sg_policy.get_action(ph_state)
+        self.op_calc_partial_gradients = sg_partial_gradients.calc(ph_state, ph_action, ph_action_probability, ph_discounted_reward)
         self.op_initialize = Initialize()
 
 
