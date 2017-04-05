@@ -43,6 +43,7 @@ class PolicyModel(Subgraph):
 
         sg_policy = Policy(sg_network, sg_policy_loss)
 
+        # Expose public API
         self.op_assign_weights = sg_weights.assign(ph_weights)
         self.op_get_action = sg_policy.get_action(ph_state)
         self.op_compute_gradients = sg_policy.compute_gradients(ph_state, ph_action, ph_discounted_reward)
