@@ -232,18 +232,16 @@ class PolicyModelF(Subgraph):
         ph_action = Placeholder((None, config.action_size))
         ph_discounted_reward = Placeholder((None, 1))
 
-        sg_gradients = Gradients(
-            PolicyLoss(
-                action=ph_action,
-                discounted_reward=ph_discounted_reward,
-                policy=sg_policy
-            ),
-            sg_weights
+        sg_policy_loss = PolicyLoss(
+            action=ph_action,
+            discounted_reward=ph_discounted_reward,
+            weights=sg_weights,
+            policy=sg_policy
         )
 
         self.op_assign_weights = sg_weights.assign(ph_weights)
         self.op_get_action = sg_policy.get_action(ph_state)
-        self.op_compute_gradients = sg_gradients.compute(ph_state, ph_action, ph_discounted_reward)
+        self.op_compute_gradients = sg_policy_loss.compute_gradients(ph_state, ph_action, ph_discounted_reward)
         self.op_initialize = Initialize()
 
 
