@@ -30,11 +30,13 @@ class Placeholder(Subgraph):
 
 
 class Placeholders(Subgraph):
-    def build(self, variables=[]):
-        return [
-            tf.placeholder(v.dtype, v.get_shape())
-            for v in variables.node
-        ]
+    def build(self):
+        state_size = config.state_size
+        hidden_sizes = config.hidden_layers
+        action_size = config.action_size
+
+        shapes = zip([state_size] + hidden_sizes, hidden_sizes + [action_size])
+        return [tf.placeholder(np.float32, shape) for shape in shapes ]
 
 
 class Assign(Subgraph):
@@ -81,7 +83,7 @@ class FullyConnected(Subgraph):
         return tf.nn.softmax(last)
 
 
-class Loss(Subgraph):
+class SimpleLoss(Subgraph):
     def build(self, action, policy, discounted_reward):
         # making actions that gave good advantage (reward over time) more likely,
         # and actions that didn't less likely.
@@ -102,7 +104,7 @@ class Adam(Subgraph):
         return tf.train.AdamOptimizer(learning_rate=learning_rate)
 
 
-class Gradients(Subgraph):
+class PartialGradients(Subgraph):
     def build(self, loss, variables):
         return tf.gradients(loss.node, variables.node)
 
