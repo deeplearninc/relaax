@@ -25,7 +25,7 @@ def discounted_reward(rewards, gamma):
 
 def choose_action(probabilities):
     # one more better variant
-    return np.random.choice(len(probabilities), p=probabilities)
+    return np.random.choice(probabilities.shape[1], p=probabilities[0])
     # return np.argmax(probabilities)   # need to set greedily param
     values = np.cumsum(probabilities)
     r = np.random.rand() * values[-1]

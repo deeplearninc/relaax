@@ -87,6 +87,7 @@ class Loss(Subgraph):
         # and actions that didn't less likely.
 
         log_like = tf.log(tf.reduce_sum(action.node * policy.node))
+        return -tf.reduce_sum(log_like * discounted_reward.node)
         return -tf.reduce_mean(log_like * discounted_reward.node)
 
 
