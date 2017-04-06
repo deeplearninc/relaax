@@ -49,7 +49,7 @@ class RlxClient(object):
             raise RlxClientException("no connection is available.")
         return ret
 
-    def connect(self, retry=3):
+    def connect(self, retry=5):
 
         self.disconnect()
 

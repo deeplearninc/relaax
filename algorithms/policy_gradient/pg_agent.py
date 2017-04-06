@@ -114,4 +114,3 @@ class PGAgent(object):
                 config.GAMMA
             )
         )
-        
