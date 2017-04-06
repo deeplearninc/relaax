@@ -7,15 +7,19 @@ from bridge_message import BridgeMessage
 
 class BridgeConnection(object):
     def __init__(self, server):
-        self._stub = bridge_pb2.BridgeStub(grpc.insecure_channel('%s:%d' % server))
-        self.model = BridgeConnectionModel()
+        self.__stub = bridge_pb2.BridgeStub(grpc.insecure_channel('%s:%d' % server))
 
-    def run(self, ops, feed_dict={}):
-        messages = BridgeMessage.serialize([ops, feed_dict])
-        result = self._stub.Run(messages)
-        return list(BridgeMessage.deserialize(result))
-
-
-class BridgeConnectionModel(object):
     def __getattr__(self, name):
-        return name
+        return BridgeConnectionMethod(self.__stub, name)
+
+
+class BridgeConnectionMethod(object):
+    def __init__(self, stub, op):
+        self.stub = stub
+        self.op = op
+
+    def __call__(self, **kwargs):
+        feed_dict = kwargs
+        messages = BridgeMessage.serialize([self.op, feed_dict])
+        result = self.stub.Run(messages)
+        return BridgeMessage.deserialize(result)

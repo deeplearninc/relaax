@@ -21,15 +21,6 @@ class Servicer(bridge_pb2.BridgeServicer):
         self.session = session
 
     def Run(self, request_iterator, context):
-        ops, feed_dict = BridgeMessage.deserialize(request_iterator)
-        result = self.session.run(
-            self.map_ops(ops),
-            self.map_feed_dict(feed_dict)
-        )
+        op, feed_dict = BridgeMessage.deserialize(request_iterator)
+        result = getattr(self.session, op)(**feed_dict)
         return BridgeMessage.serialize(result)
-
-    def map_ops(self, ops):
-        return [getattr(self.session.model, op) for op in ops]
-
-    def map_feed_dict(self, feed_dict):
-        return {getattr(self.session.model, k): v for k, v in feed_dict.iteritems()}

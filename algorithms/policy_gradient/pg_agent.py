@@ -82,8 +82,7 @@ class PGAgent(object):
     # and update shared NN parameters
     def end_episode(self):
         if (self.episode_t > 1) and (not self.exploit):
-            partial_gradients = self.train_policy()
-            self.update_shared_parameters(partial_gradients)
+            self.ps.op_apply_gradients(gradients=self.train_policy())
         self.reset_episode()
 
     # reset training auxiliary counters and accumulators
@@ -96,40 +95,23 @@ class PGAgent(object):
 
     # reload policy weights from PS
     def load_shared_parameters(self):
-        weights, = self.ps.run([self.ps.model.weights])
-        self.sess.run(
-            [self.sess.model.assign_weights],
-            feed_dict={self.sess.model.shared_weights: weights}
-        )
+        self.sess.op_assign_weights(values=self.ps.op_get_weights())
 
     # run policy and get action
     def action_from_policy(self, state):
         if state is None:
             return None
-        action_probabilities, = self.sess.run(
-            [self.sess.model.policy],
-            feed_dict={self.sess.model.state: [state]}
-        )
+        action_probabilities = self.sess.op_get_action(state=[state])
         return choose_action(action_probabilities)
 
     # train policy with accumulated states, rewards and actions
     def train_policy(self):
-        partial_gradients, = self.sess.run(
-            [self.sess.model.partial_gradients],
-            feed_dict={
-                self.sess.model.state: self.experience.states,
-                self.sess.model.action: self.experience.actions,
-                self.sess.model.discounted_reward: discounted_reward(
-                    self.experience.rewards,
-                    config.GAMMA
-                )
-            }
+        return self.sess.op_compute_gradients(
+            state=self.experience.states,
+            action=self.experience.actions,
+            discounted_reward=discounted_reward(
+                self.experience.rewards,
+                config.GAMMA
+            )
         )
-        return partial_gradients
-
-    # update PS with learned policy
-    def update_shared_parameters(self, partial_gradients):
-        self.ps.run(
-            [self.ps.model.apply_gradients],
-            feed_dict={self.ps.model.gradients: partial_gradients}
-        )
+        

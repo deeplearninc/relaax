@@ -7,14 +7,30 @@ class Session(object):
         self.session = tf.Session()
         self.model = model
 
+    def __getattr__(self, name):
+        return SessionMethod(self.session, getattr(self.model, name))
+
+
+class SessionMethod(object):
+    def __init__(self, session, op):
+        self.session = session
+        self.op = op
+
+    def __call__(self, **kwargs):
+        feed_dict = {
+            v: kwargs[k] for k, v in self.op.feed_dict.iteritems()
+        }
+        result, = self.run(
+            [OpWrapper(self.op.subgraph)],
+            feed_dict=feed_dict
+        )
+        return result
+
     def run(self, ops, feed_dict={}):
         return self.build_result(ops, self.session.run(
             list(self.flatten_ops(ops)),
             feed_dict=self.flatten_feed_dict(feed_dict)
         ))
-
-    def __getattr__(self, name):
-        return SessionMethod(getattr(self.model, name))
 
     def flatten_ops(self, ops):
         for v in self.traverse_values((op.node for op in ops)):
@@ -69,12 +85,6 @@ class Session(object):
         return next(i)
 
 
-class SessionMethod(object):
-    def __init__(self, session, subgraph):
-        self.session = session
-        self.subgraph = subgraph
-        self.node = subgraph.node
-
-    def __call__(self, **kwargs):
-        result, = self.session.run([self.subgraph], feed_dict=kwargs)
-        return result
+class OpWrapper(object):
+    def __init__(self, op):
+        self.node = op
