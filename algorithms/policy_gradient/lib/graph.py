@@ -91,7 +91,7 @@ class Variables(subgraph.Subgraph):
                 for p in placeholders.node
             ]
 
-            with tf.variable_scope('%s_assign' % type(self).__name__):
+            with tf.variable_scope('assign'):
                 self.assign_op = [
                     tf.assign(variable, value)
                     for variable, value in zip(variables, placeholders.node)
@@ -161,7 +161,7 @@ class ApplyGradients(subgraph.Subgraph):
         return subgraph.Subgraph.Op(self.apply_gradients_op, gradients=gradients)
 
 
-class Adam(subgraph.Subgraph):
+class AdamOptimizer(subgraph.Subgraph):
     def build_graph(self, learning_rate=0.001):
         return tf.train.AdamOptimizer(learning_rate=learning_rate)
 

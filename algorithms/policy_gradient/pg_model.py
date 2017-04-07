@@ -17,7 +17,7 @@ class SharedParameters(subgraph.Subgraph):
         ))
         sg_weights = graph.Variables(ph_gradients, initializer=graph.XavierInitializer())
         sg_apply_gradients = graph.ApplyGradients(
-            graph.Adam(learning_rate=pg_config.config.learning_rate),
+            graph.AdamOptimizer(learning_rate=pg_config.config.learning_rate),
             sg_weights,
             ph_gradients
         )
