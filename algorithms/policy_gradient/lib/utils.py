@@ -1,6 +1,7 @@
 import logging
 import numpy as np
 import tensorflow as tf
+import random
 
 from relaax.common.python.config.loaded_config import options
 
@@ -17,14 +18,16 @@ def discounted_reward(rewards, gamma):
         discounted_reward[t] = running_add
     # size the rewards to be unit normal
     # it helps control the gradient estimator variance
-    discounted_reward -= np.mean(discounted_reward)
-    discounted_reward /= np.std(discounted_reward) + 1e-20
+    #discounted_reward -= np.mean(discounted_reward)
+    #discounted_reward /= np.std(discounted_reward) + 1e-20
 
     return discounted_reward
 
 
 def choose_action(probabilities):
-    return np.argmax(probabilities)   # if we behave greedily
+    #return np.argmax(probabilities)   # if we behave greedily
+    action = 0 if random.uniform(0, 1) < probabilities[0][0] else 1
+    return action
     return np.random.choice(probabilities.shape[1], p=probabilities[0])
     # replace .shape[1] and [0] by squeezing the dimensions
 
