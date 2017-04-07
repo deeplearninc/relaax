@@ -2,7 +2,6 @@ import tensorflow as tf
 import numpy as np
 
 from relaax.common.algorithms.subgraph import Subgraph
-from relaax.common.algorithms.op import Op
 from ..pg_config import config
 
 
@@ -110,10 +109,10 @@ class Variables(Subgraph):
         return variables
 
     def get(self):
-        return Op(self.node)
+        return Subgraph.Op(self.node)
 
     def assign(self, values):
-        return Op(self.assign_op, values=values)
+        return Subgraph.Op(self.assign_op, values=values)
 
 
 class FullyConnected(Subgraph):
@@ -142,10 +141,10 @@ class Policy(Subgraph):
         return network.node
 
     def get_action(self, state):
-        return Op(self.node, state=state)
+        return Subgraph.Op(self.node, state=state)
 
     def compute_gradients(self, state, action, discounted_reward):
-        return Op(
+        return Subgraph.Op(
             self.gradients,
             state=state,
             action=action,
@@ -160,7 +159,7 @@ class ApplyGradients(Subgraph):
         )
 
     def apply_gradients(self, gradients):
-        return Op(self.apply_gradients_op, gradients=gradients)
+        return Subgraph.Op(self.apply_gradients_op, gradients=gradients)
 
 
 class Adam(Subgraph):
@@ -173,4 +172,4 @@ class Initialize(Subgraph):
         return tf.global_variables_initializer()
 
     def initialize(self):
-        return Op(self.node)
+        return Subgraph.Op(self.node)
