@@ -13,7 +13,8 @@ for index in range(len(rew_list)):
         decrease = decrease * 0.97
     advantages.append(future_reward)
 
-print(advantages)
+cloumn_adv = np.expand_dims(advantages, axis=1)
+print(cloumn_adv)
 
 
 def discounted_reward(rewards, gamma):
