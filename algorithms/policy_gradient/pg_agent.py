@@ -82,7 +82,7 @@ class PGAgent(object):
     # and update shared NN parameters
     def end_episode(self):
         if (self.episode_t > 1) and (not self.exploit):
-            self.ps.op_apply_gradients(gradients=self.train_policy())
+            self.apply_gradients(self.compute_gradients())
         self.reset_episode()
 
     # reset training auxiliary counters and accumulators
@@ -104,8 +104,8 @@ class PGAgent(object):
         action_probabilities = self.sess.op_get_action(state=[state])
         return choose_action(action_probabilities)
 
-    # train policy with accumulated states, rewards and actions
-    def train_policy(self):
+    # computes gradients
+    def compute_gradients(self):
         return self.sess.op_compute_gradients(
             state=self.experience.states,
             action=self.experience.actions,
@@ -114,4 +114,7 @@ class PGAgent(object):
                 config.GAMMA
             )
         )
+
+    def apply_gradients(self, gradients):
+        self.ps.op_apply_gradients(gradients=gradients)
         

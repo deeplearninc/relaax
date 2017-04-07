@@ -3,7 +3,7 @@ from pg_config import config
 from relaax.common.algorithms.subgraph import Subgraph
 
 from lib.graph import Variables, Policy, PolicyLoss, FullyConnected, Placeholder, Placeholders
-from lib.graph import ApplyGradients, Adam, Xavier, Initialize
+from lib.graph import ApplyGradients, Adam, XavierInitializer, Initialize
 from lib.utils import assemble_and_show_graphs
 
 
@@ -16,7 +16,7 @@ class SharedParameters(Subgraph):
             [config.state_size] + config.hidden_sizes,
             config.hidden_sizes + [config.action_size]
         ))
-        sg_weights = Variables(ph_gradients, initializer=Xavier())
+        sg_weights = Variables(ph_gradients, initializer=XavierInitializer())
         sg_apply_gradients = ApplyGradients(
             Adam(learning_rate=config.learning_rate),
             sg_weights,
@@ -38,7 +38,7 @@ class PolicyModel(Subgraph):
             [config.state_size] + config.hidden_sizes,
             config.hidden_sizes + [config.action_size]
         ))
-        sg_weights = Variables(tensors=ph_weights)
+        sg_weights = Variables(placeholders=ph_weights)
 
         ph_state = Placeholder((None, config.state_size))
         ph_action = Placeholder((None, config.action_size))

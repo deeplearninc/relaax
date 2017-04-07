@@ -6,23 +6,16 @@ from relaax.common.algorithms.op import Op
 from ..pg_config import config
 
 
-class Zero(object):
-    DTYPES = {
-        tf.float64: np.float64,
-        tf.float32: np.float32,
-        np.float32: np.float32
-    }
-
+class ZeroInitializer(object):
     def __call__(self, shape=None, dtype=np.float):
-        return np.zeros(shape=shape, dtype=self.DTYPES[dtype])
+        return np.zeros(shape=shape, dtype=dtype)
 
 
-class Xavier(object):
+class XavierInitializer(object):
     DTYPES = {
         np.float: tf.float64,
         np.float64: tf.float64,
         np.float32: tf.float32,
-        tf.float32: tf.float32
     }
 
     def __call__(self, shape, dtype=np.float):
@@ -33,48 +26,79 @@ class Xavier(object):
 
 
 class Placeholder(Subgraph):
+    """Placeholder of given shape."""
+
     def build_graph(self, shape, dtype=np.float32):
+        """Assemble one placeholder.
+
+        Args:
+            shape: placehoder shape
+            dtype: placeholder data type
+
+        Returns:
+            placeholder of given shape and data type
+        """
+
         return tf.placeholder(shape=shape, dtype=dtype)
 
 
 class Placeholders(Subgraph):
+    """List of placeholders of given shapes."""
+
     def build_graph(self, shapes):
-        return [
-            tf.placeholder(np.float32, shape)
-            for shape in shapes
-        ]
+        """Assemble list of placeholders.
+
+        Args:
+            shapes: defines shape for placeholders, dtype will be np.float32
+
+        Returns:
+            list of placeholders
+        """
+
+        return [tf.placeholder(np.float32, shape) for shape in shapes]
 
 
 class Variables(Subgraph):
     """Holder for variables representing weights of the fully connected NN."""
 
-    def build_graph(self, tensors=None, shapes=None, initializer=Zero()):
-        """Assemble  of the NN into tf graph.
+    DTYPES = {
+        tf.float64: np.float64,
+        tf.float32: np.float32,
+    }
+
+    def build_graph(self, placeholders=None, shapes=None, initializer=ZeroInitializer()):
+        """Assemble list of variables.
 
         Args:
-            shapes: sizes of the weights variables
+            placeholders: defines shape and type for variables
+            shapes: defines shape for variables, dtype will be np.float32
             initializer: initializer for variables
 
         Returns:
-            list to the 'weights' tensors in the graph
-
+            list to the 'weights' variables in the graph
         """
         
-        if tensors is not None:
+        if placeholders is None and shapes is None:
+            raise RuntimeError('Neither placholders nor shapes parameters are supplied.')
+
+        if placeholders is not None and shapes is not None:
+            raise RuntimeError('Both placholders and shapes parameters are supplied.')
+
+        if placeholders is not None:
             variables = [
                 tf.Variable(initial_value=initializer(
-                    shape=tensor.shape.as_list(),
-                    dtype=tensor.dtype
+                    shape=p.shape.as_list(),
+                    dtype=self.DTYPES[p.dtype]
                 ))
-                for tensor in tensors.node
+                for p in placeholders.node
             ]
 
-            self.assign_op = [
-                tf.assign(variable, value)
-                for variable, value in zip(variables, tensors.node)
-            ]
-
-        if shapes is not None:
+            with tf.variable_scope('%s_assign' % type(self).__name__):
+                self.assign_op = [
+                    tf.assign(variable, value)
+                    for variable, value in zip(variables, placeholders.node)
+                ]
+        else:
             variables = [
                 tf.Variable(initial_value=initializer(
                     shape=shape,
