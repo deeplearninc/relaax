@@ -1,8 +1,7 @@
 import tensorflow as tf
 import numpy as np
 
-from relaax.common.algorithms.subgraph import Subgraph
-from ..pg_config import config
+from relaax.common.algorithms import subgraph
 
 
 class ZeroInitializer(object):
@@ -24,7 +23,7 @@ class XavierInitializer(object):
         )
 
 
-class Placeholder(Subgraph):
+class Placeholder(subgraph.Subgraph):
     """Placeholder of given shape."""
 
     def build_graph(self, shape, dtype=np.float32):
@@ -41,7 +40,7 @@ class Placeholder(Subgraph):
         return tf.placeholder(shape=shape, dtype=dtype)
 
 
-class Placeholders(Subgraph):
+class Placeholders(subgraph.Subgraph):
     """List of placeholders of given shapes."""
 
     def build_graph(self, shapes):
@@ -57,7 +56,7 @@ class Placeholders(Subgraph):
         return [tf.placeholder(np.float32, shape) for shape in shapes]
 
 
-class Variables(Subgraph):
+class Variables(subgraph.Subgraph):
     """Holder for variables representing weights of the fully connected NN."""
 
     DTYPES = {
@@ -109,13 +108,13 @@ class Variables(Subgraph):
         return variables
 
     def get(self):
-        return Subgraph.Op(self.node)
+        return subgraph.Subgraph.Op(self.node)
 
     def assign(self, values):
-        return Subgraph.Op(self.assign_op, values=values)
+        return subgraph.Subgraph.Op(self.assign_op, values=values)
 
 
-class FullyConnected(Subgraph):
+class FullyConnected(subgraph.Subgraph):
     """Builds fully connected neural network."""
 
     def build_graph(self, state, weights):
@@ -126,7 +125,7 @@ class FullyConnected(Subgraph):
         return tf.nn.softmax(last)
 
 
-class PolicyLoss(Subgraph):
+class PolicyLoss(subgraph.Subgraph):
     def build_graph(self, action, network, discounted_reward):
         # making actions that gave good advantage (reward over time) more likely,
         # and actions that didn't less likely.
@@ -135,16 +134,16 @@ class PolicyLoss(Subgraph):
         return -tf.reduce_sum(log_like * discounted_reward.node)
 
 
-class Policy(Subgraph):
+class Policy(subgraph.Subgraph):
     def build_graph(self, network, loss):
         self.gradients = tf.gradients(loss.node, network.weights.node)
         return network.node
 
     def get_action(self, state):
-        return Subgraph.Op(self.node, state=state)
+        return subgraph.Subgraph.Op(self.node, state=state)
 
     def compute_gradients(self, state, action, discounted_reward):
-        return Subgraph.Op(
+        return subgraph.Subgraph.Op(
             self.gradients,
             state=state,
             action=action,
@@ -152,24 +151,24 @@ class Policy(Subgraph):
         )
 
 
-class ApplyGradients(Subgraph):
+class ApplyGradients(subgraph.Subgraph):
     def build_graph(self, optimizer, weights, gradients):
         self.apply_gradients_op = optimizer.node.apply_gradients(
             zip(gradients.node, weights.node)
         )
 
     def apply_gradients(self, gradients):
-        return Subgraph.Op(self.apply_gradients_op, gradients=gradients)
+        return subgraph.Subgraph.Op(self.apply_gradients_op, gradients=gradients)
 
 
-class Adam(Subgraph):
+class Adam(subgraph.Subgraph):
     def build_graph(self, learning_rate=0.001):
         return tf.train.AdamOptimizer(learning_rate=learning_rate)
 
 
-class Initialize(Subgraph):
+class Initialize(subgraph.Subgraph):
     def build_graph(self):
         return tf.global_variables_initializer()
 
     def initialize(self):
-        return Subgraph.Op(self.node)
+        return subgraph.Subgraph.Op(self.node)

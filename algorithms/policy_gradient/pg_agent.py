@@ -1,10 +1,10 @@
-from relaax.server.common.session import Session
+from relaax.server.common import session
 
-from lib.experience import Experience
-from lib.utils import discounted_reward, choose_action
+from lib import experience
+from lib import utils
 
-from pg_config import config
-from pg_model import PolicyModel
+import pg_config
+import pg_model
 
 
 # PGAgent implements training regime for Policy Gradient algorithm
@@ -23,14 +23,14 @@ class PGAgent(object):
         # count global steps between all agents
         self.global_t = 0
         # experience accumulated through episode
-        self.experience = Experience(config.action_size)
+        self.experience = experience.Experience(pg_config.config.action_size)
         # reset variables used
         # to run single episode
         self.reset_episode()
         # Build TF graph
-        self.model = PolicyModel()
+        self.model = pg_model.PolicyModel()
         # Initialize TF
-        self.sess = Session(self.model)
+        self.sess = session.Session(self.model)
 
         return True
 
@@ -48,7 +48,7 @@ class PGAgent(object):
         action = self.episode_step(reward, state)
 
         # end_episode will set episode_t to 0
-        if (self.episode_t == config.batch_size) or terminal:
+        if (self.episode_t == pg_config.config.batch_size) or terminal:
             self.end_episode()
 
         return action
@@ -102,16 +102,16 @@ class PGAgent(object):
         if state is None:
             return None
         action_probabilities = self.sess.op_get_action(state=[state])
-        return choose_action(action_probabilities)
+        return utils.choose_action(action_probabilities)
 
     # computes gradients
     def compute_gradients(self):
         return self.sess.op_compute_gradients(
             state=self.experience.states,
             action=self.experience.actions,
-            discounted_reward=discounted_reward(
+            discounted_reward=utils.discounted_reward(
                 self.experience.rewards,
-                config.GAMMA
+                pg_config.config.GAMMA
             )
         )
 

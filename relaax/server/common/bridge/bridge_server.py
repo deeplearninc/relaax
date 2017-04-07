@@ -2,8 +2,7 @@ import concurrent
 import grpc
 
 import bridge_pb2
-
-from bridge_message import BridgeMessage
+import bridge_message
 
 
 class BridgeServer(object):
@@ -21,6 +20,6 @@ class Servicer(bridge_pb2.BridgeServicer):
         self.session = session
 
     def Run(self, request_iterator, context):
-        op, feed_dict = BridgeMessage.deserialize(request_iterator)
+        op, feed_dict = bridge_message.BridgeMessage.deserialize(request_iterator)
         result = getattr(self.session, op)(**feed_dict)
-        return BridgeMessage.serialize(result)
+        return bridge_message.BridgeMessage.serialize(result)

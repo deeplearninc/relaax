@@ -1,8 +1,7 @@
 import grpc
 
 import bridge_pb2
-
-from bridge_message import BridgeMessage
+import bridge_message
 
 
 class BridgeConnection(object):
@@ -20,6 +19,6 @@ class BridgeConnectionMethod(object):
 
     def __call__(self, **kwargs):
         feed_dict = kwargs
-        messages = BridgeMessage.serialize([self.op, feed_dict])
+        messages = bridge_message.BridgeMessage.serialize([self.op, feed_dict])
         result = self.stub.Run(messages)
-        return BridgeMessage.deserialize(result)
+        return bridge_message.BridgeMessage.deserialize(result)
