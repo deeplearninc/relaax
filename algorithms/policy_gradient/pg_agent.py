@@ -115,6 +115,6 @@ class PGAgent(object):
             )
         )
 
+    # applies gradients
     def apply_gradients(self, gradients):
         self.ps.op_apply_gradients(gradients=gradients)
-        
