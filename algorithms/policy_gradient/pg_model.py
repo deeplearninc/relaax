@@ -59,6 +59,8 @@ class PolicyModel(subgraph.Subgraph):
         self.op_get_action = sg_policy.get_action(ph_state)
         self.op_compute_gradients = sg_policy.compute_gradients(ph_state, ph_action, ph_discounted_reward)
         self.op_initialize = sg_initialize.initialize()
+        self.op_log_like = sg_policy_loss.log_like(ph_state, ph_action)
+        self.op_production = sg_policy_loss.production(ph_state, ph_action, ph_discounted_reward)
 
 
 if __name__ == '__main__':
