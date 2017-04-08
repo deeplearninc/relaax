@@ -14,7 +14,7 @@ import pg_model
 class PGAgent(object):
 
     def __init__(self, parameter_server):
-        self.ps = parameter_server
+        pass
 
     # environment is ready and
     # waiting for agent to initialize
@@ -31,6 +31,7 @@ class PGAgent(object):
         self.model = pg_model.PolicyModel()
         # Initialize TF
         self.sess = session.Session(self.model)
+        self.sess.op_initialize()
 
         return True
 
@@ -95,7 +96,7 @@ class PGAgent(object):
 
     # reload policy weights from PS
     def load_shared_parameters(self):
-        weights = self.ps.op_get_weights()
+        weights = self.sess.op_get_weights()
         #print weights
         self.sess.op_assign_weights(values=weights)
 
@@ -135,4 +136,4 @@ class PGAgent(object):
 
     # applies gradients
     def apply_gradients(self, gradients):
-        self.ps.op_apply_gradients(gradients=gradients)
+        self.sess.op_apply_gradients(gradients=gradients)
