@@ -42,12 +42,12 @@ def run():
             state = game.state()
             reward, episode_reward = None, 0  # reward = 0 | None
             terminal = False
+            action = client.update(reward, state, terminal)
             while not terminal:
-                    # if it is terminal state, set terminal to True
-                    action = client.update(reward, state, terminal)
                     reward, terminal = game.act(action['data'])
                     episode_reward += reward
                     state = game.state()
+                    action = client.update(reward, state, terminal)
             episode_cnt += 1
             print('Game:', episode_cnt, '| Episode reward:', episode_reward)
         # reset agent
