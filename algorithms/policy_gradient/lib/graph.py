@@ -1,7 +1,18 @@
 import tensorflow as tf
+from tensorflow.python.ops import init_ops
 import numpy as np
 
 from relaax.common.algorithms import subgraph
+
+
+class DefaultInitializer(object):
+    MAP = {
+        np.float32: (tf.float32, init_ops.glorot_uniform_initializer)
+    }
+
+    def __call__(self, shape=None, dtype=np.float32):
+        tf_dtype, initializer = self.MAP[dtype]
+        return initializer(dtype=tf_dtype)(shape=shape, dtype=tf_dtype)
 
 
 class ZeroInitializer(object):
@@ -16,7 +27,7 @@ class XavierInitializer(object):
         np.float32: tf.float32,
     }
 
-    def __call__(self, shape, dtype=np.float):
+    def __call__(self, shape=None, dtype=np.float):
         return tf.contrib.layers.xavier_initializer()(
             shape=shape,
             dtype=self.DTYPES[dtype]
@@ -64,7 +75,7 @@ class Variables(subgraph.Subgraph):
         tf.float32: np.float32,
     }
 
-    def build_graph(self, placeholders=None, shapes=None, initializer=ZeroInitializer()):
+    def build_graph(self, placeholders=None, shapes=None, initializer=DefaultInitializer()):
         """Assemble list of variables.
 
         Args:
@@ -130,7 +141,7 @@ class PolicyLoss(subgraph.Subgraph):
         # making actions that gave good advantage (reward over time) more likely,
         # and actions that didn't less likely.
 
-        self.log_like_op = tf.log(tf.reduce_sum(action.node * network.node))
+        self.log_like_op = tf.log(tf.reduce_sum(action.node * network.node, axis=[1]))
         self.production_op = self.log_like_op * discounted_reward.node
         return -tf.reduce_sum(self.production_op)
 
