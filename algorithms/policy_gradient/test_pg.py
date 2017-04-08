@@ -75,8 +75,8 @@ def run_episode(env, policy_grad, sess):
 env = gym.make('CartPole-v0')
 #env.monitor.start('cartpole-hill/', force=True)
 policy_grad = policy_gradient()
-sess = tf.InteractiveSession()
-sess.run(tf.initialize_all_variables())
+sess = tf.Session()
+sess.run(tf.global_variables_initializer())
 for i in xrange(2000):
     reward = run_episode(env, policy_grad, sess)
     print i, reward
