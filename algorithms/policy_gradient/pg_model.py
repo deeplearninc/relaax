@@ -10,7 +10,7 @@ class SharedParameters(subgraph.Subgraph):
     def build_graph(self):
         # Build graph
         ph_gradients = graph.Placeholders([[4, 2]])
-        sg_weights = graph.Variables(ph_gradients, initializer=graph.XavierInitializer())
+        sg_weights = graph.Variables(ph_gradients)
         sg_apply_gradients = graph.ApplyGradients(
             graph.AdamOptimizer(learning_rate=0.01),
             sg_weights,
