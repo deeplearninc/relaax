@@ -2,8 +2,6 @@ import tensorflow as tf
 import numpy as np
 import random
 import gym
-import math
-# import matplotlib.pyplot as plt
 
 
 def policy_gradient():
@@ -73,7 +71,6 @@ def run_episode(env, policy_grad, sess):
 
 
 env = gym.make('CartPole-v0')
-#env.monitor.start('cartpole-hill/', force=True)
 policy_grad = policy_gradient()
 sess = tf.Session()
 sess.run(tf.global_variables_initializer())
