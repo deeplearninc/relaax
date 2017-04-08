@@ -167,7 +167,7 @@ class DilatedBasicLSTMCell(RNNCell):
             new_h = tf.gather(new_h, idx)
 
             updated_h = tf.scatter_update(self._updater, idx, new_h)
-            updated_h = tf.reshape(updated_h, [-1])
+            updated_h = tf.reshape(updated_h, [1, -1])
 
             return updated_h, tf.concat([new_c, updated_h], axis=1)
 
