@@ -25,11 +25,12 @@ def discounted_reward(rewards, gamma):
 
 
 def choose_action(probabilities):
-    #return np.argmax(probabilities)   # if we behave greedily
-    action = 0 if random.uniform(0, 1) < probabilities[0][0] else 1
-    return action
+    # one more better variant
     return np.random.choice(probabilities.shape[1], p=probabilities[0])
-    # replace .shape[1] and [0] by squeezing the dimensions
+    # return np.argmax(probabilities)   # need to set greedily param
+    values = np.cumsum(probabilities)
+    r = np.random.rand() * values[-1]
+    return np.searchsorted(values, r)
 
 
 def assemble_and_show_graphs(*graphs):
