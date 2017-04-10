@@ -141,20 +141,8 @@ class PolicyLoss(subgraph.Subgraph):
         # making actions that gave good advantage (reward over time) more likely,
         # and actions that didn't less likely.
 
-        self.log_like_op = tf.log(tf.reduce_sum(action.node * network.node, axis=[1]))
-        self.production_op = self.log_like_op * discounted_reward.node
-        return -tf.reduce_sum(self.production_op)
-
-    def log_like(self, state, action):
-        return subgraph.Subgraph.Op(self.log_like_op, state=state, action=action)
-
-    def production(self, state, action, discounted_reward):
-        return subgraph.Subgraph.Op(
-            self.production_op,
-            state=state,
-            action=action,
-            discounted_reward=discounted_reward
-        )
+        log_like_op = tf.log(tf.reduce_sum(action.node * network.node, axis=[1]))
+        return -tf.reduce_sum(log_like_op * discounted_reward.node)
 
 
 class Policy(subgraph.Subgraph):

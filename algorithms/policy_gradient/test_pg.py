@@ -64,8 +64,6 @@ def run_episode(env, policy_grad, sess):
 
     advantages_vector = np.expand_dims(advantages, axis=1)
     sess.run(pl_optimizer, feed_dict={pl_state: states, pl_advantages: advantages_vector, pl_actions: actions})
-    ll = sess.run(log_like, feed_dict={pl_state: states, pl_actions: actions})
-    #print 'LL', ll
 
     return totalreward
 

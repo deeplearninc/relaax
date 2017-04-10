@@ -95,9 +95,7 @@ class PGAgent(object):
 
     # reload policy weights from PS
     def load_shared_parameters(self):
-        weights = self.ps.op_get_weights()
-        #print weights
-        self.sess.op_assign_weights(values=weights)
+        self.sess.op_assign_weights(values=self.ps.op_get_weights())
 
     # run policy and get action
     def action_from_policy(self, state):
@@ -112,25 +110,11 @@ class PGAgent(object):
             self.experience.rewards,
             pg_config.config.GAMMA
         )
-        gradients = self.sess.op_compute_gradients(
+        return self.sess.op_compute_gradients(
             state=self.experience.states,
             action=self.experience.actions,
             discounted_reward=discounted_reward
         )
-
-        #print 'DR', discounted_reward
-        print 'GA', self.sess.op_get_action(state=self.experience.states)
-        #print 'LL', self.sess.op_log_like(
-        #    state=self.experience.states,
-        #    action=self.experience.actions
-        #)
-        #print 'P', self.sess.op_production(
-        #    state=self.experience.states,
-        #    action=self.experience.actions,
-        #    discounted_reward=discounted_reward
-        #)
-
-        return gradients
 
     # applies gradients
     def apply_gradients(self, gradients):
