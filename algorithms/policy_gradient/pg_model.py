@@ -8,7 +8,19 @@ from lib import utils
 # all agents and stored on the parameter server
 class SharedParameters(subgraph.Subgraph):
     def build_graph(self):
+        # Build graph
+        ph_gradients = graph.Placeholders([[4, 2]])
+        sg_weights = graph.Variables(ph_gradients)
+        sg_apply_gradients = graph.ApplyGradients(
+            graph.AdamOptimizer(learning_rate=0.01),
+            sg_weights,
+            ph_gradients
+        )
         sg_initialize = graph.Initialize()
+
+        # Expose public API
+        self.op_get_weights = sg_weights.get()
+        self.op_apply_gradients = sg_apply_gradients.apply_gradients(ph_gradients)
         self.op_initialize = sg_initialize.initialize()
 
 
@@ -16,8 +28,6 @@ class SharedParameters(subgraph.Subgraph):
 class PolicyModel(subgraph.Subgraph):
     def build_graph(self):
         # Build graph
-        self.build_ps_graph()
-
         ph_weights = graph.Placeholders([[4, 2]])
         sg_weights = graph.Variables(placeholders=ph_weights)
 
@@ -43,21 +53,6 @@ class PolicyModel(subgraph.Subgraph):
         self.op_initialize = sg_initialize.initialize()
         self.op_log_like = sg_policy_loss.log_like(ph_state, ph_action)
         self.op_production = sg_policy_loss.production(ph_state, ph_action, ph_discounted_reward)
-
-    def build_ps_graph(self):
-        # Build graph
-        ph_gradients = graph.Placeholders([[4, 2]])
-        sg_weights = graph.Variables(ph_gradients)
-        sg_apply_gradients = graph.ApplyGradients(
-            graph.AdamOptimizer(learning_rate=0.01),
-            sg_weights,
-            ph_gradients
-        )
-        sg_initialize = graph.Initialize()
-
-        # Expose public API
-        self.op_get_weights = sg_weights.get()
-        self.op_apply_gradients = sg_apply_gradients.apply_gradients(ph_gradients)
 
 
 if __name__ == '__main__':
