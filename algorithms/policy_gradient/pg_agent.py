@@ -112,7 +112,6 @@ class PGAgent(object):
             self.experience.rewards,
             pg_config.config.GAMMA
         )
-        #print 'E', self.experience.actions
         gradients = self.sess.op_compute_gradients(
             state=self.experience.states,
             action=self.experience.actions,
@@ -120,7 +119,7 @@ class PGAgent(object):
         )
 
         #print 'DR', discounted_reward
-        #print 'GA', self.sess.op_get_action(state=self.experience.states)
+        print 'GA', self.sess.op_get_action(state=self.experience.states)
         #print 'LL', self.sess.op_log_like(
         #    state=self.experience.states,
         #    action=self.experience.actions
