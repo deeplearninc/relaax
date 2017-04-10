@@ -1,3 +1,5 @@
+import pg_config
+
 from relaax.common.algorithms import subgraph
 
 from lib import graph
@@ -9,10 +11,13 @@ from lib import utils
 class SharedParameters(subgraph.Subgraph):
     def build_graph(self):
         # Build graph
-        ph_gradients = graph.Placeholders([[4, 2]])
+        ph_gradients = graph.Placeholders(zip(
+            [pg_config.config.state_size] + pg_config.config.hidden_sizes,
+            pg_config.config.hidden_sizes + [pg_config.config.action_size]
+        ))
         sg_weights = graph.Variables(ph_gradients, initializer=graph.XavierInitializer())
         sg_apply_gradients = graph.ApplyGradients(
-            graph.AdamOptimizer(learning_rate=0.01),
+            graph.AdamOptimizer(learning_rate=pg_config.config.learning_rate),
             sg_weights,
             ph_gradients
         )
@@ -28,11 +33,14 @@ class SharedParameters(subgraph.Subgraph):
 class PolicyModel(subgraph.Subgraph):
     def build_graph(self):
         # Build graph
-        ph_weights = graph.Placeholders([[4, 2]])
+        ph_weights = graph.Placeholders(zip(
+            [pg_config.config.state_size] + pg_config.config.hidden_sizes,
+            pg_config.config.hidden_sizes + [pg_config.config.action_size]
+        ))
         sg_weights = graph.Variables(placeholders=ph_weights)
 
-        ph_state = graph.Placeholder((None, 4))
-        ph_action = graph.Placeholder((None, 2))
+        ph_state = graph.Placeholder((None, pg_config.config.state_size))
+        ph_action = graph.Placeholder((None, pg_config.config.action_size))
         ph_discounted_reward = graph.Placeholder((None, 1))
 
         sg_network = graph.FullyConnected(ph_state, sg_weights)
