@@ -1,3 +1,5 @@
+import numpy as np
+
 import pg_config
 
 from relaax.common.algorithms import subgraph
@@ -40,12 +42,13 @@ class PolicyModel(subgraph.Subgraph):
         sg_weights = graph.Variables(placeholders=ph_weights)
 
         ph_state = graph.Placeholder((None, pg_config.config.state_size))
-        ph_action = graph.Placeholder((None, pg_config.config.action_size))
+        ph_action = graph.Placeholder((None, ), dtype=np.int32)
         ph_discounted_reward = graph.Placeholder((None, 1))
 
         sg_network = graph.FullyConnected(ph_state, sg_weights)
         sg_policy_loss = graph.PolicyLoss(
             action=ph_action,
+            action_size=pg_config.config.action_size,
             discounted_reward=ph_discounted_reward,
             network=sg_network
         )

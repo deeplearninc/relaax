@@ -1,27 +1,17 @@
-import numpy as np
-
-
 class Experience(object):
+    def __init__(self):
+        self.states = []
+        self.actions = []
+        self.rewards = []
 
-    def __init__(self, action_size):
-        self.action_size = action_size
-        self.reset()
+    def length(self):
+        assert len(self.states) == len(self.actions)
+        assert len(self.states) == len(self.rewards)
+        return len(self.states)
 
     # accumulate experience:
     # state, reward, and actions for policy training
-    def accumulate(self, state, reward, action):
+    def accumulate(self, state, action, reward):
         self.states.append(state)
-
-        # one-hot vector to store taken action
-        action_vec = np.zeros([self.action_size])
-        action_vec[action] = 1
-        self.actions.append(action_vec)
-
-        if reward is None:
-            reward = 0
+        self.actions.append(action)
         self.rewards.append(reward)
-
-    def reset(self):
-        self.states = []
-        self.rewards = []
-        self.actions = []
