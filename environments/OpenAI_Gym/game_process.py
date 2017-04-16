@@ -53,10 +53,9 @@ class _GameProcess(object):
         self.display = display
         self._close_display = False
 
-        self.timestep_limit = limit
-        if self.timestep_limit is None:
-            self.timestep_limit = self.gym.spec.tags.get('wrapper_config.TimeLimit.max_episode_steps')
-        self.cur_step_limit = None
+        if limit is not None:
+            self.gym._max_episode_steps = limit
+
         self._state = None
 
         self._process_state = SetFunction(self._process_all)
@@ -81,8 +80,6 @@ class _GameProcess(object):
         return self._state
 
     def act(self, action):
-        # if self.box:
-        #     action = np.clip(action, self.gym.action_space.low, self.gym.action_space.high)
         if self.display:
             if self._close_display:
                 self.gym.render(close=True)
@@ -94,46 +91,34 @@ class _GameProcess(object):
         state, reward, terminal, info = self.gym.step(action)
         self._state = self._process_state(state)
 
-        self.cur_step_limit += 1
-        if self.cur_step_limit > self.timestep_limit:
-            terminal = True
-
         return reward, terminal
 
     def _reset_atari(self):
         while True:
-            self.gym.reset()
-            self.cur_step_limit = 0
+            state = self.gym.reset()
+            terminal = False
 
             if not self.display and self._no_op_max:
                 no_op = np.random.randint(0, self._no_op_max)
-                # self.cur_step_limit += no_op
-
                 for _ in range(no_op):
-                    self.gym.step(0)
+                    state, _, terminal, _ = self.gym.step(0)
 
-            env_state = self.gym.step(0)
-            if not env_state[2]:  # not terminal
-                self._state = self._process_state(env_state[0])
-                # self.cur_step_limit += 1
+            if not terminal:
+                self._state = self._process_state(state)
                 break
 
     def _reset_all(self):
         while True:
-            self.gym.reset()
-            self.cur_step_limit = 0
+            state = self.gym.reset()
+            terminal = False
 
             if not self.display and self._no_op_max:
                 no_op = np.random.randint(0, self._no_op_max)
-                # self.cur_step_limit += no_op
-
                 for _ in range(no_op):
-                    self.gym.step(self.gym.action_space.sample())
+                    state, _, terminal, _ = self.gym.step(self.gym.action_space.sample())
 
-            env_state = self.gym.step(self.gym.action_space.sample())
-            if not env_state[2]:  # not terminal
-                self._state = self._process_state(env_state[0])
-                # self.cur_step_limit += 1
+            if not terminal:
+                self._state = self._process_state(state)
                 break
 
     @staticmethod
