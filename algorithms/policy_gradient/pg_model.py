@@ -1,11 +1,10 @@
 import numpy as np
 
-import pg_config
-
 from relaax.common.algorithms import subgraph
+from relaax.common.algorithms.lib import graph
+from relaax.common.algorithms.lib import utils
 
-from lib import graph
-from lib import utils
+import pg_config
 
 
 # Weights of the policy are shared across

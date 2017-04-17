@@ -7,43 +7,12 @@ import logging
 import os.path
 import sys
 
-sys.path.append(os.path.normpath(
-    os.path.join(
-        os.path.dirname(__file__),
-        '..',
-        '..'
-    )
-))
-
 import environment
 
 
-def main():
+if __name__ == "__main__":
     logging.basicConfig(
         format='%(asctime)s:%(levelname)s: %(message)s',
         level=logging.INFO
     )
-
-    parser = argparse.ArgumentParser()
-    #parser.add_argument('--rlx-server', type=str, default='localhost:7001', help='RLX server address (host:port)')
-    #parser.add_argument('--env', type=str, default='CartPole-v0', help='Name of the gym\'s environment')
-    #parser.add_argument('--seed', type=int, default=None, help='Seed for random generator')
-    #parser.add_argument('--limit', type=int, default=800, help='Steps limit for the episode')
-    #parser.add_argument('--rnd', type=int, default=0, help='Random steps to initialize environment')
-    #parser.add_argument('--frame-skip', type=int, default=None, help='Number of frames to skip between actions')
-    parser.add_argument('--config', type=str, default=None, help='add')
-    parser.add_argument('--log-level', type=str, default=None, help='add')
-    args = parser.parse_args()
-
-    environment.run(
-        #rlx_server_url=args.rlx_server,
-        #env=args.env,
-        #seed=args.seed,
-        #limit=args.limit,
-        #rnd=args.rnd,
-        #frame_skip=args.frame_skip
-    )
-
-
-if __name__ == "__main__":
-    main()
+    environment.run()
