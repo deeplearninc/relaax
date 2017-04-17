@@ -23,7 +23,7 @@ class PGEpisode(pg_base_episode.PGBaseEpisode):
             assert action is not None
 
         self.episode.step(reward=reward, state=state, action=action)
-        if (self.episode.size == pg_config.config.batch_size) or terminal:
+        if (self.episode.experience_size == pg_config.config.batch_size) or terminal:
             experience = self.episode.end()
             self.apply_gradients(self.compute_gradients(experience))
 
