@@ -1,0 +1,8 @@
+Distributed Asynchronous Advantage Actor-Critic >> DA3C
+Distributed Asynchronous Advantage Actor-Critic with General Advantage Estimation >> DA3C-GAE
+Trust Region Policy Optimization with General Advantage Estimation >> TRPO-GAE
+Proximal Policy Optimization with Limited-memory Broyden–Fletcher–Goldfarb–Shanno algorithm >> PPO-L-BFGS
+Policy Gradient >> Policy Gradient
+(Distributed) Deep Deterministic Policy Gradient >> (D)DDPG
+Distributed Deep Q-Network -> Gorila >> DDQN
+FeUdal Network >> FuN
