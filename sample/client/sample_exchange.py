@@ -26,7 +26,6 @@ def sample_exchange():
                         state = [0, 1]
                     action = agent.update(reward=reward, state=state, terminal=False)
                     action = action['data']
-                    print "action/episode/step:", action, count, step
                     reward = (action - state[0]) ** 2
                 agent.update(reward=reward, state=None, terminal=True)
             except RlxClientException as e:

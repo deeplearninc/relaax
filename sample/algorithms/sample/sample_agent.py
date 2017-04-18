@@ -19,7 +19,7 @@ class SampleAgent(object):
         return self._is_ok()
 
     def update(self, reward, state, terminal):
-        log.info("processing state: " + str(state))
+        # log.info("processing state: " + str(state))
 
         if self._is_sleep():
             time.sleep(0.02)
@@ -29,7 +29,6 @@ class SampleAgent(object):
         else:
             action = self.ps.op_act(state=np.array(state))
 
-        log.info("action:" + repr(action))
         log.info("global step:" + str(self.ps.op_step()))
 
         return action
