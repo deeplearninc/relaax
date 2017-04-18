@@ -9,7 +9,7 @@ class Episode(object):
         self.experience_size = 0
         # 0: number of experience lists of self.experience_size     length
         # 1: number of experience lists of self.experience_size + 1 length
-        # 0: number of experience lists of self.experience_size + 2 length
+        # 2: number of experience lists of self.experience_size + 2 length
         self.counts = [len(args), 0, 0]
 
     def begin(self):

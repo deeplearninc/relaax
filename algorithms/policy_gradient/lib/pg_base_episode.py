@@ -9,8 +9,15 @@ class PGBaseEpisode(object):
     def __init__(self, parameter_server):
         self.ps = parameter_server
         self.session = session.Session(pg_model.PolicyModel())
+        self.reset()
 
-    def update(self, reward, state, terminal):
+    def begin(self):
+        raise NotImplementedError
+
+    def step(self, reward, state, terminal):
+        raise NotImplementedError
+
+    def end(self):
         raise NotImplementedError
 
     def reset(self):

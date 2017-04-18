@@ -5,17 +5,15 @@ from .. import pg_config
 
 
 class PGEpisode(pg_base_episode.PGBaseEpisode):
-    def __init__(self, parameter_server):
-        super(PGEpisode, self).__init__(parameter_server)
-        self.reset()
+    @property
+    def experience_size(self):
+        return self.episode.experience_size
 
-    def update(self, reward, state, terminal):
-        assert (state is None) == terminal
+    def begin(self):
+        self.load_shared_parameters()
+        self.episode.begin()
 
-        if not self.episode.in_episode:
-            self.load_shared_parameters()
-            self.episode.begin()
-
+    def step(self, reward, state, terminal):
         if state is None:
             action = None
         else:
@@ -23,12 +21,12 @@ class PGEpisode(pg_base_episode.PGBaseEpisode):
             assert action is not None
 
         self.episode.step(reward=reward, state=state, action=action)
-        if (self.episode.experience_size == pg_config.config.batch_size) or terminal:
-            experience = self.episode.end()
-            self.apply_gradients(self.compute_gradients(experience))
 
         return action
 
+    def end(self):
+        experience = self.episode.end()
+        self.apply_gradients(self.compute_gradients(experience))
+
     def reset(self):
         self.episode = episode.Episode('reward', 'state', 'action')
-        return True
