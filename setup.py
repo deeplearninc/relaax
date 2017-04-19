@@ -39,7 +39,7 @@ setup(
         'honcho==0.7.1',
         'keras==1.2.1',
         'h5py',
-        'tensorflow'
+        'tensorflow==1.0.1'
     ],
     extras_require={
         'testing': [
