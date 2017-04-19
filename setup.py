@@ -33,7 +33,7 @@ setup(
         'grpcio',
         'boto3',
         'pillow',
-        'numpy',
+        'numpy>=1.11.0',
         'scipy',
         'psutil',
         'honcho==0.7.1',
