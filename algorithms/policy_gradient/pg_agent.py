@@ -8,17 +8,13 @@ from lib import pg_exploit_episode
 # stop updating shared parameters and at the end of every episode load
 # new policy parameters from PS
 class PGAgent(object):
-
     def __init__(self, parameter_server):
         self.ps = parameter_server
 
     # environment is ready and
     # waiting for agent to initialize
     def init(self, exploit=False):
-        if exploit:
-            self.episode = pg_exploit_episode.PGExploitEpisode(self.ps)
-        else:
-            self.episode = pg_episode.PGEpisode(self.ps)
+        self.episode = pg_episode.PGEpisode(self.ps, exploit)
         self.episode.begin()
         return True
 
