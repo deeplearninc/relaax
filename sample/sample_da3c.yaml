@@ -11,7 +11,9 @@
 # python client/sample_exchange.py
 
 environment:
-  client: cartpole/main
+  client: ../environments/ALE/main
+  rom: boxing.bin
+  rlx-server: localhost:7001
 
 relaax-parameter-server:
   --bind: localhost:7000
