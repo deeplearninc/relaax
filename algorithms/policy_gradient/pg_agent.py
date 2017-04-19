@@ -22,7 +22,7 @@ class PGAgent(object):
     def update(self, reward, state, terminal):
         action = self.episode.step(reward, state, terminal)
 
-        if (self.episode.experience_size == pg_config.config.batch_size) or terminal:
+        if (len(self.episode.experience) == pg_config.config.batch_size) or terminal:
             self.episode.end()
             self.episode.begin()
 

@@ -16,8 +16,8 @@ class PGEpisode(object):
         self.last_action = None
 
     @property
-    def experience_size(self):
-        return self.episode.experience_size
+    def experience(self):
+        return self.episode.experience
 
     def begin(self):
         self.load_shared_parameters()
