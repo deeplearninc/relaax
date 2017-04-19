@@ -26,8 +26,6 @@ setup(
     url='https://github.com/deeplearninc/relaax',
     license='MIT',
     install_requires=[
-        'autobahn==0.17.2',
-        'Twisted==17.1.0',
         'ruamel.yaml',
         'grpcio_tools',
         'grpcio',
@@ -37,11 +35,17 @@ setup(
         'scipy',
         'psutil',
         'honcho==0.7.1',
-        'keras==1.2.1',
         'h5py',
         'tensorflow'
     ],
     extras_require={
+        'keras': [
+            'keras==1.2.1'
+        ],
+        'wsproxy': [
+            'autobahn==0.17.2',
+            'Twisted==17.1.0'
+        ],
         'testing': [
             'pytest',
             'pytest-cov',
