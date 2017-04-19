@@ -28,7 +28,6 @@ class PGAgent(object):
 
         return action
 
-
     # environment is asking to reset agent
     def reset(self):
         self.episode.reset()
