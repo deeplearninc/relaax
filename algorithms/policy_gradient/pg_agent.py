@@ -1,6 +1,5 @@
 import pg_config
 from lib import pg_episode
-from lib import pg_exploit_episode
 
 
 # PGAgent implements training regime for Policy Gradient algorithm

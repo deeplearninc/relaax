@@ -34,7 +34,7 @@ class PGEpisode(object):
 
     def end(self):
         experience = self.episode.end()
-        if not exploit:
+        if not self.exploit:
             self.apply_gradients(self.compute_gradients(experience))
 
     def reset(self):
