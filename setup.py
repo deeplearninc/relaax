@@ -24,13 +24,13 @@ def build_bridge():
 
 class PostDevelopCommand(develop):
     def run(self):
-        build_bridge()
+        compile_bridge()
         develop.run(self)
 
 
 class PostInstallCommand(install):
     def run(self):
-        build_bridge()
+        compile_bridge()
         install.run(self)
 
 
@@ -44,19 +44,6 @@ VERSION = re.search(
     r'^__version__ = [\'"]([^\'"]*)[\'"]',
     read('relaax/__init__.py')
 ).group(1)
-
-# Specific dependencies.
-extras = {
-    'keras': ['keras==1.2.1'],
-    'wsproxy': ['autobahn==0.17.2', 'Twisted==17.1.0'],
-    'testing': ['pytest', 'pytest-cov', 'pytest-xdist', 'flake8', 'mock'],
-}
-
-# All extra dependencies.
-all_deps = []
-for group_name in extras:
-    all_deps += extras[group_name]
-extras['all'] = all_deps
 
 setup(
     name='relaax',
@@ -80,7 +67,21 @@ setup(
         'h5py',
         'tensorflow'
     ],
-    extras_require=extras,
+    extras_require={
+        'keras': [
+            'keras==1.2.1'
+        ],
+        'wsproxy': [
+            'autobahn==0.17.2',
+            'Twisted==17.1.0'
+        ],
+        'testing': [
+            'pytest',
+            'pytest-cov',
+            'pytest-xdist',
+            'flake8',
+            'mock']
+    },
     entry_points={
         'console_scripts': [
             'relaax=relaax.common.python.cmdl.cmdl_run:main',
@@ -91,6 +92,6 @@ setup(
     packages=find_packages(),
     cmdclass={
         'develop': PostDevelopCommand,
-        'install': PostInstallCommand,
+        'install': PostInstallCommand
     }
 )
