@@ -1,8 +1,37 @@
+import codecs
 import os
 import re
-import codecs
 from setuptools import setup
 from setuptools import find_packages
+from setuptools.command.develop import develop
+from setuptools.command.install import install
+
+
+def build_bridge():
+    # this lazy import is valid only on post-install step
+    import grpc.tools.protoc
+
+    bridge_dir = 'relaax/server/common/bridge'
+    exit_code = grpc.grpc_tools.protoc.main([
+        '-I%s' % bridge_dir,
+        '--python_out=.',
+        '--grpc_python_out=.',
+        os.path.join(bridge_dir, 'bridge.proto')
+    ])
+    if exit_code != 0:
+        raise Exception('cannot compile a GRPC bridge')
+
+
+class PostDevelopCommand(develop):
+    def run(self):
+        build_bridge()
+        develop.run(self)
+
+
+class PostInstallCommand(install):
+    def run(self):
+        build_bridge()
+        install.run(self)
 
 
 def read(*path):
@@ -60,4 +89,9 @@ setup(
             'relaax-rlx-server=relaax.server.rlx_server.rlx_server:main'
         ]
     },
-    packages=find_packages())
+    packages=find_packages(),
+    cmdclass={
+        'develop': PostDevelopCommand,
+        'install': PostInstallCommand,
+    }
+)
