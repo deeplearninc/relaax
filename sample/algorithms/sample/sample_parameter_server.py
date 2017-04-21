@@ -7,4 +7,4 @@ from relaax.server.parameter_server.parameter_server_base import (
 class SampleParameterServer(ParameterServerBase):
     def __init__(self):
         self.session = Session(PSModel())
-        self.session.run([self.session.model.initialize])
+        self.session.op_initialize()

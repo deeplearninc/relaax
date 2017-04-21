@@ -46,7 +46,7 @@ def run():
             while not terminal:
                     reward, terminal = game.act(action['data'])
                     episode_reward += reward
-                    state = game.state()
+                    state = None if terminal else game.state()
                     action = client.update(reward, state, terminal)
             episode_cnt += 1
             print('Game:', episode_cnt, '| Episode reward:', episode_reward)

@@ -1,19 +1,18 @@
-import pg_config
-from lib import pg_episode
+from lib import da3c_episode
 
 
-# PGAgent implements training regime for Policy Gradient algorithm
+# DA3CAgent implements training regime for DA3C algorithm
 # If exploit on init set to True, agent will run in exploitation regime:
 # stop updating shared parameters and at the end of every episode load
 # new policy parameters from PS
-class PGAgent(object):
+class DA3CAgent(object):
     def __init__(self, parameter_server):
         self.ps = parameter_server
 
     # environment is ready and
     # waiting for agent to initialize
     def init(self, exploit=False):
-        self.episode = pg_episode.PGEpisode(self.ps, exploit)
+        self.episode = da3c_episode.DA3CEpisode(self.ps, exploit)
         self.episode.begin()
         return True
 
@@ -22,7 +21,7 @@ class PGAgent(object):
     def update(self, reward, state, terminal):
         action = self.episode.step(reward, state, terminal)
 
-        if (len(self.episode.experience) == pg_config.config.batch_size) or terminal:
+        if (len(self.episode.experience) == da3c_config.config.batch_size) or terminal:
             self.episode.end()
             self.episode.begin()
 

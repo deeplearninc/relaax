@@ -13,7 +13,7 @@ def discounted_reward(rewards, gamma):
     rewards = np.vstack(rewards)
     discounted_reward = np.zeros_like(rewards, dtype=np.float32)
     running_add = 0
-    for t in reversed(xrange(0, rewards.size)):
+    for t in reversed(xrange(rewards.size)):
         running_add = running_add * gamma + rewards[t]
         discounted_reward[t] = running_add
     # size the rewards to be unit normal
@@ -25,12 +25,8 @@ def discounted_reward(rewards, gamma):
 
 
 def choose_action(probabilities):
-    # one more better variant
-    return np.random.choice(probabilities.shape[1], p=probabilities[0])
     # return np.argmax(probabilities)   # need to set greedily param
-    values = np.cumsum(probabilities)
-    r = np.random.rand() * values[-1]
-    return np.searchsorted(values, r)
+    return np.random.choice(len(probabilities), p=probabilities)
 
 
 def assemble_and_show_graphs(*graphs):

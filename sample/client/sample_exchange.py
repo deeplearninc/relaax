@@ -1,3 +1,5 @@
+import random
+
 from relaax.client.rlx_client_config import options
 from relaax.client.rlx_client import RlxClient, RlxClientException
 
@@ -14,18 +16,18 @@ def sample_exchange():
         print "on init: ", res
 
         # update agent with state and reward
-        count, max_episodes = 0, 100
-        while count < max_episodes:
+        for count in xrange(100):
             try:
-                # if it is terminal state, set terminal to True
-                # for example:
-                # agent.update(reward=1.1,state=[2.2,3.3],terminal=True)
-                # algorithm/state_size and algorithm/action_size to set
-                # shape of state and returned action
-                action = agent.update(reward=1.1, state=[2.2, 3.3])
-                print "action:", action
-                print "episode: ", count
-                count += 1
+                reward = None
+                for step in xrange(10):
+                    if random.random() >= 0.5:
+                        state = [1, 0]
+                    else:
+                        state = [0, 1]
+                    action = agent.update(reward=reward, state=state, terminal=False)
+                    action = action['data']
+                    reward = (action - state[0]) ** 2
+                agent.update(reward=reward, state=None, terminal=True)
             except RlxClientException as e:
                 print "agent connection lost: ", e
                 print ('reconnecting to another agent, '

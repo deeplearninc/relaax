@@ -4,7 +4,6 @@ import logging
 # Load configuration options
 # do it as early as possible
 from parameter_server_config import options
-from parameter_server_base import ParameterServerImpl
 from relaax.server.common.bridge.bridge_server import BridgeServer
 
 log = logging.getLogger(__name__)
@@ -21,11 +20,7 @@ class ParameterServer(object):
             log.critical("Can't load algorithm")
             raise
 
-        use_system_ps = options.get("algorithm/use_system_ps", True)
-        if not use_system_ps and hasattr(algorithm, "ParameterServer"):
-            return algorithm.ParameterServer()
-        elif use_system_ps and hasattr(algorithm, "TFGraph"):
-            return ParameterServerImpl(algorithm.TFGraph())
+        return algorithm.ParameterServer()
 
         log.critical("Can't load algorithm's ParameterServer or TFGraph")
         raise

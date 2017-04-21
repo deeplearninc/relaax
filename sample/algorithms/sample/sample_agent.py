@@ -19,20 +19,19 @@ class SampleAgent(object):
         return self._is_ok()
 
     def update(self, reward, state, terminal):
-        log.info("processing state: " + str(state))
+        # log.info("processing state: " + str(state))
 
         if self._is_sleep():
             time.sleep(0.02)
 
-        action = self.ps.run(
-            [self.ps.model.act],
-            feed_dict={self.ps.model.state: np.array(state)}
-        )
+        if terminal:
+            action = None
+        else:
+            action = self.ps.op_act(state=np.array(state))
 
-        log.info("global step:" +
-                 str(self.ps.run([self.ps.model.step])[0]))
+        log.info("global step:" + str(self.ps.op_step()))
 
-        return action[0]
+        return action
 
     def reset(self, ignore=None):
         log.info("reseting agent")
