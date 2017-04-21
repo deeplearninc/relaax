@@ -32,7 +32,7 @@ def choose_action(probabilities):
 def assemble_and_show_graphs(*graphs):
     for graph in graphs:
         graph()
-    log_dir = options.get("agent/log_dir", "log/")
+    log_dir = options.get("agent/log_dir", "log")
     log.info(('Writing TF summary to %s. '
               'Please use tensorboad to watch.') % log_dir)
     tf.summary.FileWriter(log_dir, graph=tf.get_default_graph())
