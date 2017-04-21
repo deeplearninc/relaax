@@ -47,7 +47,7 @@ class NdarrayMarshaller(BaseMarshaller):
         block_size = 1024 * 1024
 
         for block, last in self.slice_ndarray(array, block_size):
-            assert 0 < len(block) <= block_size
+            assert 0 <= len(block) <= block_size
             yield bridge_pb2.Item(
                 item_type=self.item_type,
                 dict_key=dict_key if last else None,
