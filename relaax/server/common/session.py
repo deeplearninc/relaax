@@ -65,9 +65,19 @@ class SessionMethod(object):
             assert len(key) == len(value)
             for k, v in self.traverse_pairs(itertools.izip(key, value)):
                 yield k, v
+        elif isinstance(key, dict):
+            assert isinstance(value, dict)
+            for k, v in self.traverse_pairs(self.dict_izip(key, value)):
+                yield k, v
         else:
             assert isinstance(key, tf.Tensor)
             yield key, value
+
+    def dict_izip(self, d1, d2):
+        assert len(d1) == len(d2)
+        for k, v1 in d1.iteritems():
+            v2 = d2[k]
+            yield v1, v2
 
     def build_result(self, ops, flat_list):
         i = iter(flat_list)

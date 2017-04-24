@@ -20,6 +20,11 @@ class ZeroInitializer(object):
         return np.zeros(shape=shape, dtype=dtype)
 
 
+class OneInitializer(object):
+    def __call__(self, shape=None, dtype=np.float):
+        return np.ones(shape=shape, dtype=dtype)
+
+
 class XavierInitializer(object):
     DTYPES = {
         np.float: tf.float64,
@@ -64,7 +69,12 @@ class Placeholders(subgraph.Subgraph):
             list of placeholders
         """
 
-        return [tf.placeholder(np.float32, shape) for shape in shapes]
+        def pairs(shapes):
+            for shape in shapes:
+                yield shape
+                yield shape[-1]
+
+        return [tf.placeholder(np.float32, shape) for shape in pairs(shapes)]
 
 
 class Variables(subgraph.Subgraph):
@@ -131,8 +141,8 @@ class FullyConnected(subgraph.Subgraph):
     def build_graph(self, state, weights):
         self.weights = weights
         last = state.node
-        for w in weights.node:
-            last = tf.nn.relu(tf.matmul(last, w))
+        for w, b in zip(weights.node[0::2], weights.node[1::2]):
+            last = tf.nn.relu(tf.matmul(last, w) + b)
         return tf.nn.softmax(last)
 
 
