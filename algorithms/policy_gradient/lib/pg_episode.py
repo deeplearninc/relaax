@@ -4,6 +4,7 @@ from relaax.common.algorithms.lib import utils
 
 from .. import pg_config
 from .. import pg_model
+import pg_utils
 
 
 class PGEpisode(object):
@@ -74,7 +75,7 @@ class PGEpisode(object):
         assert state is not None
 
         probabilities, = self.session.op_get_action(state=[state])
-        return utils.choose_action(probabilities)
+        return pg_utils.choose_action(probabilities, self.exploit)
 
     def compute_gradients(self, experience):
         discounted_reward = utils.discounted_reward(
