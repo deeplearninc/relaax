@@ -32,7 +32,7 @@ class CmdlRun(object):
         if options.cmdl_log_level:
             self.cmdl += "--log-level %s" % options.cmdl_log_level
 
-    def run_componenets(self):
+    def run_components(self):
 
         manager = RManager()
 
@@ -82,7 +82,7 @@ def main():
     # Disable TF warnings
     os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
     # run
-    CmdlRun().run_componenets()
+    CmdlRun().run_components()
 
 
 if __name__ == '__main__':
