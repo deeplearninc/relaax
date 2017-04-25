@@ -1,9 +1,9 @@
 import logging
 import numpy as np
 import tensorflow as tf
-import random
 
 from relaax.common.python.config.loaded_config import options
+
 
 log = logging.getLogger(__name__)
 
@@ -24,8 +24,9 @@ def discounted_reward(rewards, gamma):
     return discounted_reward
 
 
-def choose_action(probabilities):
-    # return np.argmax(probabilities)   # need to set greedily param
+def choose_action(probabilities, exploit=False):
+    if exploit:
+        return np.argmax(probabilities)   # need to set greedily param
     return np.random.choice(len(probabilities), p=probabilities)
 
 
