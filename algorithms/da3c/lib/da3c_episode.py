@@ -1,9 +1,12 @@
+import numpy as np
+
 from relaax.server.common import session
 from relaax.common.algorithms.lib import episode
 from relaax.common.algorithms.lib import utils
 
 from .. import da3c_config
 from .. import da3c_model
+import da3c_observation
 
 
 class DA3CEpisode(object):
@@ -12,8 +15,9 @@ class DA3CEpisode(object):
         self.ps = parameter_server
         self.session = session.Session(da3c_model.AgentModel())
         self.reset()
-        self.last_state = None
+        self.observation = da3c_observation.DA3CObservation()
         self.last_action = None
+        self.last_value = None
 
     @property
     def experience(self):
@@ -27,38 +31,82 @@ class DA3CEpisode(object):
         if reward is not None:
             self.push_experience(reward)
         assert (state is None) == terminal
-        return self.keep_state_and_action(state)
+        self.observation.add_state(state)
+        action, value = self.get_action_and_value()
+        self.keep_action_and_value(action, value)
+        return action
 
     def end(self):
         experience = self.episode.end()
         if not self.exploit:
-            self.apply_gradients(self.compute_gradients(experience))
+            self.apply_gradients(self.compute_gradients(experience), len(experience))
 
     def reset(self):
-        self.episode = episode.Episode('reward', 'state', 'action')
+        self.episode = episode.Episode('reward', 'state', 'action', 'value')
 
     # Helper methods
 
     def push_experience(self, reward):
-        assert self.last_state is not None
+        assert self.observation.queue is not None
         assert self.last_action is not None
+        assert self.last_value is not None
 
         self.episode.step(
             reward=reward,
-            state=self.last_state,
-            action=self.last_action
+            state=self.observation.queue,
+            action=self.last_action,
+            value=self.last_value
         )
-        self.last_state = None
         self.last_action = None
+        self.last_value = None
 
-    def keep_state_and_action(self, state):
-        assert self.last_state is None
+    def get_action_and_value(self):
+        if self.observation.queue is None:
+            return None, None
+        action, value = self.get_action_and_value_from_network()
+        assert action is not None
+        assert value is not None
+        return action, value
+
+    def keep_action_and_value(self, action, value):
         assert self.last_action is None
+        assert self.last_value is None
 
-        self.last_state = state
-        if state is None:
-            self.last_action = None
-        else:
-            self.last_action = self.action_from_policy(state)
-            assert self.last_action is not None
-        return self.last_action
+        self.last_action = action
+        self.last_value = value
+
+    def load_shared_parameters(self):
+        self.session.op_assign_weights(values=self.ps.op_get_weights())
+
+    def get_action_and_value_from_network(self):
+        result = self.session.op_get_action_and_value(state=[self.observation.queue])
+        probabilities, = result['action']
+        value, = result['value']
+        return utils.choose_action(probabilities), value
+
+    def compute_gradients(self, experience):
+        r = 0.0
+        if self.last_value is not None:
+            r = self.last_value
+
+        reward = experience['reward']
+        discounted_reward = np.zeros_like(reward, dtype=np.float32)
+
+        # compute and accumulate gradients
+        for t in reversed(xrange(len(reward))):
+            r = reward[t] + da3c_config.options.get('algorithm/rewards_gamma') * r
+            discounted_reward[t] = r
+
+
+        return self.session.op_compute_gradients(
+            state=experience['state'],
+            action=experience['action'],
+            value=experience['value'],
+            discounted_reward=discounted_reward
+        )
+
+    def apply_gradients(self, gradients, experience_size):
+        self.ps.op_apply_gradients(
+            gradients=gradients,
+            n_steps=experience_size
+        )

@@ -31,7 +31,7 @@ def run():
             try:
                 action = agent.update(reward=reward, state=game.state(), terminal=False)
                 print('ACTION', repr(action))
-                reward, reset = game.act(action)
+                reward, reset = game.act(action['data'])
                 if reward is not None:
                     episode_reward += reward
                 if reset:
@@ -41,7 +41,7 @@ def run():
                     print('Score at game', n_game, '=', episode_reward)
                     game.reset()
                     episode_reward = 0
-            except RlxClientException as e:
+            except rlx_client.RlxClientException as e:
                 print("agent error: ", e)
                 game.reset()
                 agent.connect(retry=10)

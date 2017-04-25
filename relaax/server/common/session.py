@@ -27,61 +27,59 @@ class SessionMethod(object):
         return result
 
     def run(self, ops, feed_dict={}):
-        return self.build_result(ops, self.session.run(
-            list(self.flatten_ops(ops)),
-            feed_dict=self.flatten_feed_dict(feed_dict)
-        ))
-
-    def flatten_ops(self, ops):
-        for v in self.traverse_values((op.node for op in ops)):
-            yield v
-
-    def traverse_values(self, values):
-        for value in values:
-            for v in self.traverse_value(value):
-                yield v
-
-    def traverse_value(self, value):
-        if isinstance(value, (tuple, list)):
-            for v in self.traverse_values(value):
-                yield v
-        else:
-            yield value
+        op_nodes = [op.node for op in ops]
+        return Utils.reconstruct(
+            self.session.run(
+                list(Utils.flatten(op_nodes)),
+                feed_dict=self.flatten_feed_dict(feed_dict)
+            ),
+            op_nodes
+        )
 
     def flatten_feed_dict(self, feed_dict):
-        return {k: v for k, v in self.traverse_pairs(
-            ((k.node, v) for k, v in feed_dict.iteritems())
-        )}
+        return {k: v for k, v in self.flatten_fd(feed_dict)}
 
-    def traverse_pairs(self, pairs):
-        for pair in pairs:
-            for k, v in self.traverse_pair(pair):
-                yield k, v
+    def flatten_fd(self, feed_dict):
+        for k, v in feed_dict.iteritems():
+            for kk, vv in Utils.izip2(k.node, v):
+                yield kk, vv
 
-    def traverse_pair(self, pair):
-        key, value = pair
-        if isinstance(key, (tuple, list)):
-            assert isinstance(value, (tuple, list))
-            assert len(key) == len(value)
-            for k, v in self.traverse_pairs(itertools.izip(key, value)):
-                yield k, v
-        elif isinstance(key, dict):
-            assert isinstance(value, dict)
-            for k, v in self.traverse_pairs(self.dict_izip(key, value)):
-                yield k, v
+
+class OpWrapper(object):
+    def __init__(self, op):
+        self.node = op
+
+
+class Utils(object):
+    @staticmethod
+    def map(v, mapping):
+
+        def map_(v):
+            if isinstance(v, (tuple, list)):
+                return [map_(v1) for v1 in v]
+            if isinstance(v, dict):
+                return {k: map_(v1) for k, v1 in v.iteritems()}
+            return mapping(v)
+
+        return map_(v)
+
+    @staticmethod
+    def flatten(v):
+        if isinstance(v, (tuple, list)):
+            for vv in v:
+                for vvv in Utils.flatten(vv):
+                    yield vvv
+        elif isinstance(v, dict):
+            for vv in v.itervalues():
+                for vvv in Utils.flatten(vv):
+                    yield vvv
         else:
-            assert isinstance(key, tf.Tensor)
-            yield key, value
+            yield v
 
-    def dict_izip(self, d1, d2):
-        assert len(d1) == len(d2)
-        for k, v1 in d1.iteritems():
-            v2 = d2[k]
-            yield v1, v2
-
-    def build_result(self, ops, flat_list):
-        i = iter(flat_list)
-        result = [self.build_list(op.node, i) for op in ops]
+    @staticmethod
+    def reconstruct(v, pattern):
+        i = iter(v)
+        result = Utils.map(pattern, lambda v: next(i))
         try:
             next(i)
             assert False
@@ -89,12 +87,20 @@ class SessionMethod(object):
             pass
         return result
 
-    def build_list(self, pattern, i):
-        if isinstance(pattern, (tuple, list)):
-            return [self.build_list(p, i) for p in pattern]
-        return next(i)
-
-
-class OpWrapper(object):
-    def __init__(self, op):
-        self.node = op
+    @staticmethod
+    def izip2(v1, v2):
+        if isinstance(v1, (tuple, list)):
+            assert isinstance(v2, (tuple, list))
+            assert len(v1) == len(v2)
+            for vv1, vv2 in itertools.izip(v1, v2):
+                for vvv1, vvv2 in Utils.izip2(vv1, vv2):
+                    yield vvv1, vvv2
+        elif isinstance(v1, dict):
+            assert isinstance(v2, dict)
+            assert len(v1) == len(v2)
+            for k1, vv1 in v1.iteritems():
+                vv2 = v2[k1]
+                for vvv1, vvv2 in Utils.izip2(vv1, vv2):
+                    yield vvv1, vvv2
+        else:
+            yield v1, v2

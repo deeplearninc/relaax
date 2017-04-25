@@ -1,3 +1,4 @@
+import da3c_config
 from lib import da3c_episode
 
 
@@ -21,7 +22,7 @@ class DA3CAgent(object):
     def update(self, reward, state, terminal):
         action = self.episode.step(reward, state, terminal)
 
-        if (len(self.episode.experience) == da3c_config.config.batch_size) or terminal:
+        if len(self.episode.experience) == da3c_config.config.batch_size or terminal:
             self.episode.end()
             self.episode.begin()
 
