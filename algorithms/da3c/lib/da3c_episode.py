@@ -25,6 +25,7 @@ class DA3CEpisode(object):
 
     def begin(self):
         self.load_shared_parameters()
+        self.get_action_and_value()
         self.episode.begin()
 
     def step(self, reward, state, terminal):
@@ -32,9 +33,11 @@ class DA3CEpisode(object):
             self.push_experience(reward)
         assert (state is None) == terminal
         self.observation.add_state(state)
-        action, value = self.get_action_and_value()
-        self.keep_action_and_value(action, value)
-        return action
+
+        assert self.last_action is None
+        assert self.last_value is None
+
+        self.get_action_and_value()
 
     def end(self):
         experience = self.episode.end()
@@ -62,11 +65,12 @@ class DA3CEpisode(object):
 
     def get_action_and_value(self):
         if self.observation.queue is None:
-            return None, None
-        action, value = self.get_action_and_value_from_network()
-        assert action is not None
-        assert value is not None
-        return action, value
+            self.last_action = None
+            self.last_value = None
+        else:
+            self.last_action, self.last_value = self.get_action_and_value_from_network()
+            assert self.last_action is not None
+            assert self.last_value is not None
 
     def keep_action_and_value(self, action, value):
         assert self.last_action is None

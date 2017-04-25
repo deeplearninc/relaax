@@ -20,13 +20,13 @@ class DA3CAgent(object):
     # environment generated new state and reward
     # and asking agent for an action for this state
     def update(self, reward, state, terminal):
-        action = self.episode.step(reward, state, terminal)
+        self.episode.step(reward, state, terminal)
 
         if len(self.episode.experience) == da3c_config.config.batch_size or terminal:
             self.episode.end()
             self.episode.begin()
 
-        return action
+        return self.episode.last_action
 
     # environment is asking to reset agent
     def reset(self):
