@@ -27,7 +27,9 @@ class PGEpisode(object):
         if reward is not None:
             self.push_experience(reward)
         assert (state is None) == terminal
-        return self.keep_state_and_action(state)
+        action = self.get_action(state)
+        self.keep_state_and_action(state, action)
+        return action
 
     def end(self):
         experience = self.episode.end()
@@ -51,17 +53,19 @@ class PGEpisode(object):
         self.last_state = None
         self.last_action = None
 
-    def keep_state_and_action(self, state):
+    def get_action(self, state):
+        if state is None:
+            return None
+        action = self.action_from_policy(state)
+        assert action is not None
+        return action
+
+    def keep_state_and_action(self, state, action):
         assert self.last_state is None
         assert self.last_action is None
 
         self.last_state = state
-        if state is None:
-            self.last_action = None
-        else:
-            self.last_action = self.action_from_policy(state)
-            assert self.last_action is not None
-        return self.last_action
+        self.last_action = action
 
     def load_shared_parameters(self):
         self.session.op_assign_weights(values=self.ps.op_get_weights())
