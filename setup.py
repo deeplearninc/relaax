@@ -33,12 +33,12 @@ setup(
         'grpcio',
         'boto3',
         'pillow',
-        'numpy',
+        'numpy>=1.11.0',
         'scipy',
         'psutil',
         'honcho==0.7.1',
         'h5py',
-        'tensorflow'
+        'tensorflow==1.0.1'
     ],
     extras_require={
         'keras': [

@@ -11,7 +11,6 @@ class Subgraph(object):
     def node(self):
         return self.__node
 
-
     class Op(object):
         def __init__(self, subgraph, **kwargs):
             self.subgraph = subgraph
