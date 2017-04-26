@@ -16,14 +16,19 @@ environment:
   rlx-server: localhost:7001
 
 relaax-parameter-server:
-  --bind: localhost:7000
-  --checkpoint-dir: training/checkpoints/sample_app
-  --log-level: INFO
-  --metrics-dir: training/metrics/sample_app
+  log-level: INFO
+  bind: localhost:7000
+  checkpoint-dir: training/checkpoints/sample_da3c_test_env
+  checkpoint-aws-s3: dl-checkpoints/sample_da3c_test_env
+  checkpoint-time-interval: 60
+  checkpoint-step-interval: 1000
+  checkpoints-to-keep: 5
+  aws-keys: aws_keys.yaml
+  metrics-dir: training/metrics/sample_app
 
 relaax-rlx-server:
-  --bind: localhost:7001
-  --log-level: DEBUG
+  bind: localhost:7001
+  log-level: DEBUG
 
 algorithm:
   path: ../algorithms/da3c

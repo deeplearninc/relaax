@@ -22,6 +22,9 @@ class Counter(subgraph.Subgraph):
             'increment': increment
         }
 
+    def value(self):
+        return subgraph.Subgraph.Op(self.node['value'])
+
 
 class Weights(subgraph.Subgraph):
     def build_graph(self):

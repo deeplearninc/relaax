@@ -14,11 +14,12 @@ class SharedParameters(subgraph.Subgraph):
         sg_weights = graph.Weights()
         ph_gradients = graph.Placeholders(sg_weights)
         ph_n_steps = graph.Placeholder(np.int64)
-        sg_global_step = graph.Counter(ph_n_steps, np.int64)
-        sg_apply_gradients = graph.ApplyGradients(sg_weights, ph_gradients, sg_global_step)
+        sg_n_step = graph.Counter(ph_n_steps, np.int64)
+        sg_apply_gradients = graph.ApplyGradients(sg_weights, ph_gradients, sg_n_step)
         sg_initialize = graph.Initialize()
 
         # Expose public API
+        self.op_n_step = sg_n_step.value()
         self.op_get_weights = sg_weights.get()
         self.op_apply_gradients = sg_apply_gradients.apply_gradients(ph_gradients, ph_n_steps)
         self.op_initialize = sg_initialize.initialize()

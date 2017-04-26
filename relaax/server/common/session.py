@@ -1,6 +1,8 @@
 import itertools
 import tensorflow as tf
 
+from relaax.server.common.saver import tensorflow_checkpoint
+
 
 class Session(object):
     def __init__(self, model):
@@ -9,6 +11,9 @@ class Session(object):
 
     def __getattr__(self, name):
         return SessionMethod(self.session, getattr(self.model, name))
+
+    def make_checkpoint(self):
+        return tensorflow_checkpoint.TensorflowCheckpoint(self.session)
 
 
 class SessionMethod(object):

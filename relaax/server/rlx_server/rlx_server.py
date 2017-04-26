@@ -1,4 +1,5 @@
 import logging
+import time
 import traceback
 
 # Load configuration options
@@ -52,6 +53,7 @@ class RLXServer():
 
 
 def main():
+    time.sleep(15)
     RLXServer.start()
 
 
