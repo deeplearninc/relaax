@@ -24,13 +24,13 @@ def build_bridge():
 
 class PostDevelopCommand(develop):
     def run(self):
-        compile_bridge()
+        build_bridge()
         develop.run(self)
 
 
 class PostInstallCommand(install):
     def run(self):
-        compile_bridge()
+        build_bridge()
         install.run(self)
 
 
@@ -84,7 +84,7 @@ setup(
     },
     entry_points={
         'console_scripts': [
-            'relaax=relaax.common.python.cmdl.cmdl_run:main',
+            'relaax=relaax.cmdl.cmdl:cmdl',
             'relaax-parameter-server=relaax.server.parameter_server.parameter_server:main',
             'relaax-rlx-server=relaax.server.rlx_server.rlx_server:main'
         ]

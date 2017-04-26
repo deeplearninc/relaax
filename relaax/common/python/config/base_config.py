@@ -1,11 +1,11 @@
 import sys
 import logging as log
-from argparse import ArgumentParser, HelpFormatter
+import argparse
 
 from config_yaml import ConfigYaml
 
 
-class RelaaxHelpFormatter(HelpFormatter):
+class RelaaxHelpFormatter(argparse.HelpFormatter):
 
     def _format_action_invocation(self, action):
         if not action.option_strings:
@@ -33,7 +33,9 @@ class BaseConfig(ConfigYaml):
         super(BaseConfig, self).__init__()
 
     def load_command_line(self):
-        parser = ArgumentParser(formatter_class=RelaaxHelpFormatter)
+        parser = argparse.ArgumentParser(formatter_class=RelaaxHelpFormatter)
+        # add type keyword to registries
+        parser.register('type', 'bool', BaseConfig.str2bool)
         self.load_from_cmdl(parser)
         self.merge_namespace(parser.parse_args())
 
@@ -46,7 +48,7 @@ class BaseConfig(ConfigYaml):
             help='Relaax configuration yaml file.')
         add('--log-dir', type=str, default=None,
             help='Folder to store log files.')
-        add('--short-log-messages', type=bool, default=True,
+        add('--short-log-messages', type='bool', default=True, metavar='True|False',
             help='Log messages will skip long log prefix.')
 
     def load_from_yaml(self):
@@ -84,3 +86,12 @@ class BaseConfig(ConfigYaml):
         self.load_from_yaml()
         self.setup_logger()
         return self
+
+    @staticmethod
+    def str2bool(v):
+        if v.lower() in ('yes', 'true', 't', 'y', '1'):
+            return True
+        if v.lower() in ('no', 'false', 'f', 'n', '0'):
+            return False
+        else:
+            raise argparse.ArgumentError('Boolean value expected.')

@@ -10,15 +10,15 @@ class RlxClientConfig(BaseConfig):
         add = parser.add_argument
         add('--config', type=str, default=None, required=False,
             help='RELAAX config yaml file')
-        add('--log-level', type=str, default=None,
-            choices=('DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'),
-            help='Logging level')
-        add('--short-log-messages', type=bool, default=True,
+        add('--exploit', type='bool', default=False, metavar='True|False',
+            help='Run client in exploit mode if set to True')
+        add('--show-ui', type='bool', default=False, metavar='True|False',
+            help='Client should show UI if set to True')
+        add('--short-log-messages', type='bool', default=True, metavar='True|False',
             help='Log messages will skip long log prefix')
 
     def process_after_loaded(self):
-        if self.log_level is None:
-            self.log_level = 'DEBUG'
+        self.log_level = getattr(self, 'log_level', 'DEBUG')
 
 
 options = RlxClientConfig().load()
