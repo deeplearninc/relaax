@@ -1,7 +1,7 @@
 ---
 
 environment:
-  client: environment/training.py
+  run: python environment/training.py
 
 relaax-parameter-server:
   --bind: localhost:7000
@@ -11,7 +11,7 @@ relaax-parameter-server:
 
 relaax-rlx-server:
   --bind: localhost:7001
-  --log-level: DEBUG
+  --log-level: INFO
 
 algorithm:
   path: ../../relaax/algorithms/policy_gradient

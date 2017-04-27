@@ -64,13 +64,11 @@ class CmdlRun(object):
         if self.intersection(['all', 'client']):
             config = ConfigYaml()
             config.load_from_file(self.config)
-            self.client = config.get('environment/client')
+            self.client = config.get('environment/run')
             if self.client:
                 self.run_all_clients(manager)
             else:
-                color_seq = "\033[1;31m"
-                reset_seq = "\033[0m"
-                self.ctx.log(color_seq + "No client specified" + reset_seq)
+                self.ctx.log(click.style("No client specified", fg='red'))
 
     def run_all_clients(self, manager):
         count = 0
@@ -83,7 +81,7 @@ class CmdlRun(object):
 
     def run_one_client(self, process_name, manager, exploit=False, show_ui=False):
         manager.add_process(
-            process_name, '%s python %s --config %s --exploit %s --show-ui %s' %
+            process_name, '%s %s --config %s --exploit %s --show-ui %s' %
             (self.nobuffer, self.client, self.config, exploit, show_ui))
 
 
