@@ -1,9 +1,13 @@
+from __future__ import print_function
+
+import os
+import gym
+import random
 import numpy as np
 from scipy.misc import imresize
+from gym.spaces import Box
 
-import gym    # you should install gym via pip
-from gym.spaces import Box  # check continuous
-import random
+from relaax.client.rlx_client_config import options
 
 
 class SetFunction(object):
@@ -29,14 +33,13 @@ class GymEnv(object):
         'Tennis', 'TimePilot', 'Tutankham', 'UpNDown', 'Venture',
         'VideoPinball', 'WizardOfWor', 'YarsRevenge', 'Zaxxon']
 
-    def __init__(self, env='CartPole-v0', display=False, no_op_max=0, limit=800):
+    def __init__(self, env='CartPole-v0', no_op_max=0, limit=800):
         self.gym = gym.make(env)
 
         self.gym.seed(random.randrange(1000000))
         self._no_op_max = no_op_max
 
-        self.display = display
-        self._close_display = False
+        self._show_ui = options.get('show_ui', False)
 
         self.timestep_limit = limit
         if self.timestep_limit is None:
@@ -53,26 +56,23 @@ class GymEnv(object):
             self._process_state = SetFunction(self._process_atari)
             self.reset = SetFunction(self._reset_atari)
 
-        self.ac_size, self.box = self._action_size()
+        self.action_size, self.box = self._get_action_size()
+        if self.action_size != options.action_size:
+            print('Algorithm expects different action size from gym. \n'
+                  'Please set correct action size in you configuration yaml.')
+            os.exit(-1)
+
         self.reset()
 
-    def _action_size(self):
+    def _get_action_size(self):
         space = self.gym.action_space
         if isinstance(space, Box):
             return space.shape[0], True
         return space.n, False
 
-    def state(self):
-        return self._state
-
     def act(self, action):
-        if self.display:
-            if self._close_display:
-                self.gym.render(close=True)
-                self.display = False
-                self._close_display = False
-            else:
-                self.gym.render()
+        if self._show_ui:
+            self.gym.render()
 
         state, reward, terminal, info = self.gym.step(action)
         self._state = self._process_state(state)
@@ -88,9 +88,8 @@ class GymEnv(object):
             self.gym.reset()
             self.cur_step_limit = 0
 
-            if not self.display and self._no_op_max:
+            if not self._show_ui and self._no_op_max:
                 no_op = np.random.randint(0, self._no_op_max)
-                # self.cur_step_limit += no_op
 
                 for _ in range(no_op):
                     self.gym.step(0)
@@ -98,7 +97,6 @@ class GymEnv(object):
             env_state = self.gym.step(0)
             if not env_state[2]:  # not terminal
                 self._state = self._process_state(env_state[0])
-                # self.cur_step_limit += 1
                 break
 
     def _reset_all(self):
@@ -106,9 +104,8 @@ class GymEnv(object):
             self.gym.reset()
             self.cur_step_limit = 0
 
-            if not self.display and self._no_op_max:
+            if not self._show_ui and self._no_op_max:
                 no_op = np.random.randint(0, self._no_op_max)
-                # self.cur_step_limit += no_op
 
                 for _ in range(no_op):
                     self.gym.step(self.gym.action_space.sample())

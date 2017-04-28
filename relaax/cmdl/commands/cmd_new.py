@@ -32,7 +32,13 @@ class NewApp(object):
             self.mk_environment()
             self.ctx.log('Created application \'%s\' based on \'%s\' environment',
                          self.app_name, self.base_env)
+
+            if self.base_env == 'openai-gym':
+                self.ctx.log('Please make sure you have OpenAI Gym installed; '
+                             'see installation instruction here: https://github.com/openai/gym')
+
             self.ctx.log('To run application, please do: cd %s && relaax run' % self.app_name)
+
         except Exception as e:
             self.ctx.log('%s', str(e))
 
@@ -45,5 +51,5 @@ class NewApp(object):
 @pass_context
 def cmdl(ctx, app_name, environment):
     """Build new RELAAX application."""
-    ctx.setup_logger()
+    ctx.setup_logger(format='')
     NewApp(ctx, app_name, environment).create()
