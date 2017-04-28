@@ -1,6 +1,9 @@
 
 syntax = "proto3";
 
+message NullMessage {
+}
+
 message Item {
     enum ItemType {
         LIST_OPEN = 0;
@@ -33,5 +36,6 @@ message Item {
 }
 
 service Bridge {
+    rpc Init(NullMessage) returns (NullMessage) {}
     rpc Run(stream Item) returns (stream Item) {}
 }

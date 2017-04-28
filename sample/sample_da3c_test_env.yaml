@@ -24,7 +24,7 @@ relaax-parameter-server:
   checkpoint-step-interval: 1000
   checkpoints-to-keep: 5
   aws-keys: aws_keys.yaml
-  metrics-dir: training/metrics/sample_app
+  metrics-dir: training/metrics/sample_da3c_test_env
 
 relaax-rlx-server:
   bind: localhost:7001

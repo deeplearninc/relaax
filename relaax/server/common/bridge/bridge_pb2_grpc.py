@@ -14,6 +14,11 @@ class BridgeStub(object):
     Args:
       channel: A grpc.Channel.
     """
+    self.Init = channel.unary_unary(
+        '/Bridge/Init',
+        request_serializer=bridge__pb2.NullMessage.SerializeToString,
+        response_deserializer=bridge__pb2.NullMessage.FromString,
+        )
     self.Run = channel.stream_stream(
         '/Bridge/Run',
         request_serializer=bridge__pb2.Item.SerializeToString,
@@ -23,6 +28,11 @@ class BridgeStub(object):
 
 class BridgeServicer(object):
 
+  def Init(self, request, context):
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
   def Run(self, request_iterator, context):
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
@@ -31,6 +41,11 @@ class BridgeServicer(object):
 
 def add_BridgeServicer_to_server(servicer, server):
   rpc_method_handlers = {
+      'Init': grpc.unary_unary_rpc_method_handler(
+          servicer.Init,
+          request_deserializer=bridge__pb2.NullMessage.FromString,
+          response_serializer=bridge__pb2.NullMessage.SerializeToString,
+      ),
       'Run': grpc.stream_stream_rpc_method_handler(
           servicer.Run,
           request_deserializer=bridge__pb2.Item.FromString,

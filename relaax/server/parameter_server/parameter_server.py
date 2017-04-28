@@ -1,16 +1,18 @@
 import logging
 import ruamel.yaml
 import time
+import threading
 
 # Load configuration options
 # do it as early as possible
 from parameter_server_config import options
-from relaax.server.common.bridge.bridge_server import BridgeServer
-from relaax.server.common.saver import watch
+from relaax.server.common.bridge import bridge_server
+from relaax.server.common.metrics import tensorflow_metrics
 from relaax.server.common.saver import fs_saver
-from relaax.server.common.saver import s3_saver
-from relaax.server.common.saver import multi_saver
 from relaax.server.common.saver import limited_saver
+from relaax.server.common.saver import multi_saver
+from relaax.server.common.saver import s3_saver
+from relaax.server.common.saver import watch
 
 log = logging.getLogger(__name__)
 
@@ -18,7 +20,7 @@ log = logging.getLogger(__name__)
 class ParameterServer(object):
 
     @staticmethod
-    def load_algorithm_ps():
+    def load_algorithm_ps(metrics):
         from relaax.server.common.algorithm_loader import AlgorithmLoader
         try:
             algorithm = AlgorithmLoader.load(options.algorithm_path)
@@ -26,28 +28,24 @@ class ParameterServer(object):
             log.critical("Can't load algorithm")
             raise
 
-        metrics = None
         return algorithm.ParameterServer(ParameterServer.saver_factory, metrics)
-
-        log.critical("Can't load algorithm's ParameterServer or TFGraph")
-        raise
 
     @staticmethod
     def start():
         try:
-            ps = ParameterServer.load_algorithm_ps()
+            log.info("Starting parameter server server on %s:%d" % options.bind)
 
-            ps.restore_latest_checkpoint()
-
-            log.info("Staring parameter server server on %s:%d" % options.bind)
+            ps_initializer = PSInitializer()
 
             # keep the server or else GC will stop it
-            server = BridgeServer(options.bind, ps.session)
+            server = bridge_server.BridgeServer(options.bind, ps_initializer)
             server.start()
 
+            ps = ps_initializer.init_ps()
             watch = ParameterServer.make_watch(ps)
 
             while True:
+                ps.metrics.scalar('n_step', ps.get_session().op_n_step())
                 time.sleep(1)
                 watch.check()
 
@@ -56,6 +54,13 @@ class ParameterServer(object):
             pass
         except:
             raise
+
+    @staticmethod
+    def init():
+        metrics = ParameterServer.make_metrics()
+        ps = ParameterServer.load_algorithm_ps(metrics)
+        ps.restore_latest_checkpoint()
+        return ps
 
     @staticmethod
     def saver_factory(checkpoint):
@@ -104,6 +109,22 @@ class ParameterServer(object):
                 lambda: time.time()
             )
         )
+
+    @staticmethod
+    def make_metrics():
+        return tensorflow_metrics.TensorflowMetrics(options.relaax_parameter_server.metrics_dir)
+
+
+class PSInitializer(object):
+    def __init__(self):
+        self.lock = threading.Lock()
+        self.ps = None
+
+    def init_ps(self):
+        with self.lock:
+            if self.ps is None:
+                self.ps = ParameterServer.init()
+        return self.ps
 
 
 def main():

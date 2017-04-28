@@ -7,6 +7,7 @@ import bridge_message
 class BridgeConnection(object):
     def __init__(self, server):
         self.__stub = bridge_pb2.BridgeStub(grpc.insecure_channel('%s:%d' % server))
+        self.__stub.Init(bridge_pb2.NullMessage())
 
     def __getattr__(self, name):
         return BridgeConnectionMethod(self.__stub, name)

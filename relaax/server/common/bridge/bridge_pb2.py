@@ -19,7 +19,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   name='bridge.proto',
   package='',
   syntax='proto3',
-  serialized_pb=_b('\n\x0c\x62ridge.proto\"\x9e\x03\n\x04Item\x12!\n\titem_type\x18\x01 \x01(\x0e\x32\x0e.Item.ItemType\x12\x10\n\x08\x64ict_key\x18\x02 \x01(\t\x12\x12\n\nbool_value\x18\x03 \x01(\x08\x12\x11\n\tint_value\x18\x04 \x01(\x12\x12\x13\n\x0b\x66loat_value\x18\x05 \x01(\x01\x12\x11\n\tstr_value\x18\x06 \x01(\t\x12+\n\x11numpy_array_value\x18\x08 \x01(\x0b\x32\x10.Item.NumpyArray\x1a\x46\n\nNumpyArray\x12\x0c\n\x04last\x18\x01 \x01(\x08\x12\r\n\x05\x64type\x18\x02 \x01(\t\x12\r\n\x05shape\x18\x03 \x03(\r\x12\x0c\n\x04\x64\x61ta\x18\x04 \x01(\x0c\"\x9c\x01\n\x08ItemType\x12\r\n\tLIST_OPEN\x10\x00\x12\x0e\n\nLIST_CLOSE\x10\x01\x12\r\n\tDICT_OPEN\x10\x02\x12\x0e\n\nDICT_CLOSE\x10\x03\x12\x08\n\x04NONE\x10\x04\x12\x08\n\x04\x42OOL\x10\x05\x12\x07\n\x03INT\x10\x06\x12\t\n\x05\x46LOAT\x10\x07\x12\x07\n\x03STR\x10\x08\x12\x10\n\x0cNUMPY_INT_32\x10\t\x12\x0f\n\x0bNUMPY_ARRAY\x10\n2#\n\x06\x42ridge\x12\x19\n\x03Run\x12\x05.Item\x1a\x05.Item\"\x00(\x01\x30\x01\x62\x06proto3')
+  serialized_pb=_b('\n\x0c\x62ridge.proto\"\r\n\x0bNullMessage\"\x9e\x03\n\x04Item\x12!\n\titem_type\x18\x01 \x01(\x0e\x32\x0e.Item.ItemType\x12\x10\n\x08\x64ict_key\x18\x02 \x01(\t\x12\x12\n\nbool_value\x18\x03 \x01(\x08\x12\x11\n\tint_value\x18\x04 \x01(\x12\x12\x13\n\x0b\x66loat_value\x18\x05 \x01(\x01\x12\x11\n\tstr_value\x18\x06 \x01(\t\x12+\n\x11numpy_array_value\x18\x08 \x01(\x0b\x32\x10.Item.NumpyArray\x1a\x46\n\nNumpyArray\x12\x0c\n\x04last\x18\x01 \x01(\x08\x12\r\n\x05\x64type\x18\x02 \x01(\t\x12\r\n\x05shape\x18\x03 \x03(\r\x12\x0c\n\x04\x64\x61ta\x18\x04 \x01(\x0c\"\x9c\x01\n\x08ItemType\x12\r\n\tLIST_OPEN\x10\x00\x12\x0e\n\nLIST_CLOSE\x10\x01\x12\r\n\tDICT_OPEN\x10\x02\x12\x0e\n\nDICT_CLOSE\x10\x03\x12\x08\n\x04NONE\x10\x04\x12\x08\n\x04\x42OOL\x10\x05\x12\x07\n\x03INT\x10\x06\x12\t\n\x05\x46LOAT\x10\x07\x12\x07\n\x03STR\x10\x08\x12\x10\n\x0cNUMPY_INT_32\x10\t\x12\x0f\n\x0bNUMPY_ARRAY\x10\n2I\n\x06\x42ridge\x12$\n\x04Init\x12\x0c.NullMessage\x1a\x0c.NullMessage\"\x00\x12\x19\n\x03Run\x12\x05.Item\x1a\x05.Item\"\x00(\x01\x30\x01\x62\x06proto3')
 )
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
@@ -78,10 +78,34 @@ _ITEM_ITEMTYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=275,
-  serialized_end=431,
+  serialized_start=290,
+  serialized_end=446,
 )
 _sym_db.RegisterEnumDescriptor(_ITEM_ITEMTYPE)
+
+
+_NULLMESSAGE = _descriptor.Descriptor(
+  name='NullMessage',
+  full_name='NullMessage',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=16,
+  serialized_end=29,
+)
 
 
 _ITEM_NUMPYARRAY = _descriptor.Descriptor(
@@ -131,8 +155,8 @@ _ITEM_NUMPYARRAY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=202,
-  serialized_end=272,
+  serialized_start=217,
+  serialized_end=287,
 )
 
 _ITEM = _descriptor.Descriptor(
@@ -204,15 +228,23 @@ _ITEM = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=17,
-  serialized_end=431,
+  serialized_start=32,
+  serialized_end=446,
 )
 
 _ITEM_NUMPYARRAY.containing_type = _ITEM
 _ITEM.fields_by_name['item_type'].enum_type = _ITEM_ITEMTYPE
 _ITEM.fields_by_name['numpy_array_value'].message_type = _ITEM_NUMPYARRAY
 _ITEM_ITEMTYPE.containing_type = _ITEM
+DESCRIPTOR.message_types_by_name['NullMessage'] = _NULLMESSAGE
 DESCRIPTOR.message_types_by_name['Item'] = _ITEM
+
+NullMessage = _reflection.GeneratedProtocolMessageType('NullMessage', (_message.Message,), dict(
+  DESCRIPTOR = _NULLMESSAGE,
+  __module__ = 'bridge_pb2'
+  # @@protoc_insertion_point(class_scope:NullMessage)
+  ))
+_sym_db.RegisterMessage(NullMessage)
 
 Item = _reflection.GeneratedProtocolMessageType('Item', (_message.Message,), dict(
 
@@ -248,6 +280,11 @@ try:
       Args:
         channel: A grpc.Channel.
       """
+      self.Init = channel.unary_unary(
+          '/Bridge/Init',
+          request_serializer=NullMessage.SerializeToString,
+          response_deserializer=NullMessage.FromString,
+          )
       self.Run = channel.stream_stream(
           '/Bridge/Run',
           request_serializer=Item.SerializeToString,
@@ -257,6 +294,11 @@ try:
 
   class BridgeServicer(object):
 
+    def Init(self, request, context):
+      context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+      context.set_details('Method not implemented!')
+      raise NotImplementedError('Method not implemented!')
+
     def Run(self, request_iterator, context):
       context.set_code(grpc.StatusCode.UNIMPLEMENTED)
       context.set_details('Method not implemented!')
@@ -265,6 +307,11 @@ try:
 
   def add_BridgeServicer_to_server(servicer, server):
     rpc_method_handlers = {
+        'Init': grpc.unary_unary_rpc_method_handler(
+            servicer.Init,
+            request_deserializer=NullMessage.FromString,
+            response_serializer=NullMessage.SerializeToString,
+        ),
         'Run': grpc.stream_stream_rpc_method_handler(
             servicer.Run,
             request_deserializer=Item.FromString,
@@ -282,6 +329,8 @@ try:
     It is recommended to use the GA API (classes and functions in this
     file not marked beta) for all further purposes. This class was generated
     only to ease transition from grpcio<0.15.0 to grpcio>=0.15.0."""
+    def Init(self, request, context):
+      context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
     def Run(self, request_iterator, context):
       context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
 
@@ -292,6 +341,9 @@ try:
     It is recommended to use the GA API (classes and functions in this
     file not marked beta) for all further purposes. This class was generated
     only to ease transition from grpcio<0.15.0 to grpcio>=0.15.0."""
+    def Init(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
+      raise NotImplementedError()
+    Init.future = None
     def Run(self, request_iterator, timeout, metadata=None, with_call=False, protocol_options=None):
       raise NotImplementedError()
 
@@ -303,12 +355,15 @@ try:
     file not marked beta) for all further purposes. This function was
     generated only to ease transition from grpcio<0.15.0 to grpcio>=0.15.0"""
     request_deserializers = {
+      ('Bridge', 'Init'): NullMessage.FromString,
       ('Bridge', 'Run'): Item.FromString,
     }
     response_serializers = {
+      ('Bridge', 'Init'): NullMessage.SerializeToString,
       ('Bridge', 'Run'): Item.SerializeToString,
     }
     method_implementations = {
+      ('Bridge', 'Init'): face_utilities.unary_unary_inline(servicer.Init),
       ('Bridge', 'Run'): face_utilities.stream_stream_inline(servicer.Run),
     }
     server_options = beta_implementations.server_options(request_deserializers=request_deserializers, response_serializers=response_serializers, thread_pool=pool, thread_pool_size=pool_size, default_timeout=default_timeout, maximum_timeout=maximum_timeout)
@@ -322,12 +377,15 @@ try:
     file not marked beta) for all further purposes. This function was
     generated only to ease transition from grpcio<0.15.0 to grpcio>=0.15.0"""
     request_serializers = {
+      ('Bridge', 'Init'): NullMessage.SerializeToString,
       ('Bridge', 'Run'): Item.SerializeToString,
     }
     response_deserializers = {
+      ('Bridge', 'Init'): NullMessage.FromString,
       ('Bridge', 'Run'): Item.FromString,
     }
     cardinalities = {
+      'Init': cardinality.Cardinality.UNARY_UNARY,
       'Run': cardinality.Cardinality.STREAM_STREAM,
     }
     stub_options = beta_implementations.stub_options(host=host, metadata_transformer=metadata_transformer, request_serializers=request_serializers, response_deserializers=response_deserializers, thread_pool=pool, thread_pool_size=pool_size)
