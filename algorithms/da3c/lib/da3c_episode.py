@@ -30,6 +30,7 @@ class DA3CEpisode(object):
 
     def step(self, reward, state, terminal):
         if reward is not None:
+            self.ps.metrics.scalar('reward', reward)
             self.push_experience(reward)
         assert (state is None) == terminal
         self.observation.add_state(state)
@@ -80,7 +81,7 @@ class DA3CEpisode(object):
         self.last_value = value
 
     def load_shared_parameters(self):
-        self.session.op_assign_weights(values=self.ps.op_get_weights())
+        self.session.op_assign_weights(values=self.ps.session.op_get_weights())
 
     def get_action_and_value_from_network(self):
         result = self.session.op_get_action_and_value(state=[self.observation.queue])
@@ -110,7 +111,7 @@ class DA3CEpisode(object):
         )
 
     def apply_gradients(self, gradients, experience_size):
-        self.ps.op_apply_gradients(
+        self.ps.session.op_apply_gradients(
             gradients=gradients,
             n_steps=experience_size
         )

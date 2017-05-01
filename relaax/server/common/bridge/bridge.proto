@@ -4,6 +4,16 @@ syntax = "proto3";
 message NullMessage {
 }
 
+message ScalarMetric {
+    string name = 1;
+    double y = 2;
+    message Arg {
+        double value = 1;
+    }
+    Arg x = 3;
+}
+
+
 message Item {
     enum ItemType {
         LIST_OPEN = 0;
@@ -38,4 +48,5 @@ message Item {
 service Bridge {
     rpc Init(NullMessage) returns (NullMessage) {}
     rpc Run(stream Item) returns (stream Item) {}
+    rpc StoreScalarMetric(ScalarMetric) returns (NullMessage) {}
 }

@@ -1,8 +1,8 @@
 class ParameterServerBase(object):
-    def __init__(self, saver_factory, metrics):
+    def __init__(self, saver_factory, metrics_factory):
         self.initialize_algorithm()
         self.saver = saver_factory(self.make_checkpoint())
-        self.metrics = metrics
+        self.metrics = metrics_factory(self.n_step)
 
     def close(self):
         raise NotImplementedError

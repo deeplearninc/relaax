@@ -33,9 +33,17 @@ class RLXAgentProxy(object):
         else:
             return self._error_message('can\'t reset agent')
 
+    def update_metrics(self, data):
+        self.agent.metrics.scalar(
+            data['name'],
+            data['y'],
+            x=data['x']
+        )
+        return {'response': 'done'}
+
     def data_received(self, data):
         try:
-            if data['command'] in ['init', 'update', 'reset']:
+            if data['command'] in ['init', 'update', 'reset', 'update_metrics']:
                 return getattr(self, data['command'])(data)
             else:
                 return self._error_message('unknown command')

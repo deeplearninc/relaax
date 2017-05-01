@@ -20,7 +20,7 @@ log = logging.getLogger(__name__)
 class ParameterServer(object):
 
     @staticmethod
-    def load_algorithm_ps(metrics):
+    def load_algorithm_ps():
         from relaax.server.common.algorithm_loader import AlgorithmLoader
         try:
             algorithm = AlgorithmLoader.load(options.algorithm_path)
@@ -28,7 +28,10 @@ class ParameterServer(object):
             log.critical("Can't load algorithm")
             raise
 
-        return algorithm.ParameterServer(ParameterServer.saver_factory, metrics)
+        return algorithm.ParameterServer(
+            ParameterServer.saver_factory,
+            ParameterServer.metrics_factory
+        )
 
     @staticmethod
     def start():
@@ -44,8 +47,9 @@ class ParameterServer(object):
             ps = ps_initializer.init_ps()
             watch = ParameterServer.make_watch(ps)
 
+            Speedometer(ps)
+
             while True:
-                ps.metrics.scalar('n_step', ps.get_session().op_n_step())
                 time.sleep(1)
                 watch.check()
 
@@ -57,8 +61,7 @@ class ParameterServer(object):
 
     @staticmethod
     def init():
-        metrics = ParameterServer.make_metrics()
-        ps = ParameterServer.load_algorithm_ps(metrics)
+        ps = ParameterServer.load_algorithm_ps()
         ps.restore_latest_checkpoint()
         return ps
 
@@ -90,6 +93,10 @@ class ParameterServer(object):
         return saver
 
     @staticmethod
+    def metrics_factory(x):
+        return tensorflow_metrics.TensorflowMetrics(options.relaax_parameter_server.metrics_dir, x)
+
+    @staticmethod
     def load_aws_keys():
         aws_keys = options.relaax_parameter_server.aws_keys
         if aws_keys is None:
@@ -110,10 +117,6 @@ class ParameterServer(object):
             )
         )
 
-    @staticmethod
-    def make_metrics():
-        return tensorflow_metrics.TensorflowMetrics(options.relaax_parameter_server.metrics_dir)
-
 
 class PSInitializer(object):
     def __init__(self):
@@ -125,6 +128,21 @@ class PSInitializer(object):
             if self.ps is None:
                 self.ps = ParameterServer.init()
         return self.ps
+
+
+class Speedometer(object):
+    def __init__(self, ps):
+        self.ps = ps
+        self.run_timer(time.time(), ps.session.op_n_step())
+
+    def measure(self, start_time, start_n_step):
+        current_time = time.time()
+        current_n_step = self.ps.session.op_n_step()
+        self.ps.metrics.scalar('steps_per_sec', (current_n_step - start_n_step) / (current_time - start_time))
+        self.run_timer(current_time, current_n_step)
+
+    def run_timer(self, start_time, start_n_steps):
+        threading.Timer(60, self.measure, args=(start_time, start_n_steps)).start()
 
 
 def main():

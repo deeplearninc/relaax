@@ -101,7 +101,7 @@ def run():
                     agent.update(reward=reward, state=None, terminal=True)
                     reward = None
                     n_game += 1
-                    print('Score at game', n_game, '=', episode_reward)
+                    agent.metrics.scalar('game_score', episode_reward)
                     env.reset()
                     episode_reward = 0
             except rlx_client.RlxClientException as e:

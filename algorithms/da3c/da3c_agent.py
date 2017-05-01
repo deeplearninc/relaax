@@ -9,6 +9,7 @@ from lib import da3c_episode
 class DA3CAgent(object):
     def __init__(self, parameter_server):
         self.ps = parameter_server
+        self.metrics = parameter_server.metrics
 
     # environment is ready and
     # waiting for agent to initialize

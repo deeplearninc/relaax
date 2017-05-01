@@ -31,6 +31,8 @@ class ParameterServerConfig(BaseConfig):
 
         self.algorithm_path = self.get('algorithm/path')
 
+        self.define_missing('checkpoint_aws_s3', None)
+
         # Simple check of the bind address format
 
         self.bind = map(lambda x: x.strip(), self.bind.split(':'))
@@ -41,6 +43,10 @@ class ParameterServerConfig(BaseConfig):
             exit()
         self.bind[1] = int(self.bind[1])
         self.bind = tuple(self.bind)
+
+    def define_missing(self, key, value):
+        if not hasattr(self.relaax_parameter_server, key):
+            setattr(self.relaax_parameter_server, key, value)
 
 
 options = ParameterServerConfig().load()

@@ -19,6 +19,7 @@ class RlxClient(object):
         self.skt = None
         self.transport = None
         self.address = rlx_server_url
+        self.metrics = RlxClientMetrics(self._update_metrics)
 
     def init(self):
         return self._exchange({'command': 'init'})
@@ -32,6 +33,14 @@ class RlxClient(object):
 
     def reset(self):
         return self._exchange({'command': 'reset'})
+
+    def _update_metrics(self, name, y, x=None):
+        return self._exchange({
+            'command': 'update_metrics',
+            'name': name,
+            'y': y,
+            'x': x
+        })
 
     def _exchange(self, data):
         if self.skt:
@@ -90,3 +99,11 @@ class RlxClient(object):
         if self.skt:
             self.skt.close()
             self.skt = None
+
+
+class RlxClientMetrics(object):
+    def __init__(self, send_metrics):
+        self._update_metrics = send_metrics
+
+    def scalar(self, name, y, x=None):
+        self._update_metrics(name, y, x)

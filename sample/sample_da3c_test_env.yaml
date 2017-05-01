@@ -19,7 +19,7 @@ relaax-parameter-server:
   log-level: INFO
   bind: localhost:7000
   checkpoint-dir: training/checkpoints/sample_da3c_test_env
-  checkpoint-aws-s3: dl-checkpoints/sample_da3c_test_env
+#  checkpoint-aws-s3: dl-checkpoints/sample_da3c_test_env
   checkpoint-time-interval: 60
   checkpoint-step-interval: 1000
   checkpoints-to-keep: 5
