@@ -17,6 +17,7 @@ training/metrics*
 training/checkpoint*
 **/aws-keys.yaml
 **/logs/*
+**/log/*
 Session.vim
 tags
 sample/log

@@ -38,7 +38,8 @@ setup(
         'psutil',
         'honcho==0.7.1',
         'h5py',
-        'tensorflow==1.0.1'
+        'tensorflow==1.0.1',
+        'click'
     ],
     extras_require={
         'keras': [
@@ -57,7 +58,7 @@ setup(
     },
     entry_points={
         'console_scripts': [
-            'relaax=relaax.common.python.cmdl.cmdl_run:main',
+            'relaax=relaax.cmdl.cmdl:cmdl',
             'relaax-parameter-server=relaax.server.parameter_server.parameter_server:main',
             'relaax-rlx-server=relaax.server.rlx_server.rlx_server:main'
         ]

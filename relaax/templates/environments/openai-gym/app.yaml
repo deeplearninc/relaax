@@ -1,0 +1,37 @@
+---
+
+environment:
+  run: python environment/training.py
+  max_episodes: 1000
+  infinite_run: False
+
+relaax-parameter-server:
+  --bind: localhost:7000
+  --checkpoint-dir: training/checkpoints/sample_app
+  --log-level: INFO
+  --metrics-dir: training/metrics/sample_app
+
+relaax-rlx-server:
+  --bind: localhost:7001
+  --log-level: INFO
+
+algorithm:
+  path: ../../relaax/algorithms/da3c
+
+  action_size: 2                  # action size for the given environment
+  state_size: 4
+  hidden_sizes: []
+  history_len: 1                  # number of observations to stack in state
+  episode_len: 5                  # local loop size for one episode
+  batch_size: 800
+  gpu: false                      # to use GPU, set to the True
+  lstm: false                     # to use LSTM instead of FF, set to the True
+  max_global_step: 1e8            # amount of maximum global steps to pass through the training
+
+  learning_rate: 1e-2
+  entropy_beta: 1e-2              # entropy regularization constant
+  GAMMA: 0.97             # rewards discount factor
+  RMSProp:
+    decay: 0.99
+    epsilon: 0.1
+    gradient_norm_clipping: 40

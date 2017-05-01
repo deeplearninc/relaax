@@ -11,7 +11,7 @@
 # python client/sample_exchange.py
 
 environment:
-  client: client/da3c_env
+  run: client/da3c_env
   rom: boxing.bin
   rlx-server: localhost:7001
 
