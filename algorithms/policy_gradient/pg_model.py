@@ -11,12 +11,16 @@ import pg_config
 # all agents and stored on the parameter server
 class SharedParameters(subgraph.Subgraph):
     def build_graph(self):
-        # Build graph
-        ph_gradients = graph.Placeholders(zip(
+        shapes = zip(
             [pg_config.config.state_size] + pg_config.config.hidden_sizes,
             pg_config.config.hidden_sizes + [pg_config.config.action_size]
-        ))
-        sg_weights = graph.Variables(ph_gradients, initializer=graph.XavierInitializer())
+        )
+
+        # Build graph
+        ph_n_steps = graph.Placeholder(np.int64)
+        sg_n_step = graph.Counter(ph_n_steps, np.int64)
+        sg_weights = graph.List(graph.Wb(np.float32, shape) for shape in shapes)
+        ph_gradients = graph.PlaceholdersByVariables(sg_weights)
         sg_apply_gradients = graph.ApplyGradients(
             graph.AdamOptimizer(learning_rate=pg_config.config.learning_rate),
             sg_weights,
@@ -25,6 +29,7 @@ class SharedParameters(subgraph.Subgraph):
         sg_initialize = graph.Initialize()
 
         # Expose public API
+        self.op_n_step = sg_n_step.value()
         self.op_get_weights = sg_weights.get()
         self.op_apply_gradients = sg_apply_gradients.apply_gradients(ph_gradients)
         self.op_initialize = sg_initialize.initialize()
@@ -34,15 +39,17 @@ class SharedParameters(subgraph.Subgraph):
 class PolicyModel(subgraph.Subgraph):
     def build_graph(self):
         # Build graph
-        ph_weights = graph.Placeholders(zip(
+        shapes = zip(
             [pg_config.config.state_size] + pg_config.config.hidden_sizes,
             pg_config.config.hidden_sizes + [pg_config.config.action_size]
-        ))
-        sg_weights = graph.Variables(placeholders=ph_weights)
+        )
 
-        ph_state = graph.Placeholder((None, pg_config.config.state_size))
-        ph_action = graph.Placeholder((None, ), dtype=np.int32)
-        ph_discounted_reward = graph.Placeholder((None, 1))
+        sg_weights = graph.List(graph.Wb(np.float32, shape) for shape in shapes)
+        ph_weights = graph.PlaceholdersByVariables(sg_weights)
+
+        ph_state = graph.Placeholder(np.float32, (None, pg_config.config.state_size))
+        ph_action = graph.Placeholder(np.int32, (None, ))
+        ph_discounted_reward = graph.Placeholder(np.float32, (None, 1))
 
         sg_network = graph.FullyConnected(ph_state, sg_weights)
         sg_policy_loss = graph.PolicyLoss(
@@ -54,13 +61,12 @@ class PolicyModel(subgraph.Subgraph):
 
         sg_policy = graph.Policy(sg_network, sg_policy_loss)
 
-        sg_initialize = graph.Initialize()
+        sg_assign_weights = graph.Assign(sg_weights, ph_weights)
 
         # Expose public API
-        self.op_assign_weights = sg_weights.assign(ph_weights)
+        self.op_assign_weights = sg_assign_weights.assign(ph_weights)
         self.op_get_action = sg_policy.get_action(ph_state)
         self.op_compute_gradients = sg_policy.compute_gradients(ph_state, ph_action, ph_discounted_reward)
-        self.op_initialize = sg_initialize.initialize()
 
 
 if __name__ == '__main__':

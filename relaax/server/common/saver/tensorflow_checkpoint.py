@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 import os
 import re
 import tensorflow
@@ -11,8 +9,8 @@ class TensorflowCheckpoint(checkpoint.Checkpoint):
     _CHECKPOINT_PREFIX = 'cp'
 
     def __init__(self, session):
-        self._session = session
-        self.saver = tensorflow.train.Saver()
+        self.session = session
+        self.saver = tensorflow.train.Saver(max_to_keep=None)
 
     def checkpoint_ids(self, names):
         re_ = re.compile('^%s-(\d+)(|\..+)$' % self._CHECKPOINT_PREFIX)
@@ -29,13 +27,13 @@ class TensorflowCheckpoint(checkpoint.Checkpoint):
 
     def restore_checkpoint(self, dir, checkpoint_id):
         self.saver.restore(
-            self._session,
+            self.session,
             os.path.join(dir, '%s-%d' % (self._CHECKPOINT_PREFIX, checkpoint_id))
         )
 
     def save_checkpoint(self, dir, checkpoint_id):
         self.saver.save(
-            self._session,
+            self.session,
             os.path.join(dir, self._CHECKPOINT_PREFIX),
             global_step=checkpoint_id
         )

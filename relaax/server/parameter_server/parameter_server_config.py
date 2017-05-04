@@ -31,6 +31,9 @@ class ParameterServerConfig(BaseConfig):
 
         self.algorithm_path = self.get('algorithm/path')
 
+        self.define_missing('checkpoints_to_keep', None)
+        self.define_missing('checkpoint_step_interval', None)
+        self.define_missing('checkpoint_time_interval', None)
         self.define_missing('checkpoint_aws_s3', None)
 
         # Simple check of the bind address format

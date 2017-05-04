@@ -21,7 +21,7 @@ relaax-parameter-server:
   checkpoint-dir: training/checkpoints/sample_da3c_test_env
 #  checkpoint-aws-s3: dl-checkpoints/sample_da3c_test_env
   checkpoint-time-interval: 60
-  checkpoint-step-interval: 1000
+#  checkpoint-step-interval: 1000
   checkpoints-to-keep: 5
   aws-keys: aws_keys.yaml
   metrics-dir: training/metrics/sample_da3c_test_env

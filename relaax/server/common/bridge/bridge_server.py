@@ -6,9 +6,9 @@ import bridge_message
 
 
 class BridgeServer(object):
-    def __init__(self, bind, ps_initializer):
+    def __init__(self, bind, init_ps):
         self.server = grpc.server(concurrent.futures.ThreadPoolExecutor(max_workers=1))
-        bridge_pb2.add_BridgeServicer_to_server(Servicer(ps_initializer), self.server)
+        bridge_pb2.add_BridgeServicer_to_server(Servicer(init_ps), self.server)
         self.server.add_insecure_port('%s:%d' % bind)
 
     def start(self):
@@ -16,11 +16,11 @@ class BridgeServer(object):
 
 
 class Servicer(bridge_pb2.BridgeServicer):
-    def __init__(self, ps_initializer):
-        self.ps_initializer = ps_initializer
+    def __init__(self, init_ps):
+        self.init_ps = init_ps
 
     def Init(self, request, context):
-        self.ps = self.ps_initializer.init_ps()
+        self.ps = self.init_ps()
         return bridge_pb2.NullMessage()
 
     def Run(self, request_iterator, context):

@@ -1,7 +1,8 @@
 import numpy as np
 
 from relaax.common.algorithms import subgraph
-from lib import graph
+from lib import da3c_graph
+from relaax.common.algorithms.lib import graph
 from relaax.common.algorithms.lib import utils
 import da3c_config
 
@@ -11,11 +12,11 @@ import da3c_config
 class SharedParameters(subgraph.Subgraph):
     def build_graph(self):
         # Build graph
-        sg_weights = graph.Weights()
-        ph_gradients = graph.Placeholders(sg_weights)
         ph_n_steps = graph.Placeholder(np.int64)
         sg_n_step = graph.Counter(ph_n_steps, np.int64)
-        sg_apply_gradients = graph.ApplyGradients(sg_weights, ph_gradients, sg_n_step)
+        sg_weights = da3c_graph.Weights()
+        ph_gradients = graph.PlaceholdersByVariables(sg_weights)
+        sg_apply_gradients = da3c_graph.ApplyGradients(sg_weights, ph_gradients, sg_n_step)
         sg_initialize = graph.Initialize()
 
         # Expose public API
@@ -29,8 +30,8 @@ class SharedParameters(subgraph.Subgraph):
 class AgentModel(subgraph.Subgraph):
     def build_graph(self):
         # Build graph
-        sg_weights = graph.Weights()
-        ph_weights = graph.Placeholders(sg_weights)
+        sg_weights = da3c_graph.Weights()
+        ph_weights = graph.PlaceholdersByVariables(sg_weights)
         sg_assign_weights = graph.Assign(sg_weights, ph_weights)
         ph_state = graph.Placeholder(np.float32, shape=
             [None] +
@@ -40,15 +41,13 @@ class AgentModel(subgraph.Subgraph):
         ph_action = graph.Placeholder(np.int32, shape=(None, ))
         ph_value = graph.Placeholder(np.float32, shape=(None, ))
         ph_discounted_reward = graph.Placeholder(np.float32, shape=(None, ))
-        sg_network = graph.Network(ph_state, sg_weights)
-        sg_loss = graph.Loss(ph_state, ph_action, ph_value, ph_discounted_reward, sg_weights, sg_network)
-        sg_initialize = graph.Initialize()
+        sg_network = da3c_graph.Network(ph_state, sg_weights)
+        sg_loss = da3c_graph.Loss(ph_state, ph_action, ph_value, ph_discounted_reward, sg_weights, sg_network.actor, sg_network.critic)
 
         # Expose public API
         self.op_assign_weights = sg_assign_weights.assign(ph_weights)
         self.op_get_action_and_value = sg_network.get_action_and_value(ph_state)
         self.op_compute_gradients = sg_loss.compute_gradients(ph_state, ph_action, ph_value, ph_discounted_reward)
-        self.op_initialize = sg_initialize.initialize()
 
 
 if __name__ == '__main__':

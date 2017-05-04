@@ -9,6 +9,7 @@ from lib import pg_episode
 class PGAgent(object):
     def __init__(self, parameter_server):
         self.ps = parameter_server
+        self.metrics = parameter_server.metrics
 
     # environment is ready and
     # waiting for agent to initialize

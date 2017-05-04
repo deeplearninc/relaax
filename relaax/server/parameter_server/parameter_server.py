@@ -19,8 +19,8 @@ log = logging.getLogger(__name__)
 
 class ParameterServer(object):
 
-    @staticmethod
-    def load_algorithm_ps():
+    @classmethod
+    def load_algorithm_ps(cls):
         from relaax.server.common.algorithm_loader import AlgorithmLoader
         try:
             algorithm = AlgorithmLoader.load(options.algorithm_path)
@@ -28,24 +28,21 @@ class ParameterServer(object):
             log.critical("Can't load algorithm")
             raise
 
-        return algorithm.ParameterServer(
-            ParameterServer.saver_factory,
-            ParameterServer.metrics_factory
-        )
+        return algorithm.ParameterServer(cls.saver_factory, cls.metrics_factory)
 
-    @staticmethod
-    def start():
+    @classmethod
+    def start(cls):
         try:
             log.info("Starting parameter server server on %s:%d" % options.bind)
 
-            ps_initializer = PSInitializer()
+            init_ps = CallOnce(cls.init)
 
             # keep the server or else GC will stop it
-            server = bridge_server.BridgeServer(options.bind, ps_initializer)
+            server = bridge_server.BridgeServer(options.bind, init_ps)
             server.start()
 
-            ps = ps_initializer.init_ps()
-            watch = ParameterServer.make_watch(ps)
+            ps = init_ps()
+            watch = cls.make_watch(ps)
 
             Speedometer(ps)
 
@@ -59,14 +56,14 @@ class ParameterServer(object):
         except:
             raise
 
-    @staticmethod
-    def init():
-        ps = ParameterServer.load_algorithm_ps()
+    @classmethod
+    def init(cls):
+        ps = cls.load_algorithm_ps()
         ps.restore_latest_checkpoint()
         return ps
 
-    @staticmethod
-    def saver_factory(checkpoint):
+    @classmethod
+    def saver_factory(cls, checkpoint):
         ps_options = options.relaax_parameter_server
 
         savers = []
@@ -76,7 +73,7 @@ class ParameterServer(object):
                 dir=ps_options.checkpoint_dir
             ))
         if ps_options.checkpoint_aws_s3 is not None:
-            aws_access_key, aws_secret_key = ParameterServer.load_aws_keys()
+            aws_access_key, aws_secret_key = cls.load_aws_keys()
             savers.append(s3_saver.S3Saver(
                 checkpoint=checkpoint,
                 bucket_key=ps_options.checkpoint_aws_s3,
@@ -118,16 +115,18 @@ class ParameterServer(object):
         )
 
 
-class PSInitializer(object):
-    def __init__(self):
+class CallOnce(object):
+    def __init__(self, f):
         self.lock = threading.Lock()
-        self.ps = None
+        self.f = f
+        self.initialized = False
 
-    def init_ps(self):
+    def __call__(self):
         with self.lock:
-            if self.ps is None:
-                self.ps = ParameterServer.init()
-        return self.ps
+            if not self.initialized:
+                self.cache = self.f()
+                self.initialized = True
+        return self.cache
 
 
 class Speedometer(object):

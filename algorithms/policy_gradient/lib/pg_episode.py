@@ -68,7 +68,7 @@ class PGEpisode(object):
         self.last_action = action
 
     def load_shared_parameters(self):
-        self.session.op_assign_weights(values=self.ps.op_get_weights())
+        self.session.op_assign_weights(values=self.ps.session.op_get_weights())
 
     def action_from_policy(self, state):
         assert state is not None
@@ -88,4 +88,4 @@ class PGEpisode(object):
         )
 
     def apply_gradients(self, gradients):
-        self.ps.op_apply_gradients(gradients=gradients)
+        self.ps.session.op_apply_gradients(gradients=gradients)

@@ -16,8 +16,9 @@ def sample_exchange():
         print "on init: ", res
 
         # update agent with state and reward
-        for count in xrange(100):
+        for count in xrange(10000):
             try:
+                episode_reward = 0
                 reward = None
                 for step in xrange(10):
                     if random.random() >= 0.5:
@@ -27,7 +28,10 @@ def sample_exchange():
                     action = agent.update(reward=reward, state=state, terminal=False)
                     action = action['data']
                     reward = (action - state[0]) ** 2
+                    episode_reward += reward
                 agent.update(reward=reward, state=None, terminal=True)
+                agent.metrics.scalar('game_score', episode_reward)
+                print('game_score', episode_reward)
             except RlxClientException as e:
                 print "agent connection lost: ", e
                 print ('reconnecting to another agent, '
