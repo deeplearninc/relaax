@@ -1,0 +1,9 @@
+algorithm:
+  name: policy-gradient
+
+  action_size: 4 # action size for the given environment
+  state_size: 0
+  hidden_sizes: [10]
+  batch_size: 10
+  learning_rate: 1e-2
+  GAMMA: 0.97 # rewards discount factor
