@@ -12,6 +12,7 @@ class TensorflowCheckpoint(checkpoint.Checkpoint):
 
     def __init__(self, session):
         self._session = session
+        self.saver = tensorflow.train.Saver()
 
     def checkpoint_ids(self, names):
         re_ = re.compile('^%s-(\d+)(|\..+)$' % self._CHECKPOINT_PREFIX)
@@ -27,13 +28,13 @@ class TensorflowCheckpoint(checkpoint.Checkpoint):
         return (name for name in names if re_.match(name) is not None)
 
     def restore_checkpoint(self, dir, checkpoint_id):
-        tensorflow.train.Saver().restore(
+        self.saver.restore(
             self._session,
             os.path.join(dir, '%s-%d' % (self._CHECKPOINT_PREFIX, checkpoint_id))
         )
 
     def save_checkpoint(self, dir, checkpoint_id):
-        tensorflow.train.Saver().save(
+        self.saver.save(
             self._session,
             os.path.join(dir, self._CHECKPOINT_PREFIX),
             global_step=checkpoint_id
