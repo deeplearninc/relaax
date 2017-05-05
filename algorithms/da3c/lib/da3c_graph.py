@@ -44,7 +44,7 @@ class Network(subgraph.Subgraph):
 
 
 class Loss(subgraph.Subgraph):
-    def build_graph(self, state, action, value, discounted_reward, weights, actor, critic):
+    def build_graph(self, state, action, value, discounted_reward, actor, critic):
         action_one_hot = tf.one_hot(action.node, da3c_config.config.action_size)
 
         # avoid NaN with getting the maximum with small value
