@@ -6,68 +6,6 @@ from relaax.common.algorithms.lib import utils
 from relaax.common.algorithms import subgraph
 
 
-class AdamOptimizer(subgraph.Subgraph):
-    def build_graph(self, learning_rate=0.001):
-        return tf.train.AdamOptimizer(learning_rate=learning_rate)
-
-
-class RMSPropOptimizer(subgraph.Subgraph):
-    def build_graph(self, learning_rate, decay, momentum, epsilon):
-        return tf.train.RMSPropOptimizer(
-            learning_rate=learning_rate.node,
-            decay=decay,
-            momentum=momentum,
-            epsilon=epsilon
-        )
-
-
-class ApplyGradients(subgraph.Subgraph):
-    def build_graph(self, optimizer, weights, gradients):
-        return optimizer.node.apply_gradients(utils.Utils.izip(gradients.node, weights.node))
-
-
-class Convolution(subgraph.Subgraph):
-    def build_graph(self, x, wb, stride):
-        return tf.nn.conv2d(x.node, wb.W, strides=[1, stride, stride, 1], padding="VALID") + wb.b
-
-
-class Relu(subgraph.Subgraph):
-    def build_graph(self, x):
-        return tf.nn.relu(x.node)
-
-
-class Reshape(subgraph.Subgraph):
-    def build_graph(self, x, shape):
-        return tf.reshape(x.node, shape)
-
-
-class Softmax(subgraph.Subgraph):
-    def build_graph(self, x):
-        return tf.nn.softmax(x.node)
-
-
-class List(subgraph.Subgraph):
-    def build_graph(self, items):
-        self.items = list(items)
-        return map(lambda i: i.node, self.items)
-
-
-class Assign(subgraph.Subgraph):
-    def build_graph(self, variables, values):
-        return [
-            tf.assign(variable, value)
-            for variable, value in utils.Utils.izip(
-                variables.node,
-                values.node
-            )
-        ]
-
-
-class Increment(subgraph.Subgraph):
-    def build_graph(self, variable, increment):
-        return tf.assign_add(variable.node, increment.node)
-
-
 class DefaultInitializer(object):
     INIT = {
         np.float32: (tf.float32, init_ops.glorot_uniform_initializer)
@@ -122,6 +60,76 @@ class XavierInitializer(object):
         )
 
 
+class AdamOptimizer(subgraph.Subgraph):
+    def build_graph(self, learning_rate=0.001):
+        return tf.train.AdamOptimizer(learning_rate=learning_rate)
+
+
+class RMSPropOptimizer(subgraph.Subgraph):
+    def build_graph(self, learning_rate, decay, momentum, epsilon):
+        return tf.train.RMSPropOptimizer(
+            learning_rate=learning_rate.node,
+            decay=decay,
+            momentum=momentum,
+            epsilon=epsilon
+        )
+
+
+class ApplyGradients(subgraph.Subgraph):
+    def build_graph(self, optimizer, weights, gradients):
+        return optimizer.node.apply_gradients(utils.Utils.izip(gradients.node, weights.node))
+
+
+class Gradients(subgraph.Subgraph):
+    def build_graph(self, loss, variables):
+        return utils.Utils.reconstruct(
+            tf.gradients(loss.node, list(utils.Utils.flatten(variables.node))),
+            variables.node
+        )
+
+
+class Convolution(subgraph.Subgraph):
+    def build_graph(self, x, wb, stride):
+        return tf.nn.conv2d(x.node, wb.W, strides=[1, stride, stride, 1], padding="VALID") + wb.b
+
+
+class Relu(subgraph.Subgraph):
+    def build_graph(self, x):
+        return tf.nn.relu(x.node)
+
+
+class Reshape(subgraph.Subgraph):
+    def build_graph(self, x, shape):
+        return tf.reshape(x.node, shape)
+
+
+class Softmax(subgraph.Subgraph):
+    def build_graph(self, x):
+        return tf.nn.softmax(x.node)
+
+
+class List(subgraph.Subgraph):
+    def build_graph(self, items):
+        self.items = list(items)
+        return map(lambda i: i.node, self.items)
+
+
+class Assign(subgraph.Subgraph):
+    def build_graph(self, variables, values):
+        return [
+            tf.assign(variable, value)
+            for variable, value in utils.Utils.izip(
+                variables.node,
+                values.node
+            )
+        ]
+
+
+class Increment(subgraph.Subgraph):
+    def build_graph(self, variable, increment):
+        return tf.assign_add(variable.node, increment.node)
+
+
 class Placeholder(subgraph.Subgraph):
     """Placeholder of given shape."""
 
@@ -151,35 +159,6 @@ class PlaceholdersByVariables(subgraph.Subgraph):
             variables.node,
             lambda v: tf.placeholder(shape=v.get_shape(), dtype=v.dtype)
         )
-
-
-class PlaceholdersByShapes(subgraph.Subgraph):
-    def build_graph(self, dtype, ):
-        return utils.Utils.map(
-            variables.node,
-            lambda v: tf.placeholder(shape=v.get_shape(), dtype=v.dtype)
-        )
-
-
-class Placeholders(subgraph.Subgraph):
-    """List of placeholders of given shapes."""
-
-    def build_graph(self, shapes):
-        """Assemble list of placeholders.
-
-        Args:
-            shapes: defines shape for placeholders, dtype will be np.float32
-
-        Returns:
-            list of placeholders
-        """
-
-        def pairs(shapes):
-            for shape in shapes:
-                yield shape
-                yield shape[-1]
-
-        return [tf.placeholder(np.float32, shape) for shape in pairs(shapes)]
 
 
 class GlobalStep(subgraph.Subgraph):
@@ -242,14 +221,6 @@ class PolicyLoss(subgraph.Subgraph):
             axis=[1]
         ))
         return -tf.reduce_sum(log_like_op * discounted_reward.node)
-
-
-class Gradients(subgraph.Subgraph):
-    def build_graph(self, loss, variables):
-        return utils.Utils.reconstruct(
-            tf.gradients(loss.node, list(utils.Utils.flatten(variables.node))),
-            variables.node
-        )
 
 
 class Initialize(subgraph.Subgraph):
