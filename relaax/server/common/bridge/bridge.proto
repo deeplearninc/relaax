@@ -26,7 +26,8 @@ message Item {
         FLOAT = 7;
         STR = 8;
         NUMPY_INT_32 = 9;
-        NUMPY_ARRAY = 10;
+        NUMPY_INT_64 = 10;
+        NUMPY_ARRAY = 11;
     }
 
     message NumpyArray {

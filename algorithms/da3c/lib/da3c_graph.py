@@ -43,23 +43,24 @@ class Network(subgraph.Subgraph):
         self.critic = graph.Reshape(graph.ApplyWb(fc, weights.critic), [-1])
 
 
-class ApplyGradients(subgraph.Subgraph):
-    def build_graph(self, weights, gradients, global_step):
+class LearningRate(subgraph.Subgraph):
+    def build_graph(self, global_step):
         n_steps = np.int64(da3c_config.config.max_global_step)
         reminder = tf.subtract(n_steps, global_step.n.node)
         factor = tf.cast(reminder, tf.float64) / tf.cast(n_steps, tf.float64)
         learning_rate = tf.maximum(tf.cast(0, tf.float64), factor * da3c_config.config.initial_learning_rate)
+        return learning_rate
 
+
+class ApplyGradients(subgraph.Subgraph):
+    def build_graph(self, weights, gradients, learning_rate):
         optimizer = tf.train.RMSPropOptimizer(
-            learning_rate=learning_rate,
+            learning_rate=learning_rate.node,
             decay=da3c_config.config.RMSProp.decay,
             momentum=0.0,
             epsilon=da3c_config.config.RMSProp.epsilon
         )
-        return tf.group(
-            optimizer.apply_gradients(utils.Utils.izip(gradients.node, weights.node)),
-            global_step.increment.node
-        )
+        return optimizer.apply_gradients(utils.Utils.izip(gradients.node, weights.node))
 
 
 class Loss(subgraph.Subgraph):
@@ -85,12 +86,3 @@ class Loss(subgraph.Subgraph):
 
         # gradient of policy and value are summed up
         return policy_loss + value_loss
-
-
-class LearningRate(subgraph.Subgraph):
-    def build_graph(self, n_steps):
-        factor = (self._config.max_global_step - global_time_step) / self._config.max_global_step
-        learning_rate = self._config.INITIAL_LEARNING_RATE * factor
-        if learning_rate < 0.0:
-            learning_rate = 0.0
-        return learning_rate
