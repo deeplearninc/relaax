@@ -52,14 +52,8 @@ class AgentModel(subgraph.Subgraph):
         ph_value = graph.Placeholder(np.float32, shape=(None, ))
         ph_discounted_reward = graph.Placeholder(np.float32, shape=(None, ))
         sg_network = da3c_graph.Network(ph_state, sg_weights)
-        sg_loss = da3c_graph.Loss(
-            ph_state,
-            ph_action,
-            ph_value,
-            ph_discounted_reward,
-            sg_network.actor,
-            sg_network.critic
-        )
+        sg_loss = da3c_graph.Loss(ph_state, ph_action, ph_value,
+                ph_discounted_reward, sg_network.actor, sg_network.critic)
         sg_gradients = graph.Gradients(sg_loss, sg_weights)
 
         # Expose public API
