@@ -21,18 +21,17 @@ class SharedParameters(subgraph.Subgraph):
         sg_global_step = graph.GlobalStep(ph_increment)
         sg_weights = graph.List(graph.Wb(np.float32, shape) for shape in shapes)
         ph_gradients = graph.PlaceholdersByVariables(sg_weights)
-        sg_apply_gradients = graph.ApplyGradients(
-            graph.AdamOptimizer(learning_rate=pg_config.config.learning_rate),
-            sg_weights,
-            ph_gradients,
-            sg_global_step
-        )
+        sg_optimizer = graph.AdamOptimizer(pg_config.config.learning_rate)
+        sg_apply_gradients = graph.ApplyGradients(sg_optimizer, sg_weights, ph_gradients)
         sg_initialize = graph.Initialize()
 
         # Expose public API
         self.op_n_step = self.Op(sg_global_step.n)
         self.op_get_weights = self.Op(sg_weights)
-        self.op_apply_gradients = self.Op(sg_apply_gradients, gradients=ph_gradients, increment=ph_increment)
+        self.op_apply_gradients = self.Op(sg_apply_gradients, sg_global_step.increment,
+            gradients=ph_gradients,
+            increment=ph_increment
+        )
         self.op_initialize = self.Op(sg_initialize)
 
 

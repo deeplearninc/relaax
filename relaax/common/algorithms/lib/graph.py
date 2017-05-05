@@ -6,6 +6,26 @@ from relaax.common.algorithms.lib import utils
 from relaax.common.algorithms import subgraph
 
 
+class AdamOptimizer(subgraph.Subgraph):
+    def build_graph(self, learning_rate=0.001):
+        return tf.train.AdamOptimizer(learning_rate=learning_rate)
+
+
+class RMSPropOptimizer(subgraph.Subgraph):
+    def build_graph(self, learning_rate, decay, momentum, epsilon):
+        return tf.train.RMSPropOptimizer(
+            learning_rate=learning_rate.node,
+            decay=decay,
+            momentum=momentum,
+            epsilon=epsilon
+        )
+
+
+class ApplyGradients(subgraph.Subgraph):
+    def build_graph(self, optimizer, weights, gradients):
+        return optimizer.node.apply_gradients(utils.Utils.izip(gradients.node, weights.node))
+
+
 class Convolution(subgraph.Subgraph):
     def build_graph(self, x, wb, stride):
         return tf.nn.conv2d(x.node, wb.W, strides=[1, stride, stride, 1], padding="VALID") + wb.b
@@ -230,22 +250,6 @@ class Gradients(subgraph.Subgraph):
             tf.gradients(loss.node, list(utils.Utils.flatten(variables.node))),
             variables.node
         )
-
-
-class ApplyGradients(subgraph.Subgraph):
-    def build_graph(self, optimizer, weights, gradients, global_step):
-        self.apply_gradients_op = optimizer.node.apply_gradients(
-            utils.Utils.izip(gradients.node, weights.node)
-        )
-        return tf.group(
-            self.apply_gradients_op,
-            global_step.increment.node
-        )
-
-
-class AdamOptimizer(subgraph.Subgraph):
-    def build_graph(self, learning_rate=0.001):
-        return tf.train.AdamOptimizer(learning_rate=learning_rate)
 
 
 class Initialize(subgraph.Subgraph):

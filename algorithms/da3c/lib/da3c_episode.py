@@ -112,5 +112,5 @@ class DA3CEpisode(object):
     def apply_gradients(self, gradients, experience_size):
         self.ps.session.op_apply_gradients(
             gradients=gradients,
-            n_steps=experience_size
+            increment=experience_size
         )

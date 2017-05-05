@@ -52,17 +52,6 @@ class LearningRate(subgraph.Subgraph):
         return learning_rate
 
 
-class ApplyGradients(subgraph.Subgraph):
-    def build_graph(self, weights, gradients, learning_rate):
-        optimizer = tf.train.RMSPropOptimizer(
-            learning_rate=learning_rate.node,
-            decay=da3c_config.config.RMSProp.decay,
-            momentum=0.0,
-            epsilon=da3c_config.config.RMSProp.epsilon
-        )
-        return optimizer.apply_gradients(utils.Utils.izip(gradients.node, weights.node))
-
-
 class Loss(subgraph.Subgraph):
     def build_graph(self, state, action, value, discounted_reward, weights, actor, critic):
         action_one_hot = tf.one_hot(action.node, da3c_config.config.action_size)

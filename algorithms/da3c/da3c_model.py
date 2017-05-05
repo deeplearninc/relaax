@@ -17,7 +17,13 @@ class SharedParameters(subgraph.Subgraph):
         sg_weights = da3c_graph.Weights()
         ph_gradients = graph.PlaceholdersByVariables(sg_weights)
         sg_learning_rate = da3c_graph.LearningRate(sg_global_step)
-        sg_apply_gradients = da3c_graph.ApplyGradients(sg_weights, ph_gradients, sg_learning_rate)
+        sg_optimizer = graph.RMSPropOptimizer(
+            learning_rate=sg_learning_rate,
+            decay=da3c_config.config.RMSProp.decay,
+            momentum=0.0,
+            epsilon=da3c_config.config.RMSProp.epsilon
+        )
+        sg_apply_gradients = graph.ApplyGradients(sg_optimizer, sg_weights, ph_gradients)
         sg_initialize = graph.Initialize()
 
         # Expose public API
@@ -25,7 +31,7 @@ class SharedParameters(subgraph.Subgraph):
         self.op_get_weights = self.Op(sg_weights)
         self.op_apply_gradients = self.Op(sg_apply_gradients, sg_global_step.increment,
             gradients=ph_gradients,
-            n_steps=ph_increment
+            increment=ph_increment
         )
         self.op_initialize = self.Op(sg_initialize)
 
