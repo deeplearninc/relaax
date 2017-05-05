@@ -6,12 +6,29 @@ from relaax.common.algorithms.lib import utils
 from relaax.common.algorithms import subgraph
 
 
+class Convolution(subgraph.Subgraph):
+    def build_graph(self, x, wb, stride):
+        return tf.nn.conv2d(x.node, wb.W, strides=[1, stride, stride, 1], padding="VALID") + wb.b
+
+
+class Relu(subgraph.Subgraph):
+    def build_graph(self, x):
+        return tf.nn.relu(x.node)
+
+
+class Reshape(subgraph.Subgraph):
+    def build_graph(self, x, shape):
+        return tf.reshape(x.node, shape)
+
+
+class Softmax(subgraph.Subgraph):
+    def build_graph(self, x):
+        return tf.nn.softmax(x.node)
+
+
 class List(subgraph.Subgraph):
     def build_graph(self, nodes):
         return map(lambda n: n.node, nodes)
-
-    def get(self):
-        return subgraph.Subgraph.Op(self.node)
 
 
 class Assign(subgraph.Subgraph):
@@ -24,19 +41,10 @@ class Assign(subgraph.Subgraph):
             )
         ]
 
-    def assign(self, values):
-        return subgraph.Subgraph.Op(self.node, values=values)
 
-
-class Counter(subgraph.Subgraph):
-    DTYPE = {np.int64: tf.int64}
-
-    def build_graph(self, inc_value, dtype=np.int64):
-        self.counter = tf.Variable(0, dtype=self.DTYPE[dtype])
-        self.increment = tf.assign_add(self.counter, inc_value.node)
-
-    def value(self):
-        return subgraph.Subgraph.Op(self.counter)
+class Increment(subgraph.Subgraph):
+    def build_graph(self, variable, increment):
+        return tf.assign_add(variable.node, increment.node)
 
 
 class DefaultInitializer(object):
@@ -153,9 +161,20 @@ class Placeholders(subgraph.Subgraph):
         return [tf.placeholder(np.float32, shape) for shape in pairs(shapes)]
 
 
+class GlobalStep(subgraph.Subgraph):
+    def build_graph(self, increment):
+        self.n = Variable(0, dtype=np.int64)
+        self.increment = Increment(self.n, increment)
+
+
 class Variable(subgraph.Subgraph):
-    def build_graph(self, dtype, shape, initializer=DefaultInitializer()):
-        return tf.Variable(initial_value=initializer(dtype=dtype, shape=shape))
+    DTYPE = {
+        None: None,
+        np.int64: tf.int64
+    }
+
+    def build_graph(self, initial_value, dtype=None):
+        return tf.Variable(initial_value, dtype=self.DTYPE[dtype])
 
 
 class VariablesByShapes(subgraph.Subgraph):
@@ -167,77 +186,13 @@ class VariablesByShapes(subgraph.Subgraph):
             for shape in shapes
         ]
 
-    def get(self):
-        return subgraph.Subgraph.Op(self.node)
-
-    def assign(self, values):
-        return subgraph.Subgraph.Op(self.assign_op, values=values)
-
-
-class Variables(subgraph.Subgraph):
-    """Holder for variables representing weights of the fully connected NN."""
-
-    DTYPE = {
-        tf.float64: np.float64,
-        tf.float32: np.float32,
-    }
-
-    def build_graph(self, placeholders=None, shapes=None, initializer=DefaultInitializer()):
-        """Assemble list of variables.
-
-        Args:
-            placeholders: defines shape and type for variables
-            shapes: defines shape for variables, dtype will be np.float32
-            initializer: initializer for variables
-
-        Returns:
-            list to the 'weights' variables in the graph
-        """
-        
-        if placeholders is None and shapes is None:
-            raise RuntimeError('Neither placholders nor shapes parameters are supplied.')
-
-        if placeholders is not None and shapes is not None:
-            raise RuntimeError('Both placholders and shapes parameters are supplied.')
-
-        if placeholders is not None:
-            variables = [
-                tf.Variable(initial_value=initializer(
-                    shape=p.shape.as_list(),
-                    dtype=self.DTYPE[p.dtype]
-                ))
-                for p in placeholders.node
-            ]
-
-            with tf.variable_scope('assign'):
-                self.assign_op = [
-                    tf.assign(variable, value)
-                    for variable, value in zip(variables, placeholders.node)
-                ]
-        else:
-            variables = [
-                tf.Variable(initial_value=initializer(
-                    shape=shape,
-                    dtype=np.float32
-                ))
-                for shape in shapes
-            ]
-
-        return variables
-
-    def get(self):
-        return subgraph.Subgraph.Op(self.node)
-
-    def assign(self, values):
-        return subgraph.Subgraph.Op(self.assign_op, values=values)
-
 
 class Wb(subgraph.Subgraph):
     def build_graph(self, dtype, shape):
         d = 1.0 / np.sqrt(np.prod(shape[:-1]))
         initializer = RandomUniformInitializer(minval=-d, maxval=d)
-        self.W = Variable(dtype, shape     , initializer).node
-        self.b = Variable(dtype, shape[-1:], initializer).node
+        self.W = Variable(initializer(dtype, shape     )).node
+        self.b = Variable(initializer(dtype, shape[-1:])).node
         return self.W, self.b
 
 
@@ -269,34 +224,23 @@ class PolicyLoss(subgraph.Subgraph):
         return -tf.reduce_sum(log_like_op * discounted_reward.node)
 
 
-class Policy(subgraph.Subgraph):
-    def build_graph(self, network, loss):
-        self.gradients = utils.Utils.reconstruct(
-            tf.gradients(loss.node, list(utils.Utils.flatten(network.weights.node))),
-            network.weights.node
-        )
-        return network.node
-
-    def get_action(self, state):
-        return subgraph.Subgraph.Op(self.node, state=state)
-
-    def compute_gradients(self, state, action, discounted_reward):
-        return subgraph.Subgraph.Op(
-            self.gradients,
-            state=state,
-            action=action,
-            discounted_reward=discounted_reward
+class Gradients(subgraph.Subgraph):
+    def build_graph(self, loss, variables):
+        return utils.Utils.reconstruct(
+            tf.gradients(loss.node, list(utils.Utils.flatten(variables.node))),
+            variables.node
         )
 
 
 class ApplyGradients(subgraph.Subgraph):
-    def build_graph(self, optimizer, weights, gradients):
+    def build_graph(self, optimizer, weights, gradients, global_step):
         self.apply_gradients_op = optimizer.node.apply_gradients(
             utils.Utils.izip(gradients.node, weights.node)
         )
-
-    def apply_gradients(self, gradients):
-        return subgraph.Subgraph.Op(self.apply_gradients_op, gradients=gradients)
+        return tf.group(
+            self.apply_gradients_op,
+            global_step.increment.node
+        )
 
 
 class AdamOptimizer(subgraph.Subgraph):
@@ -307,6 +251,3 @@ class AdamOptimizer(subgraph.Subgraph):
 class Initialize(subgraph.Subgraph):
     def build_graph(self):
         return tf.global_variables_initializer()
-
-    def initialize(self):
-        return subgraph.Subgraph.Op(self.node)

@@ -35,6 +35,7 @@ class ParameterServerConfig(BaseConfig):
         self.define_missing('checkpoint_step_interval', None)
         self.define_missing('checkpoint_time_interval', None)
         self.define_missing('checkpoint_aws_s3', None)
+        self.define_missing('checkpoint_dir', None)
 
         # Simple check of the bind address format
 

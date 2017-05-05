@@ -19,27 +19,24 @@ class Session(object):
 class SessionMethod(object):
     def __init__(self, session, op):
         self.session = session
-        self.op = op
+        self.ops = op.ops
+        self.feed_dict = op.feed_dict
 
     def __call__(self, **kwargs):
+        ops = [op.node for op in self.ops]
         feed_dict = {
-            v: kwargs[k] for k, v in self.op.feed_dict.iteritems()
+            v: kwargs[k] for k, v in self.feed_dict.iteritems()
         }
-        result, = self.run(
-            [OpWrapper(self.op.subgraph)],
-            feed_dict=feed_dict
-        )
-        return result
-
-    def run(self, ops, feed_dict={}):
-        op_nodes = [op.node for op in ops]
-        return Utils.reconstruct(
+        result = Utils.reconstruct(
             self.session.run(
-                list(Utils.flatten(op_nodes)),
+                list(Utils.flatten(ops)),
                 feed_dict=self.flatten_feed_dict(feed_dict)
             ),
-            op_nodes
+            ops
         )
+        if len(ops) == 1:
+            result, = result
+        return result
 
     def flatten_feed_dict(self, feed_dict):
         return {k: v for k, v in self.flatten_fd(feed_dict)}
@@ -48,11 +45,6 @@ class SessionMethod(object):
         for k, v in feed_dict.iteritems():
             for kk, vv in Utils.izip2(k.node, v):
                 yield kk, vv
-
-
-class OpWrapper(object):
-    def __init__(self, op):
-        self.node = op
 
 
 class Utils(object):

@@ -12,18 +12,18 @@ import da3c_config
 class SharedParameters(subgraph.Subgraph):
     def build_graph(self):
         # Build graph
-        ph_n_steps = graph.Placeholder(np.int64)
-        sg_n_step = graph.Counter(ph_n_steps, np.int64)
+        ph_increment = graph.Placeholder(np.int64)
+        sg_global_step = graph.GlobalStep(ph_increment)
         sg_weights = da3c_graph.Weights()
         ph_gradients = graph.PlaceholdersByVariables(sg_weights)
-        sg_apply_gradients = da3c_graph.ApplyGradients(sg_weights, ph_gradients, sg_n_step)
+        sg_apply_gradients = da3c_graph.ApplyGradients(sg_weights, ph_gradients, sg_global_step)
         sg_initialize = graph.Initialize()
 
         # Expose public API
-        self.op_n_step = sg_n_step.value()
-        self.op_get_weights = sg_weights.get()
-        self.op_apply_gradients = sg_apply_gradients.apply_gradients(ph_gradients, ph_n_steps)
-        self.op_initialize = sg_initialize.initialize()
+        self.op_n_step = self.Op(sg_global_step.n)
+        self.op_get_weights = self.Op(sg_weights)
+        self.op_apply_gradients = self.Op(sg_apply_gradients, gradients=ph_gradients, n_steps=ph_increment)
+        self.op_initialize = self.Op(sg_initialize)
 
 
 # Policy run by Agent(s)
@@ -43,11 +43,17 @@ class AgentModel(subgraph.Subgraph):
         ph_discounted_reward = graph.Placeholder(np.float32, shape=(None, ))
         sg_network = da3c_graph.Network(ph_state, sg_weights)
         sg_loss = da3c_graph.Loss(ph_state, ph_action, ph_value, ph_discounted_reward, sg_weights, sg_network.actor, sg_network.critic)
+        sg_gradients = graph.Gradients(sg_loss, sg_weights)
 
         # Expose public API
-        self.op_assign_weights = sg_assign_weights.assign(ph_weights)
-        self.op_get_action_and_value = sg_network.get_action_and_value(ph_state)
-        self.op_compute_gradients = sg_loss.compute_gradients(ph_state, ph_action, ph_value, ph_discounted_reward)
+        self.op_assign_weights = self.Op(sg_assign_weights, weights=ph_weights)
+        self.op_get_action_and_value = self.Op(sg_network.actor, sg_network.critic, state=ph_state)
+        self.op_compute_gradients = self.Op(sg_gradients,
+            state=ph_state,
+            action=ph_action,
+            value=ph_value,
+            discounted_reward=ph_discounted_reward
+        )
 
 
 if __name__ == '__main__':

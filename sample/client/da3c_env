@@ -102,6 +102,7 @@ def run():
                     reward = None
                     n_game += 1
                     agent.metrics.scalar('game_score', episode_reward)
+                    print('game_score', episode_reward)
                     env.reset()
                     episode_reward = 0
             except rlx_client.RlxClientException as e:

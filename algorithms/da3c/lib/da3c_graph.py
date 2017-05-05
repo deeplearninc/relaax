@@ -29,14 +29,24 @@ class Weights(subgraph.Subgraph):
             self.critic
         ])
 
-    def get(self):
-        return subgraph.Subgraph.Op(self.node)
+
+class Network(subgraph.Subgraph):
+    def build_graph(self, state, weights):
+        conv1 = graph.Relu(graph.Convolution(state, weights.conv1, 4))
+        conv2 = graph.Relu(graph.Convolution(conv1, weights.conv2, 2))
+
+        conv2_flat = graph.Reshape(conv2, [-1, 2592])
+        fc = graph.Relu(graph.ApplyWb(conv2_flat, weights.fc))
+
+        self.actor = graph.Softmax(graph.ApplyWb(fc, weights.actor))
+
+        self.critic = graph.Reshape(graph.ApplyWb(fc, weights.critic), [-1])
 
 
 class ApplyGradients(subgraph.Subgraph):
     def build_graph(self, weights, gradients, global_step):
         n_steps = np.int64(da3c_config.config.max_global_step)
-        reminder = tf.subtract(n_steps, global_step.counter)
+        reminder = tf.subtract(n_steps, global_step.n.node)
         factor = tf.cast(reminder, tf.float64) / tf.cast(n_steps, tf.float64)
         learning_rate = tf.maximum(tf.cast(0, tf.float64), factor * da3c_config.config.initial_learning_rate)
 
@@ -48,47 +58,8 @@ class ApplyGradients(subgraph.Subgraph):
         )
         return tf.group(
             optimizer.apply_gradients(utils.Utils.izip(gradients.node, weights.node)),
-            global_step.increment
+            global_step.increment.node
         )
-
-    def apply_gradients(self, gradients, n_steps):
-        return subgraph.Subgraph.Op(self.node, gradients=gradients, n_steps=n_steps)
-
-
-class Network(subgraph.Subgraph):
-    def build_graph(self, state, weights):
-        conv1 = Relu(Convolution(state, weights.conv1, 4))
-        conv2 = Relu(Convolution(conv1, weights.conv2, 2))
-
-        conv2_flat = Reshape(conv2, [-1, 2592])
-        fc = Relu(graph.ApplyWb(conv2_flat, weights.fc))
-
-        self.actor = Softmax(graph.ApplyWb(fc, weights.actor))
-
-        self.critic = Reshape(graph.ApplyWb(fc, weights.critic), [-1])
-
-    def get_action_and_value(self, state):
-        return subgraph.Subgraph.Op([self.actor.node, self.critic.node], state=state)
-
-
-class Convolution(subgraph.Subgraph):
-    def build_graph(self, x, wb, stride):
-        return tf.nn.conv2d(x.node, wb.W, strides=[1, stride, stride, 1], padding="VALID") + wb.b
-
-
-class Relu(subgraph.Subgraph):
-    def build_graph(self, x):
-        return tf.nn.relu(x.node)
-
-
-class Reshape(subgraph.Subgraph):
-    def build_graph(self, x, shape):
-        return tf.reshape(x.node, shape)
-
-
-class Softmax(subgraph.Subgraph):
-    def build_graph(self, x):
-        return tf.nn.softmax(x.node)
 
 
 class Loss(subgraph.Subgraph):
@@ -113,21 +84,7 @@ class Loss(subgraph.Subgraph):
         value_loss = tf.reduce_sum(tf.square(discounted_reward.node - critic.node))
 
         # gradient of policy and value are summed up
-        loss = policy_loss + value_loss
-
-        self.gradients = utils.Utils.reconstruct(
-            tf.gradients(loss, list(utils.Utils.flatten(weights.node))),
-            weights.node
-        )
-
-    def compute_gradients(self, state, action, value, discounted_reward):
-        return subgraph.Subgraph.Op(
-            self.gradients,
-            state=state,
-            action=action,
-            value=value,
-            discounted_reward=discounted_reward
-        )
+        return policy_loss + value_loss
 
 
 class LearningRate(subgraph.Subgraph):

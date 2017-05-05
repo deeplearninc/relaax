@@ -17,22 +17,23 @@ class SharedParameters(subgraph.Subgraph):
         )
 
         # Build graph
-        ph_n_steps = graph.Placeholder(np.int64)
-        sg_n_step = graph.Counter(ph_n_steps, np.int64)
+        ph_increment = graph.Placeholder(np.int64)
+        sg_global_step = graph.GlobalStep(ph_increment)
         sg_weights = graph.List(graph.Wb(np.float32, shape) for shape in shapes)
         ph_gradients = graph.PlaceholdersByVariables(sg_weights)
         sg_apply_gradients = graph.ApplyGradients(
             graph.AdamOptimizer(learning_rate=pg_config.config.learning_rate),
             sg_weights,
-            ph_gradients
+            ph_gradients,
+            sg_global_step
         )
         sg_initialize = graph.Initialize()
 
         # Expose public API
-        self.op_n_step = sg_n_step.value()
-        self.op_get_weights = sg_weights.get()
-        self.op_apply_gradients = sg_apply_gradients.apply_gradients(ph_gradients)
-        self.op_initialize = sg_initialize.initialize()
+        self.op_n_step = self.Op(sg_global_step.n)
+        self.op_get_weights = self.Op(sg_weights)
+        self.op_apply_gradients = self.Op(sg_apply_gradients, gradients=ph_gradients, increment=ph_increment)
+        self.op_initialize = self.Op(sg_initialize)
 
 
 # Policy run by Agent(s)
@@ -46,6 +47,7 @@ class PolicyModel(subgraph.Subgraph):
 
         sg_weights = graph.List(graph.Wb(np.float32, shape) for shape in shapes)
         ph_weights = graph.PlaceholdersByVariables(sg_weights)
+        sg_assign_weights = graph.Assign(sg_weights, ph_weights)
 
         ph_state = graph.Placeholder(np.float32, (None, pg_config.config.state_size))
         ph_action = graph.Placeholder(np.int32, (None, ))
@@ -59,14 +61,16 @@ class PolicyModel(subgraph.Subgraph):
             network=sg_network
         )
 
-        sg_policy = graph.Policy(sg_network, sg_policy_loss)
-
-        sg_assign_weights = graph.Assign(sg_weights, ph_weights)
+        sg_gradients = graph.Gradients(sg_policy_loss, sg_weights)
 
         # Expose public API
-        self.op_assign_weights = sg_assign_weights.assign(ph_weights)
-        self.op_get_action = sg_policy.get_action(ph_state)
-        self.op_compute_gradients = sg_policy.compute_gradients(ph_state, ph_action, ph_discounted_reward)
+        self.op_assign_weights = self.Op(sg_assign_weights, weights=ph_weights)
+        self.op_get_action = self.Op(sg_network, state=ph_state)
+        self.op_compute_gradients = self.Op(sg_gradients,
+            state=ph_state,
+            action=ph_action,
+            discounted_reward=ph_discounted_reward
+        )
 
 
 if __name__ == '__main__':

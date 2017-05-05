@@ -80,7 +80,7 @@ class DA3CEpisode(object):
         self.last_value = value
 
     def load_shared_parameters(self):
-        self.session.op_assign_weights(values=self.ps.session.op_get_weights())
+        self.session.op_assign_weights(weights=self.ps.session.op_get_weights())
 
     def get_action_and_value_from_network(self):
         action, value = self.session.op_get_action_and_value(state=[self.observation.queue])

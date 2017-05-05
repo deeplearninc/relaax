@@ -34,7 +34,7 @@ class PGEpisode(object):
     def end(self):
         experience = self.episode.end()
         if not self.exploit:
-            self.apply_gradients(self.compute_gradients(experience))
+            self.apply_gradients(self.compute_gradients(experience), len(experience))
 
     def reset(self):
         self.episode = episode.Episode('reward', 'state', 'action')
@@ -68,7 +68,7 @@ class PGEpisode(object):
         self.last_action = action
 
     def load_shared_parameters(self):
-        self.session.op_assign_weights(values=self.ps.session.op_get_weights())
+        self.session.op_assign_weights(weights=self.ps.session.op_get_weights())
 
     def action_from_policy(self, state):
         assert state is not None
@@ -87,5 +87,5 @@ class PGEpisode(object):
             discounted_reward=discounted_reward
         )
 
-    def apply_gradients(self, gradients):
-        self.ps.session.op_apply_gradients(gradients=gradients)
+    def apply_gradients(self, gradients, size):
+        self.ps.session.op_apply_gradients(gradients=gradients, increment=size)

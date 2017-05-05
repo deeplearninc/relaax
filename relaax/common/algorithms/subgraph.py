@@ -12,6 +12,6 @@ class Subgraph(object):
         return self.__node
 
     class Op(object):
-        def __init__(self, subgraph, **kwargs):
-            self.subgraph = subgraph
-            self.feed_dict = kwargs
+        def __init__(self, *ops, **feed_dict):
+            self.ops = ops
+            self.feed_dict = feed_dict
