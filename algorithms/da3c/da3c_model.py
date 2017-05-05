@@ -1,9 +1,9 @@
 import numpy as np
 
 from relaax.common.algorithms import subgraph
-from lib import da3c_graph
 from relaax.common.algorithms.lib import graph
 from relaax.common.algorithms.lib import utils
+from lib import da3c_graph
 import da3c_config
 
 

@@ -47,8 +47,9 @@ class Softmax(subgraph.Subgraph):
 
 
 class List(subgraph.Subgraph):
-    def build_graph(self, nodes):
-        return map(lambda n: n.node, nodes)
+    def build_graph(self, items):
+        self.items = list(items)
+        return map(lambda i: i.node, self.items)
 
 
 class Assign(subgraph.Subgraph):
@@ -225,11 +226,10 @@ class FullyConnected(subgraph.Subgraph):
     """Builds fully connected neural network."""
 
     def build_graph(self, state, weights):
-        self.weights = weights
-        last = state.node
-        for w, b in weights.node:
-            last = tf.nn.relu(tf.matmul(last, w) + b)
-        return tf.nn.softmax(last)
+        last = state
+        for wb in weights.items:
+            last = Relu(ApplyWb(last, wb))
+        return last.node
 
 
 class PolicyLoss(subgraph.Subgraph):

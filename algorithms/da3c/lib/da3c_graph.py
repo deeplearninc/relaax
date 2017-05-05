@@ -43,15 +43,6 @@ class Network(subgraph.Subgraph):
         self.critic = graph.Reshape(graph.ApplyWb(fc, weights.critic), [-1])
 
 
-class LearningRate(subgraph.Subgraph):
-    def build_graph(self, global_step):
-        n_steps = np.int64(da3c_config.config.max_global_step)
-        reminder = tf.subtract(n_steps, global_step.n.node)
-        factor = tf.cast(reminder, tf.float64) / tf.cast(n_steps, tf.float64)
-        learning_rate = tf.maximum(tf.cast(0, tf.float64), factor * da3c_config.config.initial_learning_rate)
-        return learning_rate
-
-
 class Loss(subgraph.Subgraph):
     def build_graph(self, state, action, value, discounted_reward, weights, actor, critic):
         action_one_hot = tf.one_hot(action.node, da3c_config.config.action_size)
@@ -75,3 +66,12 @@ class Loss(subgraph.Subgraph):
 
         # gradient of policy and value are summed up
         return policy_loss + value_loss
+
+
+class LearningRate(subgraph.Subgraph):
+    def build_graph(self, global_step):
+        n_steps = np.int64(da3c_config.config.max_global_step)
+        reminder = tf.subtract(n_steps, global_step.n.node)
+        factor = tf.cast(reminder, tf.float64) / tf.cast(n_steps, tf.float64)
+        learning_rate = tf.maximum(tf.cast(0, tf.float64), factor * da3c_config.config.initial_learning_rate)
+        return learning_rate

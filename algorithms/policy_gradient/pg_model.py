@@ -52,7 +52,7 @@ class PolicyModel(subgraph.Subgraph):
         ph_action = graph.Placeholder(np.int32, (None, ))
         ph_discounted_reward = graph.Placeholder(np.float32, (None, 1))
 
-        sg_network = graph.FullyConnected(ph_state, sg_weights)
+        sg_network = graph.Softmax(graph.FullyConnected(ph_state, sg_weights))
         sg_policy_loss = graph.PolicyLoss(
             action=ph_action,
             action_size=pg_config.config.action_size,
