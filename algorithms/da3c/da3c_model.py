@@ -1,10 +1,35 @@
 import numpy as np
 
 from relaax.common.algorithms import subgraph
+from relaax.common.algorithms.lib import activation
 from relaax.common.algorithms.lib import graph
+from relaax.common.algorithms.lib import layer
 from relaax.common.algorithms.lib import utils
 from lib import da3c_graph
 import da3c_config
+
+
+class Network(subgraph.Subgraph):
+    def build_graph(self):
+        state = graph.Placeholder(np.float32, shape=[None] +
+                da3c_config.options.get('algorithm/state_shape') +
+                [da3c_config.options.get('algorithm/history_len')])
+
+        conv1 = layer.Convolution2D(state, 16, 8, 8, subsample=(4, 4),
+                border_mode='valid', activation=activation.Relu)
+        conv2 = layer.Convolution2D(conv1, 32, 4, 4, subsample=(2, 2),
+                border_mode='valid', activation=activation.Relu)
+
+        fc = layer.Dense(graph.Flatten(conv2), 256, activation=activation.Relu)
+
+        actor = layer.Dense(fc, action_size, activation='softmax')
+        critic = layer.Dense(fc, 1)
+
+        self.state = state
+        self.actor = graph.Softmax(actor)
+        self.critic = graph.Flatten(critic)
+        self.weights = [layer.weight
+                for layer in [conv1, conv2, fc, actor, critic]]
 
 
 # Weights of the policy are shared across
@@ -14,7 +39,7 @@ class SharedParameters(subgraph.Subgraph):
         # Build graph
         ph_increment = graph.Placeholder(np.int64)
         sg_global_step = graph.GlobalStep(ph_increment)
-        sg_weights = da3c_graph.Weights()
+        sg_weights = da3c_graph.Network().weights
         ph_gradients = graph.PlaceholdersByVariables(sg_weights)
         sg_learning_rate = da3c_graph.LearningRate(sg_global_step)
         sg_optimizer = graph.RMSPropOptimizer(
@@ -40,18 +65,14 @@ class SharedParameters(subgraph.Subgraph):
 class AgentModel(subgraph.Subgraph):
     def build_graph(self):
         # Build graph
-        sg_weights = da3c_graph.Weights()
+        sg_network = da3c_graph.Network()
+        ph_state = sg_network.state
+        sg_weights = sg_network.weights
         ph_weights = graph.PlaceholdersByVariables(sg_weights)
         sg_assign_weights = graph.Assign(sg_weights, ph_weights)
-        ph_state = graph.Placeholder(np.float32, shape=
-            [None] +
-            da3c_config.options.get('algorithm/state_shape') +
-            [da3c_config.options.get('algorithm/history_len')]
-        )
         ph_action = graph.Placeholder(np.int32, shape=(None, ))
         ph_value = graph.Placeholder(np.float32, shape=(None, ))
         ph_discounted_reward = graph.Placeholder(np.float32, shape=(None, ))
-        sg_network = da3c_graph.Network(ph_state, sg_weights)
         sg_loss = da3c_graph.Loss(ph_state, ph_action, ph_value,
                 ph_discounted_reward, sg_network.actor, sg_network.critic)
         sg_gradients = graph.Gradients(sg_loss, sg_weights)

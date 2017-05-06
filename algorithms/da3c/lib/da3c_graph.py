@@ -7,7 +7,7 @@ from relaax.common.algorithms.lib import utils
 
 from .. import da3c_config
 
-
+'''
 class Weights(subgraph.Subgraph):
     def build_graph(self):
         self.conv1 = graph.Wb(np.float32, (8, 8, 4, 16)) # stride=4
@@ -28,20 +28,7 @@ class Weights(subgraph.Subgraph):
             self.actor,
             self.critic
         ])
-
-
-class Network(subgraph.Subgraph):
-    def build_graph(self, state, weights):
-        conv1 = graph.Relu(graph.Convolution(state, weights.conv1, 4))
-        conv2 = graph.Relu(graph.Convolution(conv1, weights.conv2, 2))
-
-        conv2_flat = graph.Reshape(conv2, [-1, 2592])
-        fc = graph.Relu(graph.ApplyWb(conv2_flat, weights.fc))
-
-        self.actor = graph.Softmax(graph.ApplyWb(fc, weights.actor))
-
-        self.critic = graph.Reshape(graph.ApplyWb(fc, weights.critic), [-1])
-
+'''
 
 class Loss(subgraph.Subgraph):
     def build_graph(self, state, action, value, discounted_reward, actor, critic):
