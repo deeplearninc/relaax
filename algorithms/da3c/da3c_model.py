@@ -16,7 +16,7 @@ class Network(subgraph.Subgraph):
                    
         conv = da3c_graph.Convolutions(state, da3c_config.config.use_convolutions)
 
-        fc = layer.Dense(graph.Flatten(conv), 256, activation=graph.Relu)
+        fc = layer.Dense(layer.Flatten(conv), 256, activation=graph.Relu)
 
         actor = layer.Dense(fc, da3c_config.config.action_size, activation=graph.Softmax)
         critic = layer.Dense(fc, 1)
@@ -24,7 +24,7 @@ class Network(subgraph.Subgraph):
         self.state = state
         self.actor = graph.Softmax(actor)
         self.critic = graph.Flatten(critic)
-        self.weights = [l.weight for l in (conv, fc, actor, critic)]
+        self.weights = graph.Variables(*[l.weight for l in (conv, fc, actor, critic)])
 
 
 # Weights of the policy are shared across

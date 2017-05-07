@@ -14,14 +14,15 @@ class Convolutions(subgraph.Subgraph):
     ACTIVATION = {}
 
     def build_graph(self, x, convolutions):
-        self.weight = []
+        weights = []
         last = x
         for conv in convolutions:
-            last = layer.Convolution(last, **self._edit(conv.clone())
-            self.weight.append(last.weight)
-        return last
+            last = layer.Convolution(last, **self._parse(conv.copy()))
+            weights.append(last.weight)
+        self.weight = graph.Variables(*weights)
+        return last.node
 
-    def _edit(self, conv):
+    def _parse(self, conv):
         for key, mapping in [('border', self.BORDER),
                 ('activation', self.ACTIVATION)]:
             if key in conv:
@@ -29,27 +30,7 @@ class Convolutions(subgraph.Subgraph):
         return conv
 
 
-        '''
-
-    conv2:
-      input: conv1
-      type: convolution_2D
-      n_filters: 32
-      filter_size: [4, 4]
-      stride: [2, 2]
-      border: valid
-      activation: relu
-
-
-        conv1 = layer.Convolution2D(state, 16, 8, 8, subsample=(4, 4),
-                border_mode='valid', activation=activation.Relu)
-        conv2 = layer.Convolution2D(conv1, 32, 4, 4, subsample=(2, 2),
-                border_mode='valid', activation=activation.Relu)
-                '''
 '''
-class Weights(subgraph.Subgraph):
-    def build_graph(self):
-        self.conv1 = graph.Wb(np.float32, (8, 8, 4, 16)) # stride=4
         self.conv2 = graph.Wb(np.float32, (4, 4, 16, 32)) # stride=2
 
         self.fc = graph.Wb(np.float32, (2592, 256))

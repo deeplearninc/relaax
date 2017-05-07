@@ -88,9 +88,14 @@ class Gradients(subgraph.Subgraph):
         )
 
 
+class Reshape(subgraph.Subgraph):
+    def build_graph(self, x, shape):
+        return tf.reshape(x.node, shape)
+
+
 class Flatten(subgraph.Subgraph):
     def build_graph(self, x):
-        print repr(x)
+        return Reshape(x, (-1, )).node
 
 
 class Convolution(subgraph.Subgraph):
@@ -158,8 +163,9 @@ class Placeholder(subgraph.Subgraph):
         return tf.placeholder(self.DTYPE[dtype], shape=shape)
 
 
-class PlaceholdersByVariables(subgraph.Subgraph):
+class Placeholders(subgraph.Subgraph):
     def build_graph(self, variables):
+        print repr(variables)
         return utils.Utils.map(
             variables.node,
             lambda v: tf.placeholder(shape=v.get_shape(), dtype=v.dtype)
@@ -182,14 +188,19 @@ class Variable(subgraph.Subgraph):
         return tf.Variable(initial_value, dtype=self.DTYPE[dtype])
 
 
-class VariablesByShapes(subgraph.Subgraph):
-    """Holder for variables representing weights of the fully connected NN."""
+class Variables(subgraph.Subgraph):
+    def build_graph(self, *variables):
+        return [variable.node for variable in variables]
 
-    def build_graph(self, dtype, shapes, initializer=DefaultInitializer()):
-        return [
-            tf.Variable(initial_value=initializer(shape=shape, dtype=dtype))
-            for shape in shapes
-        ]
+    def assign(self, values):
+        return TfNode([
+            tf.assign(variable, value)
+            for variable, value in utils.Utils.izip(
+                self.node,
+                values.node
+            )
+        ])
+
 
 
 class Wb(subgraph.Subgraph):
@@ -231,3 +242,8 @@ class PolicyLoss(subgraph.Subgraph):
 class Initialize(subgraph.Subgraph):
     def build_graph(self):
         return tf.global_variables_initializer()
+
+
+class TfNode(subgraph.Subgraph):
+    def build_graph(self, tf_tensor):
+        return tf_tensor
