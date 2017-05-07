@@ -88,6 +88,11 @@ class Gradients(subgraph.Subgraph):
         )
 
 
+class Flatten(subgraph.Subgraph):
+    def build_graph(self, x):
+        print repr(x)
+
+
 class Convolution(subgraph.Subgraph):
     def build_graph(self, x, wb, stride):
         return tf.nn.conv2d(x.node, wb.W, strides=[1, stride, stride, 1], padding="VALID") + wb.b

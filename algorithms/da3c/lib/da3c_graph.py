@@ -3,10 +3,49 @@ import tensorflow as tf
 
 from relaax.common.algorithms import subgraph
 from relaax.common.algorithms.lib import graph
+from relaax.common.algorithms.lib import layer
 from relaax.common.algorithms.lib import utils
 
 from .. import da3c_config
 
+
+class Convolutions(subgraph.Subgraph):
+    BORDER = {}
+    ACTIVATION = {}
+
+    def build_graph(self, x, convolutions):
+        self.weight = []
+        last = x
+        for conv in convolutions:
+            last = layer.Convolution(last, **self._edit(conv.clone())
+            self.weight.append(last.weight)
+        return last
+
+    def _edit(self, conv):
+        for key, mapping in [('border', self.BORDER),
+                ('activation', self.ACTIVATION)]:
+            if key in conv:
+                conv[key] = mapping[conv[key]]
+        return conv
+
+
+        '''
+
+    conv2:
+      input: conv1
+      type: convolution_2D
+      n_filters: 32
+      filter_size: [4, 4]
+      stride: [2, 2]
+      border: valid
+      activation: relu
+
+
+        conv1 = layer.Convolution2D(state, 16, 8, 8, subsample=(4, 4),
+                border_mode='valid', activation=activation.Relu)
+        conv2 = layer.Convolution2D(conv1, 32, 4, 4, subsample=(2, 2),
+                border_mode='valid', activation=activation.Relu)
+                '''
 '''
 class Weights(subgraph.Subgraph):
     def build_graph(self):
