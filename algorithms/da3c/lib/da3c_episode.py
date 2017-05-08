@@ -98,7 +98,7 @@ class DA3CEpisode(object):
 
         # compute and accumulate gradients
         for t in reversed(xrange(len(reward))):
-            r = reward[t] + da3c_config.options.get('algorithm/rewards_gamma') * r
+            r = reward[t] + da3c_config.config.rewards_gamma * r
             discounted_reward[t] = r
 
 

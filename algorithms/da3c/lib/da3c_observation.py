@@ -15,11 +15,8 @@ class DA3CObservation(object):
         axis = len(state.shape)  # extra dimension for observation
         observation = np.reshape(state, state.shape + (1,))
         if self.queue is None:
-            self.queue = np.repeat(
-                observation,
-                da3c_config.options.get('algorithm/history_len'),
-                axis=axis
-            )
+            self.queue = np.repeat(observation,
+                    da3c_config.config.input.history, axis=axis)
         else:
             # remove oldest observation from the begining of the observation queue
             self.queue = np.delete(self.queue, 0, axis=axis)

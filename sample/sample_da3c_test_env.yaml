@@ -34,17 +34,18 @@ algorithm:
   path: ../algorithms/da3c
 
   action_size: 2                  # action size for given game rom (18 fits ale boxing)
-  state_shape: [84, 84]           # dimensions of input screen frame of an Atari game
-  history_len: 4                  # number of observations to stack in state
   batch_size: 5                   # local loop size for one episode
 
-  use_convolutions:
-    - n_filters: 16
-      filter_size: [8, 8]
-      stride: [4, 4]
-    - n_filters: 32
-      filter_size: [4, 4]
-      stride: [2, 2]
+  input:
+    shape: [84, 84]
+    history: 4
+    use_convolutions:
+      - n_filters: 16
+        filter_size: [8, 8]
+        stride: [4, 4]
+      - n_filters: 32
+        filter_size: [4, 4]
+        stride: [2, 2]
 
   gpu: false                      # to use GPU, set to the True
   lstm: false                     # to use LSTM instead of FF, set to the True

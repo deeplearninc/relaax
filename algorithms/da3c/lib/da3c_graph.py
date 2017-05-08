@@ -9,6 +9,17 @@ from relaax.common.algorithms.lib import utils
 from .. import da3c_config
 
 
+class Input(subgraph.Subgraph):
+    def build_graph(self, input_):
+        self.state = graph.Placeholder(np.float32,
+                shape=[None] + input_.shape + [input_.history])
+
+        conv = Convolutions(self.state, input_.use_convolutions)
+
+        self.weight = conv.weight
+        return conv.node
+
+
 class Convolutions(subgraph.Subgraph):
     BORDER = {}
     ACTIVATION = {}
@@ -29,26 +40,6 @@ class Convolutions(subgraph.Subgraph):
                 conv[key] = mapping[conv[key]]
         return conv
 
-
-'''
-        self.conv2 = graph.Wb(np.float32, (4, 4, 16, 32)) # stride=2
-
-        self.fc = graph.Wb(np.float32, (2592, 256))
-
-        # weight for policy output layer
-        self.actor = graph.Wb(np.float32, (256, da3c_config.config.action_size))
-
-        # weight for value output layer
-        self.critic = graph.Wb(np.float32, (256, 1))
-
-        return map(lambda sg: sg.node, [
-            self.conv1,
-            self.conv2,
-            self.fc,
-            self.actor,
-            self.critic
-        ])
-'''
 
 class Loss(subgraph.Subgraph):
     def build_graph(self, state, action, value, discounted_reward, actor, critic):
