@@ -22,7 +22,7 @@ class Network(subgraph.Subgraph):
         critic = layer.Dense(fc, 1)
 
         self.state = state
-        self.actor = graph.Softmax(actor)
+        self.actor = actor
         self.critic = graph.Flatten(critic)
         self.weights = graph.Variables(*[l.weight for l in (conv, fc, actor, critic)])
 
@@ -83,5 +83,5 @@ class AgentModel(subgraph.Subgraph):
         )
 
 
-if __name__ == '__main__':
+if True or __name__ == '__main__':
     utils.assemble_and_show_graphs(SharedParameters, AgentModel)

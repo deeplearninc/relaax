@@ -31,7 +31,10 @@ class Convolution(subgraph.Subgraph):
 
 
 class Dense(subgraph.Subgraph):
-    def build_graph(self, x, size, activation=graph.Relu):
+    def build_graph(self, x, size, activation=None):
         assert len(x.node.shape) == 2
         self.weight = graph.Wb(np.float32, (x.node.shape.as_list()[1], size))
-        return activation(graph.ApplyWb(x, self.weight)).node
+        result = graph.ApplyWb(x, self.weight)
+        if activation is not None:
+            result = activation(result)
+        return result.node
