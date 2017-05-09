@@ -30,10 +30,12 @@ algorithm:
   path: ../algorithms/policy_gradient
   use_system_ps: false
 
-  action_size: 2                  # action size for the given environment
-  state_size: 2
+  input:
+    shape: [2]
+    history: 1
+
   hidden_sizes: []                # array of dimensions for the input observation
-  history_len: 1                  # number of observations to stack in state
+  action_size: 2                  # action size for the given environment
   episode_len: 5                  # local loop size for one episode
   batch_size: 800
   gpu: false                      # to use GPU, set to the True

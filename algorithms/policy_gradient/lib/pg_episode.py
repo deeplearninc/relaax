@@ -27,6 +27,8 @@ class PGEpisode(object):
         if reward is not None:
             self.push_experience(reward)
         assert (state is None) == terminal
+        if state is not None:
+            state = [[i] for i in state]
         action = self.get_action(state)
         self.keep_state_and_action(state, action)
         return action

@@ -12,6 +12,11 @@ class Subgraph(object):
         return self.__node
 
     class Op(object):
+        def __init__(self, op, **feed_dict):
+            self.ops = [op]
+            self.feed_dict = feed_dict
+
+    class Ops(object):
         def __init__(self, *ops, **feed_dict):
             self.ops = ops
             self.feed_dict = feed_dict

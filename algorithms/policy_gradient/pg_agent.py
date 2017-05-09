@@ -21,7 +21,7 @@ class PGAgent(object):
     # environment generated new state and reward
     # and asking agent for an action for this state
     def update(self, reward, state, terminal):
-        if pg_config.config.state_size == 0:
+        if pg_config.config.input.shape == []:
             if not terminal:
                 if state is None:
                     state = []

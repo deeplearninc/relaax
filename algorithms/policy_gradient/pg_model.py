@@ -2,25 +2,37 @@ import numpy as np
 
 from relaax.common.algorithms import subgraph
 from relaax.common.algorithms.lib import graph
+from relaax.common.algorithms.lib import layer
 from relaax.common.algorithms.lib import utils
 
 import pg_config
+
+
+class Network(subgraph.Subgraph):
+    def build_graph(self):
+        input = layer.Input(pg_config.config.input)
+
+        weights = [input.weight]
+
+        last = layer.Flatten(input)
+        for size in pg_config.config.hidden_sizes + [pg_config.config.action_size]:
+            last = layer.Dense(last, size, activation=layer.Activation.Relu)
+            weights.append(last.weight)
+
+        self.state = input.state
+        self.weights = graph.Variables(*weights)
+        return graph.Softmax(last).node
 
 
 # Weights of the policy are shared across
 # all agents and stored on the parameter server
 class SharedParameters(subgraph.Subgraph):
     def build_graph(self):
-        shapes = zip(
-            [pg_config.config.state_size] + pg_config.config.hidden_sizes,
-            pg_config.config.hidden_sizes + [pg_config.config.action_size]
-        )
-
         # Build graph
         ph_increment = graph.Placeholder(np.int64)
         sg_global_step = graph.GlobalStep(ph_increment)
-        sg_weights = graph.List(graph.Wb(np.float32, shape) for shape in shapes)
-        ph_gradients = graph.PlaceholdersByVariables(sg_weights)
+        sg_weights = Network().weights
+        ph_gradients = graph.Placeholders(variables=sg_weights)
         sg_optimizer = graph.AdamOptimizer(pg_config.config.learning_rate)
         sg_apply_gradients = graph.ApplyGradients(sg_optimizer, sg_weights, ph_gradients)
         sg_initialize = graph.Initialize()
@@ -28,7 +40,7 @@ class SharedParameters(subgraph.Subgraph):
         # Expose public API
         self.op_n_step = self.Op(sg_global_step.n)
         self.op_get_weights = self.Op(sg_weights)
-        self.op_apply_gradients = self.Op(sg_apply_gradients, sg_global_step.increment,
+        self.op_apply_gradients = self.Ops(sg_apply_gradients, sg_global_step.increment,
             gradients=ph_gradients,
             increment=ph_increment
         )
@@ -39,20 +51,15 @@ class SharedParameters(subgraph.Subgraph):
 class PolicyModel(subgraph.Subgraph):
     def build_graph(self):
         # Build graph
-        shapes = zip(
-            [pg_config.config.state_size] + pg_config.config.hidden_sizes,
-            pg_config.config.hidden_sizes + [pg_config.config.action_size]
-        )
+        sg_network = Network()
+        ph_state = sg_network.state
+        sg_weights = sg_network.weights
+        ph_weights = graph.Placeholders(variables=sg_weights)
+        sg_assign_weights = sg_weights.assign(ph_weights)
 
-        sg_weights = graph.List(graph.Wb(np.float32, shape) for shape in shapes)
-        ph_weights = graph.PlaceholdersByVariables(sg_weights)
-        sg_assign_weights = graph.Assign(sg_weights, ph_weights)
-
-        ph_state = graph.Placeholder(np.float32, (None, pg_config.config.state_size))
         ph_action = graph.Placeholder(np.int32, (None, ))
         ph_discounted_reward = graph.Placeholder(np.float32, (None, 1))
 
-        sg_network = graph.Softmax(graph.FullyConnected(ph_state, sg_weights))
         sg_policy_loss = graph.PolicyLoss(
             action=ph_action,
             action_size=pg_config.config.action_size,

@@ -88,6 +88,11 @@ class Gradients(subgraph.Subgraph):
         )
 
 
+class Softmax(subgraph.Subgraph):
+    def build_graph(self, x):
+        return tf.nn.softmax(x.node)
+
+
 class Reshape(subgraph.Subgraph):
     def build_graph(self, x, shape):
         return tf.reshape(x.node, shape)
@@ -98,24 +103,9 @@ class Flatten(subgraph.Subgraph):
         return Reshape(x, (-1, )).node
 
 
-class Convolution(subgraph.Subgraph):
-    def build_graph(self, x, wb, stride):
-        return tf.nn.conv2d(x.node, wb.W, strides=[1, stride, stride, 1], padding="VALID") + wb.b
-
-
-class Relu(subgraph.Subgraph):
-    def build_graph(self, x):
-        return tf.nn.relu(x.node)
-
-
 class Reshape(subgraph.Subgraph):
     def build_graph(self, x, shape):
         return tf.reshape(x.node, shape)
-
-
-class Softmax(subgraph.Subgraph):
-    def build_graph(self, x):
-        return tf.nn.softmax(x.node)
 
 
 class List(subgraph.Subgraph):
@@ -200,31 +190,6 @@ class Variables(subgraph.Subgraph):
                 values.node
             )
         ])
-
-
-
-class Wb(subgraph.Subgraph):
-    def build_graph(self, dtype, shape):
-        d = 1.0 / np.sqrt(np.prod(shape[:-1]))
-        initializer = RandomUniformInitializer(minval=-d, maxval=d)
-        self.W = Variable(initializer(dtype, shape     )).node
-        self.b = Variable(initializer(dtype, shape[-1:])).node
-        return self.W, self.b
-
-
-class ApplyWb(subgraph.Subgraph):
-    def build_graph(self, x, wb):
-        return tf.matmul(x.node, wb.W) + wb.b
-
-
-class FullyConnected(subgraph.Subgraph):
-    """Builds fully connected neural network."""
-
-    def build_graph(self, state, weights):
-        last = state
-        for wb in weights.items:
-            last = Relu(ApplyWb(last, wb))
-        return last.node
 
 
 class PolicyLoss(subgraph.Subgraph):

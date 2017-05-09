@@ -9,38 +9,6 @@ from relaax.common.algorithms.lib import utils
 from .. import da3c_config
 
 
-class Input(subgraph.Subgraph):
-    def build_graph(self, input_):
-        self.state = graph.Placeholder(np.float32,
-                shape=[None] + input_.shape + [input_.history])
-
-        conv = Convolutions(self.state, input_.use_convolutions)
-
-        self.weight = conv.weight
-        return conv.node
-
-
-class Convolutions(subgraph.Subgraph):
-    BORDER = {}
-    ACTIVATION = {}
-
-    def build_graph(self, x, convolutions):
-        weights = []
-        last = x
-        for conv in convolutions:
-            last = layer.Convolution(last, **self._parse(conv.copy()))
-            weights.append(last.weight)
-        self.weight = graph.Variables(*weights)
-        return last.node
-
-    def _parse(self, conv):
-        for key, mapping in [('border', self.BORDER),
-                ('activation', self.ACTIVATION)]:
-            if key in conv:
-                conv[key] = mapping[conv[key]]
-        return conv
-
-
 class Loss(subgraph.Subgraph):
     def build_graph(self, state, action, value, discounted_reward, actor, critic):
         action_one_hot = tf.one_hot(action.node, da3c_config.config.action_size)
