@@ -86,7 +86,7 @@ class NdarrayMarshaller(BaseMarshaller):
         assert block_size > 0
 
         data = array.data
-        size = data.nbytes
+        size = array.nbytes
 
         # optimization to avoid extra data copying if array data fits to one block
         # TODO: compare actual performance
