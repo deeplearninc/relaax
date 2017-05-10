@@ -1,10 +1,11 @@
+from __future__ import absolute_import
 import logging
 import traceback
 
 # Load configuration options
 # do it as early as possible
-from rlx_port import RLXPort
-from rlx_config import options
+from .rlx_port import RLXPort
+from .rlx_config import options
 from relaax.server.common.algorithm_loader import AlgorithmLoader
 
 log = logging.getLogger(__name__)
@@ -29,11 +30,11 @@ class RLXServer():
 
             if name == 'rawsocket':
                 log.debug("Loading protocol over raw socket")
-                import rlx_protocol.rawsocket.rlx_protocol as protocol
+                from .rlx_protocol.rawsocket import rlx_protocol as protocol
                 options.protocol = protocol
             elif name == 'twisted':
                 log.debug("Loading protocol on twisted")
-                import rlx_protocol.twisted.rlx_protocol as protocol
+                from .rlx_protocol.twisted import rlx_protocol as protocol
                 options.protocol = protocol
             else:
                 raise

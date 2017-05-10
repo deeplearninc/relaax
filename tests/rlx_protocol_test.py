@@ -1,15 +1,17 @@
+from __future__ import absolute_import
+from builtins import object
 import json
 from mock import Mock
 
-from fixtures.mock_cmdl import cmdl
-from fixtures.mock_utils import MockUtils
+from .fixtures.mock_cmdl import cmdl
+from .fixtures.mock_utils import MockUtils
 from relaax.server.rlx_server.rlx_config import options
 from relaax.common.rlx_netstring import NetStringClosed
 from relaax.server.rlx_server.\
     rlx_protocol.rawsocket.rlx_protocol import RLXProtocol, adoptConnection
 
 
-class TestRlxProtocol:
+class TestRlxProtocol(object):
 
     @classmethod
     def setup_class(cls):

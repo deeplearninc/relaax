@@ -1,9 +1,11 @@
+from __future__ import absolute_import
+from builtins import object
 import grpc
 
 from relaax.server.common.metrics import metrics
 
-import bridge_pb2
-import bridge_message
+from . import bridge_pb2
+from . import bridge_message
 
 
 class BridgeConnection(object):

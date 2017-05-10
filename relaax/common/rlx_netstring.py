@@ -1,3 +1,5 @@
+from builtins import str
+from builtins import object
 import re
 
 
@@ -9,7 +11,7 @@ class NetStringClosed(Exception):
     pass
 
 
-class NetString():
+class NetString(object):
     MAX_STRING_LEN = 10**9
     MAX_LEN_DIGITS = len(str(MAX_STRING_LEN - 1))
 

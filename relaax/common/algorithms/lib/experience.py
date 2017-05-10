@@ -1,3 +1,4 @@
+from builtins import object
 class Experience(object):
     def __init__(self, *args):
         self._lists = {k: [] for k in args}
@@ -10,6 +11,6 @@ class Experience(object):
         return self._lists[name]
 
     def push_record(self, **kwargs):
-        for k, v in self._lists.iteritems():
+        for k, v in self._lists.items():
             v.append(kwargs[k])
         self._len += 1

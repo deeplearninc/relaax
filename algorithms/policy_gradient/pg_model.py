@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import numpy as np
 
 from relaax.common.algorithms import subgraph
@@ -5,7 +6,7 @@ from relaax.common.algorithms.lib import graph
 from relaax.common.algorithms.lib import layer
 from relaax.common.algorithms.lib import utils
 
-import pg_config
+from . import pg_config
 
 
 class Network(subgraph.Subgraph):

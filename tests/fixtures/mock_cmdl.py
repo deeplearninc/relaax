@@ -1,7 +1,8 @@
+from builtins import object
 import sys
 
 
-class MockCmdl:
+class MockCmdl(object):
 
     def __init__(self):
         self.argv = sys.argv

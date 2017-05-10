@@ -1,14 +1,17 @@
+from __future__ import absolute_import
+from builtins import str
+from builtins import object
 import time
 import errno
 import socket
 
-from fixtures.mock_utils import MockUtils
-from fixtures.mock_socket import MockSocket
+from .fixtures.mock_utils import MockUtils
+from .fixtures.mock_socket import MockSocket
 from relaax.common.rlx_netstring import NetString
 from relaax.client.rlx_client import RlxClient, RlxClientException
 
 
-class TestRlxClient:
+class TestRlxClient(object):
 
     def test_connect(self, monkeypatch):
         skt = MockSocket.create()

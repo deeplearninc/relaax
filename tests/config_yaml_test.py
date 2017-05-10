@@ -1,9 +1,11 @@
+from builtins import str
+from builtins import object
 from argparse import Namespace
 
 from relaax.common.python.config.config_yaml import ConfigYaml
 
 
-class TestConfigYaml:
+class TestConfigYaml(object):
 
     def setup_method(self, method):
         self.yaml = ConfigYaml()

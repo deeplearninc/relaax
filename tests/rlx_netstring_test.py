@@ -1,10 +1,13 @@
+from __future__ import absolute_import
+from builtins import str
+from builtins import object
 from mock import Mock
-from fixtures.mock_socket import MockSocket
+from .fixtures.mock_socket import MockSocket
 
 from relaax.common.rlx_netstring import NetString, NetStringClosed, NetStringException
 
 
-class TestNetString:
+class TestNetString(object):
 
     def setup_method(self, method):
         self.socket = MockSocket.create()

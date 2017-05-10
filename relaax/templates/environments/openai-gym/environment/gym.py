@@ -1,5 +1,9 @@
 from __future__ import print_function
+from __future__ import division
 
+from builtins import range
+from past.utils import old_div
+from builtins import object
 import os
 import gym
 import random
@@ -124,7 +128,7 @@ class GymEnv(object):
         state = resized_screen[18:102, :]
 
         state = state.astype(np.float32)
-        state *= (1.0 / 255.0)
+        state *= (old_div(1.0, 255.0))
         return state
 
     @staticmethod

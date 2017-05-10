@@ -1,8 +1,11 @@
+from __future__ import absolute_import
+from builtins import str
+from builtins import object
 import logging
 import traceback
 
 from relaax.server.common.bridge.bridge_connection import BridgeConnection
-from rlx_config import options
+from .rlx_config import options
 
 log = logging.getLogger(__name__)
 

@@ -1,6 +1,11 @@
+from __future__ import absolute_import
+from builtins import next
+from builtins import str
+from builtins import range
+from builtins import object
 import numpy
 import types
-import bridge_pb2
+from . import bridge_pb2
 
 
 class MessageStream(object):
@@ -8,7 +13,7 @@ class MessageStream(object):
         self.messages = messages
         self.first = next(messages)
 
-    def next(self):
+    def __next__(self):
         self.first = next(self.messages)
         return self.first
 
@@ -66,7 +71,7 @@ class NdarrayMarshaller(BaseMarshaller):
             data.append(stream.first.numpy_array_value.data)
             if stream.first.numpy_array_value.last:
                 break
-            stream.next()
+            next(stream)
 
         value = numpy.ndarray(
             shape=stream.first.numpy_array_value.shape,
@@ -90,7 +95,7 @@ class NdarrayMarshaller(BaseMarshaller):
             assert size == len(bytes_)
             yield bytes_, True
         else:
-            for i in xrange(0, size, block_size):
+            for i in range(0, size, block_size):
                 yield data[i:i + block_size], i + block_size >= size
 
 
@@ -123,7 +128,7 @@ class ListMarshaller(ContainerMarshaller):
 
 class DictMarshaller(ContainerMarshaller):
     def items(self, container):
-        return container.iteritems()
+        return iter(container.items())
 
     def insert_item(self, container, item, last_message):
         container[last_message.dict_key] = item
@@ -155,13 +160,13 @@ class BridgeMessage(object):
         cls.DESERIALIZERS = {}
 
         for marshaller in [
-            NoneMarshaller(bridge_pb2.Item.NONE, types.NoneType),
+            NoneMarshaller(bridge_pb2.Item.NONE, type(None)),
             ScalarMarshaller(bridge_pb2.Item.BOOL, bool, 'bool_value'),
             ScalarMarshaller(bridge_pb2.Item.INT, int, 'int_value'),
             ScalarMarshaller(bridge_pb2.Item.NUMPY_INT_32, numpy.int32, 'int_value'),
             ScalarMarshaller(bridge_pb2.Item.NUMPY_INT_64, numpy.int64, 'int_value'),
             ScalarMarshaller(bridge_pb2.Item.FLOAT, float, 'float_value'),
-            ScalarMarshaller(bridge_pb2.Item.STR, str, 'str_value'),
+            ScalarMarshaller(bridge_pb2.Item.STR, type(''), 'str_value'),
             NdarrayMarshaller(bridge_pb2.Item.NUMPY_ARRAY, numpy.ndarray),
             ListMarshaller(bridge_pb2.Item.LIST_OPEN, list, bridge_pb2.Item.LIST_CLOSE),
             DictMarshaller(bridge_pb2.Item.DICT_OPEN, dict, bridge_pb2.Item.DICT_CLOSE)

@@ -1,3 +1,4 @@
+from builtins import object
 import numpy as np
 
 from .. import da3c_config

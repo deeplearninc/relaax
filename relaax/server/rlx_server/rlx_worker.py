@@ -1,12 +1,14 @@
+from __future__ import absolute_import
+from builtins import object
 import logging
 import traceback
 
-from rlx_config import options
+from .rlx_config import options
 
 log = logging.getLogger(__name__)
 
 
-class RLXWorker():
+class RLXWorker(object):
 
     @classmethod
     def run(cls, socket, address):

@@ -1,3 +1,4 @@
+from builtins import object
 import logging
 
 from twisted.internet import abstract
@@ -9,7 +10,7 @@ log = logging.getLogger(__name__)
 # AcceptedSocket
 
 
-class AcceptedSocket():
+class AcceptedSocket(object):
     transport = Server
 
     def __init__(self, skt, addr, factory, reactor, interface=''):

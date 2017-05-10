@@ -1,3 +1,6 @@
+from __future__ import absolute_import
+from builtins import range
+from builtins import object
 import numpy as np
 
 from relaax.server.common import session
@@ -6,7 +9,7 @@ from relaax.common.algorithms.lib import utils
 
 from .. import da3c_config
 from .. import da3c_model
-import da3c_observation
+from . import da3c_observation
 
 
 class DA3CEpisode(object):
@@ -97,7 +100,7 @@ class DA3CEpisode(object):
         discounted_reward = np.zeros_like(reward, dtype=np.float32)
 
         # compute and accumulate gradients
-        for t in reversed(xrange(len(reward))):
+        for t in reversed(range(len(reward))):
             r = reward[t] + da3c_config.config.rewards_gamma * r
             discounted_reward[t] = r
 

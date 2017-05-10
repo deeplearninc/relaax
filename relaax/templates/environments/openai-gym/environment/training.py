@@ -1,5 +1,6 @@
 from __future__ import print_function
 
+from builtins import object
 from relaax.client.rlx_client_config import options
 from relaax.client.rlx_client import RlxClient, RlxClientException
 from gym import GymEnv

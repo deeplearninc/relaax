@@ -1,11 +1,12 @@
 from __future__ import print_function
+from __future__ import absolute_import
 
 import logging
 import os
 import re
 import tensorflow
 
-import saver
+from . import saver
 
 
 _logger = logging.getLogger(__name__)

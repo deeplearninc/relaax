@@ -1,3 +1,4 @@
+from builtins import object
 class ParameterServerBase(object):
     def __init__(self, saver_factory, metrics_factory):
         self.initialize_algorithm()

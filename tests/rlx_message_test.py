@@ -1,10 +1,11 @@
+from builtins import object
 import numpy as np
 import numpy.testing as npt
 
 from relaax.common.rlx_message import RLXMessage
 
 
-class TestRLXMessage:
+class TestRLXMessage(object):
 
     def test_to_wire_and_back(self):
         npar = np.array([1.001, 2.002, 3.003])

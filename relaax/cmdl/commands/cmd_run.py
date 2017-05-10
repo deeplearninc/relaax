@@ -1,3 +1,4 @@
+from builtins import object
 import os
 import sys
 import click
@@ -14,7 +15,7 @@ class RManager(Manager):
 
     def _any_stopped(self):
         clients = []
-        for _, p in self._processes.iteritems():
+        for _, p in self._processes.items():
             if p['process'].name.startswith('client'):
                 clients.append(p.get('returncode') is not None)
         if len(clients):

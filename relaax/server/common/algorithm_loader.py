@@ -1,9 +1,10 @@
+from builtins import object
 import imp
 import sys
 import os.path
 
 
-class AlgorithmLoader():
+class AlgorithmLoader(object):
 
     @classmethod
     def load(cls, full_path):

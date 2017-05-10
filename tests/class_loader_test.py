@@ -1,7 +1,8 @@
+from builtins import object
 from relaax.server.common.class_loader import ClassLoader
 
 
-class TestRLXMessage:
+class TestRLXMessage(object):
 
     def test_load_class_from_package(self):
         path = 'tests/fixtures/an_app/random_search'

@@ -1,3 +1,4 @@
+from __future__ import print_function
 import argparse
 import ruamel.yaml
 
@@ -45,12 +46,12 @@ def load():
         args.ws_address = "localhost:9000"
 
     # Simple check of the server addresses format
-    args.rlx_address = map(lambda x: x.strip(), args.rlx_address.split(':'))
+    args.rlx_address = [x.strip() for x in args.rlx_address.split(':')]
     if len(args.rlx_address) != 2:
-        print "Error! Please specify RLX server address in host:port format"
+        print("Error! Please specify RLX server address in host:port format")
         exit()
 
-    args.ws_address = map(lambda x: x.strip(), args.ws_address.split(':'))
+    args.ws_address = [x.strip() for x in args.ws_address.split(':')]
     if len(args.ws_address) != 2:
         print('Error! Please specify Web Sockets ',
               'server address in host:port format')

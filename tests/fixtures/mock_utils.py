@@ -1,5 +1,6 @@
 
 
+from builtins import object
 class MockUtils(object):
 
     class Placeholder(object):

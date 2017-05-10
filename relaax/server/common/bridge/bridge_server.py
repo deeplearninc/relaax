@@ -1,8 +1,10 @@
+from __future__ import absolute_import
+from builtins import object
 import concurrent
 import grpc
 
-import bridge_pb2
-import bridge_message
+from . import bridge_pb2
+from . import bridge_message
 
 
 class BridgeServer(object):

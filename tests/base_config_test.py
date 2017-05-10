@@ -1,13 +1,16 @@
+from __future__ import absolute_import
+from builtins import str
+from builtins import object
 import sys
 import logging as log
 from argparse import Namespace
 
-from fixtures.mock_cmdl import cmdl
-from fixtures.mock_utils import MockUtils
+from .fixtures.mock_cmdl import cmdl
+from .fixtures.mock_utils import MockUtils
 from relaax.common.python.config.base_config import BaseConfig
 
 
-class TestBaseConfig:
+class TestBaseConfig(object):
 
     @classmethod
     def teardown_class(cls):

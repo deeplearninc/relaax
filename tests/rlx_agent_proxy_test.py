@@ -1,13 +1,15 @@
+from __future__ import absolute_import
+from builtins import object
 from mock import Mock
 
-from fixtures.mock_cmdl import cmdl
-from fixtures.mock_utils import MockUtils
+from .fixtures.mock_cmdl import cmdl
+from .fixtures.mock_utils import MockUtils
 
 from relaax.server.rlx_server.rlx_config import options
 from relaax.server.rlx_server.rlx_agent_proxy import RLXAgentProxy
 
 
-class TestRLXAgentProxy:
+class TestRLXAgentProxy(object):
 
     @classmethod
     def setup_class(cls):

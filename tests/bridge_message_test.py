@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from builtins import zip
 import numpy
 import types
 import unittest
@@ -91,7 +92,7 @@ class TestBridgeProtocol(unittest.TestCase):
         {
             list:           self.check_are_lists_equal,
             dict:           self.check_are_dicts_equal,
-            types.NoneType: self.assertEquals,
+            type(None):     self.assertEquals,
             bool:           self.assertEquals,
             int:            self.assertEquals,
             numpy.int32:    self.assertEquals,

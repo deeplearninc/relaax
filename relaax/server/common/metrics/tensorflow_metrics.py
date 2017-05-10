@@ -1,6 +1,7 @@
+from __future__ import absolute_import
 import tensorflow as tf
 
-import metrics
+from . import metrics
 
 
 class TensorflowMetrics(metrics.Metrics):

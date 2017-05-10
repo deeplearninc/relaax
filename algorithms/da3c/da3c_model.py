@@ -1,11 +1,12 @@
+from __future__ import absolute_import
 import numpy as np
 
 from relaax.common.algorithms import subgraph
 from relaax.common.algorithms.lib import graph
 from relaax.common.algorithms.lib import layer
 from relaax.common.algorithms.lib import utils
-from lib import da3c_graph
-import da3c_config
+from .lib import da3c_graph
+from . import da3c_config
 
 
 class Network(subgraph.Subgraph):

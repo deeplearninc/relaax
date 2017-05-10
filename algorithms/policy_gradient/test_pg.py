@@ -1,3 +1,7 @@
+from __future__ import print_function
+from __future__ import division
+from builtins import range
+from past.utils import old_div
 import tensorflow as tf
 import numpy as np
 import random
@@ -29,7 +33,7 @@ def run_episode(env, policy_grad, sess):
     transitions = []
 
 
-    for _ in xrange(200):
+    for _ in range(200):
         # calculate policy
         obs_vector = np.expand_dims(observation, axis=0)
         probs = sess.run(pl_calculated,feed_dict={pl_state: obs_vector})
@@ -54,7 +58,7 @@ def run_episode(env, policy_grad, sess):
         future_reward = 0
         future_transitions = len(transitions) - index
         decrease = 1
-        for index2 in xrange(future_transitions):
+        for index2 in range(future_transitions):
             future_reward += transitions[(index2) + index][2] * decrease
             decrease = decrease * 0.97
         obs_vector = np.expand_dims(obs, axis=0)
@@ -72,11 +76,11 @@ env = gym.make('CartPole-v0')
 policy_grad = policy_gradient()
 sess = tf.Session()
 sess.run(tf.global_variables_initializer())
-for i in xrange(2000):
+for i in range(2000):
     reward = run_episode(env, policy_grad, sess)
-    print i, reward
+    print(i, reward)
 t = 0
-for _ in xrange(1000):
+for _ in range(1000):
     reward = run_episode(env, policy_grad, sess)
     t += reward
-print t / 1000
+print(old_div(t, 1000))

@@ -1,3 +1,5 @@
+from __future__ import print_function
+from builtins import object
 import tensorflow as tf
 from tensorflow.python.ops import init_ops
 import numpy as np
@@ -111,7 +113,7 @@ class Reshape(subgraph.Subgraph):
 class List(subgraph.Subgraph):
     def build_graph(self, items):
         self.items = list(items)
-        return map(lambda i: i.node, self.items)
+        return [i.node for i in self.items]
 
 
 class Assign(subgraph.Subgraph):
@@ -155,7 +157,6 @@ class Placeholder(subgraph.Subgraph):
 
 class Placeholders(subgraph.Subgraph):
     def build_graph(self, variables):
-        print repr(variables)
         return utils.Utils.map(
             variables.node,
             lambda v: tf.placeholder(shape=v.get_shape(), dtype=v.dtype)

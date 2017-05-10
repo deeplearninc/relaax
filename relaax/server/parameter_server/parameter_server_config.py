@@ -39,7 +39,7 @@ class ParameterServerConfig(BaseConfig):
 
         # Simple check of the bind address format
 
-        self.bind = map(lambda x: x.strip(), self.bind.split(':'))
+        self.bind = [x.strip() for x in self.bind.split(':')]
         if len(self.bind) != 2:
             log.error(
                 ('Please specify parameter server'

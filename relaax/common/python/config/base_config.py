@@ -1,8 +1,9 @@
+from __future__ import absolute_import
 import sys
 import logging as log
 import argparse
 
-from config_yaml import ConfigYaml
+from .config_yaml import ConfigYaml
 
 
 class RelaaxHelpFormatter(argparse.HelpFormatter):

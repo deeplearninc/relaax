@@ -1,3 +1,5 @@
+from builtins import str
+from builtins import object
 import time
 import socket
 import random

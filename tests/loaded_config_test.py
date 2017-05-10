@@ -1,11 +1,13 @@
+from __future__ import absolute_import
+from builtins import object
 import sys
 
-from fixtures.mock_cmdl import cmdl
+from .fixtures.mock_cmdl import cmdl
 
 from relaax.common.python.config.loaded_config import AlgoritmConfig
 
 
-class TestAlgoritmConfig:
+class TestAlgoritmConfig(object):
     rlx = 'relaax.server.rlx_server.rlx_config'
     ps = 'relaax.server.parameter_server.parameter_server_config'
 

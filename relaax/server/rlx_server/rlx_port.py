@@ -1,14 +1,16 @@
+from __future__ import absolute_import
+from builtins import object
 import os
 import errno
 import socket
 import logging
 
-from rlx_worker import RLXWorker
+from .rlx_worker import RLXWorker
 
 log = logging.getLogger(__name__)
 
 
-class RLXPort():
+class RLXPort(object):
 
     @classmethod
     def listen(cls, server_address):

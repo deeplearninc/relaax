@@ -1,3 +1,4 @@
+from __future__ import print_function
 from twisted.internet import task
 from twisted.internet.defer import Deferred
 from twisted.internet.protocol import ClientFactory
@@ -40,7 +41,7 @@ class SampleClient(NetstringReceiver):
 
         if msg['response'] == 'action':
             # perform action on environment
-            print "action: ", msg['data']
+            print("action: ", msg['data'])
 
         if self.updates < 1:
             self.updates += 1

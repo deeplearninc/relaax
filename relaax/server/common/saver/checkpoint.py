@@ -1,4 +1,5 @@
 
+from builtins import object
 class Checkpoint(object):
     def checkpoint_ids(self, names):
         raise NotImplementedError

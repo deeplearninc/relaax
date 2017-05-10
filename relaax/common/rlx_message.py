@@ -1,10 +1,11 @@
+from builtins import object
 import io
 import json
 import base64
 import numpy as np
 
 
-class RLXMessage():
+class RLXMessage(object):
     class _NDArrayEncoder(json.JSONEncoder):
         def default(self, obj):
             # Encoder from numpy.nparray to base64

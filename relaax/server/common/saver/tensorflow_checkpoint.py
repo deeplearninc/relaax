@@ -1,8 +1,9 @@
+from __future__ import absolute_import
 import os
 import re
 import tensorflow
 
-import checkpoint
+from . import checkpoint
 
 
 class TensorflowCheckpoint(checkpoint.Checkpoint):

@@ -1,3 +1,6 @@
+from __future__ import print_function
+from builtins import range
+from builtins import object
 from relaax.client.rlx_client_config import options
 from relaax.client.rlx_client import RlxClient, RlxClientException
 
@@ -20,13 +23,13 @@ class Training(object):
             # get first action from agent
             action = self.agent.update(reward=None, state=[])
             # update agent with state and reward
-            for step in xrange(self.steps):
+            for step in range(self.steps):
                 try:
                     reward = self.bandit.pull(action['data'])
                     action = self.agent.update(reward=reward, state=[])
-                    print 'action:', action['data']
+                    print('action:', action['data'])
                 except RlxClientException as e:
-                    print "agent connection lost: ", e
+                    print("agent connection lost: ", e)
                     print ('reconnecting to another agent, '
                            'retrying to connect 10 times before giving up...')
                     try:
@@ -34,11 +37,11 @@ class Training(object):
                         self.agent.init()
                         continue
                     except:
-                        print "Can't reconnect, exiting"
+                        print("Can't reconnect, exiting")
                         raise Exception("Can't reconnect")
 
         except Exception as e:
-            print "Something went wrong: ", e
+            print("Something went wrong: ", e)
 
         finally:
             # disconnect from the server

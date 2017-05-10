@@ -111,7 +111,7 @@ class WsServerProtocol(WebSocketServerProtocol):
 
     def onClose(self, wasClean, code, reason):
         log.msg("WebSocket connection closed: {0}".format(reason))
-        for client in self.clients.itervalues():
+        for client in self.clients.values():
             client.disconnect()
 
 

@@ -1,3 +1,6 @@
+from builtins import next
+from builtins import range
+from builtins import object
 import itertools
 import logging
 import numpy as np
@@ -14,7 +17,7 @@ def discounted_reward(rewards, gamma):
     rewards = np.vstack(rewards)
     discounted_reward = np.zeros_like(rewards, dtype=np.float32)
     running_add = 0
-    for t in reversed(xrange(rewards.size)):
+    for t in reversed(range(rewards.size)):
         running_add = running_add * gamma + rewards[t]
         discounted_reward[t] = running_add
     # size the rewards to be unit normal
@@ -48,7 +51,7 @@ class Utils(object):
             if isinstance(v, (tuple, list)):
                 return [map_(v1) for v1 in v]
             if isinstance(v, dict):
-                return {k: map_(v1) for k, v1 in v.iteritems()}
+                return {k: map_(v1) for k, v1 in v.items()}
             return mapping(v)
 
         return map_(v)
@@ -60,7 +63,7 @@ class Utils(object):
                 for vvv in cls.flatten(vv):
                     yield vvv
         elif isinstance(v, dict):
-            for vv in v.itervalues():
+            for vv in v.values():
                 for vvv in cls.flatten(vv):
                     yield vvv
         else:
@@ -82,13 +85,13 @@ class Utils(object):
         if isinstance(v1, (tuple, list)):
             assert isinstance(v2, (tuple, list))
             assert len(v1) == len(v2)
-            for vv1, vv2 in itertools.izip(v1, v2):
+            for vv1, vv2 in zip(v1, v2):
                 for vvv1, vvv2 in cls.izip(vv1, vv2):
                     yield vvv1, vvv2
         elif isinstance(v1, dict):
             assert isinstance(v2, dict)
             assert len(v1) == len(v2)
-            for k1, vv1 in v1.iteritems():
+            for k1, vv1 in v1.items():
                 vv2 = v2[k1]
                 for vvv1, vvv2 in cls.izip(vv1, vv2):
                     yield vvv1, vvv2

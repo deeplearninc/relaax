@@ -1,3 +1,4 @@
+from builtins import object
 from relaax.server.common import session
 from relaax.common.algorithms.lib import episode
 from relaax.common.algorithms.lib import utils

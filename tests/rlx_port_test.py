@@ -1,3 +1,7 @@
+from __future__ import print_function
+from __future__ import absolute_import
+from builtins import str
+from builtins import object
 import os
 import errno
 import socket
@@ -5,14 +9,14 @@ import signal
 import traceback
 from mock import Mock
 
-from fixtures.mock_cmdl import cmdl
-from fixtures.mock_utils import MockUtils
-from fixtures.mock_socket import MockSocket
+from .fixtures.mock_cmdl import cmdl
+from .fixtures.mock_utils import MockUtils
+from .fixtures.mock_socket import MockSocket
 
 from relaax.server.rlx_server.rlx_port import RLXPort
 
 
-class TestRLXPort:
+class TestRLXPort(object):
 
     @classmethod
     def teardown_class(cls):
@@ -74,7 +78,7 @@ class TestRLXPort:
             RLXPort.listen(('localhost', 7000))
             assert True  # no exception, ctrl-c was handled
         except Exception as e:
-            print str(e)
+            print(str(e))
             assert False
 
     def test_socket_busy_on_accept(self, monkeypatch):

@@ -1,10 +1,11 @@
+from __future__ import absolute_import
 import logging
 
 from twisted.internet.defer import Deferred
 from twisted.internet.protocol import Factory
 from twisted.protocols.basic import NetstringReceiver
 
-from accepted_socket import AcceptedSocket
+from .accepted_socket import AcceptedSocket
 from relaax.common.rlx_message import RLXMessage as rlxm
 from relaax.server.rlx_server.rlx_agent_proxy import RLXAgentProxy
 

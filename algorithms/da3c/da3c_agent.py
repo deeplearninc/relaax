@@ -1,5 +1,7 @@
-import da3c_config
-from lib import da3c_episode
+from __future__ import absolute_import
+from builtins import object
+from . import da3c_config
+from .lib import da3c_episode
 
 
 # DA3CAgent implements training regime for DA3C algorithm

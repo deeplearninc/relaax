@@ -1,3 +1,5 @@
+from builtins import next
+from builtins import object
 import itertools
 import tensorflow as tf
 
@@ -25,7 +27,7 @@ class SessionMethod(object):
     def __call__(self, **kwargs):
         ops = [op.node for op in self.ops]
         feed_dict = {
-            v: kwargs[k] for k, v in self.feed_dict.iteritems()
+            v: kwargs[k] for k, v in self.feed_dict.items()
         }
         result = Utils.reconstruct(
             self.session.run(
@@ -42,7 +44,7 @@ class SessionMethod(object):
         return {k: v for k, v in self.flatten_fd(feed_dict)}
 
     def flatten_fd(self, feed_dict):
-        for k, v in feed_dict.iteritems():
+        for k, v in feed_dict.items():
             for kk, vv in Utils.izip2(k.node, v):
                 yield kk, vv
 
@@ -55,7 +57,7 @@ class Utils(object):
             if isinstance(v, (tuple, list)):
                 return [map_(v1) for v1 in v]
             if isinstance(v, dict):
-                return {k: map_(v1) for k, v1 in v.iteritems()}
+                return {k: map_(v1) for k, v1 in v.items()}
             return mapping(v)
 
         return map_(v)
@@ -67,7 +69,7 @@ class Utils(object):
                 for vvv in Utils.flatten(vv):
                     yield vvv
         elif isinstance(v, dict):
-            for vv in v.itervalues():
+            for vv in v.values():
                 for vvv in Utils.flatten(vv):
                     yield vvv
         else:
@@ -89,13 +91,13 @@ class Utils(object):
         if isinstance(v1, (tuple, list)):
             assert isinstance(v2, (tuple, list))
             assert len(v1) == len(v2)
-            for vv1, vv2 in itertools.izip(v1, v2):
+            for vv1, vv2 in zip(v1, v2):
                 for vvv1, vvv2 in Utils.izip2(vv1, vv2):
                     yield vvv1, vvv2
         elif isinstance(v1, dict):
             assert isinstance(v2, dict)
             assert len(v1) == len(v2)
-            for k1, vv1 in v1.iteritems():
+            for k1, vv1 in v1.items():
                 vv2 = v2[k1]
                 for vvv1, vvv2 in Utils.izip2(vv1, vv2):
                     yield vvv1, vvv2

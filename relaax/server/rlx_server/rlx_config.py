@@ -49,7 +49,7 @@ class RLXConfig(BaseConfig):
 
         # Simple check of the servers addresses format
 
-        self.bind = map(lambda x: x.strip(), self.bind.split(':'))
+        self.bind = [x.strip() for x in self.bind.split(':')]
         if len(self.bind) != 2:
             log.error(
                 "Please specify RLX server address in host:port format")
@@ -57,8 +57,7 @@ class RLXConfig(BaseConfig):
         self.bind[1] = int(self.bind[1])
         self.bind = tuple(self.bind)
 
-        self.parameter_server = map(
-            lambda x: x.strip(), self.parameter_server.split(':'))
+        self.parameter_server = [x.strip() for x in self.parameter_server.split(':')]
         if len(self.parameter_server) != 2:
             log.error(
                 ('Please specify Parameter Server '

@@ -1,3 +1,7 @@
+from __future__ import absolute_import
+from __future__ import division
+from past.utils import old_div
+from builtins import object
 import logging
 import ruamel.yaml
 import time
@@ -5,7 +9,7 @@ import threading
 
 # Load configuration options
 # do it as early as possible
-from parameter_server_config import options
+from .parameter_server_config import options
 from relaax.server.common.bridge import bridge_server
 from relaax.server.common.metrics import tensorflow_metrics
 from relaax.server.common.saver import fs_saver
@@ -33,7 +37,7 @@ class ParameterServer(object):
     @classmethod
     def start(cls):
         try:
-            log.info("Starting parameter server server on %s:%d" % options.bind)
+            log.info("Starting parameter server on %s:%d" % options.bind)
 
             init_ps = CallOnce(cls.init)
 
@@ -137,7 +141,7 @@ class Speedometer(object):
     def measure(self, start_time, start_n_step):
         current_time = time.time()
         current_n_step = self.ps.session.op_n_step()
-        self.ps.metrics.scalar('steps_per_sec', (current_n_step - start_n_step) / (current_time - start_time))
+        self.ps.metrics.scalar('steps_per_sec', old_div((current_n_step - start_n_step), (current_time - start_time)))
         self.run_timer(current_time, current_n_step)
 
     def run_timer(self, start_time, start_n_steps):

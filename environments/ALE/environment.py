@@ -1,4 +1,5 @@
 from __future__ import print_function
+from __future__ import absolute_import
 
 import logging
 import os
@@ -8,7 +9,7 @@ import time
 from relaax.client import rlx_client_config
 from relaax.client import rlx_client
 
-import game_process
+from . import game_process
 
 
 def run():

@@ -1,5 +1,7 @@
-import pg_config
-from lib import pg_episode
+from __future__ import absolute_import
+from builtins import object
+from . import pg_config
+from .lib import pg_episode
 
 
 # PGAgent implements training regime for Policy Gradient algorithm

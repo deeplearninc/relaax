@@ -1,4 +1,5 @@
 
+from builtins import object
 class RSAgent(object):
 
     def some_method(self):

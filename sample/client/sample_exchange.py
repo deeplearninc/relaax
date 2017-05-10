@@ -1,3 +1,5 @@
+from __future__ import print_function
+from builtins import range
 import random
 
 from relaax.client.rlx_client_config import options
@@ -13,14 +15,14 @@ def sample_exchange():
 
         # give agent a moment to load and initialize
         res = agent.init()
-        print "on init: ", res
+        print("on init: ", res)
 
         # update agent with state and reward
-        for count in xrange(10000):
+        for count in range(10000):
             try:
                 episode_reward = 0
                 reward = None
-                for step in xrange(10):
+                for step in range(10):
                     if random.random() >= 0.5:
                         state = [1, 0]
                     else:
@@ -33,7 +35,7 @@ def sample_exchange():
                 agent.metrics.scalar('game_score', episode_reward)
                 print('game_score', episode_reward)
             except RlxClientException as e:
-                print "agent connection lost: ", e
+                print("agent connection lost: ", e)
                 print ('reconnecting to another agent, '
                        'retrying to connect 10 times before giving up...')
                 try:
@@ -41,15 +43,15 @@ def sample_exchange():
                     agent.init()
                     continue
                 except:
-                    print "Can't reconnect, exiting"
+                    print("Can't reconnect, exiting")
                     raise Exception("Can't reconnect")
 
         # reset agent
         res = agent.reset()
-        print "on reset:", res
+        print("on reset:", res)
 
     except Exception as e:
-        print "Something went wrong: ", e
+        print("Something went wrong: ", e)
 
     finally:
         # disconnect from the server

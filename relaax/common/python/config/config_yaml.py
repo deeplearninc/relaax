@@ -29,7 +29,7 @@ class ConfigYaml(Namespace):
 
     def load_to_namespace(self, obj, options):
         if isinstance(options, dict):
-            for item in options.items():
+            for item in list(options.items()):
                 self.load_to_namespace(obj, item)
         else:
             name = self._clean_name(options[0])

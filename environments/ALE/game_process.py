@@ -1,3 +1,7 @@
+from __future__ import division
+from builtins import range
+from past.utils import old_div
+from builtins import object
 import imp
 import os
 import sys
@@ -69,7 +73,7 @@ class _GameProcess(object):
 
         x_t = resized_screen[18:102, :]
         x_t = x_t.astype(np.float32)
-        x_t *= (1.0 / 255.0)
+        x_t *= (old_div(1.0, 255.0))
         return reward, terminal, x_t
 
     def _setup_display(self):
