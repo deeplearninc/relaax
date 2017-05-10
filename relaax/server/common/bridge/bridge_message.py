@@ -86,7 +86,7 @@ class NdarrayMarshaller(BaseMarshaller):
         assert block_size > 0
 
         data = array.data
-        size = len(data)
+        size = data.nbytes
 
         # optimization to avoid extra data copying if array data fits to one block
         # TODO: compare actual performance
@@ -113,7 +113,7 @@ class ContainerMarshaller(BaseMarshaller):
 
     def deserialize(self, stream):
         container = self.value_type()
-        while stream.next().item_type != self.end_item_type:
+        while next(stream).item_type != self.end_item_type:
             self.insert_item(container, BridgeMessage.deserialize_any(stream), stream.first)
         return container
 

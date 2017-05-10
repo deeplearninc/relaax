@@ -31,7 +31,7 @@ class NetString(object):
         try:
             if len(data) > self.MAX_STRING_LEN:
                 raise NetStringException("can't send, net string too long")
-            self.skt.sendall('%d:%s,' % (len(data), data))
+            self.skt.sendall(('%d:%s,' % (len(data), data)).encode())
         except NetStringException as e:
             raise e
         except:
@@ -46,15 +46,15 @@ class NetString(object):
                 raise NetStringClosed("can't receive, net string closed")
             packets.append(packet)
             rest -= len(packet)
-        data = ''.join(packets)
+        data = b''.join(packets)
         assert len(data) == length
-        return data
+        return data.decode()
 
     def _receive_length(self):
         digits = []
 
         while True:
-            char = self.skt.recv(1)
+            char = self.skt.recv(1).decode()
             if char == ':':
                 break
             if not char:
