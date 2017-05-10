@@ -15,13 +15,16 @@ class Network(subgraph.Subgraph):
         weights = [input.weight]
 
         last = layer.Flatten(input)
-        for size in pg_config.config.hidden_sizes + [pg_config.config.action_size]:
+        for size in pg_config.config.hidden_sizes:
             last = layer.Dense(last, size, activation=layer.Activation.Relu)
             weights.append(last.weight)
 
+        last = layer.Dense(last, pg_config.config.action_size, activation=layer.Activation.Softmax)
+        weights.append(last.weight)
+
         self.state = input.state
         self.weights = graph.Variables(*weights)
-        return graph.Softmax(last).node
+        return last.node
 
 
 # Weights of the policy are shared across
