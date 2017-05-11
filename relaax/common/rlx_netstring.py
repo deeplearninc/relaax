@@ -49,7 +49,6 @@ class NetString(object):
             rest -= len(packet)
         data = b''.join(packets)
         assert len(data) == length
-        print('UGU', repr(data))
         return data.decode()
 
     def _receive_length(self):
