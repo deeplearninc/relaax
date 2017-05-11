@@ -12,7 +12,7 @@ class RLXMessage(object):
             if isinstance(obj, np.ndarray):
                 output = io.BytesIO()
                 np.savez_compressed(output, obj=obj)
-                return {'b64npz': base64.b64encode(output.getvalue())}
+                return {'b64npz': base64.b64encode(output.getvalue()).decode()}
             return json.JSONEncoder.default(self, obj)
 
     @staticmethod
@@ -26,11 +26,11 @@ class RLXMessage(object):
 
     @classmethod
     def to_wire(cls, data):
-        return json.dumps(data, cls=cls._NDArrayEncoder)
+        return json.dumps(data, cls=cls._NDArrayEncoder).encode()
 
     @classmethod
     def from_wire(cls, data):
-        return json.loads(data, object_hook=cls._ndarray_decoder)
+        return json.loads(data.decode(), object_hook=cls._ndarray_decoder)
 
 # may be return an object instead of dict
 # def from_wire():
