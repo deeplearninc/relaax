@@ -26,11 +26,11 @@ class RLXMessage(object):
 
     @classmethod
     def to_wire(cls, data):
-        return json.dumps(data, cls=cls._NDArrayEncoder).encode()
+        return json.dumps(data, cls=cls._NDArrayEncoder)
 
     @classmethod
     def from_wire(cls, data):
-        return json.loads(data.decode(), object_hook=cls._ndarray_decoder)
+        return json.loads(data, object_hook=cls._ndarray_decoder)
 
 # may be return an object instead of dict
 # def from_wire():

@@ -31,6 +31,7 @@ class NetString(object):
         try:
             if len(data) > self.MAX_STRING_LEN:
                 raise NetStringException("can't send, net string too long")
+            print('WRITE', ('%d:%s,' % (len(data), data)).encode())
             self.skt.sendall(('%d:%s,' % (len(data), data)).encode())
         except NetStringException as e:
             raise e
@@ -48,6 +49,7 @@ class NetString(object):
             rest -= len(packet)
         data = b''.join(packets)
         assert len(data) == length
+        print('UGU', repr(data))
         return data.decode()
 
     def _receive_length(self):

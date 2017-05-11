@@ -30,7 +30,7 @@ class TestNetString(object):
 
     def test_not_numbers_in_string_length(self):
         # close on not numbers in string length
-        self.socket.output.sendall('abc')
+        self.socket.output.sendall(b'abc')
         nstr = NetString(self.socket)
         try:
             nstr.read_string()
@@ -62,7 +62,7 @@ class TestNetString(object):
     def test_comma_at_end_of_string(self):
         data = "some string"
         data = '%d:%sx' % (len(data), data)
-        self.socket.output.sendall(data)
+        self.socket.output.sendall(data.encode())
         nstr = NetString(self.socket)
         try:
             data = nstr.read_string()
@@ -73,7 +73,7 @@ class TestNetString(object):
     def test_too_short_string(self):
         data = "some string"
         data = '%d:%s' % (len(data), data)
-        self.socket.output.sendall(data)
+        self.socket.output.sendall(data.encode())
         nstr = NetString(self.socket)
         try:
             data = nstr.read_string()
