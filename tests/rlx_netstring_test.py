@@ -39,7 +39,7 @@ class TestNetString(object):
             assert str(e) == 'can\'t receive, wrong net string format'
 
     def test_too_long_string(self):
-        data = str(NetString.MAX_STRING_LEN)
+        data = str(NetString.MAX_STRING_LEN).encode()
         self.socket.output.sendall(data)
         nstr = NetString(self.socket)
         try:
@@ -49,7 +49,7 @@ class TestNetString(object):
             assert str(e) == 'can\'t receive, wrong net string format'
 
     def test_slen_greater_max(self):
-        data = str(NetString.MAX_STRING_LEN - 1) + ":abc"
+        data = (str(NetString.MAX_STRING_LEN - 1) + ":abc").encode()
         NetString.MAX_STRING_LEN -= 2
         self.socket.output.sendall(data)
         nstr = NetString(self.socket)

@@ -48,7 +48,7 @@ class TestRLXPort(object):
             RLXPort.listen(('localhost', 7000))
             assert False
         except Exception as e:
-            assert str(e) == '[Errno 53] error message'
+            assert str(e) == '[Errno 103] error message'
 
     def test_socket_error_on_accept2(self, monkeypatch):
         def error(*args):
@@ -95,7 +95,7 @@ class TestRLXPort(object):
             assert False
         except Exception as e:
             traceback.format_exc()
-            assert str(e) == '[Errno 55] fatal error message'
+            assert str(e) == '[Errno 105] fatal error message'
 
     def test_fork_error(self, monkeypatch):
         def critical(*args):

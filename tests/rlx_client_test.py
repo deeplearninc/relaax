@@ -42,7 +42,7 @@ class TestRlxClient(object):
             RlxClient('localhost:7000').connect()
             assert False
         except RlxClientException as e:
-            assert str(e) == '[Errno 61] Connection refused'
+            assert str(e) == '[Errno 111] Connection refused'
 
     def test_some_unknown_exception_in_netstring_constructor(self, monkeypatch):
         # paranoid a bit
