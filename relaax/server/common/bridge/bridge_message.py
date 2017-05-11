@@ -78,25 +78,23 @@ class NdarrayMarshaller(BaseMarshaller):
             dtype=numpy.dtype(stream.first.numpy_array_value.dtype),
             # optimization to avoid extra data copying if array data fits to one block
             # TODO: compare actual performance
-            buffer=data[0] if len(data) == 1 else ''.join(data)
+            buffer=data[0] if len(data) == 1 else b''.join(data)
         )
         return value
 
     def slice_ndarray(self, array, block_size):
         assert block_size > 0
 
-        data = array.data
+        bytes = array.tobytes()
         size = array.nbytes
 
         # optimization to avoid extra data copying if array data fits to one block
         # TODO: compare actual performance
         if size <= block_size:
-            bytes_ = array.tobytes()
-            assert size == len(bytes_)
-            yield bytes_, True
+            yield bytes, True
         else:
             for i in range(0, size, block_size):
-                yield data[i:i + block_size], i + block_size >= size
+                yield bytes[i:i + block_size], i + block_size >= size
 
 
 class ContainerMarshaller(BaseMarshaller):
