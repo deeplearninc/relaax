@@ -78,7 +78,6 @@ class TestRLXPort(object):
             RLXPort.listen(('localhost', 7000))
             assert True  # no exception, ctrl-c was handled
         except Exception as e:
-            print(str(e))
             assert False
 
     def test_socket_busy_on_accept(self, monkeypatch):
