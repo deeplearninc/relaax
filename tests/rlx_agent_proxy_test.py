@@ -40,8 +40,9 @@ class TestRLXAgentProxy(object):
         assert self.ap.reset() == {'response': 'error', 'message': 'can\'t reset agent'}
 
     def test_agent_update_done(self):
-        self.ap.agent.update = lambda x: [10, 10]
-        assert self.ap.update('something') == {'response': 'action', 'data': [10, 10]}
+        self.ap.agent.update = lambda reward, state, terminal: [10, 10]
+        assert (self.ap.update({'reward': None, 'state': None, 'terminal': None})
+                == {'response': 'action', 'data': [10, 10]})
 
     def test_agent_command_exception(self):
         self.ap.agent.init = lambda: MockUtils.raise_(Exception('some init error'))
