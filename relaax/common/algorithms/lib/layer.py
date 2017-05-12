@@ -6,6 +6,7 @@ import tensorflow as tf
 
 from relaax.common.algorithms import subgraph
 from relaax.common.algorithms.lib import graph
+from relaax.common.algorithms.lib import utils
 
 
 class Activation(object):
@@ -92,3 +93,12 @@ class Input(subgraph.Subgraph):
 
         self.weight = conv.weight
         return conv.node
+
+
+class Weigths(subgraph.Subgraph):
+    def build_graph(self, *layers):
+        weights = [layer.weight.node for layer in layers]
+        self.placeholders = graph.Placeholders(variables=graph.TfNode(weights))
+        self.assign = graph.TfNode([tf.assign(variable, value)
+                for variable, value in utils.Utils.izip(weights, self.placeholders.node)])
+        return weights

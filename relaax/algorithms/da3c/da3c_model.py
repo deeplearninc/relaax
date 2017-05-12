@@ -23,8 +23,7 @@ class Network(subgraph.Subgraph):
         self.state = input.state
         self.actor = actor
         self.critic = graph.Flatten(critic)
-        self.weights = graph.Variables(
-                *[l.weight for l in (input, fc, actor, critic)])
+        self.weights = layer.Weigths(input, fc, actor, critic)
 
 
 # Weights of the policy are shared across
@@ -62,19 +61,17 @@ class AgentModel(subgraph.Subgraph):
         # Build graph
         sg_network = Network()
         ph_state = sg_network.state
-        sg_weights = sg_network.weights
-        ph_weights = graph.Placeholders(variables=sg_weights)
-        sg_assign_weights = sg_weights.assign(ph_weights)
 
         ph_action = graph.Placeholder(np.int32, shape=(None, ))
         ph_value = graph.Placeholder(np.float32, shape=(None, ))
         ph_discounted_reward = graph.Placeholder(np.float32, shape=(None, ))
         sg_loss = da3c_graph.Loss(ph_state, ph_action, ph_value,
                 ph_discounted_reward, sg_network.actor, sg_network.critic)
-        sg_gradients = graph.Gradients(sg_loss, sg_weights)
+        sg_gradients = graph.Gradients(sg_loss, sg_network.weights)
 
         # Expose public API
-        self.op_assign_weights = self.Op(sg_assign_weights, weights=ph_weights)
+        self.op_assign_weights = self.Op(sg_network.weights.assign,
+                weights=sg_network.weights.placeholders)
         self.op_get_action_and_value = self.Ops(sg_network.actor, sg_network.critic, state=ph_state)
         self.op_compute_gradients = self.Op(sg_gradients,
             state=ph_state,
