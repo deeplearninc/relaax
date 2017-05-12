@@ -38,7 +38,7 @@ class RLXPort(object):
                     try:
                         pid = os.fork()
                     except OSError as e:
-                        log.critical('OSError {}: {}'.format(address, e.message))
+                        log.critical('OSError {}: {}'.format(address, str(e)))
 
                     if pid == 0:
                         RLXWorker.run(connection, address)
@@ -53,15 +53,15 @@ class RLXPort(object):
 
     @classmethod
     def handle_accept_socket_exeption(cls, error):
-        if error[0] in (errno.EWOULDBLOCK, errno.EAGAIN):
+        if error.errno in (errno.EWOULDBLOCK, errno.EAGAIN):
             # Try again
             return True  # continue accept loop
-        elif error[0] == errno.EPERM:
+        elif error.errno == errno.EPERM:
             # Netfilter on Linux may have rejected the
             # connection, but we get told to try to accept()
             # anyway.
             return True  # continue accept loop
-        elif error[0] in (errno.EMFILE, errno.ENOBUFS, errno.ENFILE,
+        elif error.errno in (errno.EMFILE, errno.ENOBUFS, errno.ENFILE,
                           errno.ENOMEM, errno.ECONNABORTED):
             # Linux gives EMFILE when a process is not allowed to
             # allocate any more file descriptors.  *BSD and Win32
@@ -81,5 +81,5 @@ class RLXPort(object):
             # such a listener is not considered readable, so
             # accept(2) will never be called.  Calling accept(2) on
             # such a listener, however, does not return at all.
-            log.error("Could not accept new connection (%s)" % error[1])
+            log.error("Could not accept new connection (%s)" % error.strerror)
         return False  # break accept loop
