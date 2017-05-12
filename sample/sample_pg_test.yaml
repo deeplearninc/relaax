@@ -27,7 +27,7 @@ relaax-rlx-server:
 #   --address: localhost:9000
 
 algorithm:
-  path: ../algorithms/policy_gradient
+  path: ../relaax/algorithms/policy_gradient
   use_system_ps: false
 
   input:

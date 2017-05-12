@@ -31,7 +31,7 @@ relaax-rlx-server:
   log-level: DEBUG
 
 algorithm:
-  path: ../algorithms/da3c
+  path: ../relaax/algorithms/da3c
 
   action_size: 2                  # action size for given game rom (18 fits ale boxing)
   batch_size: 5                   # local loop size for one episode
