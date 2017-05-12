@@ -31,7 +31,6 @@ class NetString(object):
         try:
             if len(data) > self.MAX_STRING_LEN:
                 raise NetStringException("can't send, net string too long")
-            print('WRITE', ('%d:%s,' % (len(data), data)).encode())
             self.skt.sendall(('%d:%s,' % (len(data), data)).encode())
         except NetStringException as e:
             raise e
