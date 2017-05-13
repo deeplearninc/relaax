@@ -46,6 +46,7 @@ class RLXConfig(BaseConfig):
             'relaax_rlx_server/protocol', 'rawsocket')
 
         self.algorithm_path = self.get('algorithm/path')
+        self.algorithm_name = self.get('algorithm/name')
 
         # Simple check of the servers addresses format
 

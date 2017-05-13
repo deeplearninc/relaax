@@ -14,7 +14,7 @@ class RLXAgentProxy(object):
 
     def __init__(self):
         connection = BridgeConnection(options.parameter_server)
-        self.agent = options.algorithm_module.Agent(connection)
+        self.agent = options.Agent(connection)
 
     def init(self, ignore=None):
         if self.agent.init():

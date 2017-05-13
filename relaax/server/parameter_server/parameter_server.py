@@ -26,12 +26,12 @@ class ParameterServer(object):
     def load_algorithm_ps(cls):
         from relaax.server.common.algorithm_loader import AlgorithmLoader
         try:
-            algorithm = AlgorithmLoader.load(options.algorithm_path)
+            ParameterServer = AlgorithmLoader.load_parameter_server(options.algorithm_path, options.algorithm_name)
         except Exception:
             log.critical("Can't load algorithm")
             raise
 
-        return algorithm.ParameterServer(cls.saver_factory, cls.metrics_factory)
+        return ParameterServer(cls.saver_factory, cls.metrics_factory)
 
     @classmethod
     def start(cls):

@@ -8,7 +8,7 @@ from .lib import pg_episode
 # If exploit on init set to True, agent will run in exploitation regime:
 # stop updating shared parameters and at the end of every episode load
 # new policy parameters from PS
-class PGAgent(object):
+class Agent(object):
     def __init__(self, parameter_server):
         self.ps = parameter_server
         self.metrics = parameter_server.metrics

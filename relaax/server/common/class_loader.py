@@ -1,26 +1,29 @@
 from builtins import object
-import os
-import sys
 import imp
 import importlib
+import os
+import sys
 
 
 class ClassLoader(object):
 
     @staticmethod
     def load(path, cname):
-
-        mpath, mname = os.path.split(path)
-
-        if os.path.isdir(path):
+        if path is None:
             pname, cname = cname.rsplit('.', 1)
-        elif os.path.isfile(path):
-            mname, ext = os.path.splitext(mname)
-            pname = None
         else:
-            raise ImportError("No module named %s" % path)
+            mpath, mname = os.path.split(path)
 
-        module = ClassLoader.load_module(mname, mpath)
+            if os.path.isdir(path):
+                pname, cname = cname.rsplit('.', 1)
+            elif os.path.isfile(path):
+                mname, ext = os.path.splitext(mname)
+                pname = None
+            else:
+                raise ImportError("No module named %s" % path)
+
+            module = ClassLoader.load_module(mname, mpath)
+
         if pname:
             module = importlib.import_module(pname)
 

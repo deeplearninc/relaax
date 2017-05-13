@@ -2,15 +2,15 @@ from __future__ import absolute_import
 from relaax.server.parameter_server import parameter_server_base
 from relaax.server.common import session
 
-from . import da3c_model
+from . import pg_model
 
 
-class DA3CParameterServer(parameter_server_base.ParameterServerBase):
+class ParameterServer(parameter_server_base.ParameterServerBase):
     def close(self):
         self.session.close()
 
     def initialize_algorithm(self):
-        self.session = session.Session(da3c_model.SharedParameters())
+        self.session = session.Session(pg_model.SharedParameters())
         self.session.op_initialize()
 
     def make_checkpoint(self):

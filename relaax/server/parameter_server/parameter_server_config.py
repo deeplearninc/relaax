@@ -30,6 +30,7 @@ class ParameterServerConfig(BaseConfig):
                 'relaax_parameter_server/bind', 'localhost:7000')
 
         self.algorithm_path = self.get('algorithm/path')
+        self.algorithm_name = self.get('algorithm/name')
 
         self.define_missing('checkpoints_to_keep', None)
         self.define_missing('checkpoint_step_interval', None)
