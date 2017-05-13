@@ -1,5 +1,4 @@
 from __future__ import division
-from past.utils import old_div
 from builtins import object
 import numpy as np
 import tensorflow as tf
@@ -30,7 +29,7 @@ class Border(object):
 
 class BaseLayer(subgraph.Subgraph):
     def build_graph(self, x, shape, transformation, activation):
-        d = old_div(1.0, np.sqrt(np.prod(shape[:-1])))
+        d = 1.0 / np.sqrt(np.prod(shape[:-1]))
         initializer = graph.RandomUniformInitializer(minval=-d, maxval=d)
         W = graph.Variable(initializer(np.float32, shape)).node
         b = graph.Variable(initializer(np.float32, shape[-1:])).node

@@ -2,7 +2,6 @@ from __future__ import division
 from builtins import str
 from builtins import range
 from builtins import object
-from past.utils import old_div
 import random
 import numpy as np
 from scipy.misc import imresize
@@ -77,7 +76,7 @@ class LabEnv(object):
             x_t = imresize(x_t, (self._width, self._height))
 
         x_t = x_t.astype(np.float32)
-        x_t *= (old_div(1.0, 255.0))
+        x_t *= (1.0 / 255.0)
         return reward, x_t, terminal
 
     def reset(self):

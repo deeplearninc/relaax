@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 from __future__ import division
-from past.utils import old_div
 from builtins import object
 import logging
 import ruamel.yaml
@@ -141,7 +140,7 @@ class Speedometer(object):
     def measure(self, start_time, start_n_step):
         current_time = time.time()
         current_n_step = self.ps.session.op_n_step()
-        self.ps.metrics.scalar('steps_per_sec', old_div((current_n_step - start_n_step), (current_time - start_time)))
+        self.ps.metrics.scalar('steps_per_sec', (current_n_step - start_n_step) / (current_time - start_time))
         self.run_timer(current_time, current_n_step)
 
     def run_timer(self, start_time, start_n_steps):
