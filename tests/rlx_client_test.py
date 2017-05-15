@@ -1,8 +1,8 @@
 from __future__ import absolute_import
 from builtins import str
 from builtins import object
-import time
 import errno
+import time
 import socket
 
 from .fixtures.mock_utils import MockUtils
@@ -42,7 +42,7 @@ class TestRlxClient(object):
             RlxClient('localhost:7000').connect()
             assert False
         except RlxClientException as e:
-            assert str(e) == '[Errno 111] Connection refused'
+            assert str(e) == '[Errno %d] Connection refused' % errno.ECONNREFUSED
 
     def test_some_unknown_exception_in_netstring_constructor(self, monkeypatch):
         # paranoid a bit
