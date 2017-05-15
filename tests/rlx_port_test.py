@@ -68,7 +68,7 @@ class TestRLXPort(object):
         except Exception as e:
             assert called.args == ('Could not accept new connection (fatal error message)',)
             assert called.times == 1
-            assert str(e) == '[Errno 12] fatal error message'
+            assert str(e) == '[Errno %d] fatal error message' % errno.ENOMEM
 
     def test_keyboard_interrupt_on_accept(self, monkeypatch):
         monkeypatch.setattr(os, 'fork', lambda: 0)
@@ -118,4 +118,4 @@ class TestRLXPort(object):
         except Exception as e:
             assert called.args == ("OSError ('some-address', 7000): can't fork",)
             assert called.times == 1
-            assert str(e) == '[Errno 24] fatal error message'
+            assert str(e) == '[Errno %d] fatal error message' % errno.EMFILE

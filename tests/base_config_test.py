@@ -1,9 +1,10 @@
 from __future__ import absolute_import
 from builtins import str
 from builtins import object
-import sys
-import logging as log
 from argparse import Namespace
+import errno
+import logging as log
+import sys
 
 from .fixtures.mock_cmdl import cmdl
 from .fixtures.mock_utils import MockUtils
@@ -45,7 +46,7 @@ class TestBaseConfig(object):
             self.config.load_from_yaml()
             assert False
         except Exception as e:
-            assert str(e) == '[Errno 2] No such file or directory: \'wrong file name\''
+            assert str(e) == '[Errno %d] No such file or directory: \'wrong file name\'' % errno.ENOENT
 
     def test_load_from_yaml_with_no_config_file_name(self):
         try:
