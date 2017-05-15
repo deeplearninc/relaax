@@ -13,7 +13,7 @@ class TestRLXAgentProxy(object):
 
     @classmethod
     def setup_class(cls):
-        options.algorithm_module = Mock()
+        options.Agent = Mock()
 
     @classmethod
     def teardown_class(cls):
