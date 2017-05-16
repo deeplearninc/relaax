@@ -101,3 +101,14 @@ class Weigths(subgraph.Subgraph):
         self.assign = graph.TfNode([tf.assign(variable, value)
                 for variable, value in utils.Utils.izip(weights, self.placeholders.node)])
         return weights
+
+
+class Gradients(subgraph.Subgraph):
+    def build_graph(self, weights, loss=None, optimizer=None):
+        if loss is not None:
+            self.calculate = graph.TfNode(utils.Utils.reconstruct(tf.gradients(
+                loss.node, list(utils.Utils.flatten(weights.node))), weights.node))
+        if optimizer is not None:
+            self.placeholders = graph.Placeholders(weights)
+            self.apply = graph.TfNode(optimizer.node.apply_gradients(
+                    utils.Utils.izip(self.placeholders.node, weights.node)))

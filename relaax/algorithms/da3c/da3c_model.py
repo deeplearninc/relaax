@@ -31,10 +31,8 @@ class Network(subgraph.Subgraph):
 class SharedParameters(subgraph.Subgraph):
     def build_graph(self):
         # Build graph
-        ph_increment = graph.Placeholder(np.int64)
-        sg_global_step = graph.GlobalStep(ph_increment)
+        sg_global_step = graph.GlobalStep()
         sg_weights = Network().weights
-        ph_gradients = graph.Placeholders(variables=sg_weights)
         sg_learning_rate = da3c_graph.LearningRate(sg_global_step)
         sg_optimizer = graph.RMSPropOptimizer(
             learning_rate=sg_learning_rate,
@@ -42,16 +40,15 @@ class SharedParameters(subgraph.Subgraph):
             momentum=0.0,
             epsilon=da3c_config.config.RMSProp.epsilon
         )
-        sg_apply_gradients = graph.ApplyGradients(sg_optimizer, sg_weights, ph_gradients)
+        sg_gradients = layer.Gradients(sg_weights, optimizer=sg_optimizer)
         sg_initialize = graph.Initialize()
 
         # Expose public API
         self.op_n_step = self.Op(sg_global_step.n)
         self.op_get_weights = self.Op(sg_weights)
-        self.op_apply_gradients = self.Ops(sg_apply_gradients, sg_global_step.increment,
-            gradients=ph_gradients,
-            increment=ph_increment
-        )
+        self.op_apply_gradients = self.Ops(sg_gradients.apply,
+                sg_global_step.increment, gradients=sg_gradients.placeholders,
+                increment=sg_global_step.placeholder)
         self.op_initialize = self.Op(sg_initialize)
 
 
@@ -60,25 +57,18 @@ class AgentModel(subgraph.Subgraph):
     def build_graph(self):
         # Build graph
         sg_network = Network()
-        ph_state = sg_network.state
 
-        ph_action = graph.Placeholder(np.int32, shape=(None, ))
-        ph_value = graph.Placeholder(np.float32, shape=(None, ))
-        ph_discounted_reward = graph.Placeholder(np.float32, shape=(None, ))
-        sg_loss = da3c_graph.Loss(ph_state, ph_action, ph_value,
-                ph_discounted_reward, sg_network.actor, sg_network.critic)
-        sg_gradients = graph.Gradients(sg_loss, sg_network.weights)
+        sg_loss = da3c_graph.Loss(sg_network.actor, sg_network.critic)
+        sg_gradients = layer.Gradients(sg_network.weights, loss=sg_loss)
 
         # Expose public API
         self.op_assign_weights = self.Op(sg_network.weights.assign,
                 weights=sg_network.weights.placeholders)
-        self.op_get_action_and_value = self.Ops(sg_network.actor, sg_network.critic, state=ph_state)
-        self.op_compute_gradients = self.Op(sg_gradients,
-            state=ph_state,
-            action=ph_action,
-            value=ph_value,
-            discounted_reward=ph_discounted_reward
-        )
+        self.op_get_action_and_value = self.Ops(
+                sg_network.actor, sg_network.critic, state=sg_network.state)
+        self.op_compute_gradients = self.Op(sg_gradients.calculate,
+                state=sg_network.state, action=sg_loss.action,
+                value=sg_loss.value, discounted_reward=sg_loss.discounted_reward)
 
 
 if __name__ == '__main__':

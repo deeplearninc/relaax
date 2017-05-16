@@ -77,19 +77,6 @@ class RMSPropOptimizer(subgraph.Subgraph):
         )
 
 
-class ApplyGradients(subgraph.Subgraph):
-    def build_graph(self, optimizer, weights, gradients):
-        return optimizer.node.apply_gradients(utils.Utils.izip(gradients.node, weights.node))
-
-
-class Gradients(subgraph.Subgraph):
-    def build_graph(self, loss, variables):
-        return utils.Utils.reconstruct(
-            tf.gradients(loss.node, list(utils.Utils.flatten(variables.node))),
-            variables.node
-        )
-
-
 class Softmax(subgraph.Subgraph):
     def build_graph(self, x):
         return tf.nn.softmax(x.node)
@@ -164,9 +151,10 @@ class Placeholders(subgraph.Subgraph):
 
 
 class GlobalStep(subgraph.Subgraph):
-    def build_graph(self, increment):
+    def build_graph(self):
         self.n = Variable(0, dtype=np.int64)
-        self.increment = Increment(self.n, increment)
+        self.placeholder = Placeholder(np.int64)
+        self.increment = Increment(self.n, self.placeholder)
 
 
 class Variable(subgraph.Subgraph):
