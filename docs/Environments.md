@@ -1,44 +1,10 @@
-## Contents
-- [Quick start](../README.md#quick-start)
-- [System Architecture](#system-architecture)
-- [RELAAX Clients](#relaax-clients)
-    - [Reinforcement Learning eXchange protocol](#reinforcement-learning-exchange-protocol)
-    - [Supported Environments](#supported-environments)
-        - [ALE](#arcade-learning-environment)
-        - [OpenAI Gym](#openai-gym)
-        - [DeepMind Lab](#deepmind-lab)
-- [RELAAX Server](#relaax-server)
-    - [RLX Server](#rlx-server)
-        - [RLX Server structure](#rlx-server-structure)
-        - [RLX Server command line](#rlx-server-command-line)
-        - [Configuration](#configuration)
-    - [Worker](#worker)
-        - [Worker structure](#worker-structure)
-    - [Parameter Server](#parameter-server)
-        - [Parameter Server structure](#parameter-server-structure)
-        - [Parameter Server command line](#parameter-server-command-line)
-    - [Algorithm](#algorithm)
-        - [Algorithm package structure](#algorithm-package-structure)
-        - [Worker-to-Parameter Server Bridge](#worker-to-parameter-server-bridge)
-    - [Metrics](#metrics)
-    - [RELAAX Installation](#relaax-installation)
-        - [Installation for training on cluster and for algorithm development](#installation-for-training-on-cluster-and-for-algorithm-development)
-        - [Installation for RELAAX development](#installation-for-relaax-development)
-- [Algorithms](#algorithms)
-    - [Distributed A3C](#distributed-a3c)
-        - [Distributed A3C Architecture](#distributed-a3c-architecture)
-        - [Performance on some of the Atari Environments](#performance-on-some-of-the-atari-environments)
-    - [Distributed A3C Continuous](#distributed-a3c-continuous)
-        - [Distributed A3C Architecture with Continuous Actions](#distributed-a3c-architecture-with-continuous-actions)
-        - [Performance on gym's Walker](#performance-on-gyms-walker)
-    - [Distributed TRPO with GAE](#distributed-trpo-with-gae)
-        - [Performance on gym's BipedalWalker](#performance-on-gyms-bipedalwalker)
-    - [Other Algorithms](#other-algorithms)
-- [Deployment in Cloud](#deployment-in-cloud)
-
 ### [Supported Environments](../README.md#contents)
+> click on title to go to contents
+- [ALE](#arcade-learning-environment)
+- [OpenAI Gym](#openai-gym)
+- [DeepMind Lab](#deepmind-lab)
 
-#### [Arcade-Learning-Environment](../README.md#contents)
+#### [Arcade-Learning-Environment](#supported-environments)
 
 The [Arcade Learning Environment (ALE)](http://www.arcadelearningenvironment.org/)
 is a framework that allows to develop AI agents for Atari 2600 games.
@@ -176,7 +142,7 @@ $ docker build -f Dockerfile -t relaax-ale-vnc ../..
 ```
 <br><br>
 
-#### [OpenAI Gym](#contents)
+#### [OpenAI Gym](#supported-environments)
 
 [OpenAI Gym](https://gym.openai.com/) is open-source library: a collection of test problems environments,
 that you can use to work out your reinforcement learning algorithms.
@@ -333,7 +299,7 @@ $ docker build -f Dockerfile -t relaax-gym-vnc ../..
 ```
 <br><br>
 
-#### [DeepMind Lab](#contents)
+#### [DeepMind Lab](#supported-environments)
 
 [DeepMind Lab](https://github.com/deepmind/lab) is a 3D learning environment based on
 id Software's [Quake III Arena](https://github.com/id-Software/Quake-III-Arena).
