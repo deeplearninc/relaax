@@ -20,7 +20,7 @@ class Network(subgraph.Subgraph):
                 activation=layer.Activation.Softmax)
         critic = layer.Dense(fc, 1)
 
-        self.state = input.state
+        self.ph_state = input.ph_state
         self.actor = actor
         self.critic = graph.Flatten(critic)
         self.weights = layer.Weigths(input, fc, actor, critic)
@@ -47,8 +47,8 @@ class SharedParameters(subgraph.Subgraph):
         self.op_n_step = self.Op(sg_global_step.n)
         self.op_get_weights = self.Op(sg_weights)
         self.op_apply_gradients = self.Ops(sg_gradients.apply,
-                sg_global_step.increment, gradients=sg_gradients.placeholders,
-                increment=sg_global_step.placeholder)
+                sg_global_step.increment, gradients=sg_gradients.ph_gradients,
+                increment=sg_global_step.ph_increment)
         self.op_initialize = self.Op(sg_initialize)
 
 
@@ -63,12 +63,12 @@ class AgentModel(subgraph.Subgraph):
 
         # Expose public API
         self.op_assign_weights = self.Op(sg_network.weights.assign,
-                weights=sg_network.weights.placeholders)
+                weights=sg_network.weights.ph_weights)
         self.op_get_action_and_value = self.Ops(
-                sg_network.actor, sg_network.critic, state=sg_network.state)
+                sg_network.actor, sg_network.critic, state=sg_network.ph_state)
         self.op_compute_gradients = self.Op(sg_gradients.calculate,
-                state=sg_network.state, action=sg_loss.action,
-                value=sg_loss.value, discounted_reward=sg_loss.discounted_reward)
+                state=sg_network.ph_state, action=sg_loss.ph_action,
+                value=sg_loss.ph_value, discounted_reward=sg_loss.ph_discounted_reward)
 
 
 if __name__ == '__main__':

@@ -23,7 +23,7 @@ class Network(subgraph.Subgraph):
         last = layer.Dense(last, pg_config.config.action_size, activation=layer.Activation.Softmax)
         layers.append(last)
 
-        self.state = input.state
+        self.state = input.ph_state
         self.weights = layer.Weigths(*layers)
         return last.node
 
@@ -43,8 +43,8 @@ class SharedParameters(subgraph.Subgraph):
         self.op_n_step = self.Op(sg_global_step.n)
         self.op_get_weights = self.Op(sg_weights)
         self.op_apply_gradients = self.Ops(sg_gradients.apply,
-                sg_global_step.increment, gradients=sg_gradients.placeholders,
-                increment=sg_global_step.placeholder)
+                sg_global_step.increment, gradients=sg_gradients.ph_gradients,
+                increment=sg_global_step.ph_increment)
         self.op_initialize = self.Op(sg_initialize)
 
 
@@ -60,11 +60,11 @@ class PolicyModel(subgraph.Subgraph):
 
         # Expose public API
         self.op_assign_weights = self.Op(sg_network.weights.assign,
-                weights=sg_network.weights.placeholders)
+                weights=sg_network.weights.ph_weights)
         self.op_get_action = self.Op(sg_network, state=sg_network.state)
         self.op_compute_gradients = self.Op(sg_gradients.calculate,
-                state=sg_network.state, action=sg_loss.action,
-                discounted_reward=sg_loss.discounted_reward)
+                state=sg_network.state, action=sg_loss.ph_action,
+                discounted_reward=sg_loss.ph_discounted_reward)
 
 
 if __name__ == '__main__':

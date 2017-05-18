@@ -82,13 +82,13 @@ class Convolutions(subgraph.Subgraph):
 
 class Input(subgraph.Subgraph):
     def build_graph(self, input):
-        self.state = graph.Placeholder(np.float32,
+        self.ph_state = graph.Placeholder(np.float32,
                 shape=[None] + input.shape + [input.history])
 
         convolutions = []
         if hasattr(input, 'use_convolutions'):
             convolutions = input.use_convolutions 
-        conv = Convolutions(self.state, convolutions)
+        conv = Convolutions(self.ph_state, convolutions)
 
         self.weight = conv.weight
         return conv.node
@@ -97,9 +97,9 @@ class Input(subgraph.Subgraph):
 class Weigths(subgraph.Subgraph):
     def build_graph(self, *layers):
         weights = [layer.weight.node for layer in layers]
-        self.placeholders = graph.Placeholders(variables=graph.TfNode(weights))
+        self.ph_weights = graph.Placeholders(variables=graph.TfNode(weights))
         self.assign = graph.TfNode([tf.assign(variable, value)
-                for variable, value in utils.Utils.izip(weights, self.placeholders.node)])
+                for variable, value in utils.Utils.izip(weights, self.ph_weights.node)])
         return weights
 
 
@@ -109,6 +109,6 @@ class Gradients(subgraph.Subgraph):
             self.calculate = graph.TfNode(utils.Utils.reconstruct(tf.gradients(
                 loss.node, list(utils.Utils.flatten(weights.node))), weights.node))
         if optimizer is not None:
-            self.placeholders = graph.Placeholders(weights)
+            self.ph_gradients = graph.Placeholders(weights)
             self.apply = graph.TfNode(optimizer.node.apply_gradients(
-                    utils.Utils.izip(self.placeholders.node, weights.node)))
+                    utils.Utils.izip(self.ph_gradients.node, weights.node)))
