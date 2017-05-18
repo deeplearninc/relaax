@@ -6,9 +6,7 @@ from relaax.common.algorithms.lib import graph
 from relaax.common.algorithms.lib import layer
 from relaax.common.algorithms.lib import utils
 
-# from . import fun_config
 from .fun_config import config as cfg
-# from . import lstm
 from .lstm import DilatedLSTMCell, CustomBasicLSTMCell
 
 
