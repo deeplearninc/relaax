@@ -153,8 +153,8 @@ class Placeholders(subgraph.Subgraph):
 class GlobalStep(subgraph.Subgraph):
     def build_graph(self):
         self.n = Variable(0, dtype=np.int64)
-        self.placeholder = Placeholder(np.int64)
-        self.increment = Increment(self.n, self.placeholder)
+        self.ph_increment = Placeholder(np.int64)
+        self.increment = Increment(self.n, self.ph_increment)
 
 
 class Variable(subgraph.Subgraph):
@@ -183,15 +183,15 @@ class Variables(subgraph.Subgraph):
 
 class PolicyLoss(subgraph.Subgraph):
     def build_graph(self, action_size, network):
-        self.action = Placeholder(np.int32, (None, ))
-        self.discounted_reward = Placeholder(np.float32, (None, 1))
+        self.ph_action = Placeholder(np.int32, (None, ))
+        self.ph_discounted_reward = Placeholder(np.float32, (None, 1))
 
         # making actions that gave good advantage (reward over time) more likely,
         # and actions that didn't less likely.
 
-        log_like_op = tf.log(tf.reduce_sum(tf.one_hot(self.action.node,
+        log_like_op = tf.log(tf.reduce_sum(tf.one_hot(self.ph_action.node,
                 action_size) * network.node, axis=[1]))
-        return -tf.reduce_sum(log_like_op * self.discounted_reward.node)
+        return -tf.reduce_sum(log_like_op * self.ph_discounted_reward.node)
 
 
 class Initialize(subgraph.Subgraph):
