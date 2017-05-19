@@ -20,6 +20,8 @@ class _PerceptionNetwork(subgraph.Subgraph):
             layer.Dense(layer.Flatten(input), cfg.d,  # d=256
                         activation=layer.Activation.Relu)
 
+        self.weights = layer.Weights(input, self.perception)
+
         self.ph_state = input.ph_state
 
 
@@ -179,7 +181,7 @@ class _WorkerNetwork(_PerceptionNetwork):
 
         self.lstm_state_out = np.zeros([1, self.lstm.state_size])
 
-        self.weights = layer.Weights(input, self.perception,
+        self.weights = layer.Weights(self.weights,
                                      graph.TfNode((self.lstm.matrix, self.lstm.bias)),
                                      U, w, self.vi)
 
@@ -257,4 +259,5 @@ class LocalWorkerNetwork(subgraph.Subgraph):
 
 
 if __name__ == '__main__':
-    utils.assemble_and_show_graphs()
+    utils.assemble_and_show_graphs(GlobalManagerNetwork, LocalManagerNetwork,
+                                   GlobalWorkerNetwork, LocalWorkerNetwork)
