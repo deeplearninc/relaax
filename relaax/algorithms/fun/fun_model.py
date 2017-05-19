@@ -116,9 +116,11 @@ class LocalManagerNetwork(subgraph.Subgraph):
             ph_perception=self.sg_network.ph_perception,
             ph_initial_lstm_state=self.sg_network.ph_initial_lstm_state,
             ph_step_size=self.sg_network.ph_step_size)
-        self.op_get_st = self.Ops(
+        self.op_get_st = self.Op(
             self.sg_network.Mspace,
             ph_perception=self.sg_network.ph_perception)
+        # self.op_get_goal_st
+        # self.op_get_value
 
     def reset_state(self):
         self.sg_network.lstm_state_out = np.zeros([1, self.sg_network.lstm.state_size])
