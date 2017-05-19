@@ -20,8 +20,6 @@ class _PerceptionNetwork(subgraph.Subgraph):
             layer.Dense(layer.Flatten(input), cfg.d,  # d=256
                         activation=layer.Activation.Relu)
 
-        self.weights = layer.Weights(input, self.perception)
-
 
 class _ManagerNetwork(subgraph.Subgraph):
     def build_graph(self):
@@ -97,7 +95,7 @@ class LocalManagerNetwork(subgraph.Subgraph):
     def build_graph(self):
         self.sg_network = _ManagerNetwork()
 
-        sg_loss = fun_graph.ManagerLoss(self.sg_network.goal, self.sg_network.value)
+        sg_loss = fun_graph.CosineLoss(self.sg_network.goal, self.sg_network.value)
         sg_gradients = layer.Gradients(self.sg_network.weights, loss=sg_loss)
 
         # Expose public API
@@ -142,6 +140,7 @@ class _WorkerNetwork(_PerceptionNetwork):
         super(_WorkerNetwork, self).__init__()
 
         self.lstm = CustomBasicLSTMCell(cfg.d)  # d=256
+        # needs wrap as layer to retrieve weights
 
         self.ph_goal =\
             graph.Placeholder(np.float32, shape=(None, cfg.d), name="ph_goal")
@@ -176,6 +175,47 @@ class _WorkerNetwork(_PerceptionNetwork):
         self.vi = layer.LinearLayer(sg_lstm_outputs, shape=(cfg.d, 1), transformation=tf.matmul)
 
         self.lstm_state_out = np.zeros([1, self.lstm.state_size])
+
+        self.weights = layer.Weights(input, self.perception,
+                                     graph.TfNode((self.lstm.matrix, self.lstm.bias)),
+                                     U, w, self.vi)
+
+
+class GlobalWorkerNetwork(subgraph.Subgraph):
+    def build_graph(self):
+        sg_weights = _WorkerNetwork().weights
+
+        sg_global_step = graph.GlobalStep()
+        sg_learning_rate = fun_graph.LearningRate(sg_global_step)
+
+        sg_optimizer = graph.RMSPropOptimizer(
+            learning_rate=sg_learning_rate,
+            decay=cfg.RMSProp.decay,
+            momentum=0.0,
+            epsilon=cfg.RMSProp.epsilon
+        )
+
+        sg_gradients = layer.Gradients(sg_weights, optimizer=sg_optimizer)
+        sg_initialize = graph.Initialize()
+
+        # Expose public API
+        self.op_n_step = self.Op(sg_global_step.n)
+        self.op_get_weights = self.Op(sg_weights)
+        self.op_apply_gradients = self.Ops(sg_gradients.apply,
+                                           sg_global_step.increment,
+                                           gradients=sg_gradients.ph_gradients,
+                                           increment=sg_global_step.ph_increment)
+        self.op_initialize = self.Op(sg_initialize)
+
+
+class LocalWorkerNetwork(subgraph.Subgraph):
+    def build_graph(self):
+        self.sg_network = _WorkerNetwork()
+
+        sg_loss = fun_graph.A3CLoss(self.sg_network.pi, self.sg_network.vi, entropy=False)
+        sg_gradients = layer.Gradients(self.sg_network.weights, loss=sg_loss)
+
+        # Expose public API
 
 
 if __name__ == '__main__':
