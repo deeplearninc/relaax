@@ -7,11 +7,12 @@ from relaax.common.algorithms.lib import graph
 from relaax.common.algorithms.lib import layer
 from relaax.common.algorithms.lib import utils
 
+from .lib import fun_graph
 from .fun_config import config as cfg
 from .lstm import DilatedLSTMCell, CustomBasicLSTMCell
 
 
-class PerceptionNetwork(subgraph.Subgraph):
+class _PerceptionNetwork(subgraph.Subgraph):
     def build_graph(self):
         input = layer.Input(cfg.input)
 
@@ -22,7 +23,7 @@ class PerceptionNetwork(subgraph.Subgraph):
         self.weights = layer.Weights(input, self.perception)
 
 
-class ManagerNetwork(subgraph.Subgraph):
+class _ManagerNetwork(subgraph.Subgraph):
     def build_graph(self):
         self.ph_perception =\
             graph.Placeholder(np.float32, shape=(None, cfg.d), name="ph_perception")
@@ -50,9 +51,9 @@ class ManagerNetwork(subgraph.Subgraph):
                                                           time_major=False)
         sg_lstm_outputs = graph.TfNode(lstm_outputs)
 
-        self.goal = tf.nn.l2_normalize(graph.Flatten(sg_lstm_outputs), dim=1)
+        self.goal = tf.nn.l2_normalize(graph.Flatten(sg_lstm_outputs.node), dim=1)
 
-        critic = layer.Dense(sg_lstm_outputs, 1)
+        critic = layer.Dense(sg_lstm_outputs.node, 1)
         self.critic = layer.Flatten(critic)
 
         self.weights = layer.Weights(self.Mspace,
@@ -60,6 +61,36 @@ class ManagerNetwork(subgraph.Subgraph):
                                      critic)
 
         self.lstm_state_out = np.zeros([1, self.lstm.state_size])
+
+
+class GlobalManagerNetwork(subgraph.Subgraph):
+    def build_graph(self):
+        sg_weights = _ManagerNetwork().weights
+
+        sg_global_step = graph.GlobalStep()
+        # self.learning_rate_input = graph.Placeholder(np.float32, shape=(1,), name="manager_lr")
+        # tf.placeholder(tf.float32, [], name="manager_lr")
+        sg_learning_rate = fun_graph.LearningRate(sg_global_step)
+
+        sg_optimizer = graph.RMSPropOptimizer(
+            learning_rate=sg_learning_rate,
+            decay=cfg.RMSProp.decay,
+            momentum=0.0,
+            epsilon=cfg.RMSProp.epsilon
+        )
+
+        sg_gradients = layer.Gradients(sg_weights, optimizer=sg_optimizer)
+        sg_initialize = graph.Initialize()
+
+        # Expose public API
+        self.op_n_step = self.Op(sg_global_step.n)
+        self.op_get_weights = self.Op(sg_weights)
+        self.op_apply_gradients = self.Ops(sg_gradients.apply,
+                                           sg_global_step.increment,
+                                           gradients=sg_gradients.ph_gradients,
+                                           increment=sg_global_step.ph_increment)
+        self.op_initialize = self.Op(sg_initialize)
+
 
 if __name__ == '__main__':
     utils.assemble_and_show_graphs()

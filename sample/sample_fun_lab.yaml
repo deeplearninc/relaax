@@ -37,8 +37,9 @@ algorithm:
   batch_size: 10                  # local loop size for one episode
 
   input:
-    shape: [84, 84, 3]
-    history: 3
+    shape: [84, 84]
+    channels: 3
+    history: 1
     use_convolutions:
       - n_filters: 16
         filter_size: [8, 8]
@@ -49,12 +50,12 @@ algorithm:
 
   gpu: false                      # to use GPU, set to the True
   lstm: true                      # to use LSTM instead of FF, set to the True
-  max_global_step: 1e8            # amount of maximum global steps to pass through the training
+  max_global_step: 1e9            # amount of maximum global steps to pass through the training
 
-  learning_rate: 7e-4             # learning rate
-  anneal_step_limit: 2 * 10 ** 8  # annealing lr within first 200mil
+  learning_rate: 2e-4             # learning rate
+  anneal_step_limit: 2e8          # annealing lr within first 200mil
 
-  entropy_beta: 0.01              # entropy regularization constant
+  entropy_beta: 1e-2              # entropy regularization constant
   worker_gamma: 0.99              # rewards discount factor for workers
   manager_gamma: 0.999            # discount factor for managers
 
