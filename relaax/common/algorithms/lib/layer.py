@@ -27,6 +27,19 @@ class Border(object):
     Same = 'SAME'
 
 
+class LinearLayer(subgraph.Subgraph):
+    def build_graph(self, x, shape, transformation, bias=True):
+        d = 1.0 / np.sqrt(np.prod(shape[:-1]))
+        initializer = graph.RandomUniformInitializer(minval=-d, maxval=d)
+        W = graph.Variable(initializer(np.float32, shape)).node
+        if bias:
+            b = graph.Variable(initializer(np.float32, shape[-1:])).node
+            self.weight = graph.TfNode((W, b))
+            return transformation(x.node, W) + b
+        self.weight = graph.TfNode(W)
+        return transformation(x.node, W)
+
+
 class BaseLayer(subgraph.Subgraph):
     def build_graph(self, x, shape, transformation, activation):
         d = 1.0 / np.sqrt(np.prod(shape[:-1]))

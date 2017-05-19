@@ -30,9 +30,9 @@ class _ManagerNetwork(subgraph.Subgraph):
         # tf.placeholder(tf.float32, shape=[None, cfg.d], name="ph_perception")
 
         self.Mspace =\
-            layer.Dense(self.ph_perception.node, cfg.d,  # d=256
+            layer.Dense(self.ph_perception, cfg.d,  # d=256
                         activation=layer.Activation.Relu)
-        Mspace_expanded = tf.expand_dims(self.Mspace, 0)
+        Mspace_expanded = tf.expand_dims(self.Mspace.node, 0)
 
         self.lstm = DilatedLSTMCell(cfg.d, num_cores=cfg.d)
         # needs wrap as layer to retrieve weights
@@ -49,11 +49,12 @@ class _ManagerNetwork(subgraph.Subgraph):
                                                           initial_state=self.ph_initial_lstm_state,
                                                           sequence_length=self.ph_step_size,
                                                           time_major=False)
+        lstm_outputs = tf.reshape(lstm_outputs, [-1, cfg.d])
         sg_lstm_outputs = graph.TfNode(lstm_outputs)
 
-        self.goal = tf.nn.l2_normalize(graph.Flatten(sg_lstm_outputs.node), dim=1)
+        self.goal = tf.nn.l2_normalize(graph.Flatten(sg_lstm_outputs), dim=1)
 
-        critic = layer.Dense(sg_lstm_outputs.node, 1)
+        critic = layer.Dense(sg_lstm_outputs, 1)
         self.value = layer.Flatten(critic)
 
         self.weights = layer.Weights(self.Mspace,
@@ -110,7 +111,7 @@ class LocalManagerNetwork(subgraph.Subgraph):
                     ph_initial_lstm_state=self.sg_network.ph_initial_lstm_state,
                     ph_step_size=self.sg_network.ph_step_size)
 
-        # Need MORE with lstm's freezes
+        # without lstm state freezes
         self.op_get_goal_value_st = self.Ops(
             self.sg_network.goal, self.sg_network.value, self.sg_network.Mspace,
             ph_perception=self.sg_network.ph_perception,
@@ -119,11 +120,55 @@ class LocalManagerNetwork(subgraph.Subgraph):
         self.op_get_st = self.Op(
             self.sg_network.Mspace,
             ph_perception=self.sg_network.ph_perception)
-        # self.op_get_goal_st
-        # self.op_get_value
+
+        # with lstm state freezes
+        self.op_get_goal_st = self.Ops(
+            self.sg_network.goal, self.sg_network.Mspace,
+            ph_perception=self.sg_network.ph_perception,
+            ph_initial_lstm_state=self.sg_network.ph_initial_lstm_state,
+            ph_step_size=self.sg_network.ph_step_size)
+        self.op_get_value = self.Op(
+            self.sg_network.value,
+            ph_perception=self.sg_network.ph_perception,
+            ph_initial_lstm_state=self.sg_network.ph_initial_lstm_state,
+            ph_step_size=self.sg_network.ph_step_size)
 
     def reset_state(self):
         self.sg_network.lstm_state_out = np.zeros([1, self.sg_network.lstm.state_size])
+
+
+class _WorkerNetwork(_PerceptionNetwork):
+    def build_graph(self):
+        super(_WorkerNetwork, self).__init__()
+
+        self.lstm = CustomBasicLSTMCell(cfg.d)  # d=256
+
+        self.ph_goal =\
+            graph.Placeholder(np.float32, shape=(None, cfg.d), name="ph_goal")
+        # self.ph_goal = tf.placeholder(tf.float32, [None, cfg.d], name="ph_goal")
+
+        perception_reshaped = tf.reshape(self.perception.node, [1, -1, cfg.d])
+
+        self.ph_step_size = \
+            graph.Placeholder(np.float32, shape=(1,), name="ph_w_step_size")
+        # tf.placeholder(tf.float32, [1], name="ph_w_step_size")
+        self.ph_initial_lstm_state = \
+            graph.Placeholder(np.float32, shape=(1, self.lstm.state_size), name="ph_w_lstm_state")
+        # tf.placeholder(tf.float32, [1, self.lstm.state_size], name="ph_w_lstm_state")
+
+        lstm_outputs, self.lstm_state = tf.nn.dynamic_rnn(self.lstm,
+                                                          perception_reshaped,
+                                                          initial_state=self.ph_initial_lstm_state,
+                                                          sequence_length=self.ph_step_size,
+                                                          time_major=False)
+        lstm_outputs = tf.reshape(lstm_outputs, [-1, cfg.d])
+        sg_lstm_outputs = graph.TfNode(lstm_outputs)
+
+        U = layer.LinearLayer(sg_lstm_outputs, shape=(cfg.d, cfg.action_size * cfg.k))
+        U_reshaped = tf.reshape(U, [cfg.action_size, cfg.k, -1])
+
+        w = layer.LinearLayer(self.ph_goal, shape=(cfg.d, cfg.k), bias=False)
+        w_reshaped = tf.reshape(w.node, [-1, 1, cfg.k])
 
 
 if __name__ == '__main__':
