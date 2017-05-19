@@ -20,6 +20,8 @@ class _PerceptionNetwork(subgraph.Subgraph):
             layer.Dense(layer.Flatten(input), cfg.d,  # d=256
                         activation=layer.Activation.Relu)
 
+        self.ph_state = input.ph_state
+
 
 class _ManagerNetwork(subgraph.Subgraph):
     def build_graph(self):
@@ -111,7 +113,8 @@ class LocalManagerNetwork(subgraph.Subgraph):
 
         # without lstm state freezes
         self.op_get_goal_value_st = self.Ops(
-            self.sg_network.goal, self.sg_network.value, self.sg_network.Mspace,
+            self.sg_network.goal, self.sg_network.value,
+            self.sg_network.Mspace, self.sg_network.lstm_state,
             ph_perception=self.sg_network.ph_perception,
             ph_initial_lstm_state=self.sg_network.ph_initial_lstm_state,
             ph_step_size=self.sg_network.ph_step_size)
@@ -121,12 +124,12 @@ class LocalManagerNetwork(subgraph.Subgraph):
 
         # with lstm state freezes
         self.op_get_goal_st = self.Ops(
-            self.sg_network.goal, self.sg_network.Mspace,
+            self.sg_network.goal, self.sg_network.Mspace, self.sg_network.lstm_state,
             ph_perception=self.sg_network.ph_perception,
             ph_initial_lstm_state=self.sg_network.ph_initial_lstm_state,
             ph_step_size=self.sg_network.ph_step_size)
-        self.op_get_value = self.Op(
-            self.sg_network.value,
+        self.op_get_value = self.Ops(
+            self.sg_network.value, self.sg_network.lstm_state,
             ph_perception=self.sg_network.ph_perception,
             ph_initial_lstm_state=self.sg_network.ph_initial_lstm_state,
             ph_step_size=self.sg_network.ph_step_size)
@@ -216,6 +219,41 @@ class LocalWorkerNetwork(subgraph.Subgraph):
         sg_gradients = layer.Gradients(self.sg_network.weights, loss=sg_loss)
 
         # Expose public API
+        self.op_assign_weights = self.Op(self.sg_network.weights.assign,
+                                         weights=self.sg_network.weights.ph_weights)
+        self.op_compute_gradients = \
+            self.Op(sg_gradients.calculate,
+                    ph_state=self.sg_network.ph_state,
+                    ph_goal=self.sg_network.ph_goal,
+                    ph_action=sg_loss.ph_action,
+                    ph_value=sg_loss.ph_value,
+                    ph_discounted_reward=sg_loss.ph_discounted_reward,
+                    ph_initial_lstm_state=self.sg_network.ph_initial_lstm_state,
+                    ph_step_size=self.sg_network.ph_step_size)
+
+        # without lstm state freezes
+        self.op_get_action_and_value = self.Ops(
+            self.sg_network.pi, self.sg_network.vi, self.sg_network.lstm_state,
+            ph_state=self.sg_network.ph_state,
+            ph_goal=self.sg_network.ph_goal,
+            ph_initial_lstm_state=self.sg_network.ph_initial_lstm_state,
+            ph_step_size=self.sg_network.ph_step_size)
+        self.op_get_action = self.Ops(  # use for exploitation
+            self.sg_network.pi, self.sg_network.lstm_state,
+            ph_state=self.sg_network.ph_state,
+            ph_goal=self.sg_network.ph_goal,
+            ph_initial_lstm_state=self.sg_network.ph_initial_lstm_state,
+            ph_step_size=self.sg_network.ph_step_size)
+
+        # with lstm state freezes
+        self.op_get_value_zt = self.Ops(
+            self.sg_network.perception, self.sg_network.vi, self.sg_network.lstm_state,
+            ph_state=self.sg_network.ph_state,
+            ph_initial_lstm_state=self.sg_network.ph_initial_lstm_state,
+            ph_step_size=self.sg_network.ph_step_size)
+
+    def reset_state(self):
+        self.sg_network.lstm_state_out = np.zeros([1, self.sg_network.lstm.state_size])
 
 
 if __name__ == '__main__':
