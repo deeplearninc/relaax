@@ -40,14 +40,22 @@ class LinearLayer(subgraph.Subgraph):
         return transformation(x.node, W)
 
 
+class MatmulLayer(subgraph.Subgraph):
+    def build_graph(self, a, b, activation=Activation.Null):
+        return activation(tf.matmul(a.node, b.node))
+
+
 class BaseLayer(subgraph.Subgraph):
-    def build_graph(self, x, shape, transformation, activation):
+    def build_graph(self, x, shape, transformation, activation, bias=True):
         d = 1.0 / np.sqrt(np.prod(shape[:-1]))
         initializer = graph.RandomUniformInitializer(minval=-d, maxval=d)
         W = graph.Variable(initializer(np.float32, shape)).node
-        b = graph.Variable(initializer(np.float32, shape[-1:])).node
-        self.weight = graph.TfNode((W, b))
-        return activation(transformation(x.node, W) + b)
+        if bias:
+            b = graph.Variable(initializer(np.float32, shape[-1:])).node
+            self.weight = graph.TfNode((W, b))
+            return activation(transformation(x.node, W) + b)
+        self.weight = graph.TfNode(W)
+        return activation(transformation(x.node, W))
 
 
 class Convolution(BaseLayer):

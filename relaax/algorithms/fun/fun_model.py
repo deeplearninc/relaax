@@ -164,11 +164,18 @@ class _WorkerNetwork(_PerceptionNetwork):
         lstm_outputs = tf.reshape(lstm_outputs, [-1, cfg.d])
         sg_lstm_outputs = graph.TfNode(lstm_outputs)
 
-        U = layer.LinearLayer(sg_lstm_outputs, shape=(cfg.d, cfg.action_size * cfg.k))
-        U_reshaped = tf.reshape(U, [cfg.action_size, cfg.k, -1])
+        U = layer.LinearLayer(sg_lstm_outputs, shape=(cfg.d, cfg.action_size * cfg.k),
+                              transformation=tf.matmul)
+        U_embedding = tf.transpose(tf.reshape(U, [cfg.action_size, cfg.k, -1]))
 
-        w = layer.LinearLayer(self.ph_goal, shape=(cfg.d, cfg.k), bias=False)
+        w = layer.LinearLayer(self.ph_goal, shape=(cfg.d, cfg.k),
+                              transformation=tf.matmul, bias=False)
         w_reshaped = tf.reshape(w.node, [-1, 1, cfg.k])
+
+        self.pi = layer.MatmulLayer(w_reshaped, U_embedding, activation=layer.Activation.Softmax)
+        self.vi = layer.LinearLayer(sg_lstm_outputs, shape=(cfg.d, 1), transformation=tf.matmul)
+
+        self.lstm_state_out = np.zeros([1, self.lstm.state_size])
 
 
 if __name__ == '__main__':
