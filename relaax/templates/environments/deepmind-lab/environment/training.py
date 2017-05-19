@@ -53,6 +53,7 @@ class Training(object):
         # finally:
         #     # disconnect from the server
         #     self.agent.disconnect()
+        pass
 
 if __name__ == '__main__':
     Training().run()

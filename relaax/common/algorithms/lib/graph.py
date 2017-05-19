@@ -128,18 +128,19 @@ class Placeholder(subgraph.Subgraph):
         np.float32: tf.float32
     }
 
-    def build_graph(self, dtype, shape=None):
+    def build_graph(self, dtype, shape=None, name=None):
         """Assemble one placeholder.
 
         Args:
-            shape: placehoder shape
+            shape: placeholder shape
             dtype: placeholder data type
+            name: placeholder name
 
         Returns:
             placeholder of given shape and data type
         """
 
-        return tf.placeholder(self.DTYPE[dtype], shape=shape)
+        return tf.placeholder(self.DTYPE[dtype], shape=shape, name=name)
 
 
 class Placeholders(subgraph.Subgraph):
