@@ -14,10 +14,10 @@ class Network(subgraph.Subgraph):
         input = layer.Input(da3c_config.config.input)
 
         fc = layer.Dense(layer.Flatten(input), 256,
-                activation=layer.Activation.Relu)
+                         activation=layer.Activation.Relu)
 
         actor = layer.Dense(fc, da3c_config.config.action_size,
-                activation=layer.Activation.Softmax)
+                            activation=layer.Activation.Softmax)
         critic = layer.Dense(fc, 1)
 
         self.ph_state = input.ph_state

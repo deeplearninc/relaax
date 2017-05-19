@@ -17,3 +17,21 @@ class LearningRate(subgraph.Subgraph):
         half_of_initial_learning_rate = tf.constant(cfg.initial_learning_rate / 2)
         learning_rate = half_of_initial_learning_rate * (factor + tf.constant(1.0))
         return learning_rate
+
+
+class ManagerLoss(subgraph.Subgraph):
+    def build_graph(self, goal, critic):
+        self.ph_stc_diff_st =\
+            graph.Placeholder(np.float32, shape=(None, cfg.d), name="ph_stc_diff_st")
+        s_diff_normalized = tf.nn.l2_normalize(self.ph_stc_diff_st.node, dim=1)
+
+        cosine_similarity = tf.matmul(s_diff_normalized, goal.node, transpose_b=True)
+        cosine_similarity = tf.diag_part(cosine_similarity)
+
+        # manager's advantage (R-V): R = ri + cfg.wGAMMA * R; AdvM = R - ViM
+        self.ph_discounted_reward =\
+            graph.Placeholder(np.float32, shape=(None,), name="ph_m_discounted_reward")
+        advantage = self.ph_discounted_reward.node - critic.node
+
+        manager_loss = tf.reduce_sum(advantage * cosine_similarity)
+        return manager_loss

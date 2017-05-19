@@ -30,31 +30,31 @@ class _ManagerNetwork(subgraph.Subgraph):
         # tf.placeholder(tf.float32, shape=[None, cfg.d], name="ph_perception")
 
         self.Mspace =\
-            layer.Dense(self.ph_perception, cfg.d,  # d=256
+            layer.Dense(self.ph_perception.node, cfg.d,  # d=256
                         activation=layer.Activation.Relu)
         Mspace_expanded = tf.expand_dims(self.Mspace, 0)
 
         self.lstm = DilatedLSTMCell(cfg.d, num_cores=cfg.d)
         # needs wrap as layer to retrieve weights
 
-        self.step_size =\
+        self.ph_step_size =\
             graph.Placeholder(np.float32, shape=(1,), name="ph_m_step_size")
         # tf.placeholder(tf.float32, [1], name="ph_m_step_size")
-        self.initial_lstm_state = \
+        self.ph_initial_lstm_state =\
             graph.Placeholder(np.float32, shape=(1, self.lstm.state_size), name="ph_m_lstm_state")
         # tf.placeholder(tf.float32, [1, self.lstm.state_size], name="ph_m_lstm_state")
 
         lstm_outputs, self.lstm_state = tf.nn.dynamic_rnn(self.lstm,
                                                           Mspace_expanded,
-                                                          initial_state=self.initial_lstm_state,
-                                                          sequence_length=self.step_size,
+                                                          initial_state=self.ph_initial_lstm_state,
+                                                          sequence_length=self.ph_step_size,
                                                           time_major=False)
         sg_lstm_outputs = graph.TfNode(lstm_outputs)
 
         self.goal = tf.nn.l2_normalize(graph.Flatten(sg_lstm_outputs.node), dim=1)
 
         critic = layer.Dense(sg_lstm_outputs.node, 1)
-        self.critic = layer.Flatten(critic)
+        self.value = layer.Flatten(critic)
 
         self.weights = layer.Weights(self.Mspace,
                                      graph.TfNode((self.lstm.matrix, self.lstm.bias)),
@@ -90,6 +90,38 @@ class GlobalManagerNetwork(subgraph.Subgraph):
                                            gradients=sg_gradients.ph_gradients,
                                            increment=sg_global_step.ph_increment)
         self.op_initialize = self.Op(sg_initialize)
+
+
+class LocalManagerNetwork(subgraph.Subgraph):
+    def build_graph(self):
+        self.sg_network = _ManagerNetwork()
+
+        sg_loss = fun_graph.ManagerLoss(self.sg_network.goal, self.sg_network.value)
+        sg_gradients = layer.Gradients(self.sg_network.weights, loss=sg_loss)
+
+        # Expose public API
+        self.op_assign_weights = self.Op(self.sg_network.weights.assign,
+                                         weights=self.sg_network.weights.ph_weights)
+        self.op_compute_gradients =\
+            self.Op(sg_gradients.calculate,
+                    ph_perception=self.sg_network.ph_perception,
+                    ph_stc_diff_st=sg_loss.ph_stc_diff_st,
+                    ph_discounted_reward=sg_loss.ph_discounted_reward,
+                    ph_initial_lstm_state=self.sg_network.ph_initial_lstm_state,
+                    ph_step_size=self.sg_network.ph_step_size)
+
+        # Need MORE with lstm's freezes
+        self.op_get_goal_value_st = self.Ops(
+            self.sg_network.goal, self.sg_network.value, self.sg_network.Mspace,
+            ph_perception=self.sg_network.ph_perception,
+            ph_initial_lstm_state=self.sg_network.ph_initial_lstm_state,
+            ph_step_size=self.sg_network.ph_step_size)
+        self.op_get_st = self.Ops(
+            self.sg_network.Mspace,
+            ph_perception=self.sg_network.ph_perception)
+
+    def reset_state(self):
+        self.sg_network.lstm_state_out = np.zeros([1, self.sg_network.lstm.state_size])
 
 
 if __name__ == '__main__':
