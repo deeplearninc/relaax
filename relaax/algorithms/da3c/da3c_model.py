@@ -23,7 +23,7 @@ class Network(subgraph.Subgraph):
         self.ph_state = input.ph_state
         self.actor = actor
         self.critic = graph.Flatten(critic)
-        self.weights = layer.Weigths(input, fc, actor, critic)
+        self.weights = layer.Weights(input, fc, actor, critic)
 
 
 # Weights of the policy are shared across

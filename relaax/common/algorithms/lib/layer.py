@@ -94,7 +94,7 @@ class Input(subgraph.Subgraph):
         return conv.node
 
 
-class Weigths(subgraph.Subgraph):
+class Weights(subgraph.Subgraph):
     def build_graph(self, *layers):
         weights = [layer.weight.node for layer in layers]
         self.ph_weights = graph.Placeholders(variables=graph.TfNode(weights))

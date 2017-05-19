@@ -24,7 +24,7 @@ class Network(subgraph.Subgraph):
         layers.append(last)
 
         self.state = input.ph_state
-        self.weights = layer.Weigths(*layers)
+        self.weights = layer.Weights(*layers)
         return last.node
 
 
