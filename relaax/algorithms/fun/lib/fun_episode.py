@@ -24,7 +24,7 @@ class FuNEpisode(object):
                                         buffer_size=cfg.c * 2)
         self.st_buffer = RingBuffer2D(element_size=cfg.d,
                                       buffer_size=cfg.c * 2)
-        self.observations = []
+        self.states = []
         self.last_action = None
         self.last_value = None
         self.first = cfg.c  # =batch_size
@@ -35,6 +35,8 @@ class FuNEpisode(object):
 
     def begin(self):
         self.load_shared_parameters()
+        if self.first == 0:
+            self.update_buffers()
         self.get_action_and_value()
         self.episode.begin()
 
@@ -57,25 +59,38 @@ class FuNEpisode(object):
     def reset(self):
         self.episode = episode.Episode('state', 'action', 'reward', 'value',
                                        'goal', 'm_value', 'state_t', 'reward_i', 'zt_inp')
-
     # Helper methods
 
     def push_experience(self, reward):
-        assert self.observation.queue is not None
+        assert len(self.states) != 0
         assert self.last_action is not None
         assert self.last_value is not None
 
         self.episode.step(
             reward=reward,
-            state=self.observation.queue,
+            state=self.states,
             action=self.last_action,
             value=self.last_value
         )
         self.last_action = None
         self.last_value = None
 
+    def update_buffers(self):
+        # assume that local network is current worker local network
+        zt_batch = self.session.session.run(self.local_network.perception,
+                                            {self.local_network.ph_state: self.states})
+
+        goals_batch, st_batch = self.session.op_get_goal_st(
+            ph_perception=zt_batch,
+            ph_initial_lstm_state=self.sg_network.lstm_state_out,
+            ph_step_size=cfg.c)
+
+        # second half is used in intrinsic reward calculation
+        self.goal_buffer.replace_second_half(goals_batch)
+        self.st_buffer.replace_second_half(st_batch)
+
     def get_action_and_value(self):
-        if self.observation.queue is None:
+        if len(self.states) == 0:
             self.last_action = None
             self.last_value = None
         else:
@@ -92,6 +107,7 @@ class FuNEpisode(object):
 
     def load_shared_parameters(self):
         self.session.op_assign_weights(weights=self.ps.session.op_get_weights())
+        # assume that we sync both manager & worker
 
     def get_action_and_value_from_network(self):
         action, value = self.session.op_get_action_and_value(state=[self.observation.queue])
