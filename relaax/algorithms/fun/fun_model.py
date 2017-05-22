@@ -9,7 +9,7 @@ from relaax.common.algorithms.lib import utils
 
 from .lib import fun_graph
 from .fun_config import config as cfg
-from .lstm import DilatedLSTMCell, CustomBasicLSTMCell
+from .lib.lstm import DilatedLSTMCell, CustomBasicLSTMCell
 
 
 class _PerceptionNetwork(subgraph.Subgraph):
