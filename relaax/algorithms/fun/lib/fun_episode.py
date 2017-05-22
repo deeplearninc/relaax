@@ -9,6 +9,7 @@ from relaax.common.algorithms.lib import utils
 
 from ..fun_config import config as cfg
 from ..fun_model import LocalWorkerNetwork, LocalManagerNetwork
+from .utils import RingBuffer2D
 
 
 class FuNEpisode(object):
