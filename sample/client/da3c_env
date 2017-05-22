@@ -3,8 +3,10 @@
 from __future__ import print_function
 
 import logging
+import math
 import numpy as np
 import random
+import six
 
 from relaax.client import rlx_client_config
 from relaax.client import rlx_client
@@ -13,7 +15,7 @@ from relaax.client import rlx_client
 class Numerator(object):
     LOW = 0
     HIGH = 84
-    MID = (LOW + HIGH) / 2
+    MID = math.floor((LOW + HIGH) / 2)
     ACTION_STEP = 3
     ZONE = 5
     N_STEPS = 200
@@ -54,8 +56,8 @@ class Numerator(object):
 
     def state(self):
         picture = np.zeros((84, 84), dtype=np.float32)
-        for i in xrange(self._level):
-            for j in xrange(picture.shape[1]):
+        for i in six.moves.xrange(self._level):
+            for j in six.moves.xrange(picture.shape[1]):
                 picture[i, j] = 1
         return picture
 
