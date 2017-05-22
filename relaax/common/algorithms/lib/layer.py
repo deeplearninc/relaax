@@ -86,8 +86,10 @@ class Input(subgraph.Subgraph):
                 shape=[None] + input.shape + [input.history])
 
         convolutions = []
-        if hasattr(input, 'use_convolutions'):
-            convolutions = input.use_convolutions 
+        if input.use_convolutions:
+            convolutions = [
+                    dict(n_filters=16, filter_size=[8, 8], stride=[4, 4]),
+                    dict(n_filters=32, filter_size=[4, 4], stride=[2, 2])]
         conv = Convolutions(self.ph_state, convolutions)
 
         self.weight = conv.weight

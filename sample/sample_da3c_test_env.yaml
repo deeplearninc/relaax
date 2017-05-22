@@ -39,13 +39,7 @@ algorithm:
   input:
     shape: [84, 84]
     history: 4
-    use_convolutions:
-      - n_filters: 16
-        filter_size: [8, 8]
-        stride: [4, 4]
-      - n_filters: 32
-        filter_size: [4, 4]
-        stride: [2, 2]
+    use_convolutions: True
 
   gpu: false                      # to use GPU, set to the True
   lstm: false                     # to use LSTM instead of FF, set to the True
