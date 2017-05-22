@@ -25,9 +25,11 @@ class Agent(object):
     def update(self, reward, state, terminal):
         self.episode.step(reward, state, terminal)
 
-        if len(self.episode.experience) == cfg.batch_size or terminal:
+        if len(self.episode.experience) == (cfg.c + self.episode.first) or terminal:
             self.episode.end()
             self.episode.begin()
+
+        self.episode.first = cfg.c if terminal else 0
 
         return self.episode.last_action
 

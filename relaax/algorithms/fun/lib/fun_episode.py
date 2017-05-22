@@ -19,9 +19,15 @@ class FuNEpisode(object):
         models = [LocalManagerNetwork, LocalWorkerNetwork]
         self.session = session.Session(models)  # needs to support multiply models
         self.reset()
-        self.observation = []
+
+        self.goal_buffer = RingBuffer2D(element_size=cfg.d,
+                                        buffer_size=cfg.c * 2)
+        self.st_buffer = RingBuffer2D(element_size=cfg.d,
+                                      buffer_size=cfg.c * 2)
+        self.observations = []
         self.last_action = None
         self.last_value = None
+        self.first = cfg.c  # =batch_size
 
     @property
     def experience(self):
@@ -49,7 +55,8 @@ class FuNEpisode(object):
             self.apply_gradients(self.compute_gradients(experience), len(experience))
 
     def reset(self):
-        self.episode = episode.Episode('reward', 'state', 'action', 'value')
+        self.episode = episode.Episode('state', 'action', 'reward', 'value',
+                                       'goal', 'm_value', 'state_t', 'reward_i', 'zt_inp')
 
     # Helper methods
 
