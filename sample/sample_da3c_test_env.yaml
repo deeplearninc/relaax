@@ -11,9 +11,9 @@
 # python client/sample_exchange.py
 
 environment:
-  run: client/da3c_env
-  rom: boxing.bin
   rlx-server: localhost:7001
+  run: client/da3c_env
+  #run: python client/sample_exchange.py
 
 relaax-parameter-server:
   log-level: INFO
@@ -37,6 +37,9 @@ algorithm:
     shape: [84, 84]
     history: 4
     use_convolutions: True
+    #shape: [2]
+    #history: 1
+    #use_convolutions: False
 
   output:
     continuous: False
