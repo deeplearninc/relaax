@@ -29,6 +29,9 @@ class FuNEpisode(object):
         self.last_value = None
         self.first = cfg.c  # =batch_size
 
+        self.worker_start_lstm_state = None
+        self.manager_start_lstm_state = None
+
     @property
     def experience(self):
         return self.episode.experience
@@ -37,6 +40,7 @@ class FuNEpisode(object):
         self.load_shared_parameters()
         if self.first == 0:
             self.update_buffers()
+        self.store_lstm_states()
         self.get_action_and_value()
         self.episode.begin()
 
@@ -86,6 +90,11 @@ class FuNEpisode(object):
         # second half is used for intrinsic reward calculation
         self.goal_buffer.replace_second_half(goals_batch)
         self.st_buffer.replace_second_half(st_batch)
+
+    def store_lstm_states(self):
+        # need to split models within session
+        self.worker_start_lstm_state = self.session.op_get_lstm_state
+        self.manager_start_lstm_state = self.session.op_get_lstm_state
 
     def get_action_and_value(self):
         if len(self.states) == 0:

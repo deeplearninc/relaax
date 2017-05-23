@@ -119,6 +119,7 @@ class LocalManagerNetwork(subgraph.Subgraph):
         self.op_reset_lstm_state = self.Op(self.sg_network.lstm_state_out.assign_from_value)
         self.op_assign_lstm_state = self.Op(self.sg_network.lstm_state_out.assign_from_ph,
                                             ph_variable=self.sg_network.lstm_state)
+        self.op_get_lstm_state = self.sg_network.lstm_state_out.node
 
         # without lstm state freezes
         self.op_get_goal_value_st = self.Ops(
@@ -243,6 +244,7 @@ class LocalWorkerNetwork(subgraph.Subgraph):
         self.op_reset_lstm_state = self.Op(self.sg_network.lstm_state_out.assign_from_value)
         self.op_assign_lstm_state = self.Op(self.sg_network.lstm_state_out.assign_from_ph,
                                             ph_variable=self.sg_network.lstm_state)
+        self.op_get_lstm_state = self.sg_network.lstm_state_out.node
 
         # without lstm state freezes
         self.op_get_zt = self.Op(self.sg_network.perception,
@@ -266,9 +268,6 @@ class LocalWorkerNetwork(subgraph.Subgraph):
             ph_state=self.sg_network.ph_state,
             ph_initial_lstm_state=self.sg_network.ph_initial_lstm_state,
             ph_step_size=self.sg_network.ph_step_size)
-
-    def reset_state(self):
-        self.sg_network.lstm_state_out = np.zeros([1, self.sg_network.lstm.state_size])
 
 
 if __name__ == '__main__':
