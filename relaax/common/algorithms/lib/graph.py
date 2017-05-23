@@ -181,19 +181,6 @@ class Variables(subgraph.Subgraph):
         ])
 
 
-class PolicyLoss(subgraph.Subgraph):
-    def build_graph(self, action_size, network):
-        self.ph_action = Placeholder(np.int32, (None, ))
-        self.ph_discounted_reward = Placeholder(np.float32, (None, 1))
-
-        # making actions that gave good advantage (reward over time) more likely,
-        # and actions that didn't less likely.
-
-        log_like_op = tf.log(tf.reduce_sum(tf.one_hot(self.ph_action.node,
-                action_size) * network.node, axis=[1]))
-        return -tf.reduce_sum(log_like_op * self.ph_discounted_reward.node)
-
-
 class Initialize(subgraph.Subgraph):
     def build_graph(self):
         return tf.global_variables_initializer()

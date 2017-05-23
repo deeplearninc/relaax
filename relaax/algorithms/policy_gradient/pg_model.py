@@ -4,6 +4,7 @@ import numpy as np
 from relaax.common.algorithms import subgraph
 from relaax.common.algorithms.lib import graph
 from relaax.common.algorithms.lib import layer
+from relaax.common.algorithms.lib import loss
 from relaax.common.algorithms.lib import utils
 
 from . import pg_config
@@ -20,7 +21,8 @@ class Network(subgraph.Subgraph):
             last = layer.Dense(last, size, activation=layer.Activation.Relu)
             layers.append(last)
 
-        last = layer.Dense(last, pg_config.config.action_size, activation=layer.Activation.Softmax)
+        last = layer.Dense(last, pg_config.config.output.action_size,
+                activation=layer.Activation.Softmax)
         layers.append(last)
 
         self.state = input.ph_state
@@ -54,7 +56,7 @@ class PolicyModel(subgraph.Subgraph):
         # Build graph
         sg_network = Network()
 
-        sg_loss = graph.PolicyLoss(action_size=pg_config.config.action_size,
+        sg_loss = loss.PGLoss(action_size=pg_config.config.output.action_size,
                 network=sg_network)
         sg_gradients = layer.Gradients(sg_network.weights, loss=sg_loss)
 

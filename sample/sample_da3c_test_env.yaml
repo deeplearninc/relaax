@@ -33,13 +33,16 @@ relaax-rlx-server:
 algorithm:
   name: da3c
 
-  action_size: 2                  # action size for given game rom (18 fits ale boxing)
-  batch_size: 5                   # local loop size for one episode
-
   input:
     shape: [84, 84]
     history: 4
     use_convolutions: True
+
+  output:
+    continuous: False
+    action_size: 2                  # action size for given game rom (18 fits ale boxing)
+
+  batch_size: 5                   # local loop size for one episode
 
   gpu: false                      # to use GPU, set to the True
   lstm: false                     # to use LSTM instead of FF, set to the True
