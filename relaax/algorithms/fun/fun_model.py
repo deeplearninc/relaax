@@ -143,9 +143,6 @@ class LocalManagerNetwork(subgraph.Subgraph):
             ph_initial_lstm_state=self.sg_network.ph_initial_lstm_state,
             ph_step_size=self.sg_network.ph_step_size)
 
-    def reset_state(self):
-        self.sg_network.lstm_state_out = np.zeros([1, self.sg_network.lstm.state_size])
-
 
 class _WorkerNetwork(_PerceptionNetwork):
     def build_graph(self):
@@ -186,11 +183,14 @@ class _WorkerNetwork(_PerceptionNetwork):
         self.pi = layer.MatmulLayer(w_reshaped, U_embedding, activation=layer.Activation.Softmax)
         self.vi = layer.LinearLayer(sg_lstm_outputs, shape=(cfg.d, 1), transformation=tf.matmul)
 
-        self.lstm_state_out = np.zeros([1, self.lstm.state_size])
-
         self.weights = layer.Weights(self.weights,
                                      graph.TfNode((self.lstm.matrix, self.lstm.bias)),
                                      U, w, self.vi)
+
+        self.lstm_state_out =\
+            graph.VarAssign(graph.Variable(np.zeros([1, self.lstm.state_size]),
+                                           dtype=np.float32, name="lstm_state_out"),
+                            np.zeros([1, self.lstm.state_size]))
 
 
 class GlobalWorkerNetwork(subgraph.Subgraph):
@@ -239,6 +239,10 @@ class LocalWorkerNetwork(subgraph.Subgraph):
                     ph_discounted_reward=sg_loss.ph_discounted_reward,
                     ph_initial_lstm_state=self.sg_network.ph_initial_lstm_state,
                     ph_step_size=self.sg_network.ph_step_size)
+
+        self.op_reset_lstm_state = self.Op(self.sg_network.lstm_state_out.assign_from_value)
+        self.op_assign_lstm_state = self.Op(self.sg_network.lstm_state_out.assign_from_ph,
+                                            ph_variable=self.sg_network.lstm_state)
 
         # without lstm state freezes
         self.op_get_zt = self.Op(self.sg_network.perception,
