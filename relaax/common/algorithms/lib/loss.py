@@ -35,7 +35,7 @@ class DA3CDescreteLoss(subgraph.Subgraph):
 
 class DA3CContinuousLoss(subgraph.Subgraph):
     def build_graph(self, actor, critic, entropy_beta):
-        self.ph_action = graph.Placeholder(np.int32, shape=(None, actor.action_size))
+        self.ph_action = graph.Placeholder(np.float32, shape=(None, actor.action_size))
         self.ph_value = graph.Placeholder(np.float32, shape=(None, ))
         self.ph_discounted_reward = graph.Placeholder(np.float32, shape=(None, ))
 

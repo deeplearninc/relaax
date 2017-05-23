@@ -21,6 +21,10 @@ class Activation(object):
     def Softmax(x):
         return tf.nn.softmax(x)
 
+    @staticmethod
+    def Softplus(x):
+        return tf.nn.softplus(x)
+
 
 class Border(object):
     Valid = 'VALID'
