@@ -119,6 +119,14 @@ class Increment(subgraph.Subgraph):
         return tf.assign_add(variable.node, increment.node)
 
 
+class VarAssign(subgraph.Subgraph):
+    def build_graph(self, variable, value):
+        self.ph_variable = Placeholders(variables=TfNode(variable))
+        self.assign_from_ph = TfNode(tf.assign(variable, self.ph_variable.node))
+        self.assign_from_value = TfNode(tf.assign(variable, tf.constant(value)))
+        return variable
+
+
 class Placeholder(subgraph.Subgraph):
     """Placeholder of given shape."""
 
@@ -161,11 +169,13 @@ class GlobalStep(subgraph.Subgraph):
 class Variable(subgraph.Subgraph):
     DTYPE = {
         None: None,
-        np.int64: tf.int64
+        np.int64: tf.int64,
+        np.float32: tf.float32,
+        np.float64: tf.float64
     }
 
-    def build_graph(self, initial_value, dtype=None):
-        return tf.Variable(initial_value, dtype=self.DTYPE[dtype])
+    def build_graph(self, initial_value, dtype=None, name=None):
+        return tf.Variable(initial_value, dtype=self.DTYPE[dtype], name=name)
 
 
 class Variables(subgraph.Subgraph):

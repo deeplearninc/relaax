@@ -76,16 +76,14 @@ class FuNEpisode(object):
         self.last_value = None
 
     def update_buffers(self):
-        # assume that local network is current worker local network
-        zt_batch = self.session.session.run(self.local_network.perception,
-                                            {self.local_network.ph_state: self.states})
+        zt_batch = self.session.op_get_zt(ph_state=self.states)
 
         goals_batch, st_batch = self.session.op_get_goal_st(
             ph_perception=zt_batch,
             ph_initial_lstm_state=self.sg_network.lstm_state_out,
             ph_step_size=cfg.c)
 
-        # second half is used in intrinsic reward calculation
+        # second half is used for intrinsic reward calculation
         self.goal_buffer.replace_second_half(goals_batch)
         self.st_buffer.replace_second_half(st_batch)
 

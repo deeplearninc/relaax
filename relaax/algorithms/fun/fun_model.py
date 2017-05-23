@@ -63,7 +63,10 @@ class _ManagerNetwork(subgraph.Subgraph):
                                      graph.TfNode((self.lstm.matrix, self.lstm.bias)),
                                      critic)
 
-        self.lstm_state_out = np.zeros([1, self.lstm.state_size])
+        self.lstm_state_out =\
+            graph.VarAssign(graph.Variable(np.zeros([1, self.lstm.state_size]),
+                                           dtype=np.float32, name="lstm_state_out"),
+                            np.zeros([1, self.lstm.state_size]))
 
 
 class GlobalManagerNetwork(subgraph.Subgraph):
@@ -104,7 +107,7 @@ class LocalManagerNetwork(subgraph.Subgraph):
 
         # Expose public API
         self.op_assign_weights = self.Op(self.sg_network.weights.assign,
-                                         weights=self.sg_network.weights.ph_weights)
+                                         ph_weights=self.sg_network.weights.ph_weights)
         self.op_compute_gradients =\
             self.Op(sg_gradients.calculate,
                     ph_perception=self.sg_network.ph_perception,
@@ -112,6 +115,10 @@ class LocalManagerNetwork(subgraph.Subgraph):
                     ph_discounted_reward=sg_loss.ph_discounted_reward,
                     ph_initial_lstm_state=self.sg_network.ph_initial_lstm_state,
                     ph_step_size=self.sg_network.ph_step_size)
+
+        self.op_reset_lstm_state = self.Op(self.sg_network.lstm_state_out.assign_from_value)
+        self.op_assign_lstm_state = self.Op(self.sg_network.lstm_state_out.assign_from_ph,
+                                            ph_variable=self.sg_network.lstm_state)
 
         # without lstm state freezes
         self.op_get_goal_value_st = self.Ops(
@@ -234,6 +241,8 @@ class LocalWorkerNetwork(subgraph.Subgraph):
                     ph_step_size=self.sg_network.ph_step_size)
 
         # without lstm state freezes
+        self.op_get_zt = self.Op(self.sg_network.perception,
+                                 ph_state=self.sg_network.ph_state)
         self.op_get_action_and_value = self.Ops(
             self.sg_network.pi, self.sg_network.vi, self.sg_network.lstm_state,
             ph_state=self.sg_network.ph_state,
