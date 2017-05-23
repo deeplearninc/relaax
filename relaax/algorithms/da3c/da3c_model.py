@@ -15,13 +15,11 @@ class Network(subgraph.Subgraph):
         input = layer.Input(da3c_config.config.input)
 
         if da3c_config.config.input.use_convolutions:
-            head = layer.Dense(layer.Flatten(input), size=256,
-                    activation=layer.Activation.Relu)
+            sizes = (256, )
         else:
-            head = layer.GenericLayers(input, [
-                    dict(type=Dense, size=300, activation=layer.Activation.Relu),
-                    dict(type=Dense, size=200, activation=layer.Activation.Relu),
-                    dict(type=Dense, size=100, activation=layer.Activation.Relu)])
+            sizes = (300, 200, 100)
+        head = layer.GenericLayers(layer.Flatten(input), [dict(type=layer.Dense,
+            size=size, activation=layer.Activation.Relu) for size in sizes])
 
         actor = layer.Actor(head, da3c_config.config.output)
         critic = layer.Dense(head, 1)
