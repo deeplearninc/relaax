@@ -31,6 +31,10 @@ class FuNEpisode(object):
 
         self.worker_start_lstm_state = None
         self.manager_start_lstm_state = None
+        self.cur_c = 0
+
+        # while not in experience pushing
+        self.zt_inp = []
 
     @property
     def experience(self):
@@ -38,13 +42,18 @@ class FuNEpisode(object):
 
     def begin(self):
         self.load_shared_parameters()
+        # my beg ==before main loop==
         if self.first == 0:
             self.update_buffers()
         self.store_lstm_states()
+        # my end ==before main loop==
         self.get_action_and_value()
         self.episode.begin()
 
     def step(self, reward, state, terminal):
+        z_t = self.session.op_get_zt(ph_state=[state])
+        self.zt_inp.append(z_t)
+
         if reward is not None:
             self.push_experience(reward)
         assert (state is None) == terminal
