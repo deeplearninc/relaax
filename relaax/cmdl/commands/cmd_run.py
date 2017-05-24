@@ -41,6 +41,7 @@ class CmdlRun(object):
 
         self.run_parameter_server(manager)
         self.run_rlx_server(manager)
+        self.run_wsproxy(manager)
         self.run_client(manager)
 
         manager.loop()
@@ -59,6 +60,12 @@ class CmdlRun(object):
         if self.intersection(['all', 'servers', 'rlx-server']):
             manager.add_process('rlx-server',
                                 '%s relaax-rlx-server --config %s'
+                                % (self.nobuffer, self.config))
+
+    def run_wsproxy(self, manager):
+        if self.intersection(['wsproxy']):
+            manager.add_process('wsproxy',
+                                '%s relaax-wsproxy --config %s'
                                 % (self.nobuffer, self.config))
 
     def run_client(self, manager):
