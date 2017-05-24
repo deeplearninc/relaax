@@ -58,8 +58,9 @@ class FuNEpisode(object):
             self.push_experience(reward, reward_i)
         assert (state is None) == terminal
 
-        self.states.append(state)
-        self.last_zt_inp = self.session.op_get_zt(ph_state=[state])
+        if state is not None:   # except terminal
+            self.states.append(state)   # also as first state
+            self.last_zt_inp = self.session.op_get_zt(ph_state=[state])
 
         assert self.last_action is None
         assert self.last_value is None
@@ -131,7 +132,7 @@ class FuNEpisode(object):
         # assume that we sync both manager & worker
 
     def get_action_and_value_from_network(self):
-        action, value = self.session.op_get_action_and_value(state=[self.observation.queue])
+        action, value = self.session.op_get_action_and_value(state=self.states)
         probabilities, = action
         value, = value
         return utils.choose_action(probabilities), value
