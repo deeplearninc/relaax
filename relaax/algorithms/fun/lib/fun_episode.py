@@ -54,8 +54,30 @@ class FuNEpisode(object):
 
     def step(self, reward, state, terminal):
         if reward is not None:
-            reward_i = 0
+            if self.cur_c < cfg.c:
+                self.cur_c += 1  # can replace
+
+            if not terminal:
+                z_t = self.session.op_get_zt(ph_state=[state])
+                s_t = self.session.self.op_get_st(ph_perception=z_t)
+
+                cur_st = s_t - self.st_buffer.data[-self.cur_c:, :]
+                cur_st_norm = \
+                    np.maximum(np.linalg.norm(cur_st, axis=1), self.eps)
+                st_normed = (cur_st.transpose() / cur_st_norm).transpose()
+
+                cur_goal = self.goal_buffer.data[-self.cur_c:, :]
+                cur_goal_norm = \
+                    np.maximum(np.linalg.norm(cur_goal, axis=1), self.eps)
+                goals_normed = cur_goal.transpose() / cur_goal_norm
+
+                cosine = np.dot(st_normed, goals_normed)
+                reward_i = sum(cosine.diagonal()) / self.cur_c
+            else:
+                reward_i = 0
+
             self.push_experience(reward, reward_i)
+
         assert (state is None) == terminal
 
         if state is not None:   # except terminal
@@ -64,7 +86,7 @@ class FuNEpisode(object):
 
             goal, self.last_m_value,\
                 s_t, lstm_state = self.session.op_get_goal_value_st(
-                    ph_perception=self.last_zt_inp,
+                    ph_perception=[self.last_zt_inp],
                     ph_initial_lstm_state=self.session.op_get_lstm_state,
                     ph_step_size=[1])
             self.session.op_assign_lstm_state(ph_variable=lstm_state)
@@ -76,7 +98,7 @@ class FuNEpisode(object):
         assert self.last_action is None
         assert self.last_value is None
 
-        self.get_action_and_value()
+        self.get_action_and_value()  # similar to my local_nn.run_policy_and_value & choose
 
     def end(self):
         experience = self.episode.end()
@@ -110,8 +132,8 @@ class FuNEpisode(object):
 
         goals_batch, st_batch = self.session.op_get_goal_st(
             ph_perception=zt_batch,
-            ph_initial_lstm_state=self.sg_network.lstm_state_out,
-            ph_step_size=cfg.c)
+            ph_initial_lstm_state=self.session.op_get_lstm_state,
+            ph_step_size=[cfg.c])
 
         # second half is used for intrinsic reward calculation
         self.goal_buffer.replace_second_half(goals_batch)
@@ -143,7 +165,11 @@ class FuNEpisode(object):
         # assume that we sync both manager & worker
 
     def get_action_and_value_from_network(self):
-        action, value = self.session.op_get_action_and_value(state=self.states)
+        action, value = self.session.op_get_action_and_value(
+            ph_state=[self.states[-1]],
+            ph_goal=[self.last_goal],
+            ph_initial_lstm_state=self.session.op_get_lstm_state,
+            ph_step_size=[1])
         probabilities, = action
         value, = value
         return utils.choose_action(probabilities), value
