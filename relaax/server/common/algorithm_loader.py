@@ -1,5 +1,7 @@
 from builtins import object
 
+import os.path
+
 from . import class_loader
 
 
@@ -17,6 +19,10 @@ class AlgorithmLoader(object):
 
     @classmethod
     def load_algorithm_class(cls, algorithm_path, algorithm_name, suffix):
+        if algorithm_name is None:
+            algorithm_path, algorithm_name = os.path.split(algorithm_path)
+            if algorithm_path == '':
+                algorithm_path = '.'
         if algorithm_path is None and '.' not in algorithm_name:
             algorithm_name = 'relaax.algorithms.%s' % algorithm_name
         return class_loader.ClassLoader.load(algorithm_path,
