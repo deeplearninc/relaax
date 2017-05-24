@@ -8,7 +8,7 @@ function wspipe(url) {
   this.init()
 }
 
-wspipe.prototype.init = function () {
+wspipe.prototype.init = function() {
   this.socket = new WebSocket(this.server)
 
   this.socket.onopen = () => {
@@ -42,19 +42,17 @@ wspipe.prototype.init = function () {
         this.subscribers[sid].ondisconnected()
       }
     }
-
     log.error("Web Socket connection closed. " + e.reason)
     log.debug("Waiting 5 sec. to try connect again...")
-
     setTimeout(()=>{this.init()}, 5000)
   }
 
-  this.socket.onerror = (event) => {
+  this.socket.onerror = (e) => {
     log.error("Web Socket got an error...")
   }  
 }
 
-wspipe.prototype.subscribe = function (sid, subscriber) {
+wspipe.prototype.subscribe = function(sid, subscriber) {
   this.subscribers[sid] = subscriber
   if (this.isopen) {
     subscriber.wsopen = true
@@ -64,7 +62,7 @@ wspipe.prototype.subscribe = function (sid, subscriber) {
   }  
 }
 
-wspipe.prototype.send = function (subscriber, payload) {
+wspipe.prototype.send = function(subscriber, payload) {
   if (this.isopen && subscriber.wsopen) {
     subscriber.wsopen = false
     this.socket.send(JSON.stringify(payload))

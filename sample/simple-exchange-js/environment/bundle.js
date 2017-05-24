@@ -128,22 +128,17 @@ module.exports = logging;
 var wspipe = __webpack_require__(2)
 var log = __webpack_require__(0)
 
-window.__wspipe__ = null;
+client.__wspipe__ = null
+client.__sid__ = 0 // channel allocated to a client over WS pipe
 
-function client(sid, url, consumer) {
-  this.sid = sid
+function client(url, consumer) {
+  this.sid = client.__sid__
+  client.__sid__ += 1
   this.consumer = consumer
-  if (window.__wspipe__ == null) {
-    window.__wspipe__ = new wspipe(url)
+  if (client.__wspipe__ == null) {
+    client.__wspipe__ = new wspipe(url)
   }
-  window.__wspipe__.subscribe(sid, this)
-}
-
-client.prototype.states = {
-  none: 0,
-  init: 1,
-  update: 2,
-  reset: 3
+  client.__wspipe__.subscribe(this.sid, this)
 }
 
 client.prototype._callconsumer = function(f) {
@@ -162,15 +157,18 @@ client.prototype.ondisconnected = function() {
 }
 
 client.prototype.init = function(exploit=false) {
-  this.state = this.states.init
-  window.__wspipe__.send(this,
+  client.__wspipe__.send(this,
     {'sid': this.sid, 'command': 'init', 'exploit': exploit})
 }
 
 client.prototype.update = function(reward, state, terminal=false) {
-  this.state = this.states.update
-  window.__wspipe__.send(this,
+  client.__wspipe__.send(this,
     {'sid': this.sid, 'command': 'update', 'reward': reward, 'state': state, 'terminal': terminal})
+}
+
+client.prototype.reset = function() {
+  client.__wspipe__.send(this,
+    {'sid': this.sid, 'command': 'reset'})
 }
 
 client.prototype.onmessage = function(data) {
@@ -194,7 +192,7 @@ client.prototype.onmessage = function(data) {
 }
 
 client.prototype.disconnect = function() {
-  window.__wspipe__.send(this,
+  client.__wspipe__.send(this,
     {'sid': this.sid, 'command': 'disconnect'})
 }
 
@@ -214,7 +212,7 @@ function wspipe(url) {
   this.init()
 }
 
-wspipe.prototype.init = function () {
+wspipe.prototype.init = function() {
   this.socket = new WebSocket(this.server)
 
   this.socket.onopen = () => {
@@ -248,19 +246,17 @@ wspipe.prototype.init = function () {
         this.subscribers[sid].ondisconnected()
       }
     }
-
     log.error("Web Socket connection closed. " + e.reason)
     log.debug("Waiting 5 sec. to try connect again...")
-
     setTimeout(()=>{this.init()}, 5000)
   }
 
-  this.socket.onerror = (event) => {
+  this.socket.onerror = (e) => {
     log.error("Web Socket got an error...")
   }  
 }
 
-wspipe.prototype.subscribe = function (sid, subscriber) {
+wspipe.prototype.subscribe = function(sid, subscriber) {
   this.subscribers[sid] = subscriber
   if (this.isopen) {
     subscriber.wsopen = true
@@ -270,7 +266,7 @@ wspipe.prototype.subscribe = function (sid, subscriber) {
   }  
 }
 
-wspipe.prototype.send = function (subscriber, payload) {
+wspipe.prototype.send = function(subscriber, payload) {
   if (this.isopen && subscriber.wsopen) {
     subscriber.wsopen = false
     this.socket.send(JSON.stringify(payload))
@@ -323,7 +319,7 @@ var log = __webpack_require__(0)
 function training() {
   this.agent_url = 'ws://127.0.0.1:9000'
   log.info('Connecting to Agent through Web Sockets proxy on ' + this.agent_url)
-  this.agent = new client(0, this.agent_url, this)
+  this.agent = new client(this.agent_url, this)
 }
 
 training.prototype.onconnected = function() {
@@ -344,11 +340,6 @@ training.prototype.onaction = function(action) {
   this.step(reward)
 }
 
-training.prototype.onerror = function(message) {
-  log.error('Received error: ' + message)
-  this.stop()
-}
-
 training.prototype.step = function (reward) {
   if (this.current_step < this.steps) {
     if (Math.random() >= 0.5)
@@ -364,8 +355,13 @@ training.prototype.step = function (reward) {
   }
 }
 
+training.prototype.onerror = function(message) {
+  log.error('Received error: ' + message)
+  this.stop()
+}
+
 training.prototype.stop = function () {
-  // disconnect from the agent
+  log.info('Disconnecting from the Agent')
   this.agent.disconnect()
 }
 

@@ -1,22 +1,17 @@
 var wspipe = require('./wspipe.js')
 var log = require('./logging.js')
 
-window.__wspipe__ = null;
+client.__wspipe__ = null
+client.__sid__ = 0 // channel allocated to a client over WS pipe
 
-function client(sid, url, consumer) {
-  this.sid = sid
+function client(url, consumer) {
+  this.sid = client.__sid__
+  client.__sid__ += 1
   this.consumer = consumer
-  if (window.__wspipe__ == null) {
-    window.__wspipe__ = new wspipe(url)
+  if (client.__wspipe__ == null) {
+    client.__wspipe__ = new wspipe(url)
   }
-  window.__wspipe__.subscribe(sid, this)
-}
-
-client.prototype.states = {
-  none: 0,
-  init: 1,
-  update: 2,
-  reset: 3
+  client.__wspipe__.subscribe(this.sid, this)
 }
 
 client.prototype._callconsumer = function(f) {
@@ -35,15 +30,18 @@ client.prototype.ondisconnected = function() {
 }
 
 client.prototype.init = function(exploit=false) {
-  this.state = this.states.init
-  window.__wspipe__.send(this,
+  client.__wspipe__.send(this,
     {'sid': this.sid, 'command': 'init', 'exploit': exploit})
 }
 
 client.prototype.update = function(reward, state, terminal=false) {
-  this.state = this.states.update
-  window.__wspipe__.send(this,
+  client.__wspipe__.send(this,
     {'sid': this.sid, 'command': 'update', 'reward': reward, 'state': state, 'terminal': terminal})
+}
+
+client.prototype.reset = function() {
+  client.__wspipe__.send(this,
+    {'sid': this.sid, 'command': 'reset'})
 }
 
 client.prototype.onmessage = function(data) {
@@ -67,7 +65,7 @@ client.prototype.onmessage = function(data) {
 }
 
 client.prototype.disconnect = function() {
-  window.__wspipe__.send(this,
+  client.__wspipe__.send(this,
     {'sid': this.sid, 'command': 'disconnect'})
 }
 

@@ -4,7 +4,7 @@ var log = require('../lib/logging.js')
 function training() {
   this.agent_url = 'ws://127.0.0.1:9000'
   log.info('Connecting to Agent through Web Sockets proxy on ' + this.agent_url)
-  this.agent = new client(0, this.agent_url, this)
+  this.agent = new client(this.agent_url, this)
 }
 
 training.prototype.onconnected = function() {
@@ -25,11 +25,6 @@ training.prototype.onaction = function(action) {
   this.step(reward)
 }
 
-training.prototype.onerror = function(message) {
-  log.error('Received error: ' + message)
-  this.stop()
-}
-
 training.prototype.step = function (reward) {
   if (this.current_step < this.steps) {
     if (Math.random() >= 0.5)
@@ -45,8 +40,13 @@ training.prototype.step = function (reward) {
   }
 }
 
+training.prototype.onerror = function(message) {
+  log.error('Received error: ' + message)
+  this.stop()
+}
+
 training.prototype.stop = function () {
-  // disconnect from the agent
+  log.info('Disconnecting from the Agent')
   this.agent.disconnect()
 }
 
