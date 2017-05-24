@@ -132,24 +132,43 @@ class FuNEpisode(object):
         return utils.choose_action(probabilities), value
 
     def compute_gradients(self, experience):
-        r = 0.0
+        r = ri = 0.0
         if self.last_value is not None:
             r = self.last_value
+            # need last z_t to compute ri
+            ri = z_t = 0.0
+
+        # shift to cfg.c = 10
 
         reward = experience['reward']
         discounted_reward = np.zeros_like(reward, dtype=np.float32)
+        m_discounted_reward = np.zeros_like(reward, dtype=np.float32)
 
         # compute and accumulate gradients
         for t in reversed(range(len(reward))):
-            r = reward[t] + cfg.rewards_gamma * r
+            r = reward[t] + cfg.worker_gamma * r
+            ri = m_reward[t] + cfg.manager_gamma * ri
             discounted_reward[t] = r
+            m_discounted_reward[t] = ri
 
-        return self.session.op_compute_gradients(
-            state=experience['state'],
-            action=experience['action'],
-            value=experience['value'],
-            discounted_reward=discounted_reward
-        )
+        st_diff = 0
+        step_sz = len(experience['action'])
+        manager_gradients = self.session.op_compute_gradients(
+                    ph_perception=experience['zt_inp'],
+                    ph_stc_diff_st=st_diff,
+                    ph_discounted_reward=m_discounted_reward,
+                    ph_initial_lstm_state=self.manager_start_lstm_state,
+                    ph_step_size=step_sz)
+
+        worker_gradients = self.session.op_compute_gradients(
+                    ph_state=experience['state'],
+                    ph_goal=experience['goal'],
+                    ph_action=experience['action'],
+                    ph_value=experience['value'],
+                    ph_discounted_reward=discounted_reward,
+                    ph_initial_lstm_state=self.worker_start_lstm_state,
+                    ph_step_size=step_sz)
+        return manager_gradients, worker_gradients
 
     def apply_gradients(self, gradients, experience_size):
         self.ps.session.op_apply_gradients(
