@@ -19,7 +19,7 @@ class AlgorithmLoader(object):
 
     @classmethod
     def load_algorithm_class(cls, algorithm_path, algorithm_name, suffix):
-        if algorithm_name is None:
+        if algorithm_path is not None:
             algorithm_path, algorithm_name = os.path.split(algorithm_path)
             if algorithm_path == '':
                 algorithm_path = '.'
