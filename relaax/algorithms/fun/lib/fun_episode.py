@@ -33,8 +33,10 @@ class FuNEpisode(object):
         self.manager_start_lstm_state = None
         self.cur_c = 0
 
-        # while not in experience pushing
-        self.zt_inp = []
+        # addition last fields
+        self.last_zt_inp = None
+        self.last_m_value = None
+        self.last_goal = None
 
     @property
     def experience(self):
@@ -51,13 +53,13 @@ class FuNEpisode(object):
         self.episode.begin()
 
     def step(self, reward, state, terminal):
-        z_t = self.session.op_get_zt(ph_state=[state])
-        self.zt_inp.append(z_t)
-
         if reward is not None:
-            self.push_experience(reward)
+            reward_i = 0
+            self.push_experience(reward, reward_i)
         assert (state is None) == terminal
-        self.observation.add_state(state)
+
+        self.states.append(state)
+        self.last_zt_inp = self.session.op_get_zt(ph_state=[state])
 
         assert self.last_action is None
         assert self.last_value is None
@@ -71,19 +73,22 @@ class FuNEpisode(object):
 
     def reset(self):
         self.episode = episode.Episode('state', 'action', 'reward', 'value',
-                                       'goal', 'm_value', 'state_t', 'reward_i', 'zt_inp')
+                                       'zt_inp', 'goal', 'reward_i', 'm_value')
     # Helper methods
 
-    def push_experience(self, reward):
+    def push_experience(self, reward, reward_i):
         assert len(self.states) != 0
         assert self.last_action is not None
         assert self.last_value is not None
 
         self.episode.step(
             reward=reward,
+            reward_i=reward_i,
             state=self.states,
             action=self.last_action,
-            value=self.last_value
+            value=self.last_value,
+            m_value=self.last_m_value,
+            goal=self.last_goal
         )
         self.last_action = None
         self.last_value = None
@@ -138,11 +143,12 @@ class FuNEpisode(object):
             # need last z_t to compute ri
             ri = z_t = 0.0
 
-        # shift to cfg.c = 10
+        # shift to cfg.c = 10  (could be at the end method)
 
         reward = experience['reward']
+        m_reward = experience['reward_i']
         discounted_reward = np.zeros_like(reward, dtype=np.float32)
-        m_discounted_reward = np.zeros_like(reward, dtype=np.float32)
+        m_discounted_reward = np.zeros_like(m_reward, dtype=np.float32)
 
         # compute and accumulate gradients
         for t in reversed(range(len(reward))):
@@ -151,8 +157,9 @@ class FuNEpisode(object):
             discounted_reward[t] = r
             m_discounted_reward[t] = ri
 
-        st_diff = 0
         step_sz = len(experience['action'])
+        st_diff = self.st_buffer.get_diff(part=step_sz)
+
         manager_gradients = self.session.op_compute_gradients(
                     ph_perception=experience['zt_inp'],
                     ph_stc_diff_st=st_diff,
@@ -165,13 +172,17 @@ class FuNEpisode(object):
                     ph_goal=experience['goal'],
                     ph_action=experience['action'],
                     ph_value=experience['value'],
-                    ph_discounted_reward=discounted_reward,
+                    ph_discounted_reward=discounted_reward + m_discounted_reward,
                     ph_initial_lstm_state=self.worker_start_lstm_state,
                     ph_step_size=step_sz)
         return manager_gradients, worker_gradients
 
     def apply_gradients(self, gradients, experience_size):
         self.ps.session.op_apply_gradients(
-            gradients=gradients,
+            gradients=gradients[0],  # manager
+            increment=experience_size
+        )
+        self.ps.session.op_apply_gradients(
+            gradients=gradients,  # worker
             increment=experience_size
         )
