@@ -102,6 +102,8 @@ class FuNEpisode(object):
 
     def end(self):
         experience = self.episode.end()
+        if len(experience['states']) > self.cfg.c:
+            experience = dict(experience.items()[self.cfg.c:])
         if not self.exploit:
             self.apply_gradients(self.compute_gradients(experience), len(experience))
 
@@ -130,7 +132,7 @@ class FuNEpisode(object):
     def update_buffers(self):
         zt_batch = self.session.op_get_zt(ph_state=self.states)
 
-        goals_batch, st_batch = self.session.op_get_goal_st(
+        goals_batch, st_batch, _ = self.session.op_get_goal_st(
             ph_perception=zt_batch,
             ph_initial_lstm_state=self.session.op_get_lstm_state,
             ph_step_size=[cfg.c])
@@ -165,7 +167,13 @@ class FuNEpisode(object):
         # assume that we sync both manager & worker
 
     def get_action_and_value_from_network(self):
-        action, value = self.session.op_get_action_and_value(
+        zt = self.session.op_get_zt(ph_state=[self.states[-1]])
+        self.last_m_value, _ = self.session.op_get_value(
+            ph_perception=[self.last_zt_inp],
+            ph_initial_lstm_state=self.session.op_get_lstm_state,
+            ph_step_size=[1])
+
+        action, value, _ = self.session.op_get_action_and_value(
             ph_state=[self.states[-1]],
             ph_goal=[self.last_goal],
             ph_initial_lstm_state=self.session.op_get_lstm_state,
@@ -178,8 +186,7 @@ class FuNEpisode(object):
         r = ri = 0.0
         if self.last_value is not None:
             r = self.last_value
-            # need last z_t to compute ri
-            ri = z_t = 0.0
+            ri = self.last_m_value
 
         # shift to cfg.c = 10  (could be at the end method)
 
