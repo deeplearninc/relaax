@@ -62,6 +62,17 @@ class FuNEpisode(object):
             self.states.append(state)   # also as first state
             self.last_zt_inp = self.session.op_get_zt(ph_state=[state])
 
+            goal, self.last_m_value,\
+                s_t, lstm_state = self.session.op_get_goal_value_st(
+                    ph_perception=self.last_zt_inp,
+                    ph_initial_lstm_state=self.session.op_get_lstm_state,
+                    ph_step_size=[1])
+            self.session.op_assign_lstm_state(ph_variable=lstm_state)
+
+            self.goal_buffer.extend(goal)
+            self.last_goal = self.goal_buffer.get_sum()
+            self.st_buffer.extend(s_t)
+
         assert self.last_action is None
         assert self.last_value is None
 
@@ -184,6 +195,6 @@ class FuNEpisode(object):
             increment=experience_size
         )
         self.ps.session.op_apply_gradients(
-            gradients=gradients,  # worker
+            gradients=gradients[1],  # worker
             increment=experience_size
         )
