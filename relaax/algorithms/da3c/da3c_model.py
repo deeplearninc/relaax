@@ -4,6 +4,7 @@ import numpy as np
 from relaax.common.algorithms import subgraph
 from relaax.common.algorithms.lib import graph
 from relaax.common.algorithms.lib import layer
+from relaax.common.algorithms.lib import loss
 from relaax.common.algorithms.lib import utils
 from .lib import da3c_graph
 from . import da3c_config
@@ -13,17 +14,20 @@ class Network(subgraph.Subgraph):
     def build_graph(self):
         input = layer.Input(da3c_config.config.input)
 
-        fc = layer.Dense(layer.Flatten(input), 256,
-                activation=layer.Activation.Relu)
+        if da3c_config.config.input.use_convolutions:
+            sizes = (256, )
+        else:
+            sizes = (300, 200, 100)
+        head = layer.GenericLayers(layer.Flatten(input), [dict(type=layer.Dense,
+            size=size, activation=layer.Activation.Relu) for size in sizes])
 
-        actor = layer.Dense(fc, da3c_config.config.action_size,
-                activation=layer.Activation.Softmax)
-        critic = layer.Dense(fc, 1)
+        actor = layer.Actor(head, da3c_config.config.output)
+        critic = layer.Dense(head, 1)
 
         self.ph_state = input.ph_state
         self.actor = actor
         self.critic = graph.Flatten(critic)
-        self.weights = layer.Weights(input, fc, actor, critic)
+        self.weights = layer.Weights(input, head, actor, critic)
 
 
 # Weights of the policy are shared across
@@ -58,7 +62,8 @@ class AgentModel(subgraph.Subgraph):
         # Build graph
         sg_network = Network()
 
-        sg_loss = da3c_graph.Loss(sg_network.actor, sg_network.critic)
+        sg_loss = loss.DA3CLoss(sg_network.actor, sg_network.critic,
+                da3c_config.config.entropy_beta)
         sg_gradients = layer.Gradients(sg_network.weights, loss=sg_loss)
 
         # Expose public API

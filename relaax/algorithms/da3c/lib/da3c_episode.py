@@ -87,9 +87,12 @@ class DA3CEpisode(object):
 
     def get_action_and_value_from_network(self):
         action, value = self.session.op_get_action_and_value(state=[self.observation.queue])
-        probabilities, = action
         value, = value
-        return utils.choose_action(probabilities), value
+        if len(action) == 1:
+            probabilities, = action
+            return utils.choose_action_descrete(probabilities), value
+        mu, sigma2 = action
+        return utils.choose_action_continuous(mu, sigma2), value
 
     def compute_gradients(self, experience):
         r = 0.0

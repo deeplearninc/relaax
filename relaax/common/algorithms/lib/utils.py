@@ -28,10 +28,19 @@ def discounted_reward(rewards, gamma):
     return discounted_reward
 
 
-def choose_action(probabilities, exploit=False):
+def choose_action_descrete(probabilities, exploit=False):
     if exploit:
         return np.argmax(probabilities)   # need to set greedily param
     return np.random.choice(len(probabilities), p=probabilities)
+
+
+def choose_action_continuous(mu, sigma2,
+        min_clip=-float('inf'), max_clip=float('inf'), exploit=False):
+    if exploit:
+        act, = mu
+    else:
+        act, = (np.random.randn(*sigma2.shape).astype(np.float32) * sigma2 + mu)
+    return np.clip(act, min_clip, max_clip)
 
 
 def assemble_and_show_graphs(*graphs):
