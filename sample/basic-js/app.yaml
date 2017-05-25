@@ -18,8 +18,15 @@ relaax-wsproxy:
 algorithm:
   name: policy_gradient
 
-  action_size: 4 # action size for the given environment
-  state_size: 0
+  input:
+    shape: [0]
+    history: 1
+    use_convolutions: false
+
+  output:
+    continuous: false
+    action_size: 2
+
   hidden_sizes: [10]
   batch_size: 10
   learning_rate: 0.01
