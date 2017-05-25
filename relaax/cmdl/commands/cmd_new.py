@@ -58,6 +58,6 @@ class NewApp(object):
               help='[%s] \n Environment to base application on.' % ENVIRONMENTS_META)
 @pass_context
 def cmdl(ctx, app_name, algorithm, environment):
-    """Build new RELAAX application."""
+    """Create new RELAAX application."""
     ctx.setup_logger(format='')
     NewApp(ctx, app_name, algorithm, environment).create()
