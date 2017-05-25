@@ -77,7 +77,7 @@ class PGEpisode(object):
         assert state is not None
 
         probabilities, = self.session.op_get_action(state=[state])
-        return utils.choose_action(probabilities, self.exploit)
+        return utils.choose_action_descrete(probabilities, self.exploit)
 
     def compute_gradients(self, experience):
         discounted_reward = utils.discounted_reward(

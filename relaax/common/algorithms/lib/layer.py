@@ -21,6 +21,10 @@ class Activation(object):
     def Softmax(x):
         return tf.nn.softmax(x)
 
+    @staticmethod
+    def Softplus(x):
+        return tf.nn.softplus(x)
+
 
 class Border(object):
     Valid = 'VALID'
@@ -39,7 +43,7 @@ class BaseLayer(subgraph.Subgraph):
 
 class Convolution(BaseLayer):
     def build_graph(self, x, n_filters, filter_size, stride,
-            border=Border.Valid, activation=Activation.Relu):
+            border=Border.Valid, activation=Activation.Null):
         shape = filter_size + [x.node.shape.as_list()[-1], n_filters]
         tr = lambda x, W: tf.nn.conv2d(x, W, strides=[1] + stride + [1],
                     padding=border)
@@ -47,7 +51,7 @@ class Convolution(BaseLayer):
 
 
 class Dense(BaseLayer):
-    def build_graph(self, x, size, activation=Activation.Null):
+    def build_graph(self, x, size=1, activation=Activation.Null):
         assert len(x.node.shape) == 2
         shape = (x.node.shape.as_list()[1], size)
         tr = lambda x, W: tf.matmul(x, W)
@@ -59,47 +63,71 @@ class Flatten(subgraph.Subgraph):
         return graph.Reshape(x, (-1, np.prod(x.node.shape.as_list()[1:]))).node
 
 
-class Convolutions(subgraph.Subgraph):
+class GenericLayers(subgraph.Subgraph):
     BORDER = {}
     ACTIVATION = {}
 
-    def build_graph(self, x, convolutions):
+    def build_graph(self, x, descs):
         weights = []
         last = x
-        for conv in convolutions:
-            last = Convolution(last, **self._parse(conv.copy()))
+        for desc in descs:
+            props = desc.copy()
+            del props['type']
+            last = desc['type'](last, **props)
             weights.append(last.weight)
         self.weight = graph.Variables(*weights)
         return last.node
 
-    def _parse(self, conv):
-        for key, mapping in [('border', self.BORDER),
-                ('activation', self.ACTIVATION)]:
-            if key in conv:
-                conv[key] = mapping[conv[key]]
-        return conv
+
+class DescreteActor(subgraph.Subgraph):
+    def build_graph(self, head, action_size):
+        actor = Dense(head, action_size, activation=Activation.Softmax)
+        self.weight = actor.weight
+        self.action_size = action_size
+        self.continuous = False
+        return actor.node
+
+
+class ContinuousActor(subgraph.Subgraph):
+    def build_graph(self, head, action_size):
+        self.mu = Dense(head, action_size)
+        self.sigma2 = Dense(head, action_size, activation=Activation.Softplus)
+        self.weight = graph.Variables(self.mu.weight, self.sigma2.weight)
+        self.action_size = action_size
+        self.continuous = True
+        return self.mu.node, self.sigma2.node
+
+
+def Actor(head, output):
+    Actor = ContinuousActor if output.continuous else DescreteActor
+    return Actor(head, output.action_size)
 
 
 class Input(subgraph.Subgraph):
     def build_graph(self, input):
-        self.state = graph.Placeholder(np.float32,
+        self.ph_state = graph.Placeholder(np.float32,
                 shape=[None] + input.shape + [input.history])
 
-        convolutions = []
-        if hasattr(input, 'use_convolutions'):
-            convolutions = input.use_convolutions 
-        conv = Convolutions(self.state, convolutions)
+        descs = []
+        if input.use_convolutions:
+            descs = [
+                    dict(type=Convolution, n_filters=16, filter_size=[8, 8],
+                        stride=[4, 4], activation=Activation.Relu),
+                    dict(type=Convolution, n_filters=32, filter_size=[4, 4],
+                        stride=[2, 2], activation=Activation.Relu)]
 
-        self.weight = conv.weight
-        return conv.node
+        layers = GenericLayers(self.ph_state, descs)
+
+        self.weight = layers.weight
+        return layers.node
 
 
-class Weigths(subgraph.Subgraph):
+class Weights(subgraph.Subgraph):
     def build_graph(self, *layers):
         weights = [layer.weight.node for layer in layers]
-        self.placeholders = graph.Placeholders(variables=graph.TfNode(weights))
+        self.ph_weights = graph.Placeholders(variables=graph.TfNode(weights))
         self.assign = graph.TfNode([tf.assign(variable, value)
-                for variable, value in utils.Utils.izip(weights, self.placeholders.node)])
+                for variable, value in utils.Utils.izip(weights, self.ph_weights.node)])
         return weights
 
 
@@ -109,6 +137,6 @@ class Gradients(subgraph.Subgraph):
             self.calculate = graph.TfNode(utils.Utils.reconstruct(tf.gradients(
                 loss.node, list(utils.Utils.flatten(weights.node))), weights.node))
         if optimizer is not None:
-            self.placeholders = graph.Placeholders(weights)
+            self.ph_gradients = graph.Placeholders(weights)
             self.apply = graph.TfNode(optimizer.node.apply_gradients(
-                    utils.Utils.izip(self.placeholders.node, weights.node)))
+                    utils.Utils.izip(self.ph_gradients.node, weights.node)))

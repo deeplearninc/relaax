@@ -33,9 +33,13 @@ algorithm:
   input:
     shape: [2]
     history: 1
+    use_convolutions: False
+
+  output:
+    continuous: False
+    action_size: 2                  # action size for given game rom (18 fits ale boxing)
 
   hidden_sizes: []                # array of dimensions for the input observation
-  action_size: 2                  # action size for the given environment
   episode_len: 5                  # local loop size for one episode
   batch_size: 800
   gpu: false                      # to use GPU, set to the True

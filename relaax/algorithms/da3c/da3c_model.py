@@ -4,6 +4,7 @@ import numpy as np
 from relaax.common.algorithms import subgraph
 from relaax.common.algorithms.lib import graph
 from relaax.common.algorithms.lib import layer
+from relaax.common.algorithms.lib import loss
 from relaax.common.algorithms.lib import utils
 from .lib import da3c_graph
 from . import da3c_config
@@ -13,17 +14,20 @@ class Network(subgraph.Subgraph):
     def build_graph(self):
         input = layer.Input(da3c_config.config.input)
 
-        fc = layer.Dense(layer.Flatten(input), 256,
-                activation=layer.Activation.Relu)
+        if da3c_config.config.input.use_convolutions:
+            sizes = (256, )
+        else:
+            sizes = (300, 200, 100)
+        head = layer.GenericLayers(layer.Flatten(input), [dict(type=layer.Dense,
+            size=size, activation=layer.Activation.Relu) for size in sizes])
 
-        actor = layer.Dense(fc, da3c_config.config.action_size,
-                activation=layer.Activation.Softmax)
-        critic = layer.Dense(fc, 1)
+        actor = layer.Actor(head, da3c_config.config.output)
+        critic = layer.Dense(head, 1)
 
-        self.state = input.state
+        self.ph_state = input.ph_state
         self.actor = actor
         self.critic = graph.Flatten(critic)
-        self.weights = layer.Weigths(input, fc, actor, critic)
+        self.weights = layer.Weights(input, head, actor, critic)
 
 
 # Weights of the policy are shared across
@@ -47,8 +51,8 @@ class SharedParameters(subgraph.Subgraph):
         self.op_n_step = self.Op(sg_global_step.n)
         self.op_get_weights = self.Op(sg_weights)
         self.op_apply_gradients = self.Ops(sg_gradients.apply,
-                sg_global_step.increment, gradients=sg_gradients.placeholders,
-                increment=sg_global_step.placeholder)
+                sg_global_step.increment, gradients=sg_gradients.ph_gradients,
+                increment=sg_global_step.ph_increment)
         self.op_initialize = self.Op(sg_initialize)
 
 
@@ -58,17 +62,18 @@ class AgentModel(subgraph.Subgraph):
         # Build graph
         sg_network = Network()
 
-        sg_loss = da3c_graph.Loss(sg_network.actor, sg_network.critic)
+        sg_loss = loss.DA3CLoss(sg_network.actor, sg_network.critic,
+                da3c_config.config.entropy_beta)
         sg_gradients = layer.Gradients(sg_network.weights, loss=sg_loss)
 
         # Expose public API
         self.op_assign_weights = self.Op(sg_network.weights.assign,
-                weights=sg_network.weights.placeholders)
+                weights=sg_network.weights.ph_weights)
         self.op_get_action_and_value = self.Ops(
-                sg_network.actor, sg_network.critic, state=sg_network.state)
+                sg_network.actor, sg_network.critic, state=sg_network.ph_state)
         self.op_compute_gradients = self.Op(sg_gradients.calculate,
-                state=sg_network.state, action=sg_loss.action,
-                value=sg_loss.value, discounted_reward=sg_loss.discounted_reward)
+                state=sg_network.ph_state, action=sg_loss.ph_action,
+                value=sg_loss.ph_value, discounted_reward=sg_loss.ph_discounted_reward)
 
 
 if __name__ == '__main__':

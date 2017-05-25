@@ -12,8 +12,8 @@
 
 environment:
   rlx-server: localhost:7001
-  run: client/da3c_env
-  #run: python client/sample_exchange.py
+  run: ../environments/OpenAI_Gym/main
+  env: BipedalWalker-v2
 
 relaax-parameter-server:
   log-level: INFO
@@ -34,16 +34,16 @@ algorithm:
   name: da3c
 
   input:
-    shape: [84, 84]
-    history: 4
-    use_convolutions: True
+    shape: [24]
+    history: 1
+    use_convolutions: False
     #shape: [2]
     #history: 1
     #use_convolutions: False
 
   output:
-    continuous: False
-    action_size: 2                  # action size for given game rom (18 fits ale boxing)
+    continuous: True
+    action_size: 4                  # action size for given game rom (18 fits ale boxing)
 
   batch_size: 5                   # local loop size for one episode
 

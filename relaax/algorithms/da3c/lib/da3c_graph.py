@@ -3,40 +3,8 @@ import numpy as np
 import tensorflow as tf
 
 from relaax.common.algorithms import subgraph
-from relaax.common.algorithms.lib import graph
-from relaax.common.algorithms.lib import layer
-from relaax.common.algorithms.lib import utils
 
 from .. import da3c_config
-
-
-class Loss(subgraph.Subgraph):
-    def build_graph(self, actor, critic):
-        self.action = graph.Placeholder(np.int32, shape=(None, ))
-        self.value = graph.Placeholder(np.float32, shape=(None, ))
-        self.discounted_reward = graph.Placeholder(np.float32, shape=(None, ))
-
-        action_one_hot = tf.one_hot(self.action.node, da3c_config.config.action_size)
-
-        # avoid NaN with getting the maximum with small value
-        log_pi = tf.log(tf.maximum(actor.node, 1e-20))
-
-        # policy entropy
-        entropy = -tf.reduce_sum(actor.node * log_pi, axis=1)
-
-        # policy loss (output)  (Adding minus, because the original paper's
-        # objective function is for gradient ascent, but we use gradient descent optimizer)
-        policy_loss = -tf.reduce_sum(
-            tf.reduce_sum(log_pi * action_one_hot, axis=1) * (self.discounted_reward.node - self.value.node) +
-            entropy * da3c_config.config.entropy_beta
-        )
-
-        # value loss (output)
-        # (Learning rate for Critic is half of Actor's, it's l2 without dividing by 0.5)
-        value_loss = tf.reduce_sum(tf.square(self.discounted_reward.node - critic.node))
-
-        # gradient of policy and value are summed up
-        return policy_loss + value_loss
 
 
 class LearningRate(subgraph.Subgraph):
