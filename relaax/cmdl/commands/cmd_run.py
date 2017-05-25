@@ -89,7 +89,7 @@ class CmdlRun(object):
             if self.client:
                 self.run_all_clients(manager)
             else:
-                self.ctx.log(click.style("No client specified", fg='red'))
+                self.ctx.log(click.style("client is not configured", fg='red'))
 
     def run_all_clients(self, manager):
         count = 0
