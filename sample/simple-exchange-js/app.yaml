@@ -17,7 +17,7 @@ relaax-wsproxy:
 
 algorithm:
   path: ./algorithm
-  name: algorithm
+  name: simple-exchange
 
   action_size: 4 # action size for the given environment
   state_size: 0
