@@ -88,8 +88,10 @@ relaax new app-name
 cd app-name
 ```
 This will create basic RL application with simple multi-handed bandit environment:
-** app.yaml - contains configuration of environment, all servers, and algorithm
-** environment - folder with environment and training regime implementation
+
+    app.yaml - contains configuration of environment, all servers, and algorithm
+    environment - folder with environment and training regime implementation
+
 You could see what other option are available by running: 
 ```bash
 relaax new --help
