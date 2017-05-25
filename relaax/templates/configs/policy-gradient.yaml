@@ -8,7 +8,7 @@ algorithm:
 
   output:
     continuous: false
-    action_size: 2
+    action_size: 4
 
   hidden_sizes: [10]
   batch_size: 10
