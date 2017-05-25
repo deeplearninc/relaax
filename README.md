@@ -67,8 +67,6 @@ you may need to run `pip install` commands with `sudo` and you also have to be s
 that you have `python-pip` installed.
 On OSX / macOS, we recommend using [Homebrew](http://brew.sh/) to install a current python version.
 
-* Install <a href="https://docs.docker.com/engine/installation/" target="_blank">Docker</a>
-
 * Clone RELAAX repo.
 ```bash
 git clone git@github.com:deeplearninc/relaax.git
@@ -77,52 +75,55 @@ git clone git@github.com:deeplearninc/relaax.git
 * Install RELAAX
 ```bash
 cd relaax
-pip install -e .
+pip install -e .[all]
 ```
-
-* Build DA3C bridge.
+Now you have relaax command available to create new applications, run it, configure algorithms, or generate environments and algorithms for your application. To see available options, run:
 ```bash
-algorithms/da3c/bridge/bridge.sh
+relaax --help
 ```
 
-* Install <a href="https://www.tensorflow.org/install/" target="_blank">TensorFlow</a>
-
-* Create training directory
+* Create new RELAAX application
 ```bash
-cd ..
-mkdir training
-cd training
+relaax new app-name
+cd app-name
 ```
-
-* Build Docker image named gym (use sudo if needed):
+This will create basic RL application with simple multi-handed bandit environment:
+** app.yaml - contains configuration of environment, all servers, and algorithm
+** environment - folder with environment and training regime implementation
+You could see what other option are available by running: 
 ```bash
-docker build -f ../relaax/environments/OpenAI_Gym/Dockerfile -t gym ../relaax
+relaax new --help
 ```
 
-* Open new terminal window, navigate to training directory and run parameter server
+* Run created application.
+From your application folder, run: 
 ```bash
-relaax-parameter-server --config ../relaax/config/da3c_gym_boxing.yaml
+relaax run all
 ```
-
-* Open new terminal window, navigate to training directory and run RLX server
+You could see what other option are available by running: 
 ```bash
-relaax-rlx-server --config ../relaax/config/da3c_gym_boxing.yaml --bind 0.0.0.0:7001
+relaax run --help
 ```
 
-* Use `ifconfig` command to find IP of your localhost. Remember it.
-
-* Open new terminal window, navigate to training directory and run environment inside gym docker image. Use sudo if needed.
+* Run different environment 
+You could try other environments. From your application folder, run: 
 ```bash
-docker run -ti gym <LOCALHOST_IP>:7001 Boxing-v0
+relaax generate -e environment-name
 ```
-
-* Open new terminal window, navigate to trainin directory and run Tensorboard:
+To see what environments are available, run: 
 ```bash
-tensorboard --logdir metrics_gym_boxing
+relaax generate --help
 ```
 
-* Tensorboard prints URL to use. Open it in browser to exemain training progress.
-
+* Local copy of algorithm implementation
+If you would like to base your RL algorithm on RELAAX implementation or modify existing implementation you may copy algorithm in your app folder. From your application folder, run: 
+```bash
+relaax generate -a algorithm-name
+```
+To see what algorithms are available run: 
+```bash
+relaax generate --help
+```
 
 ## [System Architecture](#contents)
 
