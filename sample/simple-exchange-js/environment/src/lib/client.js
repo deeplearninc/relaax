@@ -50,7 +50,7 @@ client.prototype.onmessage = function(data) {
       this._callconsumer('onready')
       break
     case 'action':
-      this._callconsumer('onaction', data['action'])
+      this._callconsumer('onaction', data['data'])
       break
     case 'done':
       this._callconsumer('onresetdone')

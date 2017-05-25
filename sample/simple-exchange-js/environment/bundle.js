@@ -98,9 +98,12 @@ logging._write = function(log_level, args) {
   if (log_level >= config.log_level) {
     if (config.to_console)
       console.log.apply(console, args)
-    if ( (config.logging_element_id != null) && (args.length > 0)) {
+    if ((config.logging_element_id != null) && (args.length > 0)) {
       for (i = 0; i < args.length; i++) {
-        document.getElementById(logging_element_id).innerHTML += args[i]
+        var arg = args[i]
+        if (Array.isArray(arg))
+          arg = JSON.stringify(arg) 
+        document.getElementById(logging_element_id).innerHTML += arg
       }
       document.getElementById(logging_element_id).innerHTML += '</br>'
     }
@@ -177,7 +180,7 @@ client.prototype.onmessage = function(data) {
       this._callconsumer('onready')
       break
     case 'action':
-      this._callconsumer('onaction', data['action'])
+      this._callconsumer('onaction', data['data'])
       break
     case 'done':
       this._callconsumer('onresetdone')
@@ -335,7 +338,7 @@ training.prototype.onready = function() {
 }
 
 training.prototype.onaction = function(action) {
-  log.info('Received action:' + action)
+  log.info('Received action: ', action)
   reward = Math.random()
   this.step(reward)
 }
@@ -346,7 +349,7 @@ training.prototype.step = function (reward) {
       state = [1, 0]
     else
       state = [0, 1]
-    log.info('Updating Agent with reward: ' + reward + ' and state: ' + state)
+    log.info('Updating Agent with reward: ', reward, ' and state: ', state)
     this.agent.update(reward, state, false)
     this.current_step += 1
   } else {

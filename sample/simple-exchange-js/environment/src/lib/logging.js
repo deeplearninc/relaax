@@ -26,9 +26,12 @@ logging._write = function(log_level, args) {
   if (log_level >= config.log_level) {
     if (config.to_console)
       console.log.apply(console, args)
-    if ( (config.logging_element_id != null) && (args.length > 0)) {
+    if ((config.logging_element_id != null) && (args.length > 0)) {
       for (i = 0; i < args.length; i++) {
-        document.getElementById(logging_element_id).innerHTML += args[i]
+        var arg = args[i]
+        if (Array.isArray(arg))
+          arg = JSON.stringify(arg) 
+        document.getElementById(logging_element_id).innerHTML += arg
       }
       document.getElementById(logging_element_id).innerHTML += '</br>'
     }

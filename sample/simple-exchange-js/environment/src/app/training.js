@@ -20,7 +20,7 @@ training.prototype.onready = function() {
 }
 
 training.prototype.onaction = function(action) {
-  log.info('Received action:' + action)
+  log.info('Received action: ', action)
   reward = Math.random()
   this.step(reward)
 }
@@ -31,7 +31,7 @@ training.prototype.step = function (reward) {
       state = [1, 0]
     else
       state = [0, 1]
-    log.info('Updating Agent with reward: ' + reward + ' and state: ' + state)
+    log.info('Updating Agent with reward: ', reward, ' and state: ', state)
     this.agent.update(reward, state, false)
     this.current_step += 1
   } else {

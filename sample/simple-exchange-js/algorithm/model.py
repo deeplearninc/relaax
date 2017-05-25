@@ -22,7 +22,7 @@ class Model(subgraph.Subgraph):
     def build_graph(self):
         # Build graph
         state = graph.Placeholder(np.float32, shape=(2, ))
-        reverse = tf.reverse(state.node, [0])
+        reverse = graph.TfNode(tf.reverse(state.node, [0]))
 
         # Expose public API
         self.op_get_action = self.Op(reverse, state=state)

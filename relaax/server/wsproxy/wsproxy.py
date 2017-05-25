@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 import json
+import numpy
 import logging
 
 from twisted.internet import defer
@@ -29,6 +30,8 @@ class ProxyClient(NetstringReceiver):
     def stringReceived(self, data):
         msg = RLXMessage.from_wire(data)
         msg['sid'] = self.client_id
+        if 'data' in msg and isinstance(msg['data'], numpy.ndarray):
+            msg['data'] = msg['data'].tolist()
         self.srv_queue.put(json.dumps(msg))
 
     def serverDataReceived(self, data):
