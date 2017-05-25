@@ -142,29 +142,16 @@ relaax generate --help
 ## [RELAAX Clients](#contents)
 Client is small library used to communicate with RL Agents. It could be used with the Environment implemented in many popular programming languages or embedded into specialized hardware systems. Currently client support Arcade Learning Environments (ALE), OpenAI Gym, and OpenAI Universe Environments. At the moment client implemented in Python, later on we are planning to implement client code in C/C++, Ruby, GO, etc. to simplify integration of other environments.
 
+Python Client API:
+
+* `init(expoit=False)` - send `init` command to the Agent to give it time to load model and do any other required initialization steps
+* `update(reward=None, state=None, terminal=False)` - send `update` to the Agent with state and reward and indication if this is terminal state or not 
+* `reset()` - send `reset` command to the Agent
+* `client.metrics.scalar` - send scalar to parameter server to add to the tensorboard metrics 
+
 ###  [Reinforcement Learning eXchange protocol](#contents)
 
-Reinforcement Learning eXchange protocol is a simple protocol implemented over TCP using JSON (later will be moved to Protobuf). It allows to send State of the Environment and Reward to the Server and deliver Action from the Agent to the Environment.
-
-TODO: links to actual files
-
-```
-relaax
-  client
-    rlx_client.py
-      class Client                          - agent interface for environment
-        def init(state)                     - start training sending initial state to agent,
-                                              returns first action from agent
-        def send(reward, state)             - send reward for previous action and current environment state,
-                                              returns next action from agent
-        def reset(reward)                   - send reward for previous action and resets agent
-                                              returns cumulative reward for last episode
-        def metrics()                       - get metrics object
-        def disconnect()                    - disconnect environment from agent
-
-      class Failure                         - raised in case of failure on agent's side
-```
-
+Reinforcement Learning eXchange protocol is a simple protocol implemented over TCP using JSON. It allows to send State of the Environment and Reward to the Server and deliver Action from the Agent to the Environment.
 
 ![img](resources/protocol-flow.png)
 <br><br>
