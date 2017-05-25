@@ -1,4 +1,7 @@
 from builtins import object
+
+import numpy as np
+
 from relaax.server.common import session
 from relaax.common.algorithms.lib import episode
 from relaax.common.algorithms.lib import utils
@@ -28,8 +31,10 @@ class PGEpisode(object):
         if reward is not None:
             self.push_experience(reward)
         assert (state is None) == terminal
-        if state is not None:
-            state = [[i] for i in state]
+        state = np.asarray(state)
+        if state.size == 0:
+            state = np.asarray([0])
+        state = np.reshape(state, state.shape + (1,))
         action = self.get_action(state)
         self.keep_state_and_action(state, action)
         return action
@@ -75,7 +80,6 @@ class PGEpisode(object):
 
     def action_from_policy(self, state):
         assert state is not None
-
         probabilities, = self.session.op_get_action(state=[state])
         return utils.choose_action_descrete(probabilities, self.exploit)
 

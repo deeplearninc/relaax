@@ -33,7 +33,10 @@ class Border(object):
 
 class BaseLayer(subgraph.Subgraph):
     def build_graph(self, x, shape, transformation, activation):
-        d = 1.0 / np.sqrt(np.prod(shape[:-1]))
+        d = 1.0
+        p = np.prod(shape[:-1])
+        if p != 0:
+            d = 1.0 / np.sqrt(p)
         initializer = graph.RandomUniformInitializer(minval=-d, maxval=d)
         W = graph.Variable(initializer(np.float32, shape)).node
         b = graph.Variable(initializer(np.float32, shape[-1:])).node
@@ -105,8 +108,11 @@ def Actor(head, output):
 
 class Input(subgraph.Subgraph):
     def build_graph(self, input):
+        input_shape = input.shape
+        if np.prod(input.shape) == 0:
+            input_shape = [1]
         self.ph_state = graph.Placeholder(np.float32,
-                shape=[None] + input.shape + [input.history])
+                shape=[None] + input_shape + [input.history])
 
         descs = []
         if input.use_convolutions:
