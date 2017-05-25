@@ -146,10 +146,11 @@ Python Client API:
 
 Available from: `from relaax.client.rlx_client import RlxClient, RlxClientException`
 
+* `connect()` - connect to the Agent (through RLX server) 
 * `init(expoit=False)` - send `init` command to the Agent to give it time to load model and do any other required initialization steps
 * `update(reward=None, state=None, terminal=False)` - send `update` to the Agent with state and reward and indication if this is terminal state or not 
 * `reset()` - send `reset` command to the Agent
-* `client.metrics.scalar` - send scalar to parameter server to add to the tensorboard metrics 
+* `metrics.scalar` - send scalar to parameter server to add to the tensorboard metrics 
 
 ###  [Reinforcement Learning eXchange protocol](#contents)
 
