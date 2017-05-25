@@ -59,7 +59,7 @@ class FuNEpisode(object):
 
             if not terminal:
                 z_t = self.session.op_get_zt(ph_state=[state])
-                s_t = self.session.self.op_get_st(ph_perception=z_t)
+                s_t = self.session.self.op_get_st(ph_perception=z_t)[0]
 
                 cur_st = s_t - self.st_buffer.data[-self.cur_c:, :]
                 cur_st_norm = \
@@ -82,18 +82,19 @@ class FuNEpisode(object):
 
         if state is not None:   # except terminal
             self.states.append(state)   # also as first state
-            self.last_zt_inp = self.session.op_get_zt(ph_state=[state])
+            zt_inp = self.session.op_get_zt(ph_state=[state])
+            self.last_zt_inp, = zt_inp
 
-            goal, self.last_m_value,\
-                s_t, lstm_state = self.session.op_get_goal_value_st(
-                    ph_perception=[self.last_zt_inp],
+            goal, m_value, s_t, lstm_state = self.session.op_get_goal_value_st(
+                    ph_perception=zt_inp,
                     ph_initial_lstm_state=self.session.op_get_lstm_state,
                     ph_step_size=[1])
             self.session.op_assign_lstm_state(ph_variable=lstm_state)
 
-            self.goal_buffer.extend(goal)
+            self.last_m_value, = m_value
+            self.goal_buffer.extend(goal[0])
             self.last_goal = self.goal_buffer.get_sum()
-            self.st_buffer.extend(s_t)
+            self.st_buffer.extend(s_t[0])
 
         assert self.last_action is None
         assert self.last_value is None
@@ -168,10 +169,11 @@ class FuNEpisode(object):
 
     def get_action_and_value_from_network(self):
         zt = self.session.op_get_zt(ph_state=[self.states[-1]])
-        self.last_m_value, _ = self.session.op_get_value(
-            ph_perception=[self.last_zt_inp],
+        m_value, _ = self.session.op_get_value(
+            ph_perception=zt,
             ph_initial_lstm_state=self.session.op_get_lstm_state,
             ph_step_size=[1])
+        self.last_m_value, = m_value
 
         action, value, _ = self.session.op_get_action_and_value(
             ph_state=[self.states[-1]],
