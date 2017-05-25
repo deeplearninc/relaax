@@ -1,0 +1,10 @@
+#!/bin/bash
+
+open environment/index.html
+
+echo "Press [CTRL+C] to stop.."
+
+while :
+do
+  sleep 1
+done
