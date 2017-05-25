@@ -144,6 +144,8 @@ Client is small library used to communicate with RL Agents. It could be used wit
 
 Python Client API:
 
+Available from: `from relaax.client.rlx_client import RlxClient, RlxClientException`
+
 * `init(expoit=False)` - send `init` command to the Agent to give it time to load model and do any other required initialization steps
 * `update(reward=None, state=None, terminal=False)` - send `update` to the Agent with state and reward and indication if this is terminal state or not 
 * `reset()` - send `reset` command to the Agent
