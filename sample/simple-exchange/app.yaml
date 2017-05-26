@@ -1,5 +1,5 @@
 environment:
-  run: environment/start
+  run: python environment/training.py
 
 relaax-parameter-server:
   --bind: localhost:7000
@@ -11,22 +11,12 @@ relaax-rlx-server:
   --bind: localhost:7001
   --log-level: DEBUG
 
-relaax-wsproxy:
-  --bind: localhost:9000
-  --log-level: DEBUG
-
 algorithm:
-  name: policy_gradient
+  path: ../simple-exchange-js/algorithm
+  name: simple-exchange
 
-  input:
-    shape: [0]
-    history: 1
-    use_convolutions: false
-
-  output:
-    continuous: false
-    action_size: 4
-
+  action_size: 4 # action size for the given environment
+  state_size: 0
   hidden_sizes: [10]
   batch_size: 10
   learning_rate: 0.01

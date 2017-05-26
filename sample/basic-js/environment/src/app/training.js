@@ -2,7 +2,8 @@ var client = require('../lib/client.js')
 var log = require('../lib/logging.js')
 var bandit = require('./bandit.js')
 
-function training() {
+function training(max_steps=3000) {
+  this.steps = max_steps
   this.bandit = new bandit()
   this.agent_url = 'ws://127.0.0.1:9000'
   log.info('Connecting to Agent through Web Sockets proxy on ' + this.agent_url)
@@ -10,7 +11,6 @@ function training() {
 }
 
 training.prototype.onconnected = function() {
-  this.steps = 1000
   this.current_step = 0
   log.info('Initializing agent...')
   this.agent.init()
@@ -22,13 +22,13 @@ training.prototype.onready = function() {
 }
 
 training.prototype.onaction = function(action) {
-  log.info('Received action: ', action)
+  log.info('Step:', this.current_step, ' action: ', action)
   this.step(this.bandit.pull(action))
 }
 
 training.prototype.step = function (reward) {
   if (this.current_step < this.steps) {
-    log.info('Updating Agent with reward: ', reward
+    log.debug('Updating Agent with reward: ', reward)
     this.agent.update(reward, [], false)
     this.current_step += 1
   } else {

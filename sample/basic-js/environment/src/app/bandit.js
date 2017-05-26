@@ -12,3 +12,5 @@ bandit.prototype.pull = function(action) {
   else
     return -1
 }
+
+module.exports = bandit;

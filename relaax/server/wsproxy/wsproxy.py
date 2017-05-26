@@ -82,7 +82,7 @@ class WsServerProtocol(WebSocketServerProtocol):
 
     def addClient(self, client_id, client):
         self.clients[client_id] = client
-        log.debug("Added proxy client for: {0}, {1}".format(client_id, self.clients))
+        log.debug("Added proxy client. Client sid: {0}".format(client_id))
 
     def removeClient(self, client_id):
         if client_id in self.clients:
@@ -94,7 +94,10 @@ class WsServerProtocol(WebSocketServerProtocol):
         self.srv_queue.get().addCallback(self.clientDataReceived)
 
     def onClose(self, wasClean, code, reason):
-        log.debug("WebSocket connection closed: {0}".format(reason))
+        if wasClean:
+            log.debug("WebSocket connection closed...")
+        else:
+            log.debug("WebSocket connection was broken. Closing code [{0}], reason: {1}".format(code, reason))
         for client in self.clients.values():
             client.disconnect()
 
