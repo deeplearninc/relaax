@@ -63,13 +63,12 @@ class Dense(BaseLayer):
 
 class LSTM(subgraph.Subgraph):
     def build_graph(self, x, batch_size=1, size=256):
-        self.ph_step= graph.Placeholder(np.float32, [batch_size])
+        self.ph_step= graph.Placeholder(np.int32, [batch_size])
 
         self.ph_state = graph.TfNode(tuple(graph.Placeholder(np.float32, [batch_size, size]).node
                 for _ in range(2)))
 
-        self.zero_state = tf.contrib.rnn.LSTMStateTuple(
-            *[np.zeros([batch_size, size]) for _ in range(2)])
+        self.zero_state = tuple(np.zeros([batch_size, size]) for _ in range(2))
 
         state = tf.contrib.rnn.LSTMStateTuple(*self.ph_state.node)
 

@@ -90,7 +90,7 @@ class DA3CEpisode(object):
 
     def get_action_and_value_from_network(self):
         if da3c_config.config.use_lstm:
-            action, value = self.session.op_get_action_and_value(state=[self.observation.queue], lstm_state=self.lstm_zero_state)
+            action, value = self.session.op_get_action_and_value(state=[self.observation.queue], lstm_state=self.lstm_zero_state, lstm_step=[1])
         else:
             action, value = self.session.op_get_action_and_value(state=[self.observation.queue])
         value, = value

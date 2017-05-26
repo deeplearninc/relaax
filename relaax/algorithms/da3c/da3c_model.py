@@ -89,7 +89,7 @@ class AgentModel(subgraph.Subgraph):
             self.lstm_zero_state = sg_network.lstm_zero_state
             self.op_get_action_and_value = self.Ops(sg_network.actor, sg_network.critic,
                     state=sg_network.ph_state, lstm_state=sg_network.ph_lstm_state,
-                    step=sg_network.ph_lstm_step)
+                    lstm_step=sg_network.ph_lstm_step)
         else:
             self.op_get_action_and_value = self.Ops(sg_network.actor, sg_network.critic,
                     state=sg_network.ph_state)
