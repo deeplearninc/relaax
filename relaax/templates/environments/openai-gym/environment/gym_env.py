@@ -60,7 +60,7 @@ class GymEnv(object):
             self.reset = SetFunction(self._reset_atari)
 
         self.action_size, self.box = self._get_action_size()
-        if self.action_size != options.action_size:
+        if self.action_size != options.output.action_size:
             print('Algorithm expects different action size from gym. \n'
                   'Please set correct action size in you configuration yaml.')
             os.exit(-1)

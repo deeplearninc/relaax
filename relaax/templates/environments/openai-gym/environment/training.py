@@ -3,7 +3,7 @@ from __future__ import print_function
 from builtins import object
 from relaax.client.rlx_client_config import options
 from relaax.client.rlx_client import RlxClient, RlxClientException
-from gym import GymEnv
+from gym_env import GymEnv
 
 
 class Training(object):
@@ -11,7 +11,7 @@ class Training(object):
     def __init__(self):
         self.max_episodes = options.get('environment/max_episodes', 1000)
         self.infinite_run = options.get('environment/infinite_run', False)
-        self.gym = GymEnv(env=options.get('environment/name', 'CartPole-v0')
+        self.gym = GymEnv(env=options.get('environment/name', 'CartPole-v0'))
         self.agent = RlxClient(options.get('relaax_rlx_server/bind', 'localhost:7001'))
 
     def run(self):
