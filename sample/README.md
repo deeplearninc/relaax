@@ -10,10 +10,11 @@ webpack
 ```
 
 ## List of samples
- 
+
 * simple-exchange - don't perform any training. It demonstrates:
     * wiring of the Agent, Parameter Server, and Model
     * environment and algorithm exchange of the `reward`, `state`, and `actions`
+    * just for demonstration, algorithm implementation located outside of the app folder (see app.yaml)
 
 * simple-exchange-js - don't perform any training. It demonstrates implementation of environment in JS and environment/algorithm exchange of the `reward`, `state`, and `actions`
 
