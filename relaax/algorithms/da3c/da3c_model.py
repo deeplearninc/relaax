@@ -17,17 +17,32 @@ class Network(subgraph.Subgraph):
         if da3c_config.config.input.use_convolutions:
             sizes = (256, )
         else:
-            sizes = (300, 200, 100)
-        head = layer.GenericLayers(layer.Flatten(input), [dict(type=layer.Dense,
+            if da3c_config.config.use_lstm:
+                sizes = (128, )
+            else:
+                sizes = (300, 200, 100)
+        dense = layer.GenericLayers(layer.Flatten(input), [dict(type=layer.Dense,
             size=size, activation=layer.Activation.Relu) for size in sizes])
+
+        head = dense
+        if da3c_config.config.use_lstm:
+            lstm = layer.LSTM(graph.Reshape(dense, [1, 1, sizes[-1]]),
+                    size=sizes[-1])
+            head = graph.Reshape(lstm, [1, sizes[-1]])
 
         actor = layer.Actor(head, da3c_config.config.output)
         critic = layer.Dense(head, 1)
 
         self.ph_state = input.ph_state
+        if da3c_config.config.use_lstm:
+            self.ph_lstm_state = lstm.ph_state
+            self.lstm_zero_state = lstm.zero_state
         self.actor = actor
         self.critic = graph.Flatten(critic)
-        self.weights = layer.Weights(input, head, actor, critic)
+        layers = [input, dense, actor, critic]
+        if da3c_config.config.use_lstm:
+            layers.append(lstm)
+        self.weights = layer.Weights(*layers)
 
 
 # Weights of the policy are shared across
@@ -69,8 +84,13 @@ class AgentModel(subgraph.Subgraph):
         # Expose public API
         self.op_assign_weights = self.Op(sg_network.weights.assign,
                 weights=sg_network.weights.ph_weights)
-        self.op_get_action_and_value = self.Ops(
-                sg_network.actor, sg_network.critic, state=sg_network.ph_state)
+        if da3c_config.config.use_lstm:
+            self.lstm_zero_state = sg_network.lstm_zero_state
+            self.op_get_action_and_value = self.Ops(sg_network.actor, sg_network.critic,
+                    state=sg_network.ph_state, lstm_state=sg_network.ph_lstm_state)
+        else:
+            self.op_get_action_and_value = self.Ops(sg_network.actor, sg_network.critic,
+                    state=sg_network.ph_state)
         self.op_compute_gradients = self.Op(sg_gradients.calculate,
                 state=sg_network.ph_state, action=sg_loss.ph_action,
                 value=sg_loss.ph_value, discounted_reward=sg_loss.ph_discounted_reward)

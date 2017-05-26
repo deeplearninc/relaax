@@ -29,6 +29,9 @@ class SessionMethod(object):
         feed_dict = {
             v: kwargs[k] for k, v in self.feed_dict.items()
         }
+        print(repr(feed_dict))
+        fd=self.flatten_feed_dict(feed_dict)
+        print(repr(fd))
         result = Utils.reconstruct(
             self.session.run(
                 list(Utils.flatten(ops)),
