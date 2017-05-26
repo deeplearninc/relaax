@@ -63,7 +63,7 @@
 /******/ 	__webpack_require__.p = "";
 
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 6);
+/******/ 	return __webpack_require__(__webpack_require__.s = 5);
 /******/ })
 /************************************************************************/
 /******/ ([
@@ -301,32 +301,11 @@ module.exports = {
   wspipe: __webpack_require__(2),
   client: __webpack_require__(1),
   logging: __webpack_require__(0),
-  training: __webpack_require__(5),
-  bandit: __webpack_require__(4)
+  training: __webpack_require__(4)
 };
 
 /***/ }),
 /* 4 */
-/***/ (function(module, exports) {
-
-
-function bandit() {
-  // List out our bandits
-  // Default bandit 4 (index#3) is set to most often provide a positive reward.
-  this.slots = [0.2, 0.5, 0.8, 0.0]
-}
-
-bandit.prototype.pull = function(action) { 
-  result = Math.random()
-  if(result > this.slots[action])
-    return 1
-  else
-    return -1
-}
-
-
-/***/ }),
-/* 5 */
 /***/ (function(module, exports, __webpack_require__) {
 
 var client = __webpack_require__(1)
@@ -385,7 +364,7 @@ module.exports = training;
 
 
 /***/ }),
-/* 6 */
+/* 5 */
 /***/ (function(module, exports, __webpack_require__) {
 
 var app = __webpack_require__(3)
