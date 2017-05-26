@@ -31,10 +31,11 @@ class PGEpisode(object):
         if reward is not None:
             self.push_experience(reward)
         assert (state is None) == terminal
-        state = np.asarray(state)
-        if state.size == 0:
-            state = np.asarray([0])
-        state = np.reshape(state, state.shape + (1,))
+        if state is not None:
+            state = np.asarray(state)
+            if state.size == 0:
+                state = np.asarray([0])
+            state = np.reshape(state, state.shape + (1,))
         action = self.get_action(state)
         self.keep_state_and_action(state, action)
         return action
@@ -80,7 +81,9 @@ class PGEpisode(object):
 
     def action_from_policy(self, state):
         assert state is not None
-        probabilities, = self.session.op_get_action(state=[state])
+        state = np.asarray(state)
+        state = np.reshape(state, (1, ) + state.shape)
+        probabilities, = self.session.op_get_action(state=state)
         return utils.choose_action_descrete(probabilities, self.exploit)
 
     def compute_gradients(self, experience):

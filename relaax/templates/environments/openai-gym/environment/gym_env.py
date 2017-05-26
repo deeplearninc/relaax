@@ -3,7 +3,7 @@ from __future__ import division
 
 from builtins import range
 from builtins import object
-import os
+import sys
 import gym
 import random
 import numpy as np
@@ -60,9 +60,10 @@ class GymEnv(object):
 
         self.action_size, self.box = self._get_action_size()
         if self.action_size != options.algorithm.output.action_size:
-            print('Algorithm expects different action size from gym. \n'
-                  'Please set correct action size in you configuration yaml.')
-            os.exit(-1)
+            print('Algorithm expects different action size (%d) from gym (%d). \n'
+                  'Please set correct action size in you configuration yaml.' % (
+                  options.algorithm.output.action_size, self.action_size))
+            sys.exit(-1)
 
         self.reset()
 
