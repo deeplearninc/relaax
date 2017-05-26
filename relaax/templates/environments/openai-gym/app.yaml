@@ -2,6 +2,7 @@
 
 environment:
   run: python environment/training.py
+  name: CartPole-v0
   max_episodes: 1000
   infinite_run: False
 
@@ -16,21 +17,26 @@ relaax-rlx-server:
   --log-level: INFO
 
 algorithm:
-  path: ../../relaax/algorithms/da3c
+  name: da3c
 
-  action_size: 2                  # action size for the given environment
-  state_size: 4
-  hidden_sizes: []
-  history_len: 1                  # number of observations to stack in state
-  episode_len: 5                  # local loop size for one episode
-  batch_size: 800
+  input:
+    shape: [4]
+    history: 1
+    use_convolutions: false
+
+  output:
+    continuous: false
+    action_size: 2                # action size for the given environment
+
+  batch_size: 5                   # local loop size for one episode
+
   gpu: false                      # to use GPU, set to the True
   lstm: false                     # to use LSTM instead of FF, set to the True
   max_global_step: 1e8            # amount of maximum global steps to pass through the training
 
   learning_rate: 1e-2
   entropy_beta: 1e-2              # entropy regularization constant
-  GAMMA: 0.97             # rewards discount factor
+  rewards_gamma: 0.99             # rewards discount factor
   RMSProp:
     decay: 0.99
     epsilon: 0.1
