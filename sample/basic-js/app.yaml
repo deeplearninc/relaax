@@ -3,8 +3,8 @@ environment:
 
 relaax-parameter-server:
   --bind: localhost:7000
-  --checkpoint-dir: log/checkpoints/
-  --metrics-dir: log/metrics/
+  --metrics-dir: logs/metrics/
+  --checkpoint-dir: logs/checkpoints/
   --log-level: DEBUG
 
 relaax-rlx-server:

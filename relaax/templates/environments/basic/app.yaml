@@ -5,9 +5,9 @@ environment:
 
 relaax-parameter-server:
   --bind: localhost:7000
-  --checkpoint-dir: training/checkpoints/sample_app
+  --checkpoint-dir: logs/checkpoints
   --log-level: INFO
-  --metrics-dir: training/metrics/sample_app
+  --metrics-dir: logs/metrics
 
 relaax-rlx-server:
   --bind: localhost:7001
