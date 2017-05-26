@@ -48,7 +48,6 @@ class GymEnv(object):
         if self.timestep_limit is None:
             self.timestep_limit = self.gym.spec.tags.get('wrapper_config.TimeLimit.max_episode_steps')
         self.cur_step_limit = None
-        self._state = None
 
         self._process_state = SetFunction(self._process_all)
         self.reset = SetFunction(self._reset_all)
@@ -78,15 +77,20 @@ class GymEnv(object):
             self.gym.render()
 
         state, reward, terminal, info = self.gym.step(action)
-        self._state = self._process_state(state)
 
         self.cur_step_limit += 1
         if self.cur_step_limit > self.timestep_limit:
             terminal = True
 
-        return reward, terminal
+        if terminal:
+            state = None
+        else:
+            state = self._process_state(state)
+
+        return reward, state, terminal
 
     def _reset_atari(self):
+        state = None
         while True:
             self.gym.reset()
             self.cur_step_limit = 0
@@ -99,10 +103,13 @@ class GymEnv(object):
 
             env_state = self.gym.step(0)
             if not env_state[2]:  # not terminal
-                self._state = self._process_state(env_state[0])
+                state = self._process_state(env_state[0])
                 break
 
+        return state
+
     def _reset_all(self):
+        state = None
         while True:
             self.gym.reset()
             self.cur_step_limit = 0
@@ -115,9 +122,11 @@ class GymEnv(object):
 
             env_state = self.gym.step(self.gym.action_space.sample())
             if not env_state[2]:  # not terminal
-                self._state = self._process_state(env_state[0])
+                state = self._process_state(env_state[0])
                 # self.cur_step_limit += 1
                 break
+
+        return state
 
     @staticmethod
     def _process_atari(screen):
