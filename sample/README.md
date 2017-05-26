@@ -18,4 +18,4 @@ webpack
 
 * simple-exchange-js: don't perform any training. It demonstrates implementation of environment in JS and environment/algorithm exchange of the `reward`, `state`, and `actions`
 
-* basic-js: implements Two-Armed Bandit environment in JS and trains it with Policy Gradient
+* basic-js: implements multi-armed Bandit environment in JS and trains it with Policy Gradient
