@@ -27,11 +27,11 @@ class Training(object):
     def run_episode(self, action):
         episode_reward = 0
         for episode_step in range(self.episode_length):
-            reward, state = self.actor(action['data'])
+            reward, state = self.actor(action)
             episode_reward += reward
             # update agent with state and reward
             action = self.agent.update(reward=reward, state=state)
-            print('action:', action['data'])
+            print('action:', action)
         return episode_reward
 
     def run(self):
@@ -42,7 +42,7 @@ class Training(object):
             self.agent.init()
             # get first action from agent
             action = self.agent.update(reward=None, state=[1, 0])
-            print('action:', action['data'])
+            print('action:', action)
 
             # run training
             for step in range(self.episodes):

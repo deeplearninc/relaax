@@ -98,8 +98,8 @@ class TestRlxClient(object):
         monkeypatch.setattr(socket, 'socket', lambda: skt)
         client = RlxClient('localhost:7000')
         client.connect()
-        ret = client._exchange({'response': 'action'})
-        assert ret['response'] == 'action'
+        ret = client._exchange({'response': 'action', 'data': [1, 2, 3]})
+        assert ret == [1, 2, 3]
 
     def test_not_connected_exchange(self):
         client = RlxClient('localhost:7000')

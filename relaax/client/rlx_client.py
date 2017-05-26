@@ -58,7 +58,7 @@ class RlxClient(object):
                     ret['message'] if 'message' in ret else "unknown error")
         else:
             raise RlxClientException("no connection is available.")
-        return ret
+        return ret['data'] if 'data' in ret else ret['response']
 
     def connect(self, retry=6):
 
