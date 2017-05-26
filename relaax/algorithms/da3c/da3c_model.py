@@ -36,6 +36,7 @@ class Network(subgraph.Subgraph):
         self.ph_state = input.ph_state
         if da3c_config.config.use_lstm:
             self.ph_lstm_state = lstm.ph_state
+            self.ph_lstm_step = lstm.ph_step
             self.lstm_zero_state = lstm.zero_state
         self.actor = actor
         self.critic = graph.Flatten(critic)
@@ -87,7 +88,8 @@ class AgentModel(subgraph.Subgraph):
         if da3c_config.config.use_lstm:
             self.lstm_zero_state = sg_network.lstm_zero_state
             self.op_get_action_and_value = self.Ops(sg_network.actor, sg_network.critic,
-                    state=sg_network.ph_state, lstm_state=sg_network.ph_lstm_state)
+                    state=sg_network.ph_state, lstm_state=sg_network.ph_lstm_state,
+                    step=sg_network.ph_lstm_step)
         else:
             self.op_get_action_and_value = self.Ops(sg_network.actor, sg_network.critic,
                     state=sg_network.ph_state)
