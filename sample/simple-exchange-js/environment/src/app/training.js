@@ -1,14 +1,14 @@
 var client = require('../lib/client.js')
 var log = require('../lib/logging.js')
 
-function training() {
+function training(max_steps=10) {
+  this.steps = max_steps
   this.agent_url = 'ws://127.0.0.1:9000'
   log.info('Connecting to Agent through Web Sockets proxy on ' + this.agent_url)
   this.agent = new client(this.agent_url, this)
 }
 
 training.prototype.onconnected = function() {
-  this.steps = 10
   this.current_step = 0
   log.info('Initializing agent...')
   this.agent.init()
