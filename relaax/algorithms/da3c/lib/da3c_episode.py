@@ -16,11 +16,14 @@ class DA3CEpisode(object):
     def __init__(self, parameter_server, exploit):
         self.exploit = exploit
         self.ps = parameter_server
-        self.session = session.Session(da3c_model.AgentModel())
+        model = da3c_model.AgentModel()
+        self.session = session.Session(model)
         self.reset()
         self.observation = da3c_observation.DA3CObservation()
         self.last_action = None
         self.last_value = None
+        if da3c_config.config.use_lstm:
+            self.lstm_zero_state = model.lstm_zero_state
 
     @property
     def experience(self):
@@ -86,7 +89,10 @@ class DA3CEpisode(object):
         self.session.op_assign_weights(weights=self.ps.session.op_get_weights())
 
     def get_action_and_value_from_network(self):
-        action, value = self.session.op_get_action_and_value(state=[self.observation.queue])
+        if da3c_config.config.use_lstm:
+            action, value = self.session.op_get_action_and_value(state=[self.observation.queue], lstm_state=self.lstm_zero_state, lstm_step=[1])
+        else:
+            action, value = self.session.op_get_action_and_value(state=[self.observation.queue])
         value, = value
         if len(action) == 1:
             probabilities, = action

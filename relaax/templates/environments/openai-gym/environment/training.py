@@ -21,7 +21,7 @@ class Training(object):
             # connect to RLX server
             self.agent.connect()
             # give agent a moment to load and initialize
-            self.agent.init()
+            self.agent.init(options.get('exploit', False))
 
             episode_cnt = 0
             while (episode_cnt < self.max_episodes) or self.infinite_run:

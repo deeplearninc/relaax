@@ -13,7 +13,7 @@ class Agent(object):
         self.session = session.Session(model.Model())
 
     def init(self, exploit=False):
-        print('agent init')
+        print('agent init(exploit=%s)' % exploit)
         return True
 
     def update(self, reward, state, terminal):

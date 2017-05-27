@@ -39,7 +39,7 @@ class Training(object):
             # connect to the server
             self.agent.connect()
             # give agent a moment to load and initialize
-            self.agent.init()
+            self.agent.init(options.get('exploit', False))
             # get first action from agent
             action = self.agent.update(reward=None, state=[1, 0])
             print('action:', action)

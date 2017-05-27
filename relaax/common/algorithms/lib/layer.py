@@ -61,15 +61,37 @@ class Dense(BaseLayer):
         return super(Dense, self).build_graph(x, shape, tr, activation)
 
 
+class LSTM(subgraph.Subgraph):
+    def build_graph(self, x, batch_size=1, size=256):
+        self.ph_step= graph.Placeholder(np.int32, [batch_size])
+
+        self.ph_state = graph.TfNode(tuple(graph.Placeholder(np.float32, [batch_size, size]).node
+                for _ in range(2)))
+
+        self.zero_state = tuple(np.zeros([batch_size, size]) for _ in range(2))
+
+        state = tf.contrib.rnn.LSTMStateTuple(*self.ph_state.node)
+
+        lstm = tf.contrib.rnn.BasicLSTMCell(size, state_is_tuple=True)
+
+        with tf.variable_scope('LSTM') as scope:
+            outputs, self.state = tf.nn.dynamic_rnn(lstm, x.node,
+                    initial_state=state, sequence_length=self.ph_step.node,
+                    time_major=False, scope=scope)
+            scope.reuse_variables()
+            self.weight = graph.Variables(
+                    graph.TfNode(tf.get_variable('basic_lstm_cell/weights')),
+                    graph.TfNode(tf.get_variable('basic_lstm_cell/biases')))
+
+        return outputs
+
+
 class Flatten(subgraph.Subgraph):
     def build_graph(self, x):
         return graph.Reshape(x, (-1, np.prod(x.node.shape.as_list()[1:]))).node
 
 
 class GenericLayers(subgraph.Subgraph):
-    BORDER = {}
-    ACTIVATION = {}
-
     def build_graph(self, x, descs):
         weights = []
         last = x
