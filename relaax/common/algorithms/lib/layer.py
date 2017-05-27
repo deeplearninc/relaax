@@ -78,6 +78,7 @@ class LSTM(subgraph.Subgraph):
             outputs, self.state = tf.nn.dynamic_rnn(lstm, x.node,
                     initial_state=state, sequence_length=self.ph_step.node,
                     time_major=False, scope=scope)
+            self.state = graph.TfNode(self.state)
             scope.reuse_variables()
             self.weight = graph.Variables(
                     graph.TfNode(tf.get_variable('basic_lstm_cell/weights')),

@@ -38,6 +38,7 @@ class Network(subgraph.Subgraph):
             self.ph_lstm_state = lstm.ph_state
             self.ph_lstm_step = lstm.ph_step
             self.lstm_zero_state = lstm.zero_state
+            self.lstm_state = lstm.state
         self.actor = actor
         self.critic = graph.Flatten(critic)
         layers = [input, dense, actor, critic]
@@ -87,9 +88,9 @@ class AgentModel(subgraph.Subgraph):
                 weights=sg_network.weights.ph_weights)
         if da3c_config.config.use_lstm:
             self.lstm_zero_state = sg_network.lstm_zero_state
-            self.op_get_action_and_value = self.Ops(sg_network.actor, sg_network.critic,
-                    state=sg_network.ph_state, lstm_state=sg_network.ph_lstm_state,
-                    lstm_step=sg_network.ph_lstm_step)
+            self.op_get_action_value_and_lstm_state = self.Ops(sg_network.actor, sg_network.critic,
+                    sg_network.lstm_state, state=sg_network.ph_state,
+                    lstm_state=sg_network.ph_lstm_state, lstm_step=sg_network.ph_lstm_step)
             self.op_compute_gradients = self.Op(sg_gradients.calculate,
                     state=sg_network.ph_state, action=sg_loss.ph_action,
                     value=sg_loss.ph_value, discounted_reward=sg_loss.ph_discounted_reward,
