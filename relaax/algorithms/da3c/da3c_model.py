@@ -26,9 +26,9 @@ class Network(subgraph.Subgraph):
 
         head = dense
         if da3c_config.config.use_lstm:
-            lstm = layer.LSTM(graph.Reshape(dense, [1, 1, sizes[-1]]),
+            lstm = layer.LSTM(graph.Reshape(dense, [1, -1, sizes[-1]]),
                     size=sizes[-1])
-            head = graph.Reshape(lstm, [1, sizes[-1]])
+            head = graph.Reshape(lstm, [-1, sizes[-1]])
 
         actor = layer.Actor(head, da3c_config.config.output)
         critic = layer.Dense(head, 1)
@@ -90,12 +90,16 @@ class AgentModel(subgraph.Subgraph):
             self.op_get_action_and_value = self.Ops(sg_network.actor, sg_network.critic,
                     state=sg_network.ph_state, lstm_state=sg_network.ph_lstm_state,
                     lstm_step=sg_network.ph_lstm_step)
+            self.op_compute_gradients = self.Op(sg_gradients.calculate,
+                    state=sg_network.ph_state, action=sg_loss.ph_action,
+                    value=sg_loss.ph_value, discounted_reward=sg_loss.ph_discounted_reward,
+                    lstm_state=sg_network.ph_lstm_state, lstm_step=sg_network.ph_lstm_step)
         else:
             self.op_get_action_and_value = self.Ops(sg_network.actor, sg_network.critic,
                     state=sg_network.ph_state)
-        self.op_compute_gradients = self.Op(sg_gradients.calculate,
-                state=sg_network.ph_state, action=sg_loss.ph_action,
-                value=sg_loss.ph_value, discounted_reward=sg_loss.ph_discounted_reward)
+            self.op_compute_gradients = self.Op(sg_gradients.calculate,
+                    state=sg_network.ph_state, action=sg_loss.ph_action,
+                    value=sg_loss.ph_value, discounted_reward=sg_loss.ph_discounted_reward)
 
 
 if __name__ == '__main__':

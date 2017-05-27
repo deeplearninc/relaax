@@ -90,7 +90,8 @@ class DA3CEpisode(object):
 
     def get_action_and_value_from_network(self):
         if da3c_config.config.use_lstm:
-            action, value = self.session.op_get_action_and_value(state=[self.observation.queue], lstm_state=self.lstm_zero_state, lstm_step=[1])
+            action, value = self.session.op_get_action_and_value(state=[self.observation.queue],
+                    lstm_state=self.lstm_zero_state, lstm_step=[1])
         else:
             action, value = self.session.op_get_action_and_value(state=[self.observation.queue])
         value, = value
@@ -113,13 +114,13 @@ class DA3CEpisode(object):
             r = reward[t] + da3c_config.config.rewards_gamma * r
             discounted_reward[t] = r
 
+        if da3c_config.config.use_lstm:
+            return self.session.op_compute_gradients(state=experience['state'], action=experience['action'],
+                    value=experience['value'], discounted_reward=discounted_reward,
+                    lstm_state=self.lstm_zero_state, lstm_step=[len(reward)])
+        return self.session.op_compute_gradients(state=experience['state'], action=experience['action'],
+                value=experience['value'], discounted_reward=discounted_reward)
 
-        return self.session.op_compute_gradients(
-            state=experience['state'],
-            action=experience['action'],
-            value=experience['value'],
-            discounted_reward=discounted_reward
-        )
 
     def apply_gradients(self, gradients, experience_size):
         self.ps.session.op_apply_gradients(

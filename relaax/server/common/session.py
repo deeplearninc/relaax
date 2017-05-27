@@ -12,6 +12,7 @@ class Session(object):
         self.model = model
 
     def __getattr__(self, name):
+        # print('name', name)
         return SessionMethod(self.session, getattr(self.model, name))
 
     def make_checkpoint(self):
@@ -29,10 +30,10 @@ class SessionMethod(object):
         feed_dict = {
             v: kwargs[k] for k, v in self.feed_dict.items()
         }
-        print('feed_dict')
-        for k, v in self.flatten_feed_dict(feed_dict).items():
-            import numpy as np
-            print(repr(k), repr(np.asarray(v).shape))
+        # print('feed_dict')
+        # for k, v in self.flatten_feed_dict(feed_dict).items():
+        #     import numpy as np
+        #     print(repr(k), repr(np.asarray(v).shape))
         result = Utils.reconstruct(
             self.session.run(
                 list(Utils.flatten(ops)),
