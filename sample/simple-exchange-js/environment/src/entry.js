@@ -1,4 +1,4 @@
 var app = require('./index.js')
-app.logging.config(logging_element_id='logging')
+app.logging.config('logging')
 app.logging.info("Starting training process...")
-window.training = new app.training()
+window.training = new app.training(11)

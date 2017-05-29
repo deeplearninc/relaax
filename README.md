@@ -25,10 +25,10 @@ The components of RELAAX include:
 - [System Architecture](#system-architecture)
 - [RELAAX Clients](#relaax-clients)
     - [Reinforcement Learning eXchange protocol](#reinforcement-learning-exchange-protocol)
-    - [Supported Environments](#supported-environments)
-        - [ALE](#arcade-learning-environment)
-        - [OpenAI Gym](#openai-gym)
-        - [DeepMind Lab](#deepmind-lab)
+    - [Supported Environments](docs/Environments.md#supported-environments)
+        - [ALE](docs/Environments.md#arcade-learning-environment)
+        - [OpenAI Gym](docs/Environments.md#openai-gym)
+        - [DeepMind Lab](docs/Environments.md#deepmind-lab)
 - [RELAAX Server](#relaax-server)
     - [RLX Server](#rlx-server)
         - [RLX Server structure](#rlx-server-structure)
@@ -46,22 +46,26 @@ The components of RELAAX include:
     - [RELAAX Installation](#relaax-installation)
         - [Installation for training on cluster and for algorithm development](#installation-for-training-on-cluster-and-for-algorithm-development)
         - [Installation for RELAAX development](#installation-for-relaax-development)
-- [Algorithms](#algorithms)
-    - [Distributed A3C](#distributed-a3c)
-        - [Distributed A3C Architecture](#distributed-a3c-architecture)
-        - [Performance on some of the Atari Environments](#performance-on-some-of-the-atari-environments)
-    - [Distributed A3C Continuous](#distributed-a3c-continuous)
-        - [Distributed A3C Architecture with Continuous Actions](#distributed-a3c-architecture-with-continuous-actions)
-        - [Performance on gym's Walker](#performance-on-gyms-walker)
-    - [Other Algorithms](#other-algorithms)
+- [Algorithms](docs/Algorithms.md#algorithms)
+    - [Distributed A3C](docs/Algorithms.md#distributed-a3c)
+        - [Distributed A3C Architecture](docs/Algorithms.md#distributed-a3c-architecture)
+        - [Performance on some of the Atari Environments](docs/Algorithms.md#performance-on-some-of-the-atari-environments)
+    - [Distributed A3C Continuous](docs/Algorithms.md#distributed-a3c-continuous)
+        - [Distributed A3C Architecture with Continuous Actions](docs/Algorithms.md#distributed-a3c-architecture-with-continuous-actions)
+        - [Performance on gym's Walker](docs/Algorithms.md#performance-on-gyms-walker)
+    - [Distributed TRPO with GAE](docs/Algorithms.md#distributed-trpo-with-gae)
+        - [Performance on gym's BipedalWalker](docs/Algorithms.md#performance-on-gyms-bipedalwalker)
+    - [Other Algorithms](docs/Algorithms.md#other-algorithms)
 - [Deployment in Cloud](#deployment-in-cloud)
 
 
 ## [Quick start](#quick-start)
 
-We recommended you use an isolated Python environment to run RELAAX. Virtualenv or Anaconda are examples. If you're using the system's python environment, you may need to run `pip install` commands with `sudo`. On OSX / macOS, we recommend using [Homebrew](http://brew.sh/) to install a current python version.
-
-* Install <a href="https://docs.docker.com/engine/installation/" target="_blank">Docker</a>
+We recommended you use an isolated Python environment to run RELAAX.
+Virtualenv or Anaconda are examples. If you're using the system's python environment,
+you may need to run `pip install` commands with `sudo` and you also have to be sure
+that you have `python-pip` installed.
+On OSX / macOS, we recommend using [Homebrew](http://brew.sh/) to install a current python version.
 
 * Clone RELAAX repo.
 ```bash
@@ -71,59 +75,57 @@ git clone git@github.com:deeplearninc/relaax.git
 * Install RELAAX
 ```bash
 cd relaax
-pip install -e .
+pip install -e .[all]
 ```
-
-* Build DA3C bridge.
+Now you have relaax command available to create new applications, run it, configure algorithms, or generate environments and algorithms for your application. To see available options, run:
 ```bash
-algorithms/da3c/bridge/bridge.sh
+relaax --help
 ```
 
-* Install TensorFlow
+* Create new RELAAX application
 ```bash
-pip install tensorflow==0.12.1
+relaax new app-name
+cd app-name
 ```
-If previous command does not work for you (it is possible in some kind of Python virtual environments) use this one:
+This will create basic RL application with simple multi-handed bandit environment:
+
+    app.yaml - contains configuration of environment, all servers, and algorithm
+    environment - folder with environment and training regime implementation
+
+You could see what other option are available by running: 
 ```bash
-pip install --upgrade https://storage.googleapis.com/tensorflow/linux/cpu/tensorflow-0.12.1-cp27-none-linux_x86_64.whl
+relaax new --help
 ```
 
-* Create training directory
+* Run created application.
+From your application folder, run: 
 ```bash
-cd ..
-mkdir training
-cd training
+relaax run all
 ```
-
-* Build Docker image named gym (use sudo if needed):
+You could see what other option are available by running: 
 ```bash
-docker build -f ../relaax/environments/OpenAI_Gym/Dockerfile -t gym ../relaax
+relaax run --help
 ```
 
-* Open new terminal window, navigate to training directory and run parameter server
+* Run different environment 
+You could try other environments. From your application folder, run: 
 ```bash
-relaax-parameter-server --config ../relaax/config/da3c_gym_boxing.yaml
+relaax generate -e environment-name
 ```
-
-* Open new terminal window, navigate to training directory and run RLX server
+To see what environments are available, run: 
 ```bash
-relaax-rlx-server --config ../relaax/config/da3c_gym_boxing.yaml --bind 0.0.0.0:7001
+relaax generate --help
 ```
 
-* Use `ifconfig` command to find IP of your localhost. Remember it.
-
-* Open new terminal window, navigate to training directory and run environment inside gym docker image. Use sudo if needed.
+* Local copy of algorithm implementation
+If you would like to base your RL algorithm on RELAAX implementation or modify existing implementation you may copy algorithm in your app folder. From your application folder, run: 
 ```bash
-docker run -ti gym <LOCALHOST_IP>:7001 Boxing-v0
+relaax generate -a algorithm-name
 ```
-
-* Open new terminal window, navigate to trainin directory and run Tensorboard:
+To see what algorithms are available run: 
 ```bash
-tensorboard --logdir metrics_gym_boxing
+relaax generate --help
 ```
-
-* Tensorboard prints URL to use. Open it in browser to exemain training progress.
-
 
 ## [System Architecture](#contents)
 
@@ -140,390 +142,21 @@ tensorboard --logdir metrics_gym_boxing
 ## [RELAAX Clients](#contents)
 Client is small library used to communicate with RL Agents. It could be used with the Environment implemented in many popular programming languages or embedded into specialized hardware systems. Currently client support Arcade Learning Environments (ALE), OpenAI Gym, and OpenAI Universe Environments. At the moment client implemented in Python, later on we are planning to implement client code in C/C++, Ruby, GO, etc. to simplify integration of other environments.
 
+Python Client API:
+
+Available from: `from relaax.client.rlx_client import RlxClient, RlxClientException`
+
+* `connect()` - connect to the Agent (through RLX server) 
+* `init(expoit=False)` - send `init` command to the Agent to give it time to load model and do any other required initialization steps
+* `update(reward=None, state=None, terminal=False)` - send `update` to the Agent with state and reward and indication if this is terminal state or not 
+* `reset()` - send `reset` command to the Agent
+* `metrics.scalar` - send scalar to parameter server to add to the tensorboard metrics 
+
 ###  [Reinforcement Learning eXchange protocol](#contents)
 
-Reinforcement Learning eXchange protocol is a simple protocol implemented over TCP using JSON (later will be moved to Protobuf). It allows to send State of the Environment and Reward to the Server and deliver Action from the Agent to the Environment.
-
-TODO: links to actual files
-
-```
-relaax
-  client
-    rlx_client.py
-      class Client                          - agent interface for environment
-        def init(state)                     - start training sending initial state to agent,
-                                              returns first action from agent
-        def send(reward, state)             - send reward for previous action and current environment state,
-                                              returns next action from agent
-        def reset(reward)                   - send reward for previous action and resets agent
-                                              returns cumulative reward for last episode
-        def metrics()                       - get metrics object
-        def disconnect()                    - disconnect environment from agent
-
-      class Failure                         - raised in case of failure on agent's side
-```
-
+Reinforcement Learning eXchange protocol is a simple protocol implemented over TCP using JSON. It allows to send State of the Environment and Reward to the Server and deliver Action from the Agent to the Environment.
 
 ![img](resources/protocol-flow.png)
-<br><br>
-
-### [Supported Environments](#contents)
-
-#### [Arcade-Learning-Environment](#contents)
-
-The [Arcade Learning Environment (ALE)](http://www.arcadelearningenvironment.org/)
-is a framework that allows to develop AI agents for Atari 2600 games.
-It is built on top of the Atari 2600 emulator [Stella](http://stella.sourceforge.net/)
-and separates the details of emulation from agent design. Additional information
-about ALE and Atari games you can find in official [Google group.](https://groups.google.com/forum/#!forum/arcade-learning-environment)
-
-1. Pull the Docker Image:
-
-    ```bash
-    $ docker pull deeplearninc/relaax-ale:v0.1.0
-    ```
-
-2. Run the Server:
-
-    Open new terminal window, navigate to training directory and run `honcho`:
-    ```bash
-    $ honcho -f ../relaax/config/da3c_ale_boxing.Procfile start
-    ```
-    It is assumed that the training directory located next to `relaax` repository
-    at the same level. It also allows to create it anywhere and it needs
-    to write the right path to the appropriate `*.Procfile` within `relaax` repo.
-
-3. Run a Client:
-
-    It provides 3 predefined run-cases for the pulled docker image:
-    ```bash
-    # For example, the first one case
-
-    $ docker run --rm -ti \
-        -v /path_to_atari_roms_folder:/roms \
-        --name ale deeplearninc/relaax-ale:v0.1.0 \
-        SERVER_IP:7001 boxing
-    ```
-    It runs the docker in interactive mode by `-ti` and automatically removes this
-    container when it stops with `--rm`. It also has `--name ale` for convenience.
-
-    You have to provide shared folder on your computer, where atari game roms are
-    stored by `-v` parameter.
-
-    Use `ifconfig` command to find IP of your relaax SERVER, which is run by `honcho`
-
-    It launches one sample of the game environment within the docker, which is defined
-    by the last parameter `boxing` (it launches the `Atari Boxing` game)
-
-    ```bash
-    # For example, the second run-case
-
-    $ docker run --rm -ti \
-        -v /path_to_atari_roms_folder:/roms \
-        --name ale deeplearninc/relaax-ale:v0.1.0 \
-        SERVER_IP:7001 boxing 4
-    ```
-    It adds the third parameter which is equal to `4` since it allows to
-    define number of games to launch within the docker for parallel training.
-
-    ```bash
-    # And the third one use-case
-
-    $ docker run --rm -ti \
-        -p IP:PORT:5900 \
-        -v /path_to_atari_roms_folder:/roms \
-        --name ale deeplearninc/relaax-ale:v0.1.0 \
-        SERVER_IP:7001 boxing display
-    ```
-    It passes the last argument as `display` to run game in display mode, therefore
-    it maps some ports on your computer to use `VNC` connection for visual session.
-
-    For example, the full command to run the clients and a server on
-    a single machine (under the NAT) should looks like as follows:
-    ```bash
-    $ docker run --rm -ti \
-        -p 192.168.2.103:15900:5900 \
-        -v /opt/atari-game-roms:/roms \
-        --name ale deeplearninc/relaax-ale:v0.1.0 \
-        192.168.2.103:7001 boxing display
-    ```
-
-    You can connect to client's visual output via your VNC client with:
-    ```
-    For example:
-    ---
-    Server: 192.168.2.103:15900
-    Passwd: relaax
-    Color depth: True color (24 bit)
-    ```
-
-Please find sample of configuration to perform experiments with ALE there:
-
-`relaax/config/da3c_ale_boxing.yaml`
-
-This sample is setup for `Atari Boxing` game, which has a discrete set of actions.
-Therefore you may use discrete version of our `Distributed A3C` or set another algorithm there:
-```yml
-algorithm:
-  path: ../relaax/algorithms/da3c
-```
-
-`action_size` and `state_size` parameters for `Atari Boxing` is equal to:
-```yml
-action_size: 18                 # action size for given game rom (18 fits ale boxing)
-state_size: [84, 84]            # dimensions of input screen frame of an Atari game
-```
-You should check / change these parameter if you want to use another environment.
-<br><br>
-
-**How to build your own Docker Image**
-
-* Navigate to the ALE's folder within `relaax` repo
-```bash
-$ cd path_to_relaax_repo/environments/ALE
-```
-
-* Build the docker image by the following commands
-```bash
-# docker build -f Dockerfile -t your_docker_hub_name/image_name ../..
-# or you can build without your docker hub username, for example:
-
-$ docker build -f Dockerfile -t relaax-ale-vnc ../..
-```
-<br><br>
-
-#### [OpenAI Gym](#contents)
-
-[OpenAI Gym](https://gym.openai.com/) is open-source library: a collection of test problems environments,
-that you can use to work out your reinforcement learning algorithms.
-
-1. Pull the Docker Image:
-
-    ```bash
-    $ docker pull deeplearninc/relaax-gym:v0.1.0
-    ```
-
-2. Run the Server:
-
-    Open new terminal window, navigate to training directory and run `honcho`:
-    ```bash
-    $ honcho -f ../relaax/config/da3cc_gym_walker.Procfile start
-    ```
-    It is assumed that the training directory located next to `relaax` repository
-    at the same level. It also allows to create it anywhere and it needs
-    to write the right path to the appropriate `*.Procfile` within `relaax` repo.
-
-3. Run a Client:
-
-    It provides 3 predefined run-cases for the pulled docker image:
-    ```bash
-    # For example, the first one case
-
-    $ docker run --rm -ti \
-        --name gym deeplearninc/relaax-gym:v0.1.0 \
-        SERVER_IP:7001 BipedalWalker-v2
-    ```
-    It runs the docker in interactive mode by `-ti` and automatically removes this
-    container when it stops with `--rm`. It also has `--name gym` for convenience.
-
-    Use `ifconfig` command to find IP of your relaax SERVER, which is run by `honcho`
-
-    It launches one sample of the environment within the docker, which is defined
-    by the last parameter `BipedalWalker-v2` (name of the gym's [environment](https://gym.openai.com/envs))
-
-    ```bash
-    # For example, the second run-case
-
-    $ docker run --rm -ti \
-        --name gym deeplearninc/relaax-gym:v0.1.0 \
-        SERVER_IP:7001 BipedalWalker-v2 4
-    ```
-    It adds the third parameter which is equal to `4` since it allows to define
-    number of environments to launch within the docker for parallel training.
-
-    ```bash
-    # And the third one use-case
-
-    $ docker run --rm -ti \
-        -p IP:PORT:5900 \
-        --name gym deeplearninc/relaax-gym:v0.1.0 \
-        SERVER_IP:7001 BipedalWalker-v2 display
-    ```
-    It passes the last argument as `display` to run environment in display mode, therefore
-    it maps some ports on your computer to use `VNC` connection for visual session.
-
-    For example, the full command to run the clients and a server on
-    a single machine (under the NAT) should looks like as follows:
-    ```bash
-    $ docker run --rm -ti \
-        -p 192.168.2.103:15900:5900 \
-        --name gym deeplearninc/relaax-gym:v0.1.0 \
-        192.168.2.103:7001 BipedalWalker-v2 display
-    ```
-
-    You can connect to client's visual output via your VNC client with:
-    ```
-    For example:
-    ---
-    Server: 192.168.2.103:15900
-    Passwd: relaax
-    Color depth: True color (24 bit)
-    ```
-
-Please find sample of configuration to run experiments with OpenAI Gym there:
-
-`relaax/config/da3cc_gym_walker.yaml`
-
-This sample is setup for `BipedalWalker-v2` environment, which operates with continuous action space.
-Therefore you may use continuous version of our `Distributed A3C` or set another algorithm there:
-```yml
-algorithm:
-  path: ../relaax/algorithms/da3c_cont
-```
-
-`action_size` and `state_size` parameters for `BipedalWalker-v2` is equal to:
-```yml
-action_size: 4                  # action size for the given environment
-state_size: [24]                # array of dimensions for the input observation
-```
-You should check / change these parameter if you want to use another environment.
-<br><br>
-
-**How to build your own Docker Image**
-
-* Navigate to the OpenAI Gym's folder within `relaax` repo
-```bash
-$ cd path_to_relaax_repo/environments/OpenAI_Gym
-```
-
-* Build the docker image by the following commands
-```bash
-# docker build -f Dockerfile -t your_docker_hub_name/image_name ../..
-# or you can build without your docker hub username, for example:
-
-$ docker build -f Dockerfile -t relaax-gym-vnc ../..
-```
-<br><br>
-
-#### [DeepMind Lab](#contents)
-
-[DeepMind Lab](https://github.com/deepmind/lab) is a 3D learning environment based on
-id Software's [Quake III Arena](https://github.com/id-Software/Quake-III-Arena).
-It provides a suite of challenging 3D navigation and puzzle-solving tasks
-for learning agents especially with deep reinforcement learning.
-
-1. Pull the Docker Image:
-
-    ```bash
-    $ docker pull deeplearninc/relaax-lab:v0.1.0
-    ```
-
-2. Run the Server:
-
-    Open new terminal window, navigate to training directory and run `honcho`:
-    ```bash
-    $ honcho -f ../relaax/config/da3c_lab_demo.Procfile start
-    ```
-    It is assumed that the training directory located next to `relaax` repository
-    at the same level. It also allows to create it anywhere and it needs
-    to write the right path to the appropriate `*.Procfile` within `relaax` repo.
-
-3. Run a Client:
-
-    It provides 3 predefined run-cases for the pulled docker image:
-    ```bash
-    # For example, the first one case
-
-    $ docker run --rm -ti \
-        --name lab deeplearninc/relaax-lab:v0.1.0 \
-        SERVER_IP
-    ```
-    It runs the docker in interactive mode by `-ti` and automatically removes this
-    container when it stops with `--rm`. It also has `--name lab` for convenience.
-
-    Use `ifconfig` command to find IP of your relaax SERVER, which is run by `honcho`
-
-    It launches one sample of the lab's environment within the docker with a `nav_maze_static_01` map
-    which is predefined by default (list of the default lab's [maps](https://github.com/deepmind/lab/tree/master/assets/maps))
-
-    ```bash
-    # For example, the second run-case
-
-    $ docker run --rm -ti \
-        --name lab deeplearninc/relaax-lab:v0.1.0 \
-        SERVER_IP 4 nav_maze_static_02
-    ```
-    It adds the second parameter which is equal to `4` since it allows to define
-    number of environments to launch within the docker for parallel training.
-
-    It also allows to define a map by the third parameter or it uses `nav_maze_static_01` by default.
-
-    ```bash
-    # And the third one use-case
-
-    $ docker run --rm -ti \
-        -p IP:PORT:6080 \
-        --name lab deeplearninc/relaax-lab:v0.1.0 \
-        SERVER_IP display
-    ```
-    It passes the last argument as `display` to run environment in display mode, therefore
-    it maps some ports on your computer to use `VNC` connection for visual session.
-
-    It also allows to define a map by the third parameter.
-
-    For example, the full command to run the clients and a server on
-    a single machine (under the NAT) should looks like as follows:
-    ```bash
-    $ docker run --rm -ti \
-        -p 6080:6080 \
-        --name lab deeplearninc/relaax-lab:v0.1.0 \
-        192.168.2.103 display nav_maze_static_03
-    ```
-
-    You can connect to client's visual output via your browser by opening http://127.0.0.1:6080/vnc.html URL.
-    You will see web form to enter your credentials. Leave all fields intact and press `'Connect'`.
-    You will see a running game.
-
-Please find sample of configuration to perform experiments with DeepMind Lab there:
-
-`relaax/config/da3c_lab_demo.yaml`
-
-`action_size` and `state_size` parameters for this configuration is equal to:
-```yml
-action_size: 11                 # the full action size for the lab's environment
-state_size: [84, 84]            # dimensions of the environment's input screen
-```
-The full set for `action_size` consists of 11-types of interactions:
-- *look_left*
-- *look_right*
-- look_up
-- look_down
-- *strafe_left*
-- *strafe_right*
-- *forward*
-- *backward*
-- fire
-- jump
-- crouch
-
-It shrinks these actions to the `6` (italic) while training
-by `--shrink` parameter, which is set to `true` by default.
-<br><br>
-
-**How to build your own Docker Image**
-
-* Navigate to the DeepMind Lab's folder within `relaax` repo
-```bash
-$ cd path_to_relaax_repo/environments/DeepMind_Lab
-```
-
-* Build the docker image by the following commands
-```bash
-# docker build -f Dockerfile -t your_docker_hub_name/image_name ../..
-# or you can build without your docker hub username, for example:
-
-$ docker build -f Dockerfile -t relaax-lab-vnc ../..
-```
 <br><br>
 
 ## [RELAAX Server](#contents)
@@ -688,12 +321,12 @@ When you install RELAAX on your node you've got `relaax-parameter-server` comman
 
 If you're going to run training locally use following command line:
 ```bash
-relaax-parameter-server --config config.yaml --bind localhost:7000 --log-level WARNING --checkpoint-dir training/checkpoints --metrics-dir training/metrics
+relaax-parameter-server --config config.yaml --bind localhost:7000 --log-level WARNING --checkpoint-dir training/checkpoints --checkpoint-time-interval 900 --checkpoints-to-keep 8 --metrics-dir training/metrics
 ```
 
 If you're going to run training on cluster use following command line. There are differences in parameter-server IP and checkpoint and metrics locations:
 ```bash
-relaax-parameter-server --config config.yaml --bind 0.0.0.0:7000 --log-level WARNING --checkpoint-aws-s3 my_bucket training/checkpoints --aws-keys aws-keys.yaml --metrics-dir training/metrics --metrics-aws-s3 my_bucket training/metrics
+relaax-parameter-server --config config.yaml --bind 0.0.0.0:7000 --log-level WARNING --checkpoint-aws-s3 my_bucket training/checkpoints --aws-keys aws-keys.yaml --checkpoint-time-interval 900 --checkpoints-to-keep 8 --metrics-dir training/metrics --metrics-aws-s3 my_bucket training/metrics
 ```
 
 Available options are:
@@ -705,13 +338,19 @@ Available options are:
   --checkpoint-dir DIR  training checkpoint directory
   --checkpoint-aws-s3 BUCKET KEY
                         AWS S3 bucket and key for training checkpoints
-  --metrics-dir         metrics data directory
+  --checkpoint-time-interval SECONDS
+                        save on regular intervals in seconds
+  --checkpoint-global-step-interval STEPS
+                        save on regular intervals in global steps
+  --checkpoints-to-keep N
+                        number of checkpoints to keep
+  --metrics-dir DIR     metrics data directory
   --metrics-aws-s3 BUCKET KEY
                         AWS S3 bucket and key for training metrics data
   --aws-keys FILE       YAML file containing AWS access and secret keys
 ```
 
-Do not use both --checkpoint-dir and --checkpoint-aws-s3 flags in the same command line.
+It is possible to use both --checkpoint-dir and --checkpoint-aws-s3 flags in the same command line. In this case parameter server restores latest checkpoint (checkpoint having largest global step) from both location. Saving is doing in both locations.
 
 Configuration file is the same as for RLX Server. Please use the same configuration for Parameter Server and for RLX Server. Otherwise training will fail.
 
@@ -724,7 +363,7 @@ secret: YOUR_SECRET_ACCESS_KEY_HERE
 
 ### [Algorithm](#contents)
 
-An algorithm is an usual Python package. But RELAAX server loads algorithms dynamically. Dynamic loading simplifies algorithm developement outside Python package structure. The path to selected algorithm is defined in config.yaml or in command line.
+An algorithm is an usual Python package. But RELAAX server loads algorithms dynamically. Dynamic loading simplifies algorithm development outside Python package structure. The path to selected algorithm is defined in config.yaml or in command line.
 All algorithms follow structure defined in relaax/algorithm_base directory:
 
 ```
@@ -732,11 +371,10 @@ relaax
   algorithm_base
     parameter_server_base.py
       class ParameterServerBase
-        def __init__(config, saver, metrics)             - initialize parameter server
+        def __init__(config, saver_factory, metrics)     - initialize parameter server
         def close():                                     - close parameter server
         def restore_latest_checkpoint():                 - restore latest checkpoint
         def save_checkpoint():                           - save new checkpoint
-        def checkpoint_location():                       - return human readable checkpoint location
         def global_t():                                  - return current global learning step
         def bridge():                                    - return bridge interface
 
@@ -830,7 +468,6 @@ relaax
             def close():                     - close server
             def restore_latest_checkpoint(): - restore latest checkpoint using given checkpoint saver
             def save_checkpoint():           - save checkpoint using given checkpoint saver
-            def checkpoint_location():       - get human readable checkpoint storage location
             def global_t():                  - get current global learning step
             def bridge():                    - return bridge interface
 
@@ -890,8 +527,8 @@ Environment:
 client.metrics().scalar('act latency on client', latency)
 ```
 
-This call stores metrics with given name and value. All metrices are stored as mappings from training global step to given values.
-All metrices could be browsed in realtime during training by TensorBoard attached to training cluster or to local training.
+This call stores metrics with given name and value. All metrics are stored as mappings from training global step to given values.
+All metrics could be browsed in realtime during training by TensorBoard attached to training cluster or to local training.
 
 DA3C gathers following metrics:
 * episode reward
@@ -949,248 +586,7 @@ pip install -e .
 ```bash
 <relaax_repo>/relaax/algorithms/bridge.sh
 ```
-
-
-
-## [Algorithms](#contents)
-
-### [Distributed A3C](#contents)
-Inspired by original [paper](https://arxiv.org/abs/1602.01783) - Asynchronous Methods for Deep Reinforcement Learning from [DeepMind](https://deepmind.com/)
-
-#### [Distributed A3C Architecture](#contents)
-![img](resources/DA3C-Architecture.png)
-
-**Environment (Client)** - each client connects to a particular Agent (Learner).
-
-The main role of any client is feeding data to an Agent by transferring:
-state, reward and terminal signals (for episodic tasks if episode ends).
-Client updates these signals at each time step by receiving the action
-signal from an Agent and then sends updated values to it.
-
-- _Process State_: each state could be pass through some filtering
-procedure before transferring (if you defined). It could be some color,
-edge or blob transformations (for image input) or more complex
-pyramidal, Kalman's and spline filters.
-
-**Agent (Parallel Learner)** - one or more Agents can connect to a Global Learner.
-
-The main role of any agent is to perform main training loop.
-Agent synchronize their neural network weights with global network by
-copying the last one at the beginning of the loop. Agent performs
-N steps of Client's signals receiving and sending actions back.
-These N steps is similar to batch collection. If batch is collected
-Agent computes the loss (wrt collected data) and pass it to Optimizer.
-RMSProp optimizer computes gradients, which sends to the Global Learner
-to update their neural network weights. Several Agents work in parallel
-and can update global network in concurrent way.
-
-- _Agent's Neural Network_: we use the network architecture from this [Mnih's paper](https://arxiv.org/abs/1312.5602) (by default).
-    - _Input_: 3D input to pass through 2D convolutions (default: 84x84x4).
-    - _Convolution Layer #1_: 16 filters with 8x8 kernel and stride 4 in both directions, then ReLU applies (by default).
-    - _Convolution Layer #2_: 32 filters with 4x4 kernel and stride 2 in both directions, then ReLU applies (by default).
-    Sequence of two convolutions allows to define nonlinearity dependencies.
-    - _Fully connected Layer_: consists of 256 hidden units, then ReLU applies (by default).
-    - _Policy_: outputs number of units equals to action size, passed through softmax operator (by default).
-    It is Actor's output, which represents Q-values on unity distribution (equals to probability) of state-action value function - Q(s, a).
-    - _Value_: outputs one value without applying of additional operators (by default).
-    It is Critic's output, which represents value function output V(s) - how well this state (equals to expected return from this point).
-
-- _Total Loss_: it's scalar sum of value and policy loss.
-    - _Value Loss_: sum (over all batch samples) of squared difference between
-    total discounted reward (R) and a value of the current sample state - V(s),
-    i.e. expected accumulated reward from this time step.
-    `R = ri + gamma * V(s from N+1_step)`, where
-     `ri` - immediate reward from this sample,
-     `gamma` - discount factor (constant for the model),
-     `V(s from N+1_step)` - value of the state next to the N-th state,
-      if next state is terminal then `V = 0`.
-
-    - _Policy Loss_: output of the policy (P) is an array of probability
-     distribution over all possibly actions for the given sample state.
-     Batch of samples is concatenated to the matrix.
-     `Policy Loss = log(P) * A * TD + entropy`, where
-     `A` - one-hot vectors for the chosen action of each sample.
-     `log(P) * A` - produce sparse matrix, which we reduce to a column vector.
-     `TD = (R - V)` - temporary difference between total discounted reward (R)
-     and a value of the current sample state V(s) - produce column vector.
-     `entropy = -sum(P * log(P), index=1) * entropy_beta_coefficient`,
-     after multiplying the policy (P) likelihood we sum the result matrix
-     by rows to produce a column vector. Then multiplying by `entropy_beta_coefficient = 0.01`
-     Finally we sum up all column vectors and reduce it to a scalar.
-
-- _Softmax Action_: we choose more often the actions, which has more probability.
-It helps to explore a lot of state-action pairs at the beginning of the training.
-We will become more confident in some actions while training
-and the probability distribution is becoming more acute.
-It also helps to solve a problem of "path along the cliff" with high reward at the end.
-
-- _RMSProp Optimizer_: we use this type of optimizer wrt original paper.
-RMSProp is more customizable optimizer than Adam for instance and you
-can get better result if you fit it with appropriate parameters.
-We set `learning rate = 7e-4` for RMSProp and linear anneal this value through
-the training process wrt global training step. We also setup `decay = 0.99`
-and `epsilon = 0.01` for the optimizer. Agent's RMSProp just used to
-compute gradients wrt current Agent's neural network weights and given loss,
-while all moments and slots of optimizer are stored (and shared) at Global Learner.
-
-- _Gradients_: we clip computed gradients before transferring.
-
-    `output_grads = computed_grads * 40.0 / l2norm(computed_grads)`
-
-- _Synchronize Weights_: we copy weights from Global network to
-Agent's network every training loop (N steps passed).
-
-**Global Learner** - one for whole algorithm (training process).
-
-The main role of the Global Learner is updating of its own neural network weights
-by receiving gradients from the Agents and sending these weights to Agents
-to synchronize. Global Learner can be sharded to speedup the training process.
-
-- _Global Neural Network_: network architecture is similar to Agent's one.
-
-- _RMSProp Optimizer_: has the same parameters as Agent's one,
-but used only to apply receiving gradients. This RMSProp
-stores moments and slots that are global for all Agents.
-
-You can also specify hyperparameters for training in provided `params.yaml` file:
-
-    episode_len: 5                  # training loop size for one batch
-    max_global_step: 1e8            # amount of maximum global steps to pass through the training
-    initial_learning_rate: 7e-4     # initial learning rate
-    entropy_beta: 0.01              # entropy regularization constant
-    rewards_gamma: 0.99             # discount factor for rewards
-    RMSProp:                        # optimizer's parameters
-       decay: 0.99
-       epsilon: 0.1
-       gradient_norm_clipping: 40
-
-#### [Performance on some of the Atari Environments](#contents)
-Breakout with DA3C-FF and 8 parallel agents: score performance is similar to DeepMind [paper](https://arxiv.org/pdf/1602.01783v2.pdf#19)
-![img](resources/Breakout-8th-80mil.png "Breakout")
-
-Breakout with DA3C-FF and 8 parallel agents: ih this case we outperforms significantly DeepMind, but
-we have some instability in training process (anyway DeepMind shows only 34 points after 80mil steps)
-![img](resources/Boxing-8th-35mil.png "Boxing")
-
-### [Distributed A3C Continuous](#contents)
-Version of Distributed A3C algorithm, which can cope with continuous action space.
-Inspired by original [paper](https://arxiv.org/abs/1602.01783) - Asynchronous Methods for Deep Reinforcement Learning from [DeepMind](https://deepmind.com/)
-
-#### [Distributed A3C Architecture with Continuous Actions](#contents)
-![img](resources/DA3C-Continuous.png)
-
-Most of the parts are the same to previous scheme, excluding:
-
-- _Signal Filtering_: perform by Zfilter `y = (x-mean)/std` using running estimates of mean and std
- inspired by this [source](http://www.johndcook.com/blog/standard_deviation/). You can filter both
- states and rewards. We use it only for states by default.
-
-- _Agent's (Global) Neural Network_: we use the similar architecture to [A3C paper](https://arxiv.org/pdf/1602.01783v2.pdf#12).
-    Each continuous state passes some filtering procedure before transferring to _Input_ by default.
-    - _Input_: vector of filtered state input (default: 24).
-    - _Fully connected Layer_: consists of 128 hidden units, then ReLU applies (by default).
-    - _LSTM_: consists of 128 memory cells (by default).
-    - _Value_: outputs one value without applying of additional operators (by default).
-    It is Critic's output, which represents value function output V(s) - how well this state (equals to expected return from this point).
-    - _Policy_: Actor's output is divided separately on `mu` and `sigma`
-        - _mu_: scalar of linear output.
-        - _sigma_: applying SoftPlus operator, outputs a scalar.
-
-    You can also specify your own architecture in provided JSON file.
-
-- _Choose Action_: we use a random sampling wrt given `mu` and `sigma`
-
-- _Total Loss_: it's scalar sum of value and policy loss.
-    - _Value Loss_: the same to previous scheme.
-    - _Policy Loss_: `GausNLL * TD + entropy`
-
-    `GausNLL` is gaussian negative-log-likelihood
-
-    `GausNLL = (sum(log(sigma), index=1) + batch_size * log(2*pi))/2 - sum(power, index=1)`,
-
-     where `power = (A - mu)^2 * exp(-log(sigma)) * -0.5` - produce column vector.
-
-     `TD = (R - V)` - temporary difference between total discounted reward (R)
-     and a value of the current sample state V(s).
-
-    `entropy = -sum(0.5 * log(2 * pi * sigma) + 1, index=1) * entropy_beta_coefficient`,
-
-     resulting sparse matrix we sum over rows to produce column vector.
-
-    `entropy_beta_coefficient = 0.001`
-
-We also use a smaller `learning rate = 1e-4`
-
-#### [Performance on gym's Walker](#contents)
-![img](resources/a3c_cont-4th-80mil.png "Walker")
-
-##### [Server Latency](#contents)
-Measure how fast Agent returns Action in response to the State sent by the Client
-
-| Node Type  | Number of clients | Latency  |
-| ---------- |:-----------------:|:--------:|
-| m4.xlarge  |          32       | 323.23ms |
-| m4.xlarge  |          64       | ???ms    |
-| m4.xlarge  |          48       | ???ms    |
-| c4.xlarge  |          48       | ???ms    |
-| c4.xlarge  |          64       | ???ms    |
-| c4.xlarge-m4.xlarge | 64       | ???ms    |
-| c4.xlarge-m4.xlarge | 96       | ???ms    |
-| c4.xlarge-m4.xlarge | 128      | ???ms    |
-| c4.2xlarge |          232      | ???ms    |
-| c4.2xlarge |          271      | ???ms    |
-
-TBD - Latency chart (Show latency of the agents over time)
-
-
-##### [Compute Performance with different amount of clients and node types (AWS)](#contents)
-
-| Node Type  | Number of clients | Performance       |
-| ---------- |:-----------------:| -----------------:|
-| m4.xlarge  |          32       | 99 steps per sec  |
-| m4.xlarge  |          64       | 171 steps per sec |
-| m4.xlarge  |          48       | 167 steps per sec |
-| c4.xlarge  |          48       | 169 steps per sec |
-| c4.xlarge  |          64       | 207 steps per sec |
-| c4.xlarge-m4.xlarge | 64       | 170 steps per sec |
-| c4.xlarge-m4.xlarge | 96       | 167 steps per sec |
-| c4.xlarge-m4.xlarge | 128      | 177 steps per sec |
-| c4.2xlarge |          232      | 232 steps per sec |
-| c4.2xlarge |          271      | 271 steps per sec |
-<br><br>
-
-
-### [Other Algorithms](#contents)
-These other algorithms we are working on and planning to make them run on RELAAX server:
-
-* TRPO-GAE
-Inspired by:
-    - [Trust Region Policy Optimization](https://arxiv.org/abs/1502.05477)
-    - [High-Dimensional Continuous Control Using Generalized Advantage Estimation](https://arxiv.org/abs/1506.02438)
-
-* ACER (A3C with experience)
-Inspired by:
-    - [Sample Efficient Actor-Critic with Experience Replay](https://arxiv.org/abs/1611.01224)
-
-* UNREAL
-Inspired by:
-    - [Reinforcement Learning with Unsupervised Auxiliary Tasks](https://arxiv.org/abs/1611.05397)
-
-* Distributed DQN (Gorila)
-Inspired by:
-    - [Massively Parallel Methods for Deep Reinforcement Learning](https://arxiv.org/abs/1507.04296)
-
-* PPO with L-BFGS (similar to TRPO)
-Inspired by:
-    - [John Schulman's modular_rl repo](https://github.com/joschu/modular_rl)
-
-* CEM
-Inspired by:
-    - [Cross-Entropy Method for Reinforcement Learning](https://esc.fnwi.uva.nl/thesis/centraal/files/f2110275396.pdf)
-
-* DDPG
-Inspired by:
-    - [Continuous control with deep reinforcement learning](https://arxiv.org/abs/1509.02971)
+<br></br>
 
 ## [Deployment in Cloud](#contents)
 
@@ -1199,3 +595,19 @@ To train RL Agents at scale RELAAX Server and supported Environments could be de
 ![img](resources/Deployment-In-the-Cloud.jpg)
 
 RELAAX comes with scripts and online service to allocate all required network components (VPC, subnets, load balancer), autoscaling groups, instances, etc. and provision software on on appropriate Instances.
+
+**DA3C-LSTM with DeepMind's Lab clients**
+
+| FPS | Number of Clients | Parameter Server | Environment | Worker (Agent) |
+| --- |:-----------------:|:----------------:|:-----------:|:--------------:|
+|  29 |         8         | r4.large / 400 MB / 10-15% CPU | r4.large / 2.1-2.3 GB / 95-100% CPU | r4.large / 1-1.4 GB / 30-40% CPU |
+|  60 |        16         | c4.large / 350 MB / 20-25% CPU | c4.xlarge / 4.2-4.4 GB / 85-90% CPU | c4.large / 1.9-2.2 GB / 70-80% CPU |
+|  61 |        18         | c4.large / 340 MB / 25% CPU | c4.xlarge / 4.8-4.9 GB / 90% CPU | c4.large / 2.2-2.5 GB / 65-70% CPU |
+|  64 |        20         | c4.large / 340 MB / 25% CPU | c4.xlarge / 5.3-5.4 GB / 95% CPU | c4.large / 2.1-2.6 GB / 70% CPU |
+
+**TRPO-GAE with OpenAI Gym's clients**
+
+| FPS | Number of Clients | Parameter Server | Environment | Worker (Agent) |
+| --- |:-----------------:|:----------------:|:-----------:|:--------------:|
+| n/a |         8         | t2.micro / 310-320 MB / 100% CPU | t2.micro / 510-520 MB / 15% CPU | t2.micro / 360-480 / 20% CPU |
+| 303 |        25         | c4.large / n/a / n/a | c4.large / n/a / n/a | c4.large / n/a / n/a |

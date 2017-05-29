@@ -20,6 +20,7 @@ clean-build:
 	rm -fr *.egg-info
 	find . -name '*.egg-info' -type d -exec rm -rf {} +
 	rm -fr *.egg
+	find . -name '__pycache__' -type d -exec rm -rf {} +
 
 clean-docs:
 	# $(MAKE) -C doc clean

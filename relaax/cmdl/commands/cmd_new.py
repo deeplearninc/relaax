@@ -10,14 +10,23 @@ from ..cmdl import pass_context
 from ..cmdl import ALGORITHMS, ALGORITHMS_META, ENVIRONMENTS, ENVIRONMENTS_META
 from .cmd_generate import CmdGenerate
 
+DEFAULT_ALGORITHMS_FOR_ENV = {
+    'basic': 'policy-gradient',
+    'openai-gym': 'da3c',
+    'deepmind-lab': 'trpo'
+}
+
 
 class NewApp(object):
 
     def __init__(self, ctx, app_name, algorithm, environment):
         self.ctx = ctx
         self.app_name = app_name
-        self.algorithm = algorithm
         self.environment = environment
+        if algorithm is None:
+            self.algorithm = DEFAULT_ALGORITHMS_FOR_ENV[environment]
+        else:
+            self.algorithm = algorithm
 
     def mk_app_folder(self):
         app_path = os.path.abspath(os.path.join(os.getcwd(), self.app_name))
@@ -50,7 +59,7 @@ class NewApp(object):
 
 @click.command('new', short_help='Create new RELAAX application.')
 @click.argument('app-name', required=True, type=click.STRING)
-@click.option('--algorithm', '-a', default='policy-gradient', show_default=True, metavar='',
+@click.option('--algorithm', '-a', default=None, metavar='',
               type=click.Choice(ALGORITHMS),
               help='[%s]\nAlgorithm to use with this application.' % ALGORITHMS_META)
 @click.option('--environment', '-e', default='basic', show_default=True, metavar='',
@@ -58,6 +67,6 @@ class NewApp(object):
               help='[%s] \n Environment to base application on.' % ENVIRONMENTS_META)
 @pass_context
 def cmdl(ctx, app_name, algorithm, environment):
-    """Build new RELAAX application."""
+    """Create new RELAAX application."""
     ctx.setup_logger(format='')
     NewApp(ctx, app_name, algorithm, environment).create()

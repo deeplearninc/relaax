@@ -24,7 +24,7 @@ class RLXPort(object):
             while True:
                 try:
                     connection, address = cls.listener.accept()
-                    log.debug("Accepted connection, starting worker")
+                    log.debug("Accepted connection from %s:%s, starting worker" % address)
                 except socket.error as e:
                     if cls.handle_accept_socket_exeption(e):
                         continue
@@ -42,13 +42,12 @@ class RLXPort(object):
 
                     if pid == 0:
                         RLXWorker.run(connection, address)
+                        log.debug("Worker run completed for connection from %s:%s" % address)
                         break
 
                 finally:
-                    log.debug("Closing accepted connection")
                     connection.close()
         finally:
-            log.debug('Closing listening socket')
             cls.listener.close()
 
     @classmethod

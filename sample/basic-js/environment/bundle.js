@@ -63,12 +63,13 @@
 /******/ 	__webpack_require__.p = "";
 
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 5);
+/******/ 	return __webpack_require__(__webpack_require__.s = 6);
 /******/ })
 /************************************************************************/
 /******/ ([
 /* 0 */
 /***/ (function(module, exports) {
+
 
 function logging() {
 }
@@ -136,12 +137,33 @@ logging.info = function() {
 
 module.exports = logging;
 
-
 /***/ }),
 /* 1 */
+/***/ (function(module, exports) {
+
+
+function bandit() {
+  // List out our bandits
+  // Default bandit 4 (index#3) is set to most often provide a positive reward.
+  this.slots = [0.2, 0.5, 0.8, 0.0]
+}
+
+bandit.prototype.pull = function(action) { 
+  result = Math.random()
+  if(result > this.slots[action])
+    return 1
+  else
+    return -1
+}
+
+module.exports = bandit;
+
+
+/***/ }),
+/* 2 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var wspipe = __webpack_require__(2)
+var wspipe = __webpack_require__(3)
 var log = __webpack_require__(0)
 
 client.__wspipe__ = null
@@ -215,7 +237,7 @@ client.prototype.disconnect = function() {
 module.exports = client;
 
 /***/ }),
-/* 2 */
+/* 3 */
 /***/ (function(module, exports, __webpack_require__) {
 
 var log = __webpack_require__(0)
@@ -294,25 +316,28 @@ module.exports = wspipe
 
 
 /***/ }),
-/* 3 */
-/***/ (function(module, exports, __webpack_require__) {
-
-module.exports = {
-  wspipe: __webpack_require__(2),
-  client: __webpack_require__(1),
-  logging: __webpack_require__(0),
-  training: __webpack_require__(4)
-};
-
-/***/ }),
 /* 4 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var client = __webpack_require__(1)
-var log = __webpack_require__(0)
+module.exports = {
+  wspipe: __webpack_require__(3),
+  client: __webpack_require__(2),
+  logging: __webpack_require__(0),
+  training: __webpack_require__(5),
+  bandit: __webpack_require__(1)
+};
 
-function training(max_steps=10) {
+/***/ }),
+/* 5 */
+/***/ (function(module, exports, __webpack_require__) {
+
+var client = __webpack_require__(2)
+var log = __webpack_require__(0)
+var bandit = __webpack_require__(1)
+
+function training(max_steps=3000) {
   this.steps = max_steps
+  this.bandit = new bandit()
   this.agent_url = 'ws://127.0.0.1:9000'
   log.info('Connecting to Agent through Web Sockets proxy on ' + this.agent_url)
   this.agent = new client(this.agent_url, this)
@@ -330,19 +355,14 @@ training.prototype.onready = function() {
 }
 
 training.prototype.onaction = function(action) {
-  log.info('Received action: ', action)
-  reward = Math.random()
-  this.step(reward)
+  log.info('Step:', this.current_step, ' action: ', action)
+  this.step(this.bandit.pull(action))
 }
 
 training.prototype.step = function (reward) {
   if (this.current_step < this.steps) {
-    if (Math.random() >= 0.5)
-      state = [1, 0]
-    else
-      state = [0, 1]
-    log.info('Updating Agent with reward: ', reward, ' and state: ', state)
-    this.agent.update(reward, state, false)
+    log.debug('Updating Agent with reward: ', reward)
+    this.agent.update(reward, [], false)
     this.current_step += 1
   } else {
     log.info('Training completed')
@@ -364,13 +384,13 @@ module.exports = training;
 
 
 /***/ }),
-/* 5 */
+/* 6 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var app = __webpack_require__(3)
-app.logging.config('logging')
+var app = __webpack_require__(4)
+app.logging.config('logging', false, app.logging.log_level.INFO, 1024)
 app.logging.info("Starting training process...")
-window.training = new app.training(11)
+window.training = new app.training(3000)
 
 
 /***/ })

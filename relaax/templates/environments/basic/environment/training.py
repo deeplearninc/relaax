@@ -11,7 +11,7 @@ class Training(object):
 
     def __init__(self):
         self.agent = RlxClient(options.get('relaax_rlx_server/bind', 'localhost:7001'))
-        self.steps = 1000
+        self.steps = 5000
         self.bandit = Bandit()
 
     def run(self):
@@ -19,7 +19,7 @@ class Training(object):
             # connect to the server
             self.agent.connect()
             # give agent a moment to load and initialize
-            self.agent.init()
+            self.agent.init(options.get('exploit', False))
             # get first action from agent
             action = self.agent.update(reward=None, state=[])
             # update agent with state and reward

@@ -5,20 +5,27 @@ environment:
 
 relaax-parameter-server:
   --bind: localhost:7000
-  --checkpoint-dir: training/checkpoints/sample_app
+  --checkpoint-dir: logs/checkpoints
   --log-level: INFO
-  --metrics-dir: training/metrics/sample_app
+  --metrics-dir: logs/metrics
 
 relaax-rlx-server:
   --bind: localhost:7001
   --log-level: INFO
 
 algorithm:
-  path: ../../relaax/algorithms/policy_gradient
+  name: policy_gradient
 
-  action_size: 4 # action size for the given environment
-  state_size: 0
+  input:
+    shape: [0]
+    history: 1
+    use_convolutions: false
+
+  output:
+    continuous: false
+    action_size: 4
+
   hidden_sizes: [10]
   batch_size: 10
-  learning_rate: 1e-2
+  learning_rate: 0.01
   GAMMA: 0.97 # rewards discount factor

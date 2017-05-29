@@ -1,5 +1,5 @@
 environment:
-  run: environment/start
+  run: python environment/training.py
 
 relaax-parameter-server:
   --bind: localhost:7000
@@ -11,12 +11,8 @@ relaax-rlx-server:
   --bind: localhost:7001
   --log-level: DEBUG
 
-relaax-wsproxy:
-  --bind: localhost:9000
-  --log-level: DEBUG
-
 algorithm:
-  path: ./algorithm
+  path: ../simple-exchange-js/algorithm
   name: simple-exchange
 
   action_size: 4 # action size for the given environment
