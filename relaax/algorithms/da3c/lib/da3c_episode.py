@@ -32,7 +32,8 @@ class DA3CEpisode(object):
 
     def begin(self):
         self.load_shared_parameters()
-        self.lstm_state = self.lstm_zero_state
+        if da3c_config.config.use_lstm:
+            self.lstm_state = self.lstm_zero_state
         self.get_action_and_value()
         self.episode.begin()
 
