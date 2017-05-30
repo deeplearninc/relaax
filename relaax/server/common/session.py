@@ -7,9 +7,15 @@ from relaax.server.common.saver import tensorflow_checkpoint
 
 
 class Session(object):
-    def __init__(self, model):
+    def __init__(self, *args, **kwargs):
         self.session = tf.Session()
-        self.model = model
+        if len(args) == 0:
+            assert len(kwargs) > 0
+            self.model = SuperModel(kwargs)
+        else:
+            assert len(kwargs) == 0
+            self.model, = args
+
 
     def __getattr__(self, name):
         # print('name', name)
@@ -55,6 +61,16 @@ class SessionMethod(object):
         for k, v in feed_dict.items():
             for kk, vv in Utils.izip2(k.node, v):
                 yield kk, vv
+
+
+class SuperModel(object):
+    def __init__(self, desc):
+        for k, v in desc.items():
+            if isinstance(v, dict):
+                submodel = SuperModel(v)
+            else:
+                submodel = v
+            setattr(self, k, submodel)
 
 
 class Utils(object):
