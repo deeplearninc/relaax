@@ -3,8 +3,6 @@ import os
 import re
 from setuptools import setup
 from setuptools import find_packages
-from setuptools.command.develop import develop
-from setuptools.command.install import install
 
 
 def read(*path):
@@ -38,7 +36,7 @@ setup(
         'psutil',
         'honcho==0.7.1',
         'h5py',
-        'tensorflow==1.0.1',
+        'tensorflow==1.1.0',
         'click'
     ],
     extras_require={
@@ -60,7 +58,8 @@ setup(
         'console_scripts': [
             'relaax=relaax.cmdl.cmdl:cmdl',
             'relaax-parameter-server=relaax.server.parameter_server.parameter_server:main',
-            'relaax-rlx-server=relaax.server.rlx_server.rlx_server:main'
+            'relaax-rlx-server=relaax.server.rlx_server.rlx_server:main',
+            'relaax-wsproxy=relaax.server.wsproxy.wsproxy:main'
         ]
     },
     packages=find_packages()

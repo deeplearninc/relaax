@@ -23,8 +23,8 @@ class RlxClient(object):
         self.address = rlx_server_url
         self.metrics = RlxClientMetrics(self._update_metrics)
 
-    def init(self):
-        return self._exchange({'command': 'init'})
+    def init(self, exploit=False):
+        return self._exchange({'command': 'init', 'exploit': exploit})
 
     def update(self, reward=None, state=None, terminal=False):
         return self._exchange({
@@ -58,7 +58,7 @@ class RlxClient(object):
                     ret['message'] if 'message' in ret else "unknown error")
         else:
             raise RlxClientException("no connection is available.")
-        return ret
+        return ret['data'] if 'data' in ret else ret['response']
 
     def connect(self, retry=6):
 

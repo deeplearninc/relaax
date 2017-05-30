@@ -1,0 +1,23 @@
+environment:
+  run: python environment/training.py
+
+relaax-parameter-server:
+  --bind: localhost:7000
+  --metrics-dir: logs/metrics/
+  --checkpoint-dir: logs/checkpoints/
+  --log-level: DEBUG
+
+relaax-rlx-server:
+  --bind: localhost:7001
+  --log-level: DEBUG
+
+algorithm:
+  path: ../simple-exchange-js/algorithm
+  name: simple-exchange
+
+  action_size: 4 # action size for the given environment
+  state_size: 0
+  hidden_sizes: [10]
+  batch_size: 10
+  learning_rate: 0.01
+  GAMMA: 0.97 # rewards discount factor

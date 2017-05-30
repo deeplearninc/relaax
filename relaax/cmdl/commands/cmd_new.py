@@ -1,41 +1,53 @@
+from __future__ import print_function
 from builtins import str
 from builtins import object
+
 import os
 import errno
 import click
-import shutil
 
 from ..cmdl import pass_context
+from ..cmdl import ALGORITHMS, ALGORITHMS_META, ENVIRONMENTS, ENVIRONMENTS_META
+from .cmd_generate import CmdGenerate
+
+DEFAULT_ALGORITHMS_FOR_ENV = {
+    'basic': 'policy-gradient',
+    'openai-gym': 'da3c',
+    'deepmind-lab': 'trpo'
+}
 
 
 class NewApp(object):
 
-    def __init__(self, ctx, app_name, environment):
+    def __init__(self, ctx, app_name, algorithm, environment):
         self.ctx = ctx
         self.app_name = app_name
-        self.base_env = environment
+        self.environment = environment
+        if algorithm is None:
+            self.algorithm = DEFAULT_ALGORITHMS_FOR_ENV[environment]
+        else:
+            self.algorithm = algorithm
 
-    def mk_environment(self):
+    def mk_app_folder(self):
         app_path = os.path.abspath(os.path.join(os.getcwd(), self.app_name))
-        module_path = os.path.dirname(os.path.abspath(__file__))
-        template_path = os.path.abspath(os.path.join(
-            module_path, '../../templates/environments/%s' % self.base_env))
         try:
-            shutil.copytree(template_path, app_path)
+            os.makedirs(app_path)
         except OSError as e:
             if e.errno == errno.EEXIST:
                 raise Exception('Can\'t create \'%s\'. Folder already exists.' % self.app_name)
-            elif e.errno == errno.ENOENT:
-                raise Exception('Can\'t create \'%s\'. Base environment doesn\'t exist.' % self.app_name)
             raise
+        self.ctx.log('Created application folder %s', self.app_name)
+        return app_path
 
     def create(self):
         try:
-            self.mk_environment()
-            self.ctx.log('Created application \'%s\' based on \'%s\' environment',
-                         self.app_name, self.base_env)
+            app_path = self.mk_app_folder()
+            cmd_genereate = CmdGenerate(self.ctx, app_path + '/', self.algorithm, self.environment,
+                                        copy_algorithm=False, create_config_backup=False)
+            cmd_genereate.create_default_config()
+            cmd_genereate.apply()
 
-            if self.base_env == 'openai-gym':
+            if self.environment == 'openai-gym':
                 self.ctx.log('Please make sure you have OpenAI Gym installed; '
                              'see installation instruction here: https://github.com/openai/gym')
 
@@ -47,11 +59,14 @@ class NewApp(object):
 
 @click.command('new', short_help='Create new RELAAX application.')
 @click.argument('app-name', required=True, type=click.STRING)
+@click.option('--algorithm', '-a', default=None, metavar='',
+              type=click.Choice(ALGORITHMS),
+              help='[%s]\nAlgorithm to use with this application.' % ALGORITHMS_META)
 @click.option('--environment', '-e', default='basic', show_default=True, metavar='',
-              type=click.Choice(['basic', 'openai-gym', 'deepmind-lab']),
-              help='[basic|openai-gym|deepmind-lab] \n Environment to base application on.')
+              type=click.Choice(ENVIRONMENTS),
+              help='[%s] \n Environment to base application on.' % ENVIRONMENTS_META)
 @pass_context
-def cmdl(ctx, app_name, environment):
-    """Build new RELAAX application."""
+def cmdl(ctx, app_name, algorithm, environment):
+    """Create new RELAAX application."""
     ctx.setup_logger(format='')
-    NewApp(ctx, app_name, environment).create()
+    NewApp(ctx, app_name, algorithm, environment).create()

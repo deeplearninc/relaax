@@ -16,8 +16,9 @@ class RLXAgentProxy(object):
         connection = BridgeConnection(options.parameter_server)
         self.agent = options.Agent(connection)
 
-    def init(self, ignore=None):
-        if self.agent.init():
+    def init(self, data):
+        exploit = data['exploit'] if 'exploit' in data else False
+        if self.agent.init(exploit):
             return {'response': 'ready'}
         else:
             return self._error_message('can\'t initialize agent')

@@ -16,11 +16,15 @@ class DA3CEpisode(object):
     def __init__(self, parameter_server, exploit):
         self.exploit = exploit
         self.ps = parameter_server
-        self.session = session.Session(da3c_model.AgentModel())
+        model = da3c_model.AgentModel()
+        self.session = session.Session(model)
         self.reset()
         self.observation = da3c_observation.DA3CObservation()
         self.last_action = None
         self.last_value = None
+        if da3c_config.config.use_lstm:
+            self.lstm_zero_state = model.lstm_zero_state
+            self.lstm_state = model.lstm_zero_state
 
     @property
     def experience(self):
@@ -28,6 +32,8 @@ class DA3CEpisode(object):
 
     def begin(self):
         self.load_shared_parameters()
+        if da3c_config.config.use_lstm:
+            self.lstm_state = self.lstm_zero_state
         self.get_action_and_value()
         self.episode.begin()
 
@@ -86,10 +92,18 @@ class DA3CEpisode(object):
         self.session.op_assign_weights(weights=self.ps.session.op_get_weights())
 
     def get_action_and_value_from_network(self):
-        action, value = self.session.op_get_action_and_value(state=[self.observation.queue])
-        probabilities, = action
+        if da3c_config.config.use_lstm:
+            action, value, self.lstm_state = self.session.op_get_action_value_and_lstm_state(
+                    state=[self.observation.queue], lstm_state=self.lstm_state, lstm_step=[1])
+        else:
+            action, value = self.session.op_get_action_and_value(
+                    state=[self.observation.queue])
         value, = value
-        return utils.choose_action(probabilities), value
+        if len(action) == 1:
+            probabilities, = action
+            return utils.choose_action_descrete(probabilities), value
+        mu, sigma2 = action
+        return utils.choose_action_continuous(mu, sigma2), value
 
     def compute_gradients(self, experience):
         r = 0.0
@@ -104,13 +118,13 @@ class DA3CEpisode(object):
             r = reward[t] + da3c_config.config.rewards_gamma * r
             discounted_reward[t] = r
 
+        if da3c_config.config.use_lstm:
+            return self.session.op_compute_gradients(state=experience['state'], action=experience['action'],
+                    value=experience['value'], discounted_reward=discounted_reward,
+                    lstm_state=self.lstm_state, lstm_step=[len(reward)])
+        return self.session.op_compute_gradients(state=experience['state'], action=experience['action'],
+                value=experience['value'], discounted_reward=discounted_reward)
 
-        return self.session.op_compute_gradients(
-            state=experience['state'],
-            action=experience['action'],
-            value=experience['value'],
-            discounted_reward=discounted_reward
-        )
 
     def apply_gradients(self, gradients, experience_size):
         self.ps.session.op_apply_gradients(

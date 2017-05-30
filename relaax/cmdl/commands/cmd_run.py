@@ -34,6 +34,8 @@ class CmdlRun(object):
         self.n_clients = n_clients
         self.components = components if bool(components) else set(['all'])
         self.nobuffer = 'PYTHONUNBUFFERED=true'
+        self.config_yaml = ConfigYaml()
+        self.config_yaml.load_from_file(self.config)
 
     def run_componenets(self):
 
@@ -41,6 +43,7 @@ class CmdlRun(object):
 
         self.run_parameter_server(manager)
         self.run_rlx_server(manager)
+        self.run_wsproxy(manager)
         self.run_client(manager)
 
         manager.loop()
@@ -49,27 +52,44 @@ class CmdlRun(object):
     def intersection(self, lst):
         return bool(self.components.intersection(lst))
 
+    def isconfigured(self, server):
+        return self.config_yaml.get(server, None) is not None
+
     def run_parameter_server(self, manager):
         if self.intersection(['all', 'servers', 'parameter-server']):
-            manager.add_process('parameter-server',
-                                '%s relaax-parameter-server --config %s'
-                                % (self.nobuffer, self.config))
+            if self.isconfigured('relaax_parameter_server'):
+                manager.add_process('parameter-server',
+                                    '%s relaax-parameter-server --config %s'
+                                    % (self.nobuffer, self.config))
+            else:
+                self.ctx.log(click.style("parameter-server is not configured", fg='red'))
 
     def run_rlx_server(self, manager):
         if self.intersection(['all', 'servers', 'rlx-server']):
-            manager.add_process('rlx-server',
-                                '%s relaax-rlx-server --config %s'
-                                % (self.nobuffer, self.config))
+            if self.isconfigured('relaax_rlx_server'):
+                manager.add_process('rlx-server',
+                                    '%s relaax-rlx-server --config %s'
+                                    % (self.nobuffer, self.config))
+            else:
+                self.ctx.log(click.style("rlx-server is not configured", fg='red'))
+
+    def run_wsproxy(self, manager):
+        if self.intersection(['all', 'servers', 'wsproxy']):
+            if self.isconfigured('relaax_wsproxy'):
+                manager.add_process('wsproxy',
+                                    '%s relaax-wsproxy --config %s'
+                                    % (self.nobuffer, self.config))
+            elif self.intersection(['wsproxy']):
+                # log error message only if wsproxy specified explicitly
+                self.ctx.log(click.style("wsproxy is not configured", fg='red'))
 
     def run_client(self, manager):
         if self.intersection(['all', 'client']):
-            config = ConfigYaml()
-            config.load_from_file(self.config)
-            self.client = config.get('environment/run')
+            self.client = self.config_yaml.get('environment/run')
             if self.client:
                 self.run_all_clients(manager)
             else:
-                self.ctx.log(click.style("No client specified", fg='red'))
+                self.ctx.log(click.style("client is not configured", fg='red'))
 
     def run_all_clients(self, manager):
         count = 0
@@ -107,17 +127,17 @@ def cmdl(ctx, components, config, n_clients, exploit, show_ui):
     COMPONENTS:
     all              - run client and servers (default)
     client           - run client
-    servers          - run rlx-server and parameter-server
+    servers          - run rlx-server, parameter-server, and wsproxy (if specified in config yaml)
     rlx-server       - run rlx-server
     parameter-server - run parameter-server
     wsproxy          - run websockets proxy
 
     \b
     For example:
-        - run client, rlx-server, parameter-server
+        - run client, rlx-server, parameter-server, and wsproxy
         $relaax run all
-        - run client, rlx-server, parameter-server and wsproxy
-        $relaax run all wsproxy
+        - run rlx-server, parameter-server, and wsproxy
+        $relaax run servers
     """
     ctx.setup_logger(format='%(asctime)s %(name)s\t\t  | %(message)s')
     # Disable TF warnings

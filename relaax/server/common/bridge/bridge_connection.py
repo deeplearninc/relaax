@@ -28,17 +28,20 @@ class BridgeSession(object):
         self.__connection = connection
 
     def __getattr__(self, name):
-        return BridgeSessionMethod(self.__connection, name)
+        return BridgeSessionMethod(self.__connection, [name])
 
 
 class BridgeSessionMethod(object):
-    def __init__(self, connection, op):
+    def __init__(self, connection, names):
         self.connection = connection
-        self.op = op
+        self.names = names
+
+    def __getattr__(self, name):
+        return BridgeSessionMethod(self.connection, self.names + [name])
 
     def __call__(self, **kwargs):
         feed_dict = kwargs
-        messages = bridge_message.BridgeMessage.serialize([self.op, feed_dict])
+        messages = bridge_message.BridgeMessage.serialize([self.names, feed_dict])
         result = self.connection.stub.Run(messages)
         return bridge_message.BridgeMessage.deserialize(result)
 

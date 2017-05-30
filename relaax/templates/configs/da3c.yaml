@@ -1,20 +1,23 @@
 algorithm:
   name: da3c
 
-  action_size: 2                  # action size for the given environment
-  state_size: 4
-  hidden_sizes: []
-  history_len: 1                  # number of observations to stack in state
-  episode_len: 5                  # local loop size for one episode
-  batch_size: 800
-  gpu: false                      # to use GPU, set to the True
-  lstm: false                     # to use LSTM instead of FF, set to the True
-  max_global_step: 1e8            # amount of maximum global steps to pass through the training
+  input:
+    shape: [4]
+    history: 1
+    use_convolutions: false
 
-  learning_rate: 1e-2
-  entropy_beta: 1e-2              # entropy regularization constant
-  GAMMA: 0.97             # rewards discount factor
+  output:
+    continuous: false
+    action_size: 2                # action size for the given environment
+
+  batch_size: 5                   # local loop size for one episode
+
+  use_lstm: false                 # to use LSTM instead of FF, set to the True
+  max_global_step: 100000000.0    # amount of maximum global steps to pass through the training
+
+  initial_learning_rate: 0.01
+  entropy_beta: 0.01              # entropy regularization constant
+  rewards_gamma: 0.99             # rewards discount factor
   RMSProp:
     decay: 0.99
     epsilon: 0.1
-    gradient_norm_clipping: 40

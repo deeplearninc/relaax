@@ -7,11 +7,18 @@ from relaax.server.common.saver import tensorflow_checkpoint
 
 
 class Session(object):
-    def __init__(self, model):
+    def __init__(self, *args, **kwargs):
         self.session = tf.Session()
-        self.model = model
+        if len(args) == 0:
+            assert len(kwargs) > 0
+            self.model = SuperModel(kwargs)
+        else:
+            assert len(kwargs) == 0
+            self.model, = args
+
 
     def __getattr__(self, name):
+        # print('name', name)
         return SessionMethod(self.session, getattr(self.model, name))
 
     def make_checkpoint(self):
@@ -19,16 +26,23 @@ class Session(object):
 
 
 class SessionMethod(object):
-    def __init__(self, session, op):
+    def __init__(self, session, op_or_model):
         self.session = session
-        self.ops = op.ops
-        self.feed_dict = op.feed_dict
+        self.op_or_model = op_or_model
+
+    def __getattr__(self, name):
+        # print('name', name)
+        return SessionMethod(self.session, getattr(self.op_or_model, name))
 
     def __call__(self, **kwargs):
-        ops = [op.node for op in self.ops]
+        ops = [op.node for op in self.op_or_model.ops]
         feed_dict = {
-            v: kwargs[k] for k, v in self.feed_dict.items()
+            v: kwargs[k] for k, v in self.op_or_model.feed_dict.items()
         }
+        # print('feed_dict')
+        # for k, v in self.flatten_feed_dict(feed_dict).items():
+        #     import numpy as np
+        #     print(repr(k), repr(np.asarray(v).shape))
         result = Utils.reconstruct(
             self.session.run(
                 list(Utils.flatten(ops)),
@@ -47,6 +61,16 @@ class SessionMethod(object):
         for k, v in feed_dict.items():
             for kk, vv in Utils.izip2(k.node, v):
                 yield kk, vv
+
+
+class SuperModel(object):
+    def __init__(self, desc):
+        for k, v in desc.items():
+            if isinstance(v, dict):
+                submodel = SuperModel(v)
+            else:
+                submodel = v
+            setattr(self, k, submodel)
 
 
 class Utils(object):

@@ -21,6 +21,10 @@ class Activation(object):
     def Softmax(x):
         return tf.nn.softmax(x)
 
+    @staticmethod
+    def Softplus(x):
+        return tf.nn.softplus(x)
+
 
 class Border(object):
     Valid = 'VALID'
@@ -47,7 +51,10 @@ class MatmulLayer(subgraph.Subgraph):
 
 class BaseLayer(subgraph.Subgraph):
     def build_graph(self, x, shape, transformation, activation, bias=True):
-        d = 1.0 / np.sqrt(np.prod(shape[:-1]))
+        d = 1.0
+        p = np.prod(shape[:-1])
+        if p != 0:
+            d = 1.0 / np.sqrt(p)
         initializer = graph.RandomUniformInitializer(minval=-d, maxval=d)
         W = graph.Variable(initializer(np.float32, shape)).node
         if bias:
@@ -60,7 +67,7 @@ class BaseLayer(subgraph.Subgraph):
 
 class Convolution(BaseLayer):
     def build_graph(self, x, n_filters, filter_size, stride,
-            border=Border.Valid, activation=Activation.Relu):
+            border=Border.Valid, activation=Activation.Null):
         shape = filter_size + [x.node.shape.as_list()[-1], n_filters]
         tr = lambda x, W: tf.nn.conv2d(x, W, strides=[1] + stride + [1],
                     padding=border)
@@ -68,11 +75,37 @@ class Convolution(BaseLayer):
 
 
 class Dense(BaseLayer):
-    def build_graph(self, x, size, activation=Activation.Null):
+    def build_graph(self, x, size=1, activation=Activation.Null):
         assert len(x.node.shape) == 2
         shape = (x.node.shape.as_list()[1], size)
         tr = lambda x, W: tf.matmul(x, W)
         return super(Dense, self).build_graph(x, shape, tr, activation)
+
+
+class LSTM(subgraph.Subgraph):
+    def build_graph(self, x, batch_size=1, size=256):
+        self.ph_step= graph.Placeholder(np.int32, [batch_size])
+
+        self.ph_state = graph.TfNode(tuple(graph.Placeholder(np.float32, [batch_size, size]).node
+                for _ in range(2)))
+
+        self.zero_state = tuple(np.zeros([batch_size, size]) for _ in range(2))
+
+        state = tf.contrib.rnn.LSTMStateTuple(*self.ph_state.node)
+
+        lstm = tf.contrib.rnn.BasicLSTMCell(size, state_is_tuple=True)
+
+        with tf.variable_scope('LSTM') as scope:
+            outputs, self.state = tf.nn.dynamic_rnn(lstm, x.node,
+                    initial_state=state, sequence_length=self.ph_step.node,
+                    time_major=False, scope=scope)
+            self.state = graph.TfNode(self.state)
+            scope.reuse_variables()
+            self.weight = graph.Variables(
+                    graph.TfNode(tf.get_variable('basic_lstm_cell/weights')),
+                    graph.TfNode(tf.get_variable('basic_lstm_cell/biases')))
+
+        return outputs
 
 
 class Flatten(subgraph.Subgraph):
@@ -80,39 +113,63 @@ class Flatten(subgraph.Subgraph):
         return graph.Reshape(x, (-1, np.prod(x.node.shape.as_list()[1:]))).node
 
 
-class Convolutions(subgraph.Subgraph):
-    BORDER = {}
-    ACTIVATION = {}
-
-    def build_graph(self, x, convolutions):
+class GenericLayers(subgraph.Subgraph):
+    def build_graph(self, x, descs):
         weights = []
         last = x
-        for conv in convolutions:
-            last = Convolution(last, **self._parse(conv.copy()))
+        for desc in descs:
+            props = desc.copy()
+            del props['type']
+            last = desc['type'](last, **props)
             weights.append(last.weight)
         self.weight = graph.Variables(*weights)
         return last.node
 
-    def _parse(self, conv):
-        for key, mapping in [('border', self.BORDER),
-                ('activation', self.ACTIVATION)]:
-            if key in conv:
-                conv[key] = mapping[conv[key]]
-        return conv
+
+class DescreteActor(subgraph.Subgraph):
+    def build_graph(self, head, action_size):
+        actor = Dense(head, action_size, activation=Activation.Softmax)
+        self.weight = actor.weight
+        self.action_size = action_size
+        self.continuous = False
+        return actor.node
+
+
+class ContinuousActor(subgraph.Subgraph):
+    def build_graph(self, head, action_size):
+        self.mu = Dense(head, action_size)
+        self.sigma2 = Dense(head, action_size, activation=Activation.Softplus)
+        self.weight = graph.Variables(self.mu.weight, self.sigma2.weight)
+        self.action_size = action_size
+        self.continuous = True
+        return self.mu.node, self.sigma2.node
+
+
+def Actor(head, output):
+    Actor = ContinuousActor if output.continuous else DescreteActor
+    return Actor(head, output.action_size)
 
 
 class Input(subgraph.Subgraph):
     def build_graph(self, input):
+        input_shape = input.shape
+        if np.prod(input.shape) == 0:
+            input_shape = [1]
         self.ph_state = graph.Placeholder(np.float32,
-                shape=[None] + input.shape + [input.history])
+                shape=[None] + input_shape + [input.history])
 
-        convolutions = []
-        if hasattr(input, 'use_convolutions'):
-            convolutions = input.use_convolutions 
-        conv = Convolutions(self.ph_state, convolutions)
+        descs = []
+        if input.use_convolutions:
+            descs = [
+                    dict(type=Convolution, n_filters=16, filter_size=[8, 8],
+                        stride=[4, 4], activation=Activation.Relu),
+                    dict(type=Convolution, n_filters=32, filter_size=[4, 4],
+                        stride=[2, 2], activation=Activation.Relu)]
 
-        self.weight = conv.weight
-        return conv.node
+        layers = GenericLayers(self.ph_state, descs)
+
+        self.weight = layers.weight
+        return layers.node
 
 
 class Weights(subgraph.Subgraph):

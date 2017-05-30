@@ -1,41 +1,42 @@
 from __future__ import print_function
-
 from builtins import object
+
+import traceback
+
 from relaax.client.rlx_client_config import options
 from relaax.client.rlx_client import RlxClient, RlxClientException
-from gym import GymEnv
+from gym_env import GymEnv
 
 
 class Training(object):
 
     def __init__(self):
-        self.gym = GymEnv(env='CartPole-v0')
-        self.agent = RlxClient(options.get('relaax_rlx_server/bind', 'localhost:7001'))
         self.max_episodes = options.get('environment/max_episodes', 1000)
         self.infinite_run = options.get('environment/infinite_run', False)
+        self.gym = GymEnv(env=options.get('environment/name', 'CartPole-v0'))
+        self.agent = RlxClient(options.get('relaax_rlx_server/bind', 'localhost:7001'))
 
     def run(self):
         try:
             # connect to RLX server
             self.agent.connect()
             # give agent a moment to load and initialize
-            self.agent.init()
+            self.agent.init(options.get('exploit', False))
 
             episode_cnt = 0
             while (episode_cnt < self.max_episodes) or self.infinite_run:
                 try:
-                    self.gym.reset()
-                    state = self.gym.state()
-                    reward, episode_reward = None, 0  # reward = 0 | None
-                    terminal = False
+                    state = self.gym.reset()
+                    reward, episode_reward, terminal = None, 0, False  # reward = 0 | None
                     action = self.agent.update(reward, state, terminal)
                     while not terminal:
-                        reward, terminal = self.gym.act(action['data'])
-                        episode_reward += reward
-                        state = None if terminal else self.game.state()
+                        reward, state, terminal = self.gym.act(action)
                         action = self.agent.update(reward, state, terminal)
+                        episode_reward += reward
                     episode_cnt += 1
-                    print('Game:', episode_cnt, '| Episode reward:', episode_reward)
+                    print('Episode:', episode_cnt, '| reward:', episode_reward)
+                    self.agent.metrics.scalar('Game-Score', episode_reward)
+
                 except RlxClientException as e:
                     print("agent connection lost: ", e)
                     print('reconnecting to another agent, '
@@ -50,6 +51,7 @@ class Training(object):
 
         except Exception as e:
             print("Something went wrong: ", e)
+            traceback.print_exc()
 
         finally:
             # disconnect from the server

@@ -4,6 +4,7 @@ import numpy as np
 from relaax.common.algorithms import subgraph
 from relaax.common.algorithms.lib import graph
 from relaax.common.algorithms.lib import layer
+from relaax.common.algorithms.lib import loss
 from relaax.common.algorithms.lib import utils
 from .lib import da3c_graph
 from . import da3c_config
@@ -13,17 +14,37 @@ class Network(subgraph.Subgraph):
     def build_graph(self):
         input = layer.Input(da3c_config.config.input)
 
-        fc = layer.Dense(layer.Flatten(input), 256,
-                         activation=layer.Activation.Relu)
+        if da3c_config.config.input.use_convolutions:
+            sizes = (256, )
+        else:
+            if da3c_config.config.use_lstm:
+                sizes = (128, )
+            else:
+                sizes = (300, 200, 100)
+        dense = layer.GenericLayers(layer.Flatten(input), [dict(type=layer.Dense,
+            size=size, activation=layer.Activation.Relu) for size in sizes])
 
-        actor = layer.Dense(fc, da3c_config.config.action_size,
-                            activation=layer.Activation.Softmax)
-        critic = layer.Dense(fc, 1)
+        head = dense
+        if da3c_config.config.use_lstm:
+            lstm = layer.LSTM(graph.Reshape(dense, [1, -1, sizes[-1]]),
+                    size=sizes[-1])
+            head = graph.Reshape(lstm, [-1, sizes[-1]])
+
+        actor = layer.Actor(head, da3c_config.config.output)
+        critic = layer.Dense(head, 1)
 
         self.ph_state = input.ph_state
+        if da3c_config.config.use_lstm:
+            self.ph_lstm_state = lstm.ph_state
+            self.ph_lstm_step = lstm.ph_step
+            self.lstm_zero_state = lstm.zero_state
+            self.lstm_state = lstm.state
         self.actor = actor
         self.critic = graph.Flatten(critic)
-        self.weights = layer.Weights(input, fc, actor, critic)
+        layers = [input, dense, actor, critic]
+        if da3c_config.config.use_lstm:
+            layers.append(lstm)
+        self.weights = layer.Weights(*layers)
 
 
 # Weights of the policy are shared across
@@ -58,17 +79,28 @@ class AgentModel(subgraph.Subgraph):
         # Build graph
         sg_network = Network()
 
-        sg_loss = da3c_graph.Loss(sg_network.actor, sg_network.critic)
+        sg_loss = loss.DA3CLoss(sg_network.actor, sg_network.critic,
+                da3c_config.config.entropy_beta)
         sg_gradients = layer.Gradients(sg_network.weights, loss=sg_loss)
 
         # Expose public API
         self.op_assign_weights = self.Op(sg_network.weights.assign,
                 weights=sg_network.weights.ph_weights)
-        self.op_get_action_and_value = self.Ops(
-                sg_network.actor, sg_network.critic, state=sg_network.ph_state)
-        self.op_compute_gradients = self.Op(sg_gradients.calculate,
-                state=sg_network.ph_state, action=sg_loss.ph_action,
-                value=sg_loss.ph_value, discounted_reward=sg_loss.ph_discounted_reward)
+        if da3c_config.config.use_lstm:
+            self.lstm_zero_state = sg_network.lstm_zero_state
+            self.op_get_action_value_and_lstm_state = self.Ops(sg_network.actor, sg_network.critic,
+                    sg_network.lstm_state, state=sg_network.ph_state,
+                    lstm_state=sg_network.ph_lstm_state, lstm_step=sg_network.ph_lstm_step)
+            self.op_compute_gradients = self.Op(sg_gradients.calculate,
+                    state=sg_network.ph_state, action=sg_loss.ph_action,
+                    value=sg_loss.ph_value, discounted_reward=sg_loss.ph_discounted_reward,
+                    lstm_state=sg_network.ph_lstm_state, lstm_step=sg_network.ph_lstm_step)
+        else:
+            self.op_get_action_and_value = self.Ops(sg_network.actor, sg_network.critic,
+                    state=sg_network.ph_state)
+            self.op_compute_gradients = self.Op(sg_gradients.calculate,
+                    state=sg_network.ph_state, action=sg_loss.ph_action,
+                    value=sg_loss.ph_value, discounted_reward=sg_loss.ph_discounted_reward)
 
 
 if __name__ == '__main__':

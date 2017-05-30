@@ -23,10 +23,6 @@ class Agent(object):
     # environment generated new state and reward
     # and asking agent for an action for this state
     def update(self, reward, state, terminal):
-        if pg_config.config.input.shape == []:
-            if not terminal:
-                if state is None:
-                    state = []
         action = self.episode.step(reward, state, terminal)
 
         if (len(self.episode.experience) == pg_config.config.batch_size) or terminal:
