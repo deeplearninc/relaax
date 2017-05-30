@@ -111,7 +111,7 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
         feed_dict = {
             self._local_network.s: self.states,
             self._local_network.a: self.actions,
-            self._local_network.advantage: self.discounted_reward(np.vstack(self.rewards)),
+            self._local_network.advantage: self.discounted_reward(np.vstack(self.rewards), False),
         }
 
         self._parameter_server.apply_gradients(
@@ -125,7 +125,7 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
         r = np.random.rand() * total
         return np.searchsorted(values, r)
 
-    def discounted_reward(self, r):
+    def discounted_reward(self, r, norm=True):
         """ take 1D float array of rewards and compute discounted reward """
         discounted_r = np.zeros_like(r, dtype=np.float32)
         running_add = 0
@@ -133,8 +133,9 @@ class Agent(relaax.algorithm_base.agent_base.AgentBase):
             running_add = running_add * self._config.GAMMA + r[t]
             discounted_r[t] = running_add
         # size the rewards to be unit normal (helps control the gradient estimator variance)
-        discounted_r -= np.mean(discounted_r)
-        discounted_r /= np.std(discounted_r) + 1e-20
+        if norm:
+            discounted_r -= np.mean(discounted_r)
+            discounted_r /= np.std(discounted_r) + 1e-20
         return discounted_r
 
     def metrics(self):

@@ -32,3 +32,4 @@ algorithm:
   learning_rate: 1e-2             # learning rate which we use through whole training
   entropy_beta: 0.01              # entropy regularization constant
   rewards_gamma: 0.99             # discount factor for rewards
+  rewards_norm: False             # mean centered rewards

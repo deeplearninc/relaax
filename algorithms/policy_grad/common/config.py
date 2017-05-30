@@ -28,6 +28,9 @@ class Config(relaax.algorithm_base.config_base.ConfigBase):
         # discount factor for rewards
         self.GAMMA = config.get('rewards_gamma', 0.99)
 
+        # normalize rewards
+        self.rewards_norm = config.get('rewards_norm', True)
+
         # entropy regularization constant
         self.ENTROPY_BETA = config.get('entropy_beta', 0.01)
 
