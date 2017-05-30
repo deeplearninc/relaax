@@ -20,15 +20,18 @@ class Session(object):
 
 
 class SessionMethod(object):
-    def __init__(self, session, op):
+    def __init__(self, session, op_or_model):
         self.session = session
-        self.ops = op.ops
-        self.feed_dict = op.feed_dict
+        self.op_or_model = op_or_model
+
+    def __getattr__(self, name):
+        # print('name', name)
+        return SessionMethod(self.session, getattr(self.op_or_model, name))
 
     def __call__(self, **kwargs):
-        ops = [op.node for op in self.ops]
+        ops = [op.node for op in self.op_or_model.ops]
         feed_dict = {
-            v: kwargs[k] for k, v in self.feed_dict.items()
+            v: kwargs[k] for k, v in self.op_or_model.feed_dict.items()
         }
         # print('feed_dict')
         # for k, v in self.flatten_feed_dict(feed_dict).items():

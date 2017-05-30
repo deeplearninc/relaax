@@ -136,11 +136,11 @@ class CallOnce(object):
 class Speedometer(object):
     def __init__(self, ps):
         self.ps = ps
-        self.run_timer(time.time(), ps.session.op_n_step())
+        self.run_timer(time.time(), ps.session.sp.op_n_step())
 
     def measure(self, start_time, start_n_step):
         current_time = time.time()
-        current_n_step = self.ps.session.op_n_step()
+        current_n_step = self.ps.session.sp.op_n_step()
         self.ps.metrics.scalar('steps_per_sec', (current_n_step - start_n_step) / (current_time - start_time))
         self.run_timer(current_time, current_n_step)
 
