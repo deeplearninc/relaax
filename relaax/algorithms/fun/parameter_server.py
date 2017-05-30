@@ -10,8 +10,10 @@ class ParameterServer(parameter_server_base.ParameterServerBase):
         self.session.close()
 
     def initialize_algorithm(self):
-        models = [GlobalManagerNetwork(), GlobalWorkerNetwork()]
-        self.session = session.Session(models)  # needs to support multiply models
+        self.session = session.Session(
+            gm=GlobalManagerNetwork(),
+            gw=GlobalWorkerNetwork()
+        )
         self.session.op_initialize()
 
     def make_checkpoint(self):

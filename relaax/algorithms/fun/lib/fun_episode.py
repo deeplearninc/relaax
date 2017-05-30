@@ -16,8 +16,10 @@ class FuNEpisode(object):
     def __init__(self, parameter_server, exploit):
         self.exploit = exploit
         self.ps = parameter_server
-        models = [LocalManagerNetwork, LocalWorkerNetwork]
-        self.session = session.Session(models)  # needs to support multiply models
+        self.session = session.Session(
+            lm=LocalManagerNetwork(),
+            lw=LocalWorkerNetwork()
+        )
         self.reset()
 
         self.goal_buffer = RingBuffer2D(element_size=cfg.d,
