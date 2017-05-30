@@ -5,7 +5,7 @@ import click
 from honcho.manager import Manager
 
 from relaax.common.python.config.config_yaml import ConfigYaml
-from ..cmdl import pass_context
+from relaax.cmdl.cmdl import pass_context
 
 
 class RManager(Manager):
