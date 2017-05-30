@@ -14,20 +14,16 @@ class Network(subgraph.Subgraph):
     def build_graph(self):
         input = layer.Input(pg_config.config.input)
 
-        layers = [input]
+        dense = layer.GenericLayers(layer.Flatten(input),
+                [dict(type=layer.Dense, size=size, activation=layer.Activation.Relu)
+                for size in pg_config.config.hidden_sizes])
 
-        last = layer.Flatten(input)
-        for size in pg_config.config.hidden_sizes:
-            last = layer.Dense(last, size, activation=layer.Activation.Relu)
-            layers.append(last)
-
-        last = layer.Dense(last, pg_config.config.output.action_size,
+        actor = layer.Dense(dense, pg_config.config.output.action_size,
                 activation=layer.Activation.Softmax)
-        layers.append(last)
 
         self.state = input.ph_state
-        self.weights = layer.Weights(*layers)
-        return last.node
+        self.weights = layer.Weights(input, dense, actor)
+        return actor.node
 
 
 # Weights of the policy are shared across
