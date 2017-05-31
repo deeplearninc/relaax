@@ -67,8 +67,8 @@ class GymEnv(object):
 
         limit = options.get('environment/limit',
                             self.gym.spec.tags.get('wrapper_config.TimeLimit.max_episode_steps'))
-        if limit is not None and self.gym.env is not None:
-            self.gym.env._max_episode_steps = limit
+        if limit is not None:
+            self.gym._max_episode_steps = limit
 
         self._process_state = SetFunction(self._process_all)
         self.reset = SetFunction(self._reset_all)
