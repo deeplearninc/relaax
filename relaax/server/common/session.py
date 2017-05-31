@@ -44,5 +44,5 @@ class SessionMethod(object):
         # print('name', name)
         return SessionMethod(self.session, getattr(self.op_or_model, name))
 
-    def __call__(self, **kwargs):
-        return self.op_or_model(self.session, **kwargs)
+    def __call__(self, *args, **kwargs):
+        return self.op_or_model(self.session, *args, **kwargs)

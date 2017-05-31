@@ -26,11 +26,11 @@ class Servicer(bridge_pb2.BridgeServicer):
         return bridge_pb2.NullMessage()
 
     def Run(self, request_iterator, context):
-        names, feed_dict = bridge_message.BridgeMessage.deserialize(request_iterator)
+        names, args, kwargs = bridge_message.BridgeMessage.deserialize(request_iterator)
         last = self.ps.session
         for name in names:
             last = getattr(last, name)
-        result = last(**feed_dict)
+        result = last(*args, **kwargs)
         return bridge_message.BridgeMessage.serialize(result)
 
     def StoreScalarMetric(self, request, context):

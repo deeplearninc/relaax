@@ -18,6 +18,17 @@ class Subgraph(object):
     def Ops(self, *ops, **feed_dict):
         return Ops(ops, feed_dict)
 
+    def Call(self, f):
+        return Call(f)
+
+
+class Call(object):
+    def __init__(self, f):
+        self.f = f
+
+    def __call__(self, session, *args, **kwargs):
+        return self.f(session, *args, **kwargs)
+
 
 class Ops(object):
     def __init__(self, ops, feed_dict):
