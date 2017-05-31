@@ -8,6 +8,25 @@ from gym.spaces.box import Box
 import gym
 
 
+def ppaquette_doom(env_name, record=False, out_dir=None):
+    from ppaquette_gym_doom import wrappers
+    env = gym.make(env_name)    # 'ppaquette/DoomMyWayHome-v0'
+
+    modewrapper = wrappers.SetPlayingMode('algo')
+    obwrapper = wrappers.SetResolution('160x120')
+    acwrapper = wrappers.ToDiscrete('minimal')
+    env = modewrapper(obwrapper(acwrapper(env)))
+
+    if record:
+        env = gym.wrappers.Monitor(env, out_dir, force=True)
+    fshape = (42, 42)
+
+    env.seed(None)
+    env = NoNegativeRewardEnv(env)
+    env = BufferedObsEnv(env, skip=1, shape=fshape)
+    return env
+
+
 class BufferedObsEnv(gym.ObservationWrapper):
     """ Buffer observations and stack e.g. for frame skipping.
     n is the length of the buffer, and number of observations stacked.
