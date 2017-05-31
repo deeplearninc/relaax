@@ -1,5 +1,4 @@
 from __future__ import absolute_import
-import numpy as np
 
 from relaax.common.algorithms import subgraph
 from relaax.common.algorithms.lib import graph
@@ -13,15 +12,14 @@ from . import da3c_config
 class Network(subgraph.Subgraph):
     def build_graph(self):
         input = layer.Input(da3c_config.config.input)
+        sizes = da3c_config.config.hidden_sizes
 
         dense = layer.GenericLayers(layer.Flatten(input),
-                [dict(type=layer.Dense, size=size, activation=layer.Activation.Relu)
-                for size in da3c_config.config.hidden_sizes])
-
+                                    [dict(type=layer.Dense, size=size,
+                                     activation=layer.Activation.Relu) for size in sizes])
         head = dense
         if da3c_config.config.use_lstm:
-            lstm = layer.LSTM(graph.Reshape(dense, [1, -1, sizes[-1]]),
-                    size=sizes[-1])
+            lstm = layer.LSTM(graph.Expand(dense, 0), size=sizes[-1])
             head = graph.Reshape(lstm, [-1, sizes[-1]])
 
         actor = layer.Actor(head, da3c_config.config.output)

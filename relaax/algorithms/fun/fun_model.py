@@ -34,7 +34,7 @@ class _ManagerNetwork(subgraph.Subgraph):
         self.Mspace =\
             layer.Dense(self.ph_perception, cfg.d,  # d=256
                         activation=layer.Activation.Relu)
-        Mspace_expanded = tf.expand_dims(self.Mspace.node, 0)
+        Mspace_expanded = graph.Expand(self.Mspace, 0)
 
         self.lstm = DilatedLSTMCell(cfg.d, num_cores=cfg.d)
         # needs wrap as layer to retrieve weights
@@ -156,7 +156,7 @@ class _WorkerNetwork(_PerceptionNetwork):
             graph.Placeholder(np.float32, shape=(None, cfg.d), name="ph_goal")
         # self.ph_goal = tf.placeholder(tf.float32, [None, cfg.d], name="ph_goal")
 
-        perception_reshaped = tf.reshape(self.perception.node, [1, -1, cfg.d])
+        perception_expanded = graph.Expand(self.perception.node, 0)
 
         self.ph_step_size = \
             graph.Placeholder(np.float32, shape=(1,), name="ph_w_step_size")
@@ -166,7 +166,7 @@ class _WorkerNetwork(_PerceptionNetwork):
         # tf.placeholder(tf.float32, [1, self.lstm.state_size], name="ph_w_lstm_state")
 
         lstm_outputs, self.lstm_state = tf.nn.dynamic_rnn(self.lstm,
-                                                          perception_reshaped,
+                                                          perception_expanded,
                                                           initial_state=self.ph_initial_lstm_state,
                                                           sequence_length=self.ph_step_size,
                                                           time_major=False)
