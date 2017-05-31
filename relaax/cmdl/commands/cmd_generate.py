@@ -6,10 +6,10 @@ import errno
 import shutil
 import click
 
-from ..cmdl import pass_context
-from ..cmdl import ALGORITHMS, ALGORITHMS_META, ENVIRONMENTS, ENVIRONMENTS_META
-from ..utils.backup import Backup
-from .cmd_config import CmdConfig
+from relaax.cmdl.cmdl import pass_context
+from relaax.cmdl.cmdl import ALGORITHMS, ALGORITHMS_META, ENVIRONMENTS, ENVIRONMENTS_META
+from relaax.cmdl.utils.backup import Backup
+from relaax.cmdl.commands.cmd_config import CmdConfig
 
 
 class CmdGenerate(object):

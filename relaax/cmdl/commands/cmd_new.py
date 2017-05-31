@@ -6,9 +6,9 @@ import os
 import errno
 import click
 
-from ..cmdl import pass_context
-from ..cmdl import ALGORITHMS, ALGORITHMS_META, ENVIRONMENTS, ENVIRONMENTS_META
-from .cmd_generate import CmdGenerate
+from relaax.cmdl.cmdl import pass_context
+from relaax.cmdl.cmdl import ALGORITHMS, ALGORITHMS_META, ENVIRONMENTS, ENVIRONMENTS_META
+from relaax.cmdl.commands.cmd_generate import CmdGenerate
 
 DEFAULT_ALGORITHMS_FOR_ENV = {
     'basic': 'policy-gradient',

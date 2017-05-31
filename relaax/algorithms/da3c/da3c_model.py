@@ -14,15 +14,9 @@ class Network(subgraph.Subgraph):
     def build_graph(self):
         input = layer.Input(da3c_config.config.input)
 
-        if da3c_config.config.input.use_convolutions:
-            sizes = (256, )
-        else:
-            if da3c_config.config.use_lstm:
-                sizes = (128, )
-            else:
-                sizes = (300, 200, 100)
-        dense = layer.GenericLayers(layer.Flatten(input), [dict(type=layer.Dense,
-            size=size, activation=layer.Activation.Relu) for size in sizes])
+        dense = layer.GenericLayers(layer.Flatten(input),
+                [dict(type=layer.Dense, size=size, activation=layer.Activation.Relu)
+                for size in da3c_config.config.hidden_sizes])
 
         head = dense
         if da3c_config.config.use_lstm:
