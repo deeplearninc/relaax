@@ -118,14 +118,12 @@ class DA3CEpisode(object):
             r = reward[t] + da3c_config.config.rewards_gamma * r
             discounted_reward[t] = r
 
+        feeds = dict(state=experience['state'], action=experience['action'],
+                     value=experience['value'], discounted_reward=discounted_reward)
         if da3c_config.config.use_lstm:
-            return self.session.op_compute_gradients(state=experience['state'], action=experience['action'],
-                    value=experience['value'], discounted_reward=discounted_reward,
-                    lstm_state=self.lstm_state, lstm_step=[len(reward)])
-        # TODO: computed gradients should be clipped by norm wrt original paper [40]
-        return self.session.op_compute_gradients(state=experience['state'], action=experience['action'],
-                value=experience['value'], discounted_reward=discounted_reward)
+            feeds.update(dict(lstm_state=self.lstm_state, lstm_step=[len(reward)]))
 
+        return self.session.op_compute_gradients(feeds)
 
     def apply_gradients(self, gradients, experience_size):
         self.ps.session.op_apply_gradients(

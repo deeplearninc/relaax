@@ -73,7 +73,8 @@ class AgentModel(subgraph.Subgraph):
 
         sg_loss = loss.DA3CLoss(sg_network.actor, sg_network.critic,
                 da3c_config.config.entropy_beta)
-        sg_gradients = layer.Gradients(sg_network.weights, loss=sg_loss)
+        sg_gradients = layer.Gradients(sg_network.weights, loss=sg_loss,
+                                       norm=da3c_config.config.gradients_norm_clipping)
 
         # Expose public API
         self.op_assign_weights = self.Op(sg_network.weights.assign,

@@ -32,7 +32,7 @@ algorithm:
   RMSProp:
     decay: 0.99
     epsilon: 0.1
-    gradient_norm_clipping: 40
+  gradients_norm_clipping: 40
 
   specific:   # FuN specific additional parameters
     d: 256    # internal representation size
