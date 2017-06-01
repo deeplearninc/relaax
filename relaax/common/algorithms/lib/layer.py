@@ -158,13 +158,14 @@ class Input(subgraph.Subgraph):
         self.ph_state = graph.Placeholder(np.float32,
                             shape=[None] + input_shape + [input.history])
 
-        if input.use_convolutions and descs is None:
+        if input.use_convolutions:
             descs = [
                 dict(type=Convolution, n_filters=16, filter_size=[8, 8],
                      stride=[4, 4], activation=Activation.Relu),
                 dict(type=Convolution, n_filters=32, filter_size=[4, 4],
                      stride=[2, 2], activation=Activation.Relu)]
 
+        descs = [] if descs is None else descs
         layers = GenericLayers(self.ph_state, descs)
 
         self.weight = layers.weight
