@@ -11,9 +11,16 @@ from . import da3c_config
 
 class Network(subgraph.Subgraph):
     def build_graph(self):
-        input = layer.Input(da3c_config.config.input)
-        sizes = da3c_config.config.hidden_sizes
+        if da3c_config.config.use_icm:
+            conv_layer = dict(type=layer.Convolution, activation=layer.Activation.Elu,
+                              n_filters=32, filter_size=[3, 3], stride=[1, 1],
+                              border=layer.Border.Same)
+            icm_conv = [dict(conv_layer)] * 4
+            input = layer.Input(da3c_config.config.input, descs=icm_conv)
+        else:
+            input = layer.Input(da3c_config.config.input)
 
+        sizes = da3c_config.config.hidden_sizes
         dense = layer.GenericLayers(layer.Flatten(input),
                 [dict(type=layer.Dense, size=size, activation=layer.Activation.Relu)
                 for size in sizes])
