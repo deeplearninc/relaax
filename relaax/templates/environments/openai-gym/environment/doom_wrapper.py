@@ -80,19 +80,15 @@ class BufferedObsEnv(gym.ObservationWrapper):
     def _convert(self, obs):
         self.obs_buffer.append(obs)
         max_frame = np.max(np.stack(self.obs_buffer), axis=0)
-        intensity_frame = self._rgb2y(max_frame).astype(np.uint8)
+        intensity_frame = self._rgb2gray(max_frame).astype(np.uint8)
 
         small_frame = np.array(Image.fromarray(intensity_frame).resize(
             self.obs_shape, resample=Image.BILINEAR), dtype=np.uint8)
         return small_frame
 
     @staticmethod
-    def _rgb2y(im):
-        """Converts an RGB image to a Y image (as in YUV).
-        These coefficients are taken from the torch/image library.
-        Beware: these are more critical than you might think, as the
-        monochromatic contrast can be surprisingly low.
-        """
+    def _rgb2gray(im):
+        """Converts an RGB image to a grayscale."""
         if len(im.shape) < 3:
             return im
         return np.sum(im * [0.299, 0.587, 0.114], axis=2)
