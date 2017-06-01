@@ -170,7 +170,7 @@ class Input(subgraph.Subgraph):
         self.ph_state = graph.Placeholder(np.float32,
                             shape=[None] + input_shape + [input.history])
 
-        if input.use_convolutions:
+        if input.use_convolutions and descs is None:
             descs = [
                 dict(type=Convolution, n_filters=16, filter_size=[8, 8],
                      stride=[4, 4], activation=Activation.Relu),
@@ -198,7 +198,7 @@ class Gradients(subgraph.Subgraph):
         if loss is not None:
             '''if norm is not None:
                 self.calculate = graph.TfNode(utils.Utils.reconstruct(
-                    tf.clip_by_norm(tf.gradients(
+                    tf.clip_by_global_norm(tf.gradients(
                         loss.node, list(utils.Utils.flatten(weights.node))),
                         norm), weights.node))
             else:'''
