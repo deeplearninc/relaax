@@ -20,8 +20,8 @@ algorithm:
   name: da3c
 
   input:
-    shape: [42, 42]
-    history: 4
+    shape: [42, 42, 4]
+    history: 1
     use_convolutions: true
 
   output:
