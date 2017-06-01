@@ -122,6 +122,7 @@ class DA3CEpisode(object):
             return self.session.op_compute_gradients(state=experience['state'], action=experience['action'],
                     value=experience['value'], discounted_reward=discounted_reward,
                     lstm_state=self.lstm_state, lstm_step=[len(reward)])
+        # TODO: computed gradients should be clipped by norm wrt original paper [40]
         return self.session.op_compute_gradients(state=experience['state'], action=experience['action'],
                 value=experience['value'], discounted_reward=discounted_reward)
 
