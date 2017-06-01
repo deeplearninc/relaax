@@ -39,9 +39,8 @@ class BridgeSessionMethod(object):
     def __getattr__(self, name):
         return BridgeSessionMethod(self.connection, self.names + [name])
 
-    def __call__(self, **kwargs):
-        feed_dict = kwargs
-        messages = bridge_message.BridgeMessage.serialize([self.names, feed_dict])
+    def __call__(self, *args, **kwargs):
+        messages = bridge_message.BridgeMessage.serialize([self.names, list(args), kwargs])
         result = self.connection.stub.Run(messages)
         return bridge_message.BridgeMessage.deserialize(result)
 
