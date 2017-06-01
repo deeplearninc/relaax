@@ -5,13 +5,7 @@ algorithm:
     shape: [84, 84]
     channels: 3
     history: 1
-    use_convolutions:
-      - n_filters: 16
-        filter_size: [8, 8]
-        stride: [4, 4]
-      - n_filters: 32
-        filter_size: [4, 4]
-        stride: [2, 2]
+    use_convolutions: true
 
   output:
     continuous: false
