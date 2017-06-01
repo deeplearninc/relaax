@@ -184,14 +184,14 @@ class Weights(subgraph.Subgraph):
 class Gradients(subgraph.Subgraph):
     def build_graph(self, weights, loss=None, optimizer=None, norm=None):
         if loss is not None:
-            if norm is not None:
+            '''if norm is not None:
                 self.calculate = graph.TfNode(utils.Utils.reconstruct(
                     tf.clip_by_norm(tf.gradients(
                         loss.node, list(utils.Utils.flatten(weights.node))),
                         norm), weights.node))
-            else:
-                self.calculate = graph.TfNode(utils.Utils.reconstruct(tf.gradients(
-                    loss.node, list(utils.Utils.flatten(weights.node))), weights.node))
+            else:'''
+            self.calculate = graph.TfNode(utils.Utils.reconstruct(tf.gradients(
+                loss.node, list(utils.Utils.flatten(weights.node))), weights.node))
         if optimizer is not None:
             self.ph_gradients = graph.Placeholders(weights)
             self.apply = graph.TfNode(optimizer.node.apply_gradients(
