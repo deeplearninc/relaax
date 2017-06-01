@@ -18,6 +18,18 @@ class Activation(object):
         return tf.nn.relu(x)
 
     @staticmethod
+    def Elu(x):
+        return tf.nn.elu(x)
+
+    @staticmethod
+    def Sigmoid(x):
+        return tf.nn.sigmoid(x)
+
+    @staticmethod
+    def Tanh(x):
+        return tf.nn.tanh(x)
+
+    @staticmethod
     def Softmax(x):
         return tf.nn.softmax(x)
 
