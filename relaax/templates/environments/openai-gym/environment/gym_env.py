@@ -1,14 +1,21 @@
+from __future__ import absolute_import
 from __future__ import print_function
 from __future__ import division
 
 from builtins import range
 from builtins import object
+import os
 import sys
 import gym
 import random
 import numpy as np
+
 from scipy.misc import imresize
+from PIL import Image, ImageCms
+
 from gym.spaces import Box
+from gym.wrappers.frame_skipping import SkipWrapper
+from doom_wrapper import ppaquette_doom
 
 from relaax.client.rlx_client_config import options
 
@@ -36,27 +43,45 @@ class GymEnv(object):
         'Tennis', 'TimePilot', 'Tutankham', 'UpNDown', 'Venture',
         'VideoPinball', 'WizardOfWor', 'YarsRevenge', 'Zaxxon']
 
-    def __init__(self, env='CartPole-v0', no_op_max=0, limit=800):
-        self.gym = gym.make(env)
+    ColorSpaces = ['GS', 'CMYK', 'L', 'LAB', 'XYZ']
+
+    def __init__(self, env='CartPole-v0'):
+        self._record = options.get('environment/record', False)
+        out_dir = options.get('environment/out_dir', '/tmp/'+env)
+        if self._record and not os.path.exists(out_dir):
+            os.makedirs(out_dir)
+
+        if env.startswith('ppaquette/Doom'):
+            self.gym = ppaquette_doom(env, self._record, out_dir=out_dir)
+        else:
+            self.gym = gym.make(env)
+
+            frame_skip = options.get('environment/frame_skip', None)
+            if frame_skip is not None:
+                skip_wrapper = SkipWrapper(frame_skip)
+                self.gym = skip_wrapper(self.gym)
+
+            if self._record:
+                self.gym = gym.wrappers.Monitor(self.gym, out_dir, force=True)
 
         self.gym.seed(random.randrange(1000000))
-        self._no_op_max = no_op_max
+
+        self._no_op_max = options.get('environment/no_op_max', 0)
+        self._reset_action = self.gym.action_space.sample() \
+            if options.get('environment/stochastic_reset', False) else 0
 
         self._show_ui = options.get('show_ui', False)
 
-        self.timestep_limit = limit
-        if self.timestep_limit is None:
-            self.timestep_limit = self.gym.spec.tags.get('wrapper_config.TimeLimit.max_episode_steps')
-        self.cur_step_limit = None
+        limit = options.get('environment/limit',
+                            self.gym.spec.tags.get('wrapper_config.TimeLimit.max_episode_steps'))
+        if limit is not None:
+            self.gym._max_episode_steps = limit
 
         self._process_state = SetFunction(self._process_all)
-        self.reset = SetFunction(self._reset_all)
 
         atari = [name + 'Deterministic' for name in GymEnv.AtariGameList] + GymEnv.AtariGameList
-
         if any(item.startswith(env.split('-')[0]) for item in atari):
             self._process_state = SetFunction(self._process_atari)
-            self.reset = SetFunction(self._reset_atari)
 
         self.action_size, self.box = self._get_action_size()
         if self.action_size != options.algorithm.output.action_size:
@@ -67,6 +92,10 @@ class GymEnv(object):
 
         self.reset()
 
+        self._convert = False
+        self._crop = False
+        self._shape = False
+
     def _get_action_size(self):
         space = self.gym.action_space
         if isinstance(space, Box):
@@ -74,14 +103,10 @@ class GymEnv(object):
         return space.n, False
 
     def act(self, action):
-        if self._show_ui:
+        if self._show_ui or self._record:
             self.gym.render()
 
         state, reward, terminal, info = self.gym.step(action)
-
-        self.cur_step_limit += 1
-        if self.cur_step_limit > self.timestep_limit:
-            terminal = True
 
         if terminal:
             state = None
@@ -90,47 +115,28 @@ class GymEnv(object):
 
         return reward, state, terminal
 
-    def _reset_atari(self):
-        state = None
+    def reset(self):
         while True:
-            self.gym.reset()
-            self.cur_step_limit = 0
+            state = self.gym.reset()
+            terminal = False
 
             if not self._show_ui and self._no_op_max:
                 no_op = np.random.randint(0, self._no_op_max)
-
                 for _ in range(no_op):
-                    self.gym.step(0)
+                    state, _, terminal, _ = self.gym.step(self._reset_action)
 
-            env_state = self.gym.step(0)
-            if not env_state[2]:  # not terminal
-                state = self._process_state(env_state[0])
+            if not terminal:
+                state = self._process_state(state)
                 break
 
         return state
 
-    def _reset_all(self):
-        state = None
-        while True:
-            self.gym.reset()
-            self.cur_step_limit = 0
-
-            if not self._show_ui and self._no_op_max:
-                no_op = np.random.randint(0, self._no_op_max)
-
-                for _ in range(no_op):
-                    self.gym.step(self.gym.action_space.sample())
-
-            env_state = self.gym.step(self.gym.action_space.sample())
-            if not env_state[2]:  # not terminal
-                state = self._process_state(env_state[0])
-                # self.cur_step_limit += 1
-                break
-
-        return state
+    def _process_img(self, screen):
+        if self._convert:
+            pass
 
     @staticmethod
-    def _process_atari(screen):
+    def _process_atari(screen):  # needs to scale to factor of 42 -> crop: (55, 42)
         gray = np.dot(screen[..., :3], [0.299, 0.587, 0.114])
 
         resized_screen = imresize(gray, (110, 84))
