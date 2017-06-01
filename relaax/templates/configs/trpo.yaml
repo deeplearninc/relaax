@@ -1,2 +1,27 @@
 algorithm:
   name: trpo
+
+  input:
+    shape: [4]
+    history: 1
+    use_convolutions: false
+
+  output:
+    continuous: false
+    action_size: 2                # action size for the given environment
+
+  hidden_sizes: [5, 10]
+  activation: tanh                # activation function for MLP
+  use_filter: false               # use average filter of the incoming observations and rewards
+  async: false                    # set to true to collect experience without blocking the updater
+
+  PG_OPTIONS:
+    timestep_limit: 200           # length in steps for one round in environment
+    n_iter: 10000                 # number of updates to pass through the training (training length)
+    timesteps_per_batch: 2000     # number of experience to collect before update
+    rewards_gamma: 0.995          # rewards discount factor
+    gae_lambda: 0.97              # lambda from generalized advantage estimation
+
+  TRPO:
+    cg_damping: 0.1               # multiple of the identity to Fisher matrix during CG
+    max_kl: 0.01                  # KL divergence between old and new policy
