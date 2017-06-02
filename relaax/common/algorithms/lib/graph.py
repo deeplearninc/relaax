@@ -77,6 +77,22 @@ class RMSPropOptimizer(subgraph.Subgraph):
         )
 
 
+class L2loss(subgraph.Subgraph):
+    """Computes half the L2 norm of a tensor without the sqrt."""
+
+    def build_graph(self, t, name=None):
+        """
+        Args:
+            t: A Tensor.
+            name: A name for the operation (optional).
+
+        Returns:
+            A Tensor. Has the same type as t.
+        """
+
+        return tf.nn.l2_loss(t.node, name=name)
+
+
 class Softmax(subgraph.Subgraph):
     def build_graph(self, x):
         return tf.nn.softmax(x.node)
@@ -95,6 +111,11 @@ class Flatten(subgraph.Subgraph):
 class Expand(subgraph.Subgraph):
     def build_graph(self, x, dim):
         return tf.expand_dims(x.node, dim)
+
+
+class Concat(subgraph.Subgraph):
+    def build_graph(self, concat_dim, values, name='concat'):
+        return tf.concat(concat_dim, [v.node for v in values], name=name)
 
 
 class List(subgraph.Subgraph):
@@ -125,6 +146,24 @@ class VarAssign(subgraph.Subgraph):
         self.assign_from_ph = TfNode(tf.assign(variable, self.ph_variable.node))
         self.assign_from_value = TfNode(tf.assign(variable, tf.constant(value)))
         return variable
+
+
+class Constant(subgraph.Subgraph):
+    """Creates a constant tensor."""
+
+    def build_graph(self, value, dtype=None, shape=None, name='Const'):
+        """
+        Args:
+            value: A constant value (or list) of output type dtype.
+            dtype: The type of the elements of the resulting tensor.
+            shape: Optional dimensions of resulting tensor.
+            name: Optional name for the tensor.
+
+        Returns:
+            A Constant Tensor.
+        """
+
+        return tf.constant(value, dtype=dtype, shape=shape, name=name)
 
 
 class Placeholder(subgraph.Subgraph):
