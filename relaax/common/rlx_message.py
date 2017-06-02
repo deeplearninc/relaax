@@ -8,12 +8,14 @@ import numpy as np
 class RLXMessage(object):
     class _NDArrayEncoder(json.JSONEncoder):
         def default(self, obj):
+            if isinstance(obj, np.int64):
+                return int(obj)
             # Encoder from numpy.nparray to base64
             if isinstance(obj, np.ndarray):
                 output = io.BytesIO()
                 np.savez_compressed(output, obj=obj)
                 return {'b64npz': base64.b64encode(output.getvalue()).decode()}
-            return json.JSONEncoder.default(self, obj)
+            raise TypeError('%s, %s is not JSON serializable' % (type(obj), repr(obj)))
 
     @staticmethod
     def _ndarray_decoder(obj):

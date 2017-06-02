@@ -49,28 +49,30 @@ class Agent(object):
         start = time.time()
 
         obs = state
-        if self._config.use_filter:
+        if self._config.algorithm.use_filter:
             obs = self.obs_filter(state)
         self.data["observation"].append(obs)
 
         action, agentinfo = self.policy.act(obs)
         self.data["action"].append(action)
 
-        for (k, v) in agentinfo.iteritems():
+        for (k, v) in agentinfo.items():
             self.data[k].append(v)
 
         self.server_latency_accumulator += time.time() - start
         return action
 
     def reward_and_act(self, reward, state):
-        if not self._reward(reward):
+        if not self.reward(reward):
             return self.act(state)
         return None
 
     def reward_and_reset(self, reward):
-        if self._reward(reward):
+        if self.reward(reward):
             return None
+        return self.reset()
 
+    def reset(self):
         score = self._episode_reward
         print("Episode reward =", score)
         self.metrics().scalar('episode reward', score)
@@ -82,7 +84,7 @@ class Agent(object):
         self._send_experience(terminated=(self._episode_timestep < self._config.timestep_limit))
         return score
 
-    def _reward(self, reward):
+    def reward(self, reward):
         self._episode_reward += reward
 
         # reward = self.reward_filter(reward)
@@ -95,7 +97,7 @@ class Agent(object):
     def _send_experience(self, terminated=False):
         self.data["terminated"] = terminated
         self.data["filter_diff"] = (0, np.zeros(1), np.zeros(1))
-        if self._config.use_filter:
+        if self._config.algorithm.use_filter:
             mean, std = self.obs_filter.rs.get_diff()
             self.data["filter_diff"] = (self._episode_timestep, mean, std)
         self.ps.session.call_send_experience(self._n_iter, self.data, self._episode_timestep)
@@ -119,7 +121,7 @@ class Agent(object):
             self.policy.net.set_weights(list(self.ps.session.call_receive_weights(self._n_iter)))
             self.collecting_time = time.time()
 
-        if self._config.use_filter:
+        if self._config.algorithm.use_filter:
             state = self.ps.session.call_get_filter_state()
             self.obs_filter.rs.set(*state)
 
