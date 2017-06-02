@@ -24,4 +24,4 @@ algorithm:
   RMSProp:
     decay: 0.99
     epsilon: 0.1
-  gradients_norm_clipping: 40
+  gradients_norm_clipping: 400.   # 40.0 - for vanilla A3C & similar
