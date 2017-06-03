@@ -98,6 +98,6 @@ class ICMLoss(subgraph.Subgraph):   # alpha=0.1 | beta=0.2
         max_like_sum = tf.reduce_sum(icm_action * action_one_hot)
         inv_loss = (1 - beta) * max_like_sum
 
-        fwd_loss = icm_nn.discrepancy * beta
+        fwd_loss = tf.reduce_sum(icm_nn.discrepancy) * beta
 
         return policy_loss + inv_loss + fwd_loss
