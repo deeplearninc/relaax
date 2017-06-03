@@ -39,7 +39,8 @@ class ICM(subgraph.Subgraph):
         self.inv_out = inv_fc2
 
         nu = graph.Constant(0.8)  # scaling factor, which needs to retrieve from the config
-        self.rew_out = nu.node * graph.L2loss(fwd_fc2.node - get_second.node)
+        self.discrepancy = graph.L2loss(fwd_fc2.node - get_second.node)
+        self.rew_out = nu.node * self.discrepancy.node
 
         layers = [input, inv_fc1, inv_fc2, fwd_fc1, fwd_fc2]
         self.weights = layer.Weights(*layers)
