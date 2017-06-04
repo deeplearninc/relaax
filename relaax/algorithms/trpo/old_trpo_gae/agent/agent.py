@@ -37,7 +37,7 @@ class Agent(object):
             list(self.ps.session.call_receive_weights(self._n_iter))
         )
 
-        if config.algorithm.use_filter:
+        if config.use_filter:
             self.obs_filter, _ = network.make_filters(config)
             state = self.ps.session.call_get_filter_state()
             self.obs_filter.rs.set(*state)
@@ -49,7 +49,7 @@ class Agent(object):
         start = time.time()
 
         obs = state
-        if self._config.algorithm.use_filter:
+        if self._config.use_filter:
             obs = self.obs_filter(state)
         self.data["observation"].append(obs)
 
@@ -97,7 +97,7 @@ class Agent(object):
     def _send_experience(self, terminated=False):
         self.data["terminated"] = terminated
         self.data["filter_diff"] = (0, np.zeros(1), np.zeros(1))
-        if self._config.algorithm.use_filter:
+        if self._config.use_filter:
             mean, std = self.obs_filter.rs.get_diff()
             self.data["filter_diff"] = (self._episode_timestep, mean, std)
         self.ps.session.call_send_experience(self._n_iter, self.data, self._episode_timestep)
@@ -121,7 +121,7 @@ class Agent(object):
             self.policy.net.set_weights(list(self.ps.session.call_receive_weights(self._n_iter)))
             self.collecting_time = time.time()
 
-        if self._config.algorithm.use_filter:
+        if self._config.use_filter:
             state = self.ps.session.call_get_filter_state()
             self.obs_filter.rs.set(*state)
 

@@ -2,13 +2,13 @@ algorithm:
   name: trpo
 
   input:
-    shape: [4]
+    shape: [3]
     history: 1
     use_convolutions: false
 
   output:
-    continuous: false
-    action_size: 2                # action size for the given environment
+    continuous: true
+    action_size: 1                # action size for the given environment
 
   hidden_sizes: [5, 10]
   activation: tanh                # activation function for MLP

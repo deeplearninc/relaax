@@ -7,30 +7,30 @@ from relaax.algorithms.trpo.old_trpo_gae.algorithm_lib.core import *
 
 def make_mlps(config):
     policy_net = Sequential()
-    for (i, layeroutsize) in enumerate(config.algorithm.hidden_sizes):
-        input_shape = dict(input_shape=config.algorithm.input.shape) if i == 0 else {}
-        policy_net.add(Dense(layeroutsize, activation=config.algorithm.activation, **input_shape))
-    if config.algorithm.output.continuous:
-        policy_net.add(Dense(config.algorithm.output.action_size))
+    for (i, layeroutsize) in enumerate(config.hidden_sizes):
+        input_shape = dict(input_shape=config.input.shape) if i == 0 else {}
+        policy_net.add(Dense(layeroutsize, activation=config.activation, **input_shape))
+    if config.output.continuous:
+        policy_net.add(Dense(config.output.action_size))
         policy_net.add(Lambda(lambda x: x * 0.1))
         policy_net.add(ConcatFixedStd())
     else:
-        policy_net.add(Dense(config.algorithm.output.action_size, activation="softmax"))
+        policy_net.add(Dense(config.output.action_size, activation="softmax"))
         policy_net.add(Lambda(lambda x: x * 0.1))
 
     value_net = Sequential()
-    for (i, layeroutsize) in enumerate(config.algorithm.hidden_sizes):
+    for (i, layeroutsize) in enumerate(config.hidden_sizes):
         # add one extra feature for timestep
-        input_shape = dict(input_shape=(config.algorithm.input.shape[0]+1,)) if i == 0 else {}
-        value_net.add(Dense(layeroutsize, activation=config.algorithm.activation, **input_shape))
+        input_shape = dict(input_shape=(config.input.shape[0]+1,)) if i == 0 else {}
+        value_net.add(Dense(layeroutsize, activation=config.activation, **input_shape))
     value_net.add(Dense(1))
 
     return policy_net, value_net
 
 
 def make_filters(config):
-    if config.algorithm.use_filter:
-        obfilter = ZFilter(RunningStatExt(config.algorithm.input.shape), clip=5)
+    if config.use_filter:
+        obfilter = ZFilter(RunningStatExt(config.input.shape), clip=5)
         rewfilter = ZFilter((), demean=False, clip=10)
     else:
         obfilter = IDENTITY
@@ -40,13 +40,13 @@ def make_filters(config):
 
 def make_wrappers(config, policy_net, value_net, session):
 
-    if config.algorithm.output.continuous:
-        probtype = DiagGauss(config.algorithm.output.action_size)
+    if config.output.continuous:
+        probtype = DiagGauss(config.output.action_size)
     else:
-        probtype = Categorical(config.algorithm.output.action_size)
+        probtype = Categorical(config.output.action_size)
 
     policy = StochPolicyKeras(policy_net, probtype, session)
-    baseline = NnVf(value_net, config.algorithm.PG_OPTIONS.timestep_limit, dict(mixfrac=0.1), session)
+    baseline = NnVf(value_net, config.PG_OPTIONS.timestep_limit, dict(mixfrac=0.1), session)
 
     return policy, baseline
 

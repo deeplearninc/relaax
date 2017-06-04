@@ -2,7 +2,7 @@
 
 environment:
   run: python environment/training.py
-  name: CartPole-v0
+  name: Pendulum-v0
   max_episodes: 1000
   infinite_run: False
 

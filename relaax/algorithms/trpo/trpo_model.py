@@ -6,7 +6,10 @@ from relaax.common.algorithms.lib import graph
 from relaax.common.algorithms.lib import layer
 from relaax.common.algorithms.lib import loss
 from relaax.common.algorithms.lib import utils
+
 from . import trpo_config
+
+from .old_trpo_gae.parameter_server import parameter_server
 
 
 class Network(subgraph.Subgraph):
@@ -19,12 +22,14 @@ class Network(subgraph.Subgraph):
 # all agents and stored on the parameter server
 class SharedParameters(subgraph.Subgraph):
     def wait_for_iteration(self, session):
-        return 1
+        return self._ps.bridge().wait_for_iteration()
 
     def receive_weights(self, session, n_iter):
         return []
 
     def build_graph(self):
+        self._ps = parameter_server.ParameterServer(trpo_config.config, None, None)
+
         # Build graph
         sg_global_step = graph.GlobalStep()
         sg_initialize = graph.Initialize()

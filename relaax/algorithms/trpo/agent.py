@@ -1,8 +1,8 @@
 from __future__ import absolute_import
 from builtins import object
-from . import trpo_config
 
 from .old_trpo_gae.agent import agent
+from . import trpo_config
 
 
 class Agent(object):
@@ -13,7 +13,7 @@ class Agent(object):
     # environment is ready and
     # waiting for agent to initialize
     def init(self, exploit=False):
-        self.agent = agent.Agent(trpo_config.options, self.ps)
+        self.agent = agent.Agent(trpo_config.options.algorithm, self.ps)
         return True
 
     # environment generated new state and reward
@@ -29,4 +29,5 @@ class Agent(object):
 
     # environment is asking to reset agent
     def reset(self):
+        self.agent.reset()
         return True
