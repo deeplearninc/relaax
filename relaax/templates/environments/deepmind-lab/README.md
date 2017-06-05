@@ -50,9 +50,9 @@ If you creates a `txt` map with name `t_maze` you can locates it there:
 `org_deepmind_lab/t_maze`
 
 This map has three pickups:
-    - `P`: respawn location
-    - `A`: -1 reward == `negative_one`
-    - `G`: +1 reward == `positive_one`
+- `P`: respawn location
+- `A`: -1 reward == `negative_one`
+- `G`: +1 reward == `positive_one`
     
 There are `2 custom` pickups related to `negative_one` & `positive_one`
     
