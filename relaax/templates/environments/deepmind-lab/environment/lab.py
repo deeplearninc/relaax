@@ -52,14 +52,12 @@ class LabEnv(object):
     def act(self, action):
         # returns reward, state, terminal
         reward = self.env.step(self._actions[action], num_steps=self._frame_skip)
-        terminal = not self.env.is_running()
 
+        terminal = not self.env.is_running()
         if terminal:
             return reward, None, terminal
 
-        screen = self.env.observations()['RGB_INTERLACED']
-        state = self._process_img(screen)
-
+        state = self._process_state()
         return reward, state, terminal
 
     def reset(self):
@@ -73,13 +71,15 @@ class LabEnv(object):
                     action = random.choice(self._actions)
                     self.env.step(action, num_steps=self._frame_skip)
 
-            _, state, terminal = self.act(random.choice(self._actions))
-            if not terminal:
+            if self.env.is_running():
                 break
 
+        state = self._process_state()
         return state
 
-    def _process_img(self, screen):
+    def _process_state(self):
+        screen = self.env.observations()['RGB_INTERLACED']
+
         if self._channels == 1:
             screen = np.dot(screen[..., :3], [0.299, 0.587, 0.114])
 
