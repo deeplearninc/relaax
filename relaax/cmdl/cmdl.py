@@ -51,7 +51,9 @@ class RelaaxCLI(click.MultiCommand):
                 name = name.encode('ascii', 'replace')
             mod = __import__('relaax.cmdl.commands.cmd_' + name,
                              None, None, ['cli'])
-        except ImportError:
+        except ImportError as e:
+            print(name)
+            print(str(e))
             return
         return mod.cmdl
 
