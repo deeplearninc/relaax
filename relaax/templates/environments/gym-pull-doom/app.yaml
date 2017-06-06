@@ -2,8 +2,8 @@
 
 environment:
   run: python3 environment/training.py
-  name: tests/read_map
-  max_episodes: 1000
+  name: ppaquette/DoomMyWayHome-v0
+  max_episodes: 10000
   infinite_run: False
 
 relaax-parameter-server:
@@ -20,13 +20,13 @@ algorithm:
   name: da3c
 
   input:
-    shape: [84, 84]
+    shape: [42, 42]
     history: 4
     use_convolutions: true
 
   output:
     continuous: false
-    action_size: 6                # action size for the given environment
+    action_size: 4                # action size for the given environment
 
   batch_size: 5                   # local loop size for one episode
 

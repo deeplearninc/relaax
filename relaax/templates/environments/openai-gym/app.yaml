@@ -1,7 +1,7 @@
 ---
 
 environment:
-  run: python environment/training.py
+  run: python3 environment/training.py
   name: CartPole-v0
   max_episodes: 1000
   infinite_run: False
@@ -37,7 +37,8 @@ algorithm:
   learning_rate: 1e-2
   entropy_beta: 1e-2              # entropy regularization constant
   rewards_gamma: 0.99             # rewards discount factor
+
   RMSProp:
     decay: 0.99
     epsilon: 0.1
-    gradient_norm_clipping: 40
+  gradient_norm_clipping: 40

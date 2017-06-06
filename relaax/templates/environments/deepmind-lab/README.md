@@ -14,7 +14,8 @@ Default DeepMind'd `random_agent` client locates here:
 
 To run our client we can replace this file by ours.
 
-It can looks like as follows:
+If you create your app next to `relaax` package, 
+code can looks like as follows:
 (you have to provide path to your `training.py`)
 ```python
 #!/usr/bin/env python
@@ -23,7 +24,8 @@ import sys
 import os
 
 path_to_lab_client = \
-    str(relaax.__path__) + 'templates/environments/deepmind-lab/environment/training.py'
+    str(relaax.__path__[:-6]) + 'your_app_dir/environment/training.py'
+# or you can provide an absolute path to your app instead
 args = [path_to_lab_client] + sys.argv[1:]
 os.execv(path_to_lab_client, args)
 ```
