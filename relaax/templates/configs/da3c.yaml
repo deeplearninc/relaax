@@ -2,8 +2,8 @@ algorithm:
   name: da3c
 
   input:
-    shape: [42, 42, 4]
-    history: 1
+    shape: [42, 42]
+    history: 4
     use_convolutions: true
 
   output:
@@ -24,4 +24,8 @@ algorithm:
   RMSProp:
     decay: 0.99
     epsilon: 0.1
-  gradients_norm_clipping: 400.   # 40.0 - for vanilla A3C & similar
+  gradients_norm_clipping: 40.   # 40.0 - for vanilla A3C & similar
+
+  ICM:
+    alpha: 0.1
+    beta: 0.2

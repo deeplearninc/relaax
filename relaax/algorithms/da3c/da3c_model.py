@@ -77,13 +77,26 @@ class AgentModel(subgraph.Subgraph):
     def build_graph(self):
         # Build graph
         sg_network = Network()
-        if da3c_config.config.use_icm:
-            icm_network = icm_model.ICM()
 
         sg_loss = loss.DA3CLoss(sg_network.actor, sg_network.critic,
                                 da3c_config.config.entropy_beta)
         sg_gradients = layer.Gradients(sg_network.weights, loss=sg_loss,
                                        norm=da3c_config.config.gradients_norm_clipping)
+
+        if da3c_config.config.use_icm:
+            sg_icm_network = icm_model.ICM()
+            sg_icm_loss = loss.ICMLoss(sg_network.actor, sg_icm_network,
+                                       da3c_config.config.ICM.alpha, da3c_config.config.ICM.beta)
+            sg_icm_gradients = layer.Gradients(sg_icm_network.weights, loss=sg_icm_loss)
+
+            # Expose ICM public API
+            self.op_icm_assign_weights = self.Op(sg_icm_network.weights.assign,
+                                                 weights=sg_icm_network.weights.ph_weights)
+            self.op_get_intrinsic_reward = self.Ops(sg_icm_network.rew_out,
+                                                    state=sg_icm_network.ph_state)
+            self.op_compute_icm_gradients = self.Op(sg_icm_gradients.calculate,
+                                            state=sg_icm_network.ph_state, action=sg_icm_loss.ph_action,
+                                            discounted_reward=sg_icm_loss.ph_discounted_reward)
 
         # Expose public API
         self.op_assign_weights = self.Op(sg_network.weights.assign,
