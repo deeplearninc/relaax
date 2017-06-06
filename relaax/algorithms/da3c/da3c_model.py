@@ -7,6 +7,7 @@ from relaax.common.algorithms.lib import loss
 from relaax.common.algorithms.lib import utils
 from .lib import da3c_graph
 from . import da3c_config
+from . import icm_model
 
 
 class Network(subgraph.Subgraph):
@@ -76,6 +77,8 @@ class AgentModel(subgraph.Subgraph):
     def build_graph(self):
         # Build graph
         sg_network = Network()
+        if da3c_config.config.use_icm:
+            icm_network = icm_model.ICM()
 
         sg_loss = loss.DA3CLoss(sg_network.actor, sg_network.critic,
                                 da3c_config.config.entropy_beta)
