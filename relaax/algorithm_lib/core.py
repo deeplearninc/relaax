@@ -74,16 +74,17 @@ class Categorical(ProbType):
         return tf.placeholder(dtype, name='prob')
 
     def likelihood(self, a, prob):
-        return prob[tf.range(prob.shape[0]), a]
+        return tf.reduce_sum(prob * tf.one_hot(a, self.n), axis=1)
+        # prob[tf.range(prob.shape[0]), a]
 
     def loglikelihood(self, a, prob):
         return tf.log(self.likelihood(a, prob))
 
     def kl(self, prob0, prob1):
-        return (prob0 * tf.log(prob0 / prob1)).sum(axis=1)
+        return tf.reduce_sum((prob0 * tf.log(prob0 / prob1)), axis=1)
 
     def entropy(self, prob0):
-        return - (prob0 * tf.log(prob0)).sum(axis=1)
+        return -tf.reduce_sum((prob0 * tf.log(prob0)), axis=1)
 
     @staticmethod
     def sample(prob):
@@ -91,7 +92,7 @@ class Categorical(ProbType):
         return categorical_sample(prob)
 
     def maxprob(self, prob):
-        return prob.argmax(axis=1)
+        return tf.argmax(prob, axis=1)
 
 
 class DiagGauss(ProbType):
