@@ -37,7 +37,8 @@ setup(
         'honcho==0.7.1',
         'h5py',
         'tensorflow==1.1.0',
-        'click'
+        'click',
+        'future'
     ],
     extras_require={
         'keras': [
