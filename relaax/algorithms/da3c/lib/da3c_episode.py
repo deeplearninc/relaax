@@ -25,6 +25,8 @@ class DA3CEpisode(object):
         if da3c_config.config.use_lstm:
             self.lstm_zero_state = model.lstm_zero_state
             self.lstm_state = model.lstm_zero_state
+        if da3c_config.config.use_icm:
+            self.icm_observation = da3c_observation.DA3CObservation()
 
     @property
     def experience(self):
@@ -39,6 +41,8 @@ class DA3CEpisode(object):
 
     def step(self, reward, state, terminal):
         if reward is not None:
+            if da3c_config.config.use_icm:
+                reward += self.get_intrinsic_reward(state)
             self.push_experience(reward)
         assert (state is None) == terminal
         self.observation.add_state(state)
@@ -81,13 +85,6 @@ class DA3CEpisode(object):
             assert self.last_action is not None
             assert self.last_value is not None
 
-    def keep_action_and_value(self, action, value):
-        assert self.last_action is None
-        assert self.last_value is None
-
-        self.last_action = action
-        self.last_value = value
-
     def load_shared_parameters(self):
         self.session.op_assign_weights(weights=self.ps.session.op_get_weights())
 
@@ -104,6 +101,17 @@ class DA3CEpisode(object):
             return utils.choose_action_descrete(probabilities), value
         mu, sigma2 = action
         return utils.choose_action_continuous(mu, sigma2), value
+
+    def get_intrinsic_reward(self, state):
+        self.icm_observation.add_state(state)
+
+        if state is not None:
+            icm_input = [self.observation.queue, self.icm_observation.queue]
+            intrinsic_reward = self.session.op_get_intrinsic_reward(state=icm_input)
+
+            print('intrinsic_reward', intrinsic_reward.shape, intrinsic_reward)
+            return intrinsic_reward
+        return 0
 
     def compute_gradients(self, experience):
         r = 0.0
