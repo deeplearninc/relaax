@@ -10,6 +10,18 @@ def read(*path):
     with codecs.open(os.path.join(here, *path), encoding='utf-8') as fp:
         return fp.read()
 
+# Build-specific dependencies.
+extras = {
+    'keras': ['keras==1.2.1'],
+    'wsproxy': ['autobahn==0.17.2','Twisted==17.1.0'],
+    'testing': ['pytest','pytest-cov','pytest-xdist','flake8','mock']
+}
+
+# Meta dependency groups.
+all_deps = []
+for group_name in extras:
+    all_deps += extras[group_name]
+extras['all'] = all_deps
 
 VERSION = re.search(
     r'^__version__ = [\'"]([^\'"]*)[\'"]',
@@ -40,21 +52,7 @@ setup(
         'click',
         'future'
     ],
-    extras_require={
-        'keras': [
-            'keras==1.2.1'
-        ],
-        'wsproxy': [
-            'autobahn==0.17.2',
-            'Twisted==17.1.0'
-        ],
-        'testing': [
-            'pytest',
-            'pytest-cov',
-            'pytest-xdist',
-            'flake8',
-            'mock']
-    },
+    extras_require=extras,
     entry_points={
         'console_scripts': [
             'relaax=relaax.cmdl.cmdl:cmdl',
