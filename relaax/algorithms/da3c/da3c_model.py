@@ -53,15 +53,28 @@ class SharedParameters(subgraph.Subgraph):
         # Build graph
         sg_global_step = graph.GlobalStep()
         sg_weights = Network().weights
-        sg_learning_rate = da3c_graph.LearningRate(sg_global_step)
-        sg_optimizer = graph.RMSPropOptimizer(
-            learning_rate=sg_learning_rate,
-            decay=da3c_config.config.RMSProp.decay,
-            momentum=0.0,
-            epsilon=da3c_config.config.RMSProp.epsilon
-        )
+
+        if da3c_config.config.use_icm:
+            sg_optimizer = graph.AdamOptimizer(da3c_config.config.initial_learning_rate)
+            sg_icm_optimizer = graph.AdamOptimizer(da3c_config.config.initial_learning_rate)
+            sg_icm_weights = icm_model.ICM().weights
+            sg_icm_gradients = layer.Gradients(sg_icm_weights, optimizer=sg_icm_optimizer)
+        else:
+            sg_learning_rate = da3c_graph.LearningRate(sg_global_step)
+            sg_optimizer = graph.RMSPropOptimizer(
+                learning_rate=sg_learning_rate,
+                decay=da3c_config.config.RMSProp.decay,
+                momentum=0.0,
+                epsilon=da3c_config.config.RMSProp.epsilon
+            )
         sg_gradients = layer.Gradients(sg_weights, optimizer=sg_optimizer)
         sg_initialize = graph.Initialize()
+
+        if da3c_config.config.use_icm:
+            # Expose ICM public API
+            self.op_icm_get_weights = self.Op(sg_icm_weights)
+            self.op_icm_apply_gradients = self.Ops(sg_icm_gradients.apply,
+                                                   gradients=sg_icm_gradients.ph_gradients)
 
         # Expose public API
         self.op_n_step = self.Op(sg_global_step.n)

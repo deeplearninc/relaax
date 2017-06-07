@@ -56,6 +56,9 @@ class DA3CEpisode(object):
         experience = self.episode.end()
         if not self.exploit:
             self.apply_gradients(self.compute_gradients(experience), len(experience))
+            if da3c_config.config.use_icm:
+                self.ps.session.op_apply_gradients(
+                    gradients=self.compute_icm_gradients(experience))
 
     def reset(self):
         self.episode = episode.Episode('reward', 'state', 'action', 'value')
@@ -87,6 +90,8 @@ class DA3CEpisode(object):
 
     def load_shared_parameters(self):
         self.session.op_assign_weights(weights=self.ps.session.op_get_weights())
+        if da3c_config.config.use_icm:
+            self.session.op_icm_assign_weights(weights=self.ps.session.op_icm_get_weights())
 
     def get_action_and_value_from_network(self):
         if da3c_config.config.use_lstm:
@@ -135,6 +140,9 @@ class DA3CEpisode(object):
         return self.session.op_compute_gradients(
                 state=experience['state'], action=experience['action'],
                 value=experience['value'], discounted_reward=discounted_reward)
+
+    def compute_icm_gradients(self, experience):
+        pass
 
     def apply_gradients(self, gradients, experience_size):
         self.ps.session.op_apply_gradients(
