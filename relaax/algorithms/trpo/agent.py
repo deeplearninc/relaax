@@ -25,6 +25,7 @@ class Agent(object):
                 return None
         if state is not None:
             return self.agent.act(state)
+        self.agent.reset()
         return None
 
     # environment is asking to reset agent
