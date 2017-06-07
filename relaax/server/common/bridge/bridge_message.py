@@ -110,9 +110,15 @@ class ContainerMarshaller(BaseMarshaller):
         yield bridge_pb2.Item(item_type=self.end_item_type, dict_key=dict_key)
 
     def deserialize(self, stream):
-        container = self.value_type()
+        container = self.new_container()
         while next(stream).item_type != self.end_item_type:
             self.insert_item(container, BridgeMessage.deserialize_any(stream), stream.first)
+        return self.cast(container)
+
+    def new_container(self):
+        return self.value_type()
+
+    def cast(self, container):
         return container
 
 
@@ -122,6 +128,14 @@ class ListMarshaller(ContainerMarshaller):
 
     def insert_item(self, container, item, _):
         container.append(item)
+
+
+class TupleMarshaller(ListMarshaller):
+    def new_container(self):
+        return []
+
+    def cast(self, container):
+        return self.value_type(container)
 
 
 class DictMarshaller(ContainerMarshaller):
@@ -167,6 +181,7 @@ class BridgeMessage(object):
             ScalarMarshaller(bridge_pb2.Item.STR, type(''), 'str_value'),
             NdarrayMarshaller(bridge_pb2.Item.NUMPY_ARRAY, numpy.ndarray),
             ListMarshaller(bridge_pb2.Item.LIST_OPEN, list, bridge_pb2.Item.LIST_CLOSE),
+            TupleMarshaller(bridge_pb2.Item.TUPLE_OPEN, tuple, bridge_pb2.Item.TUPLE_CLOSE),
             DictMarshaller(bridge_pb2.Item.DICT_OPEN, dict, bridge_pb2.Item.DICT_CLOSE)
         ]:
             assert marshaller.value_type not in cls.SERIALIZERS

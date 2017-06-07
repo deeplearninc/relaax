@@ -19,7 +19,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   name='bridge.proto',
   package='',
   syntax='proto3',
-  serialized_pb=_b('\n\x0c\x62ridge.proto\"\r\n\x0bNullMessage\"[\n\x0cScalarMetric\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\t\n\x01y\x18\x02 \x01(\x01\x12\x1c\n\x01x\x18\x03 \x01(\x0b\x32\x11.ScalarMetric.Arg\x1a\x14\n\x03\x41rg\x12\r\n\x05value\x18\x01 \x01(\x01\"\xb0\x03\n\x04Item\x12!\n\titem_type\x18\x01 \x01(\x0e\x32\x0e.Item.ItemType\x12\x10\n\x08\x64ict_key\x18\x02 \x01(\t\x12\x12\n\nbool_value\x18\x03 \x01(\x08\x12\x11\n\tint_value\x18\x04 \x01(\x12\x12\x13\n\x0b\x66loat_value\x18\x05 \x01(\x01\x12\x11\n\tstr_value\x18\x06 \x01(\t\x12+\n\x11numpy_array_value\x18\x08 \x01(\x0b\x32\x10.Item.NumpyArray\x1a\x46\n\nNumpyArray\x12\x0c\n\x04last\x18\x01 \x01(\x08\x12\r\n\x05\x64type\x18\x02 \x01(\t\x12\r\n\x05shape\x18\x03 \x03(\r\x12\x0c\n\x04\x64\x61ta\x18\x04 \x01(\x0c\"\xae\x01\n\x08ItemType\x12\r\n\tLIST_OPEN\x10\x00\x12\x0e\n\nLIST_CLOSE\x10\x01\x12\r\n\tDICT_OPEN\x10\x02\x12\x0e\n\nDICT_CLOSE\x10\x03\x12\x08\n\x04NONE\x10\x04\x12\x08\n\x04\x42OOL\x10\x05\x12\x07\n\x03INT\x10\x06\x12\t\n\x05\x46LOAT\x10\x07\x12\x07\n\x03STR\x10\x08\x12\x10\n\x0cNUMPY_INT_32\x10\t\x12\x10\n\x0cNUMPY_INT_64\x10\n\x12\x0f\n\x0bNUMPY_ARRAY\x10\x0b\x32}\n\x06\x42ridge\x12$\n\x04Init\x12\x0c.NullMessage\x1a\x0c.NullMessage\"\x00\x12\x19\n\x03Run\x12\x05.Item\x1a\x05.Item\"\x00(\x01\x30\x01\x12\x32\n\x11StoreScalarMetric\x12\r.ScalarMetric\x1a\x0c.NullMessage\"\x00\x62\x06proto3')
+  serialized_pb=_b('\n\x0c\x62ridge.proto\"\r\n\x0bNullMessage\"[\n\x0cScalarMetric\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\t\n\x01y\x18\x02 \x01(\x01\x12\x1c\n\x01x\x18\x03 \x01(\x0b\x32\x11.ScalarMetric.Arg\x1a\x14\n\x03\x41rg\x12\r\n\x05value\x18\x01 \x01(\x01\"\xd1\x03\n\x04Item\x12!\n\titem_type\x18\x01 \x01(\x0e\x32\x0e.Item.ItemType\x12\x10\n\x08\x64ict_key\x18\x02 \x01(\t\x12\x12\n\nbool_value\x18\x03 \x01(\x08\x12\x11\n\tint_value\x18\x04 \x01(\x12\x12\x13\n\x0b\x66loat_value\x18\x05 \x01(\x01\x12\x11\n\tstr_value\x18\x06 \x01(\t\x12+\n\x11numpy_array_value\x18\x08 \x01(\x0b\x32\x10.Item.NumpyArray\x1a\x46\n\nNumpyArray\x12\x0c\n\x04last\x18\x01 \x01(\x08\x12\r\n\x05\x64type\x18\x02 \x01(\t\x12\r\n\x05shape\x18\x03 \x03(\r\x12\x0c\n\x04\x64\x61ta\x18\x04 \x01(\x0c\"\xcf\x01\n\x08ItemType\x12\x0e\n\nTUPLE_OPEN\x10\x00\x12\x0f\n\x0bTUPLE_CLOSE\x10\x01\x12\r\n\tLIST_OPEN\x10\x02\x12\x0e\n\nLIST_CLOSE\x10\x03\x12\r\n\tDICT_OPEN\x10\x04\x12\x0e\n\nDICT_CLOSE\x10\x05\x12\x08\n\x04NONE\x10\x06\x12\x08\n\x04\x42OOL\x10\x07\x12\x07\n\x03INT\x10\x08\x12\t\n\x05\x46LOAT\x10\t\x12\x07\n\x03STR\x10\n\x12\x10\n\x0cNUMPY_INT_32\x10\x0b\x12\x10\n\x0cNUMPY_INT_64\x10\x0c\x12\x0f\n\x0bNUMPY_ARRAY\x10\r2}\n\x06\x42ridge\x12$\n\x04Init\x12\x0c.NullMessage\x1a\x0c.NullMessage\"\x00\x12\x19\n\x03Run\x12\x05.Item\x1a\x05.Item\"\x00(\x01\x30\x01\x12\x32\n\x11StoreScalarMetric\x12\r.ScalarMetric\x1a\x0c.NullMessage\"\x00\x62\x06proto3')
 )
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
@@ -32,58 +32,66 @@ _ITEM_ITEMTYPE = _descriptor.EnumDescriptor(
   file=DESCRIPTOR,
   values=[
     _descriptor.EnumValueDescriptor(
-      name='LIST_OPEN', index=0, number=0,
+      name='TUPLE_OPEN', index=0, number=0,
       options=None,
       type=None),
     _descriptor.EnumValueDescriptor(
-      name='LIST_CLOSE', index=1, number=1,
+      name='TUPLE_CLOSE', index=1, number=1,
       options=None,
       type=None),
     _descriptor.EnumValueDescriptor(
-      name='DICT_OPEN', index=2, number=2,
+      name='LIST_OPEN', index=2, number=2,
       options=None,
       type=None),
     _descriptor.EnumValueDescriptor(
-      name='DICT_CLOSE', index=3, number=3,
+      name='LIST_CLOSE', index=3, number=3,
       options=None,
       type=None),
     _descriptor.EnumValueDescriptor(
-      name='NONE', index=4, number=4,
+      name='DICT_OPEN', index=4, number=4,
       options=None,
       type=None),
     _descriptor.EnumValueDescriptor(
-      name='BOOL', index=5, number=5,
+      name='DICT_CLOSE', index=5, number=5,
       options=None,
       type=None),
     _descriptor.EnumValueDescriptor(
-      name='INT', index=6, number=6,
+      name='NONE', index=6, number=6,
       options=None,
       type=None),
     _descriptor.EnumValueDescriptor(
-      name='FLOAT', index=7, number=7,
+      name='BOOL', index=7, number=7,
       options=None,
       type=None),
     _descriptor.EnumValueDescriptor(
-      name='STR', index=8, number=8,
+      name='INT', index=8, number=8,
       options=None,
       type=None),
     _descriptor.EnumValueDescriptor(
-      name='NUMPY_INT_32', index=9, number=9,
+      name='FLOAT', index=9, number=9,
       options=None,
       type=None),
     _descriptor.EnumValueDescriptor(
-      name='NUMPY_INT_64', index=10, number=10,
+      name='STR', index=10, number=10,
       options=None,
       type=None),
     _descriptor.EnumValueDescriptor(
-      name='NUMPY_ARRAY', index=11, number=11,
+      name='NUMPY_INT_32', index=11, number=11,
+      options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='NUMPY_INT_64', index=12, number=12,
+      options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='NUMPY_ARRAY', index=13, number=13,
       options=None,
       type=None),
   ],
   containing_type=None,
   options=None,
   serialized_start=383,
-  serialized_end=557,
+  serialized_end=590,
 )
 _sym_db.RegisterEnumDescriptor(_ITEM_ITEMTYPE)
 
@@ -308,7 +316,7 @@ _ITEM = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=125,
-  serialized_end=557,
+  serialized_end=590,
 )
 
 _SCALARMETRIC_ARG.containing_type = _SCALARMETRIC

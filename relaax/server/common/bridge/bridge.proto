@@ -16,18 +16,20 @@ message ScalarMetric {
 
 message Item {
     enum ItemType {
-        LIST_OPEN = 0;
-        LIST_CLOSE = 1;
-        DICT_OPEN = 2;
-        DICT_CLOSE = 3;
-        NONE = 4;
-        BOOL = 5;
-        INT = 6;
-        FLOAT = 7;
-        STR = 8;
-        NUMPY_INT_32 = 9;
-        NUMPY_INT_64 = 10;
-        NUMPY_ARRAY = 11;
+        TUPLE_OPEN = 0;
+        TUPLE_CLOSE = 1;
+        LIST_OPEN = 2;
+        LIST_CLOSE = 3;
+        DICT_OPEN = 4;
+        DICT_CLOSE = 5;
+        NONE = 6;
+        BOOL = 7;
+        INT = 8;
+        FLOAT = 9;
+        STR = 10;
+        NUMPY_INT_32 = 11;
+        NUMPY_INT_64 = 12;
+        NUMPY_ARRAY = 13;
     }
 
     message NumpyArray {
