@@ -19,7 +19,7 @@ from ppaquette_gym_doom import wrappers
 from relaax.client.rlx_client_config import options
 
 
-class GymEnv(object):
+class DoomEnv(object):
     def __init__(self, level='ppaquette/DoomMyWayHome-v0'):
         env = gym.make(level)
 

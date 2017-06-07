@@ -74,8 +74,8 @@ class LabEnv(object):
             if self.env.is_running():
                 break
 
-        # return state
-        return self._process_state()
+        state = self._process_state()
+        return state
 
     def _process_state(self):
         screen = self.env.observations()['RGB_INTERLACED']
@@ -87,8 +87,8 @@ class LabEnv(object):
             screen = np.array(Image.fromarray(screen).resize(
                 (self._width, self._height), resample=Image.BILINEAR), dtype=np.uint8)
 
-        # return processed screen
-        return screen.astype(np.float32) * self._scale
+        processed_screen = screen.astype(np.float32) * self._scale
+        return processed_screen
 
 
 def _action(*entries):
