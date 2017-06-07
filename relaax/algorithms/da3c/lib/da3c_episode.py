@@ -124,25 +124,30 @@ class DA3CEpisode(object):
             r = self.last_value
 
         reward = experience['reward']
-        discounted_reward = np.zeros_like(reward, dtype=np.float32)
+        self.discounted_reward = np.zeros_like(reward, dtype=np.float32)
 
         # compute and accumulate gradients
         for t in reversed(range(len(reward))):
             r = reward[t] + da3c_config.config.rewards_gamma * r
-            discounted_reward[t] = r
+            self.discounted_reward[t] = r
 
         if da3c_config.config.use_lstm:
             return self.session.op_compute_gradients(
                     state=experience['state'], action=experience['action'],
-                    value=experience['value'], discounted_reward=discounted_reward,
+                    value=experience['value'], discounted_reward=self.discounted_reward,
                     lstm_state=self.lstm_state, lstm_step=[len(reward)])
 
         return self.session.op_compute_gradients(
                 state=experience['state'], action=experience['action'],
-                value=experience['value'], discounted_reward=discounted_reward)
+                value=experience['value'], discounted_reward=self.discounted_reward)
 
     def compute_icm_gradients(self, experience):
-        pass
+        states, icm_states = experience['state'], []
+        for i in range(len(states)-1):
+            icm_states.extend((states[i], states[i+1]))
+        return self.session.op_compute_icm_gradients(
+            state=icm_states, action=experience['action'],
+            discounted_reward=self.discounted_reward)
 
     def apply_gradients(self, gradients, experience_size):
         self.ps.session.op_apply_gradients(
