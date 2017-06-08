@@ -54,7 +54,7 @@ class _GameProcess(object):
         self._close_display = False
 
         if limit is not None and self.gym.env is not None:
-            self.gym.env._max_episode_steps = limit
+            self.gym._max_episode_steps = limit
 
         self._state = None
 
