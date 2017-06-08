@@ -16,7 +16,7 @@ def make_mlps(config):
         policy_net.add(ConcatFixedStd())
     else:
         policy_net.add(Dense(config.action_size, activation="softmax"))
-        policy_net.add(Lambda(lambda x: x * 0.1))
+        # policy_net.add(Lambda(lambda x: x * 0.1))
 
     value_net = Sequential()
     for (i, layeroutsize) in enumerate(config.hidden_layers_sizes):
