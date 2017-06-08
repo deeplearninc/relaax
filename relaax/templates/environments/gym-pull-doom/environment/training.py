@@ -1,19 +1,18 @@
-#!/usr/bin/env python
 from __future__ import print_function
 from builtins import object
 import traceback
 
 from relaax.client.rlx_client_config import options
 from relaax.client.rlx_client import RlxClient, RlxClientException
-from lab import LabEnv
+from doom_env import DoomEnv
 
 
 class Training(object):
 
     def __init__(self):
-        self.lab = LabEnv()
-        self.max_episodes = options.get('environment/max_episodes', 1000)
+        self.max_episodes = options.get('environment/max_episodes', 10000)
         self.infinite_run = options.get('environment/infinite_run', False)
+        self.gym = DoomEnv(level=options.get('environment/name', 'ppaquette/DoomMyWayHome-v0'))
         self.agent = RlxClient(options.get('relaax_rlx_server/bind', 'localhost:7001'))
 
     def run(self):
@@ -26,11 +25,11 @@ class Training(object):
             episode_cnt = 0
             while (episode_cnt < self.max_episodes) or self.infinite_run:
                 try:
-                    state = self.lab.reset()
+                    state = self.gym.reset()
                     reward, episode_reward, terminal = None, 0, False  # reward = 0 | None
                     action = self.agent.update(reward, state, terminal)
                     while not terminal:
-                        reward, state, terminal = self.lab.act(action)
+                        reward, state, terminal = self.gym.act(action)
                         action = self.agent.update(reward, state, terminal)
                         episode_reward += reward
                     episode_cnt += 1

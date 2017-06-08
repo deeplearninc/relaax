@@ -2,7 +2,7 @@
 
 environment:
   run: python environment/training.py
-  name: CartPole-v0
+  name: tests/read_map
   max_episodes: 1000
   infinite_run: False
 
@@ -20,24 +20,25 @@ algorithm:
   name: da3c
 
   input:
-    shape: [4]
-    history: 1
-    use_convolutions: false
+    shape: [84, 84]
+    history: 4
+    use_convolutions: true
 
   output:
     continuous: false
-    action_size: 2                # action size for the given environment
+    action_size: 6                # action size for the given environment
 
   batch_size: 5                   # local loop size for one episode
 
   gpu: false                      # to use GPU, set to the True
-  lstm: false                     # to use LSTM instead of FF, set to the True
+  lstm: true                      # to use LSTM instead of FF, set to the True
   max_global_step: 1e8            # amount of maximum global steps to pass through the training
 
-  learning_rate: 1e-2
+  learning_rate: 7e-4
   entropy_beta: 1e-2              # entropy regularization constant
   rewards_gamma: 0.99             # rewards discount factor
+
   RMSProp:
     decay: 0.99
     epsilon: 0.1
-    gradient_norm_clipping: 40
+  gradient_norm_clipping: 40
