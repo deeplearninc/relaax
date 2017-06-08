@@ -13,7 +13,7 @@ from relaax.cmdl.commands.cmd_generate import CmdGenerate
 DEFAULT_ALGORITHMS_FOR_ENV = {
     'basic': 'policy-gradient',
     'openai-gym': 'da3c',
-    'deepmind-lab': 'trpo'
+    'deepmind-lab': 'da3c'
 }
 
 
