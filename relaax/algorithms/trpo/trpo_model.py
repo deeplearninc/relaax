@@ -22,13 +22,16 @@ class Network(subgraph.Subgraph):
 # all agents and stored on the parameter server
 class SharedParameters(subgraph.Subgraph):
     def wait_for_iteration(self, session):
-        return self._ps.bridge().wait_for_iteration()
+        return self._ps_bridge.wait_for_iteration()
+
+    def send_experience(self, session, n_iter, paths, length):
+        self._ps_bridge.send_experience(n_iter, paths, length)
 
     def receive_weights(self, session, n_iter):
-        return []
+        return self._ps_bridge.receive_weights(n_iter)
 
     def build_graph(self):
-        self._ps = parameter_server.ParameterServer(trpo_config.config, None, None)
+        self._ps_bridge = parameter_server.ParameterServer(trpo_config.config, None, None).bridge()
 
         # Build graph
         sg_global_step = graph.GlobalStep()
@@ -39,6 +42,7 @@ class SharedParameters(subgraph.Subgraph):
         self.op_initialize = self.Op(sg_initialize)
 
         self.call_wait_for_iteration = self.Call(self.wait_for_iteration)
+        self.call_send_experience = self.Call(self.send_experience)
         self.call_receive_weights = self.Call(self.receive_weights)
 
 

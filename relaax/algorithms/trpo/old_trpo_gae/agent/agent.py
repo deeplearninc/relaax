@@ -81,7 +81,7 @@ class Agent(object):
         self.server_latency_accumulator = 0
         self.metrics().scalar('server latency', latency)
 
-        self._send_experience(terminated=(self._episode_timestep < self._config.timestep_limit))
+        self._send_experience(terminated=(self._episode_timestep < self._config.PG_OPTIONS.timestep_limit))
         return score
 
     def reward(self, reward):
@@ -100,7 +100,7 @@ class Agent(object):
         if self._config.use_filter:
             mean, std = self.obs_filter.rs.get_diff()
             self.data["filter_diff"] = (self._episode_timestep, mean, std)
-        self.ps.session.call_send_experience(self._n_iter, self.data, self._episode_timestep)
+        self.ps.session.call_send_experience(self._n_iter, dict(self.data), self._episode_timestep)
 
         self.data.clear()
         self._episode_timestep = 0
@@ -112,7 +112,7 @@ class Agent(object):
             self._n_iter = old_n_iter
             return
 
-        if self._n_iter > self._config.n_iter:
+        if self._n_iter > self._config.PG_OPTIONS.n_iter:
             self._stop_training = True
             return
 
@@ -126,4 +126,4 @@ class Agent(object):
             self.obs_filter.rs.set(*state)
 
     def metrics(self):
-        return self.ps.session.metrics()
+        return self.ps.metrics

@@ -10,7 +10,7 @@ algorithm:
     continuous: true
     action_size: 1                # action size for the given environment
 
-  hidden_sizes: [5, 10]
+  hidden_sizes: [64, 64]
   activation: tanh                # activation function for MLP
   use_filter: false               # use average filter of the incoming observations and rewards
   async: false                    # set to true to collect experience without blocking the updater
@@ -18,7 +18,7 @@ algorithm:
   PG_OPTIONS:
     timestep_limit: 200           # length in steps for one round in environment
     n_iter: 10000                 # number of updates to pass through the training (training length)
-    timesteps_per_batch: 2000     # number of experience to collect before update
+    timesteps_per_batch: 5000     # number of experience to collect before update
     rewards_gamma: 0.995          # rewards discount factor
     gae_lambda: 0.97              # lambda from generalized advantage estimation
 

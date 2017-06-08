@@ -276,7 +276,7 @@ class LbfgsOptimizer(EzFlat):
             self.all_losses.update(extra_losses)
 
         self.f_lossgrad = TensorFlowLazyFunction(list(symb_args), [loss, flatgrad(loss, params)], session)
-        self.f_losses = TensorFlowLazyFunction(symb_args, self.all_losses.values(), session)
+        self.f_losses = TensorFlowLazyFunction(symb_args, list(self.all_losses.values()), session)
         self.maxiter = maxiter
 
     def update(self, *args):
@@ -289,9 +289,12 @@ class LbfgsOptimizer(EzFlat):
             return l, g
 
         losses_before = self.f_losses(*args)
+        print('lossandgrad', repr(lossandgrad))
+        print('thprev', repr(thprev))
+        print('self.maxiter', repr(self.maxiter))
         theta, _, opt_info = scipy.optimize.fmin_l_bfgs_b(lossandgrad, thprev, maxiter=self.maxiter)
         del opt_info['grad']
-        print(opt_info)     # future
+        print('opt_info', opt_info)     # future
 
         self.set_params_flat(theta)
         losses_after = self.f_losses(*args)

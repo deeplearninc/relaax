@@ -118,7 +118,7 @@ class TrpoUpdater(EzFlat, EzPickle):
         thprev = self.get_params_flat()
 
         def fisher_vector_product(p):
-            return self.compute_fisher_vector_product(p, *args) + cfg.cg_damping * p
+            return self.compute_fisher_vector_product(p, *args) + cfg.TRPO.cg_damping * p
 
         g = self.compute_policy_gradient(*args)
         losses_before = self.compute_losses(*args)
@@ -128,7 +128,7 @@ class TrpoUpdater(EzFlat, EzPickle):
         else:
             stepdir = cg(fisher_vector_product, -g)
             shs = .5*stepdir.dot(fisher_vector_product(stepdir))
-            lm = np.sqrt(shs / cfg.max_kl)
+            lm = np.sqrt(shs / cfg.TRPO.max_kl)
             print("lagrange multiplier:", lm, "gnorm:", np.linalg.norm(g))
             fullstep = stepdir / lm
             neggdotstepdir = -g.dot(stepdir)
