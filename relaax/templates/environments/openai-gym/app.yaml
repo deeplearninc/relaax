@@ -1,7 +1,7 @@
 ---
 
 environment:
-  run: python3 environment/training.py
+  run: python environment/training.py
   name: CartPole-v0
   max_episodes: 1000
   infinite_run: False

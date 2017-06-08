@@ -1,7 +1,7 @@
 ---
 
 environment:
-  run: python3 environment/training.py
+  run: python environment/training.py
   name: ppaquette/DoomMyWayHome-v0
   max_episodes: 10000
   infinite_run: False
