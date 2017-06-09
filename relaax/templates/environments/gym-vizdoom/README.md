@@ -29,7 +29,7 @@ olefile==0.44
 pbr==3.0.1
 Pillow==4.1.1
 ppaquette-gym-doom==0.0.6
-protobuf=>3.1.0,<=3.3.0
+protobuf>=3.1.0,<=3.3.0
 pyglet==1.2.4
 requests==2.17.3
 six==1.10.0
