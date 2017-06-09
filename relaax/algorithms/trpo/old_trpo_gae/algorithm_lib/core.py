@@ -3,9 +3,9 @@ import scipy.optimize
 from keras.layers.core import Layer
 from collections import OrderedDict
 
-from .distributions import *
-from .misc_utils import *
-from .filters import *
+from distributions import *
+from misc_utils import *
+from filters import *
 
 dtype = tf.float32
 concat = np.concatenate
@@ -30,7 +30,7 @@ class ConcatFixedStd(Layer):
     def get_output_shape_for(self, input_shape):
         return input_shape[0], input_shape[1] * 2
 
-    def call(self, x):
+    def call(self, x, mask):
         Mean = x  # Mean = x * 0.1
         Std = tf.tile(tf.reshape(tf.exp(self.logstd), [1, -1]), (tf.shape(Mean)[0], 1))
         return tf.concat([Mean, Std], axis=1)
@@ -74,16 +74,17 @@ class Categorical(ProbType):
         return tf.placeholder(dtype, name='prob')
 
     def likelihood(self, a, prob):
-        return prob[tf.range(prob.shape[0]), a]
+        return tf.reduce_sum(prob * tf.one_hot(a, self.n), axis=1)
+        # prob[tf.range(prob.shape[0]), a]
 
     def loglikelihood(self, a, prob):
         return tf.log(self.likelihood(a, prob))
 
     def kl(self, prob0, prob1):
-        return (prob0 * tf.log(prob0 / prob1)).sum(axis=1)
+        return tf.reduce_sum((prob0 * tf.log(prob0 / prob1)), axis=1)
 
     def entropy(self, prob0):
-        return - (prob0 * tf.log(prob0)).sum(axis=1)
+        return -tf.reduce_sum((prob0 * tf.log(prob0)), axis=1)
 
     @staticmethod
     def sample(prob):
@@ -91,7 +92,7 @@ class Categorical(ProbType):
         return categorical_sample(prob)
 
     def maxprob(self, prob):
-        return prob.argmax(axis=1)
+        return tf.argmax(prob, axis=1)
 
 
 class DiagGauss(ProbType):
@@ -276,7 +277,7 @@ class LbfgsOptimizer(EzFlat):
             self.all_losses.update(extra_losses)
 
         self.f_lossgrad = TensorFlowLazyFunction(list(symb_args), [loss, flatgrad(loss, params)], session)
-        self.f_losses = TensorFlowLazyFunction(symb_args, list(self.all_losses.values()), session)
+        self.f_losses = TensorFlowLazyFunction(symb_args, self.all_losses.values(), session)
         self.maxiter = maxiter
 
     def update(self, *args):
@@ -289,9 +290,6 @@ class LbfgsOptimizer(EzFlat):
             return l, g
 
         losses_before = self.f_losses(*args)
-        print('lossandgrad', repr(lossandgrad))
-        print('thprev', repr(thprev))
-        print('self.maxiter', repr(self.maxiter))
         theta, _, opt_info = scipy.optimize.fmin_l_bfgs_b(lossandgrad, thprev, maxiter=self.maxiter)
         del opt_info['grad']
         print('opt_info', opt_info)     # future
