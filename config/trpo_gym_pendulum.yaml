@@ -1,12 +1,12 @@
 ---
 
-# This is an example of configuration to train TRPO-GAE with gym's CartPole-v0.
+# This is an example of configuration to train TRPO-GAE with gym's Pendulum-v0.
 #
 # To run this training navigate to empty directory next to relaax repo,
 # open three terminals there and run:
-# relaax-parameter-server --config ../relaax/config/trpo_gym_cartpole.yaml
-# relaax-rlx-server --config ../relaax/config/trpo_gym_cartpole.yaml
-# ../relaax/environments/OpenAI_Gym/main --rlx-server localhost:7001 --env CartPole-v0
+# relaax-parameter-server --config ../relaax/config/trpo_gym_pendulum.yaml
+# relaax-rlx-server --config ../relaax/config/trpo_gym_pendulum.yaml
+# ../relaax/environments/OpenAI_Gym/main --rlx-server localhost:7001 --env Pendulum-v0
 
 relaax-parameter-server:
   --bind: localhost:7000
@@ -22,18 +22,18 @@ relaax-rlx-server:
 algorithm:
   path: ../relaax/algorithms/trpo_gae
 
-  action_size: 2                  # action size for the given environment
-  state_size: [4]                 # array of dimensions for the input observation
+  action_size: 1                  # action size for the given environment
+  state_size: [3]                 # array of dimensions for the input observation
   hidden_layers_sizes: [64, 64]   # number of hidden units for MLP
   activation: tanh                # activation function for MLP
   use_filter: false               # use average filter of the incoming observations and rewards
-  discrete: true                  # switch between continuous and discrete action spaces
+  discrete: false                 # switch between continuous and discrete action spaces
   async: false                    # set to true to collect experience without blocking the updater
 
   PG_OPTIONS:
     timestep_limit: 200           # length in steps for one round in environment
     n_iter: 1000                  # number of updates to pass through the training (training length)
-    timesteps_per_batch: 2000     # number of experience to collect before update
+    timesteps_per_batch: 5000     # number of experience to collect before update
     rewards_gamma: 0.995          # rewards discount factor
     gae_lambda: 0.97              # lambda from generalized advantage estimation
 
