@@ -18,7 +18,7 @@ $ pip install gym-pull
 $ pip install ppaquette-gym-doom
 ```
 
-Finally, you list of python packages should like as follows:
+Finally, your list of python packages should like as follows:
 ```bash
 doom-py==0.0.15
 gym>=0.8.1,<=0.9.1
