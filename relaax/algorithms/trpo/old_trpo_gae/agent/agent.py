@@ -100,7 +100,7 @@ class Agent(object):
         if self._config.use_filter:
             mean, std = self.obs_filter.rs.get_diff()
             self.data["filter_diff"] = (self._episode_timestep, mean, std)
-        self.ps.session.call_send_experience(self._n_iter, self.data, self._episode_timestep)
+        self.ps.session.call_send_experience(self._n_iter, dict(self.data), self._episode_timestep)
 
         self.data.clear()
         self._episode_timestep = 0

@@ -30,7 +30,7 @@ class ConcatFixedStd(Layer):
     def get_output_shape_for(self, input_shape):
         return input_shape[0], input_shape[1] * 2
 
-    def call(self, x, mask):
+    def call(self, x):
         Mean = x  # Mean = x * 0.1
         Std = tf.tile(tf.reshape(tf.exp(self.logstd), [1, -1]), (tf.shape(Mean)[0], 1))
         return tf.concat([Mean, Std], axis=1)

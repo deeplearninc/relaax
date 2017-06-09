@@ -153,56 +153,6 @@ class _BridgeAsync(_Bridge):
         self._ps.update_paths(paths, length)
 
 
-class _Checkpoint(relaax.server.common.saver.checkpoint.Checkpoint):
-    _PNET_S = 'pnet-%d-%d.h5'
-    _PNET_RE = re.compile('^pnet-(\d+)-(\d+).h5$')
-
-    _VNET_S = 'vnet-%d-%d.h5'
-    _VNET_RE = re.compile('^vnet-(\d+)-(\d+).h5$')
-
-    _DATA_S = 'data-%d-%d.p'
-    _DATA_RE = re.compile('^data-(\d+)-(\d+).p$')
-
-    def __init__(self, ps):
-        self._ps = ps
-
-    def checkpoint_ids(self, names):
-        ids = set()
-        for name in names:
-            match = self._DATA_RE.match(name)
-            if match is not None:
-                ids.add((int(match.group(1)), int(match.group(2))))
-        return ids
-
-    def checkpoint_names(self, names, checkpoint_id):
-        items = (
-            self._PNET_S % checkpoint_id,
-            self._VNET_S % checkpoint_id,
-            self._DATA_S % checkpoint_id
-        )
-        return tuple(set(names) & set(items))
-
-    def restore_checkpoint(self, dir, checkpoint_id):
-        self._ps.policy_net.load_weights(os.path.join(dir, self._PNET_S % checkpoint_id))
-        self._ps.value_net.load_weights(os.path.join(dir, self._VNET_S % checkpoint_id))
-        with open(os.path.join(dir, self._DATA_S % checkpoint_id), 'rb') as f:
-            if self._ps.config.use_filter:
-                self._ps.paths, self._ps.global_step, self._ps.M, self._ps.S = load(f)
-            else:
-                self._ps.paths, self._ps.global_step = load(f)
-
-    def save_checkpoint(self, dir, checkpoint_id):
-        if not os.path.exists(dir):
-            os.makedirs(dir)
-        self._ps.policy_net.save_weights(os.path.join(dir, self._PNET_S % checkpoint_id))
-        self._ps.value_net.save_weights(os.path.join(dir, self._VNET_S % checkpoint_id))
-        with open(os.path.join(dir, self._DATA_S % checkpoint_id), 'wb') as f:
-            if self._ps.config.use_filter:
-                dump((self._ps.paths[:], self._ps.global_step, self._ps.M, self._ps.S), f)
-            else:
-                dump((self._ps.paths[:], self._ps.global_step), f)
-
-
 def discount(x, gamma):
     """
     computes discounted sums along 0th dimension of x.
@@ -219,5 +169,6 @@ def discount(x, gamma):
         y[t] = x[t] + gamma*x[t+1] + gamma^2*x[t+2] + ... + gamma^k x[t+k],
                 where k = len(x) - t - 1
     """
+    x = np.array(x)
     assert x.ndim >= 1
     return lfilter([1], [1, -gamma], x[::-1], axis=0)[::-1]
