@@ -40,6 +40,11 @@ class MDLab(object):
             if not self._is_container_exists():
                 print "Building container"
                 self._build_container()
+            if platform.system() == 'Darwin' and self.show_ui:
+                print 'Starting VNC viewer...'
+                cmd = 'sleep 5 && open vnc://user:password@127.0.0.1:5901'
+                print cmd
+                subprocess.Popen(cmd, shell=True)
             print "Starting docker container"
             self._start_container()
 

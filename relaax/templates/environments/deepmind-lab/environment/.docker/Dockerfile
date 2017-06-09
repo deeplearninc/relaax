@@ -117,5 +117,5 @@ ENV APP_DIR /app
 WORKDIR $APP_DIR
 
 # Finally, start application
-# CMD ["--show-ui", "false"]
-# ENTRYPOINT ["python", "environment/start.py", "--config", "/app/app.yaml"]
+CMD ["--show-ui", "false"]
+ENTRYPOINT ["python", "environment/start.py", "--config", "/app/app.yaml"]
