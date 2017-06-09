@@ -32,6 +32,23 @@ os.execv(path_to_lab_client, args)
 
 You also have to set `executable` rights for `training.py`
 
+### For Mac users
+
+We have to run DeepMind Lab inside docker container. In order to connect to Host from the docker container, we have to know IP address of the Host. Internally, we are using following script to get that IP:
+```bash
+ifconfig | grep -E "([0-9]{1,3}\.){3}[0-9]{1,3}" | grep -v 127.0.0.1 | awk '{ print $2 }' | cut -f2 -d: | head -n1
+``` 
+You may decide to use loopback alias instead as described here:  
+https://docs.docker.com/docker-for-mac/networking/#use-cases-and-workarounds
+
+Set that alias using, for example like this:
+```bash
+sudo ifconfig lo0 alias 123.123.123.123/24
+```
+and replace RLX server binding to 123.123.123.123 (or whatever IP address you used) in app.yaml
+
+Note: loopback alias is not persistent and should be reset after each Host reboot 
+
 ### Use a custom map
 
 #### Location of main read_map script

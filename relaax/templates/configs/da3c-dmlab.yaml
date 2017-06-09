@@ -1,21 +1,3 @@
-environment:
-  run: python environment/start.py
-  lab_path: /lab
-  name: tests/read_map
-  max_episodes: 1000
-  infinite_run: False
-  run_in_container: False
-
-relaax-parameter-server:
-  --bind: localhost:7000
-  --metrics-dir: logs/metrics
-  --checkpoint-dir: logs/checkpoints
-  --log-level: INFO
-
-relaax-rlx-server:
-  --bind: 0.0.0.0:7001
-  --log-level: INFO
-
 algorithm:
   name: da3c
 

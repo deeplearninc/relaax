@@ -52,10 +52,10 @@ class CmdGenerate(object):
 
         self.ctx.log('Created %s %s in %s' % (template_name, template_type, target_path))
 
-    def create_default_config(self):
+    def create_default_config(self, environment):
         module_path = os.path.dirname(os.path.abspath(__file__))
         default_config = os.path.abspath(os.path.join(
-            module_path, '../../templates/environments/basic/app.yaml'))
+            module_path, '../../templates/environments/%s/app.yaml' % environment))
         shutil.copy2(default_config, self.app_path)
 
 

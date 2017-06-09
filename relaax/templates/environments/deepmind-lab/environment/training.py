@@ -3,8 +3,8 @@ from __future__ import print_function
 from builtins import object
 import traceback
 
-from relaax.client.rlx_client_config import options
 from relaax.client.rlx_client import RlxClient, RlxClientException
+from config import options
 from lab import LabEnv
 
 
@@ -14,7 +14,10 @@ class Training(object):
         self.lab = LabEnv()
         self.max_episodes = options.get('environment/max_episodes', 1000)
         self.infinite_run = options.get('environment/infinite_run', False)
-        self.agent = RlxClient(options.get('relaax_rlx_server/bind', 'localhost:7001'))
+        rlx_address = options.get('rlx_server_address', None)
+        if rlx_address is None:
+            rlx_address = options.get('relaax_rlx_server/bind', 'localhost:7001')
+        self.agent = RlxClient(rlx_address)
 
     def run(self):
         try:

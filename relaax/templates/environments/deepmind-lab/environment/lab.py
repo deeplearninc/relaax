@@ -9,7 +9,7 @@ import random
 from PIL import Image
 import deepmind_lab
 
-from relaax.client.rlx_client_config import options
+from config import options
 
 
 class LabEnv(object):

@@ -13,7 +13,7 @@ from relaax.cmdl.commands.cmd_generate import CmdGenerate
 DEFAULT_ALGORITHMS_FOR_ENV = {
     'basic': 'policy-gradient',
     'openai-gym': 'da3c',
-    'deepmind-lab': 'da3c'
+    'deepmind-lab': 'da3c-dmlab'
 }
 
 
@@ -44,7 +44,7 @@ class NewApp(object):
             app_path = self.mk_app_folder()
             cmd_genereate = CmdGenerate(self.ctx, app_path + '/', self.algorithm, self.environment,
                                         copy_algorithm=False, create_config_backup=False)
-            cmd_genereate.create_default_config()
+            cmd_genereate.create_default_config(self.environment)
             cmd_genereate.apply()
 
             if self.environment == 'openai-gym':
