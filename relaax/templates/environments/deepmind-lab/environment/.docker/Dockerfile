@@ -118,4 +118,4 @@ WORKDIR $APP_DIR
 
 # Finally, start application
 CMD ["--show-ui", "false"]
-ENTRYPOINT ["python", "environment/start.py", "--config", "/app/app.yaml"]
+ENTRYPOINT ["python", "environment/start-lab.py", "--config", "/app/app.yaml"]

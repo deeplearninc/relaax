@@ -1,5 +1,5 @@
 environment:
-  run: python environment/start.py
+  run: python environment/start-container.py
   lab_path: /lab
   name: tests/read_map
   max_episodes: 1000
