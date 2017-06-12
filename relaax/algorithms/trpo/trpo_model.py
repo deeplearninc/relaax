@@ -8,8 +8,7 @@ from relaax.common.algorithms.lib import loss
 from relaax.common.algorithms.lib import utils
 
 from . import trpo_config
-
-from .old_trpo_gae.parameter_server import parameter_server
+from .lib import trpo_graph
 
 
 class Network(subgraph.Subgraph):
@@ -31,9 +30,10 @@ class SharedParameters(subgraph.Subgraph):
         return self._ps_bridge.receive_weights(n_iter)
 
     def build_graph(self):
-        self._ps_bridge = parameter_server.ParameterServer(trpo_config.config, None, None).bridge()
-
         # Build graph
+        
+        sg_n_iter = trpo_graph.NIter()
+
         sg_global_step = graph.GlobalStep()
         sg_initialize = graph.Initialize()
 
@@ -44,6 +44,12 @@ class SharedParameters(subgraph.Subgraph):
         self.call_wait_for_iteration = self.Call(self.wait_for_iteration)
         self.call_send_experience = self.Call(self.send_experience)
         self.call_receive_weights = self.Call(self.receive_weights)
+
+        self.op_turn_collect_on = sg_n_iter.op_turn_collect_on
+        self.op_turn_collect_off = sg_n_iter.op_turn_collect_off
+        self.op_n_iter_value = sg_n_iter.op_n_iter_value
+        self.op_n_iter = sg_n_iter.op_n_iter
+        self.op_next_iter = sg_n_iter.op_next_iter
 
 
 # Policy run by Agent(s)

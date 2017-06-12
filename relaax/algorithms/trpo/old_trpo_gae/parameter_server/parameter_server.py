@@ -8,15 +8,15 @@ import numpy as np
 from scipy.signal import lfilter
 from time import time
 
-from . import network
+from ..common import network
 
 
 class ParameterServer(object):
-    def __init__(self, config, saver_factory, metrics):
-        self.n_iter = 0             # number of updates within training process
+    def __init__(self, config, saver_factory, metrics, relaax_session):
+        self.relaax_session = relaax_session
+
         self.config = config        # common configuration, which is rewritten by yaml
 
-        self.is_collect = True      # set to False if TRPO is under update procedure (for sync only)
         self.paths = []             # experience accumulator
         self.paths_len = 0          # length of experience
         self.global_step = 0        # step accumulator of whole experience through all updates
@@ -27,10 +27,10 @@ class ParameterServer(object):
         self._session = tf.Session()
         keras.backend.set_session(self._session)
 
-        self.policy_net, self.value_net = network.make(config)
+        self.policy_net, self.value_net = network.make_mlps(config)
 
-        self.policy, self.baseline = network.make_head(config, self.policy_net, self.value_net, self._session)
-        self.trpo_updater = network.make_trpo(config, self.policy, self._session)
+        self.policy, self.baseline = network.make_wrappers(config, self.policy_net, self.value_net, self._session)
+        self.trpo_updater = network.TrpoUpdater(config, self.policy, self._session)
 
         self._saver = None
 
@@ -53,7 +53,7 @@ class ParameterServer(object):
             self._saver.restore_checkpoint(max(checkpoint_ids))
 
     def save_checkpoint(self):
-        self._saver.save_checkpoint((self.n_iter, self.paths_len))
+        self._saver.save_checkpoint((self.n_iter(), self.paths_len))
 
     def checkpoint_location(self):
         return self._saver.location()
@@ -75,18 +75,18 @@ class ParameterServer(object):
             self.paths = []
 
     def trpo_update(self):
-        self.is_collect = False
+        self.relaax_session.op_turn_collect_off()
         start = time()
 
-        self.n_iter += 1
+        self.relaax_session.op_next_iter()
         self.compute_advantage()
         # Value Update
         vf_stats = self.baseline.fit(self.paths)
         # Policy Update
         pol_stats = self.trpo_updater(self.paths)
 
-        print('Update time for {} iteration: {}'.format(self.n_iter, time() - start))
-        self.is_collect = True
+        print('Update time for {} iteration: {}'.format(self.n_iter(), time() - start))
+        self.relaax_session.op_turn_collect_on()
 
     def compute_advantage(self):
         # Compute & Add to paths: return, baseline, advantage
@@ -113,6 +113,9 @@ class ParameterServer(object):
         self.M = (self.M*self.global_step + diff[1]) / (self.global_step + diff[0])
         self.S += diff[2]
 
+    def n_iter(self):
+        return self.relaax_session.op_n_iter_value()
+
 
 class _Bridge(object):
     def __init__(self, metrics, ps):
@@ -126,16 +129,14 @@ class _Bridge(object):
         return self._ps.filter_state()
 
     def wait_for_iteration(self):
-        if self._ps.is_collect:
-            return self._ps.n_iter
-        return -1
+        return self._ps.relaax_session.op_n_iter()
 
     def send_experience(self, n_iter, paths, length):
-        if n_iter == self._ps.n_iter:
+        if n_iter == self._ps.n_iter():
             self._ps.update_paths(paths, length)
 
     def receive_weights(self, n_iter):
-        assert n_iter == self._ps.n_iter    # check iteration
+        assert n_iter == self._ps.n_iter()    # check iteration
         return self._ps.policy_net.get_weights()
 
     def metrics(self):
@@ -147,7 +148,7 @@ class _BridgeAsync(_Bridge):
         super(_BridgeAsync, self).__init__(metrics, ps)
 
     def wait_for_iteration(self):
-        return self._ps.n_iter
+        return self._ps.n_iter()
 
     def send_experience(self, n_iter, paths, length):
         self._ps.update_paths(paths, length)
