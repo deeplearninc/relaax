@@ -39,6 +39,7 @@ class SharedParameters(subgraph.Subgraph):
 
         # Expose public API
         self.op_n_step = self.Op(sg_global_step.n)
+        self.op_inc_step = self.Op(sg_global_step.increment, increment=sg_global_step.ph_increment)
         self.op_initialize = self.Op(sg_initialize)
 
         self.call_wait_for_iteration = self.Call(self.wait_for_iteration)

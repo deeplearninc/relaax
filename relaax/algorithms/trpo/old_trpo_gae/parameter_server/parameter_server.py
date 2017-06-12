@@ -19,7 +19,6 @@ class ParameterServer(object):
 
         self.paths = []             # experience accumulator
         self.paths_len = 0          # length of experience
-        self.global_step = 0        # step accumulator of whole experience through all updates
 
         # inform Keras that we are going to initialize variables here
         keras.backend.manual_variable_initialization(True)
@@ -62,7 +61,7 @@ class ParameterServer(object):
         return self._bridge
 
     def update_paths(self, paths, length):
-        self.global_step += length
+        self.relaax_session.op_inc_step(increment=length)
         self.paths_len += length
         self.paths.append(paths)
 
@@ -104,13 +103,13 @@ class ParameterServer(object):
             path["advantage"] = (path["advantage"] - mean) / std
 
     def global_t(self):
-        return self.global_step
+        return self.relaax_session.op_n_step()
 
     def filter_state(self):
-        return self.global_step, self.M, self.S
+        return self.relaax_session.op_n_step(), self.M, self.S
 
     def update_filter_state(self, diff):
-        self.M = (self.M*self.global_step + diff[1]) / (self.global_step + diff[0])
+        self.M = (self.M*self.relaax_session.op_n_step() + diff[1]) / (self.relaax_session.op_n_step() + diff[0])
         self.S += diff[2]
 
     def n_iter(self):
