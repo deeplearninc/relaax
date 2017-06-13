@@ -46,7 +46,9 @@ class MDLabContainer(object):
                 raise ValueError("Can't parse RLX server address.")
 
         host, port = parse_address(options.get('relaax_rlx_server/bind', '0.0.0.0:7001'))
-        if host == '0.0.0.0':
+        if platform.system() == 'Linux':
+            host = '127.0.0.1'
+        elif host == '0.0.0.0':
             host = subprocess.check_output(
                 'ifconfig | grep -E "([0-9]{1,3}\.){3}[0-9]{1,3}" | grep -v 127.0.0.1 |'
                 ' awk \'{ print $2 }\' | cut -f2 -d: | head -n1',
@@ -55,9 +57,11 @@ class MDLabContainer(object):
 
     def _start_container(self):
         try:
+            if platform.system() == 'Linux':
+                net = '--net host'
             rlx_address = self._get_rlx_address()
-            cmd = ('docker run --name %s -t %s -v ${PWD}:/app %s --show-ui %s --rlx-server-address %s')
-            cmd = cmd % (CONTAINER_NAME, '-p 5901:5901' if self.show_ui else '',
+            cmd = ('docker run %s --name %s -t %s -v ${PWD}:/app %s --show-ui %s --rlx-server-address %s')
+            cmd = cmd % (net, CONTAINER_NAME, '-p 5901:5901' if self.show_ui else '',
                          self.image_name, self.show_ui, rlx_address)
             print cmd
             subprocess.call(cmd, shell=True)

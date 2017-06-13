@@ -37,7 +37,11 @@ class Training(object):
                         action = self.agent.update(reward, state, terminal)
                         episode_reward += reward
                     episode_cnt += 1
-                    print('Episode:', episode_cnt, '| reward:', episode_reward)
+                    print('*************************************\n'
+                          '*************************************\n'
+                          '***** Episode:', episode_cnt, '| reward:', episode_reward, '*****\n'
+                          '*************************************\n'
+                          '*************************************\n')
                     self.agent.metrics.scalar('Game-Score', episode_reward)
 
                 except RlxClientException as e:
