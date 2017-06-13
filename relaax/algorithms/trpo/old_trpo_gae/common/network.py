@@ -51,15 +51,14 @@ def make_wrappers(config, policy_net, value_net, session):
     return policy, baseline
 
 
-class TrpoUpdater(EzFlat, EzPickle):
+class TrpoUpdater(object):
     def __init__(self, config, stochpol, session):
-        EzPickle.__init__(self, stochpol, config)
         self.cfg = config
         self.stochpol = stochpol
 
         probtype = stochpol.probtype
         params = stochpol.trainable_variables
-        EzFlat.__init__(self, params, session)
+        self.ezflat = EzFlat(params, session)
 
         ob_no = stochpol.input
         act_na = probtype.sampled_variable()
@@ -115,7 +114,7 @@ class TrpoUpdater(EzFlat, EzPickle):
         args = (ob_no, action_na, advantage_n, prob_np)
 
         cfg = self.cfg
-        thprev = self.get_params_flat()
+        thprev = self.ezflat.get_params_flat()
 
         def fisher_vector_product(p):
             return self.compute_fisher_vector_product(p, *args) + cfg.TRPO.cg_damping * p
@@ -134,12 +133,12 @@ class TrpoUpdater(EzFlat, EzPickle):
             neggdotstepdir = -g.dot(stepdir)
 
             def loss(th):
-                self.set_params_flat(th)
+                self.ezflat.set_params_flat(th)
                 return self.compute_losses(*args)[0]
 
             success, theta = linesearch(loss, thprev, fullstep, neggdotstepdir/lm)
             print("success", success)
-            self.set_params_flat(theta)
+            self.ezflat.set_params_flat(theta)
 
         losses_after = self.compute_losses(*args)
 

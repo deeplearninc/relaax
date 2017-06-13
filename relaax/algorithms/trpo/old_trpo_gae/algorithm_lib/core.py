@@ -135,38 +135,8 @@ class DiagGauss(ProbType):
         return prob[:, :self.d]
 
 
-class StochPolicy(object):
-    @property
-    def probtype(self):
-        raise NotImplementedError
-
-    @property
-    def trainable_variables(self):
-        raise NotImplementedError
-
-    @property
-    def input(self):
-        raise NotImplementedError
-
-    def get_output(self):
-        raise NotImplementedError
-
-    def act(self, ob, stochastic=True):
-        prob = self._act_prob(ob[None])
-        if stochastic:
-            return self.probtype.sample(prob)[0], {"prob": prob[0]}
-        else:
-            return self.probtype.maxprob(prob)[0], {"prob": prob[0]}
-
-    def finalize(self, session):
-        # misc_utils.TensorFlowLazyFunction
-        self._act_prob = TensorFlowLazyFunction([self.input], self.get_output(), session)
-
-
-class StochPolicyKeras(StochPolicy, EzPickle):
+class StochPolicyKeras(object):
     def __init__(self, net, probtype, session):
-        # misc_utils.EzPickle
-        EzPickle.__init__(self, net, probtype)
         self._net = net
         self._probtype = probtype
         self.finalize(session)
@@ -193,6 +163,17 @@ class StochPolicyKeras(StochPolicy, EzPickle):
 
     def get_output(self):
         return self._net.output
+
+    def act(self, ob, stochastic=True):
+        prob = self._act_prob(ob[None])
+        if stochastic:
+            return self.probtype.sample(prob)[0], {"prob": prob[0]}
+        else:
+            return self.probtype.maxprob(prob)[0], {"prob": prob[0]}
+
+    def finalize(self, session):
+        # misc_utils.TensorFlowLazyFunction
+        self._act_prob = TensorFlowLazyFunction([self.input], self.get_output(), session)
 
     def get_updates(self):
         return self._net.updates
@@ -267,9 +248,9 @@ class EzFlat(object):
         return self.gf()
 
 
-class LbfgsOptimizer(EzFlat):
+class LbfgsOptimizer(object):
     def __init__(self, session, loss,  params, symb_args, extra_losses=None, maxiter=25):
-        EzFlat.__init__(self, params, session)
+        self.ezflat = EzFlat(params, session)
 
         self.all_losses = OrderedDict()
         self.all_losses["loss"] = loss
@@ -281,10 +262,10 @@ class LbfgsOptimizer(EzFlat):
         self.maxiter = maxiter
 
     def update(self, *args):
-        thprev = self.get_params_flat()
+        thprev = self.ezflat.get_params_flat()
 
         def lossandgrad(th):
-            self.set_params_flat(th)
+            self.ezflat.set_params_flat(th)
             l, g = self.f_lossgrad(*args)
             g = g.astype('float64')
             return l, g
@@ -294,7 +275,7 @@ class LbfgsOptimizer(EzFlat):
         del opt_info['grad']
         print('opt_info', opt_info)     # future
 
-        self.set_params_flat(theta)
+        self.ezflat.set_params_flat(theta)
         losses_after = self.f_losses(*args)
         info = OrderedDict()
 
@@ -304,9 +285,8 @@ class LbfgsOptimizer(EzFlat):
         return info
 
 
-class NnRegression(EzPickle):
+class NnRegression(object):
     def __init__(self, net, session, mixfrac=1.0, maxiter=25):
-        EzPickle.__init__(self, net, mixfrac, maxiter)
         self.net = net
         self.mixfrac = mixfrac
 
