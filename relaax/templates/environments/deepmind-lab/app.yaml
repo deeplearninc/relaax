@@ -1,10 +1,10 @@
 environment:
   run: python environment/start-container.py
   lab_path: /lab
-  name: tests/read_map
   max_episodes: 1000
   infinite_run: False
   run_in_container: False
+  # level_script: custom-map/custom_map
 
 relaax-parameter-server:
   --bind: localhost:7000

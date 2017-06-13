@@ -1,40 +1,12 @@
-### Building information
+# Introduction
 
-We build the `random_agent` target from bazel for DeepMind Lab by default.
+We use DeepMind Lab build/run script (using bazel) to start Lab instance. To avoid changing Lab build scripts we replace random-agent target .py file with our entry point.  
 
-Since that the building directory should be as follows:
+In order to run multiple instances of the DeepMind Lab we run them inside docker containers (see start-container.py). This allow to execute number of bazel instances in parallel. (Dockerfile mostly based on one developed by @frankcarey - https://github.com/deepmind/lab/pull/24)
 
-`path_to_lab_cloned_dir/bazel-bin/random_agent.runfiles/org_deepmind_lab/`
+You may decide to run Lab directly on the Host. For that you may replace start-container on start-lab in the app.yaml. This will start single instance of bazel.  
 
-### Run a client instance
-
-Default DeepMind'd `random_agent` client locates here:
-
-`org_deepmind_lab/python/random_agent.py`
-
-To run our client we can replace this file by ours.
-
-If you create your app next to `relaax` package, 
-code can looks like as follows:
-(you have to provide path to your `training.py`)
-```python
-#!/usr/bin/env python
-import relaax
-import sys
-import os
-
-path_to_lab_client = \
-    str(relaax.__path__[:-6]) + 'your_app_dir/environment/training.py'
-# or you can provide an absolute path to your app instead
-args = [path_to_lab_client] + sys.argv[1:]
-os.execv(path_to_lab_client, args)
-```
-
-You also have to set `executable` rights for `training.py`
-
-### For Mac users
-
-We have to run DeepMind Lab inside docker container. In order to connect to Host from the docker container, we have to know IP address of the Host. Internally, we are using following script to get that IP:
+In order to connect to RLX server from the docker container, we have to know IP address of the Host. Internally, we are using following script to get that IP:
 ```bash
 ifconfig | grep -E "([0-9]{1,3}\.){3}[0-9]{1,3}" | grep -v 127.0.0.1 | awk '{ print $2 }' | cut -f2 -d: | head -n1
 ``` 
@@ -49,41 +21,31 @@ and replace RLX server binding to 123.123.123.123 (or whatever IP address you us
 
 Note: loopback alias is not persistent and should be reset after each Host reboot 
 
-### Use a custom map
 
-#### Location of main read_map script
+# Use custom maps
 
-Firstly, you have to set option '--level_script'
-to location of you main script, which reads the map.
+By default, we run Lab with maps set up for `random_agent` build target. You may overwrite these maps with your own. See `environment/custom-map` folder as an example.
 
-For example, if you script locates where:
+To use custom map, set `level_script` in `environment` section of the `app.yaml` to use custom level maps:
+```yaml
+environment:
+  level_script: environment/custom-map/custom_map
+```
 
-`org_deepmind_lab/baselab/game_scripts/tests/read_map.lua`
+## Example map
 
-You '--level_script' option should be: 'tests/read_map'
-
-#### Location of map scheme
-
-If you creates a `txt` map with name `t_maze` you can locates it there:
-
-`org_deepmind_lab/t_maze`
-
-This map has three pickups:
+See `custom-map/t_maze`. This map has three pickups:
 - `P`: respawn location
 - `A`: -1 reward == `negative_one`
 - `G`: +1 reward == `positive_one`
     
-There are `2 custom` pickups related to `negative_one` & `positive_one`
+There are `2 custom` pickups: `negative_one` & `positive_one`
     
-#### Location of pickups script
+### Pickups script
 
 To add some `custom` pickups we have to define them in our `pickups.lua` file.
 
-You should place it there:
-
-`org_deepmind_lab/baselab/game_scripts/common/pickups.lua`
-
-Custom pickups can looks like as follows:
+Custom pickups may look like as these:
 ```lua
 pickups.defaults = {
   negative_one = {
@@ -103,7 +65,7 @@ pickups.defaults = {
 }
 ```
 
-#### Location of make_map script
+### make_map script
 
 This scripts creates your own map from `txt` description and locates your pickups.
 
@@ -113,19 +75,4 @@ local pickups = {
     G = 'positive_one',
     P = 'info_player_start'
 }
-```
-
-You should place it there:
-
-`org_deepmind_lab/baselab/game_scripts/common/make_map.lua`
-
-### Finally
-
-To run DeepMind Lab client from `random_agent` target you have to
-run `random_agent` file from `org_deepmind_lab` root which
-intercepts `org_deepmind_lab/python/random_agent.py` replaced before.
-
-```bash
-cd /lab/bazel-bin/random_agent.runfiles/org_deepmind_lab
-./random_agent&
 ```

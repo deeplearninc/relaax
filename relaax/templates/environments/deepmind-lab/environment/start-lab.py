@@ -14,11 +14,18 @@ class MDLab(object):
     def __init__(self):
         self.show_ui = options.get('show_ui', False)
         self.lab_path = options.get('environment/lab_path', '/lab')
+        self.level_script = options.get('environment/level_script', None)
+        if self.level_script is None:
+            self.level_script = ''
+        else:
+            self.level_script = ' --level_script %s' % self.level_script
 
     def start(self):
         if self.show_ui:
             subprocess.call("/opt/startup.sh", shell=True)
         self._set_entry_point()
+        if len(self.level_script) > 0:
+            self._copy_maps()
         self._run_deepmind_lab()
 
     def _set_entry_point(self):
@@ -30,6 +37,13 @@ class MDLab(object):
             shutil.copy2(random_agent, old_random_agent)
         shutil.copy2(os.path.join(module_path, 'entrypoint.py'), random_agent)
 
+    def _copy_maps(self):
+        game_scripts = os.path.join(self.lab_path, 'assets/game_scripts/custom-map/')
+        print 'Copy environment/custom-map/ to %s' % game_scripts
+        if os.path.exists(game_scripts):
+            shutil.rmtree(game_scripts)
+        shutil.copytree('environment/custom-map/', game_scripts)
+
     def _run_deepmind_lab(self):
         print 'Run deepmind-lab, please wait, it may take a moment...'
         try:
@@ -40,8 +54,8 @@ class MDLab(object):
             config = os.path.abspath(os.path.join(app_path, '../app.yaml'))
             headless = 'false' if self.show_ui else 'osmesa'
             cmd = 'cd %s && bazel run :random_agent --define headless=%s' % (self.lab_path, headless)
-            cmd = '%s -- --app_path %s --config %s --show-ui %s --rlx-server-address %s' % \
-                (cmd, app_path, config, self.show_ui, rlx_address)
+            cmd = '%s --%s --app_path %s --config %s --show-ui %s --rlx-server-address %s' % \
+                (cmd, self.level_script, app_path, config, self.show_ui, rlx_address)
             print cmd
             subprocess.call(cmd, shell=True)
         except subprocess.CalledProcessError as e:
