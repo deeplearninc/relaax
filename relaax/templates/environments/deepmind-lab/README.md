@@ -21,6 +21,13 @@ and replace RLX server binding to 123.123.123.123 (or whatever IP address you us
 
 Note: loopback alias is not persistent and should be reset after each Host reboot 
 
+# Run Options
+
+To run environment headless, just run `relaax run`
+
+To see environment UI, run `relaax run --show-ui true` This command will strat VNC server in container and you may connect to it using your preferred VNC viewer. On Mac OS we will start it automatically. On Linux, you may try Remmina (https://www.remmina.org/wp/). 
+
+To run multiple environments same time, run `relaax run -n 2`. This will start two containers with Deepmind Lab and run them in headless mode. `relaax run --show-ui true -n 3` - will run three environments, one of them will be build/started with UI and you could connect to it with VNC viewer.
 
 # Use custom maps
 
