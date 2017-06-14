@@ -1,9 +1,11 @@
 from __future__ import absolute_import
 from builtins import object
-import os
+
+import sys
 import errno
 import socket
 import logging
+import multiprocessing as mp
 
 from .rlx_worker import RLXWorker
 
@@ -34,21 +36,26 @@ class RLXPort(object):
                     break
 
                 try:
-                    pid = None
-                    try:
-                        pid = os.fork()
-                    except OSError as e:
-                        log.critical('OSError {}: {}'.format(address, str(e)))
-
-                    if pid == 0:
-                        RLXWorker.run(connection, address)
-                        log.debug("Worker run completed for connection from %s:%s" % address)
-                        break
-
-                finally:
+                    p = mp.Process(target=cls.start_worker, args=(connection, address, sys.argv))
+                    p.daemon = True
+                    p.start()
+                except Exception as e:
+                    log.critical('Can\'t start child process {}: {}'.format(address, str(e)))
                     connection.close()
+                    log.debug('Closing connection %s:%d' % address)
         finally:
+            log.debug('Closing listener')
             cls.listener.close()
+
+    @classmethod
+    def start_worker(cls, connection, address, argv):
+        try:
+            print('passed argv: %s' % str(argv))
+            print('sys.argv: %s' % str(sys.argv))
+            RLXWorker.run(connection, address)
+        finally:
+            log.debug('Closing connection %s:%d' % address)
+            connection.close()
 
     @classmethod
     def handle_accept_socket_exeption(cls, error):
@@ -61,7 +68,7 @@ class RLXPort(object):
             # anyway.
             return True  # continue accept loop
         elif error.errno in (errno.EMFILE, errno.ENOBUFS, errno.ENFILE,
-                          errno.ENOMEM, errno.ECONNABORTED):
+                             errno.ENOMEM, errno.ECONNABORTED):
             # Linux gives EMFILE when a process is not allowed to
             # allocate any more file descriptors.  *BSD and Win32
             # give (WSA)ENOBUFS.  Linux can also give ENFILE if the
