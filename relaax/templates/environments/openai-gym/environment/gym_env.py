@@ -4,17 +4,21 @@ from __future__ import division
 
 from builtins import range
 from builtins import object
+
 import os
 import sys
 import gym
 import random
+import logging
 import numpy as np
 from PIL import Image
 
 from gym.spaces import Box
 from gym.wrappers.frame_skipping import SkipWrapper
 
-from relaax.client.rlx_client_config import options
+from relaax.environment.config import options
+
+log = logging.getLogger(__name__)
 
 
 class SetFunction(object):

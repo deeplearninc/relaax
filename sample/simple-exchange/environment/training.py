@@ -5,14 +5,14 @@ from builtins import object
 import random
 import traceback
 
-from relaax.client.rlx_client_config import options
-from relaax.client.rlx_client import RlxClient, RlxClientException
+from relaax.environment.config import options
+from relaax.environment.agent_proxy import AgentProxy, AgentProxyException
 
 
 class Training(object):
 
     def __init__(self):
-        self.agent = RlxClient(options.get('relaax_rlx_server/bind', 'localhost:7001'))
+        self.agent = AgentProxy(options.get('relaax_rlx_server/bind', 'localhost:7001'))
         self.episodes = 10
         self.episode_length = 5
 
@@ -51,7 +51,7 @@ class Training(object):
                     # send game score to accumulate running metrics
                     self.agent.metrics.scalar('game_score', episode_reward)
 
-                except RlxClientException as e:
+                except AgentProxyException as e:
                     print('Agent connection lost: ', e)
                     print('Reconnecting to another agent, '
                           'retrying to connect 10 times before giving up...')

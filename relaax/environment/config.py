@@ -1,10 +1,10 @@
 from relaax.common.python.config.base_config import BaseConfig
 
 
-class RlxClientConfig(BaseConfig):
+class EnvironmentConfig(BaseConfig):
 
     def __init__(self):
-        super(RlxClientConfig, self).__init__()
+        super(EnvironmentConfig, self).__init__()
 
     def load_from_cmdl(self, parser):
         add = parser.add_argument
@@ -21,4 +21,4 @@ class RlxClientConfig(BaseConfig):
         self.log_level = getattr(self, 'log_level', 'DEBUG')
 
 
-options = RlxClientConfig().load()
+options = EnvironmentConfig().load()
