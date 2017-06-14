@@ -28,7 +28,11 @@ class RManager(Manager):
 class CmdlRun(object):
 
     def __init__(self):
-        self.nobuffer = 'PYTHONUNBUFFERED=true'
+         if sys.platform == 'win32':
+            self.nobuffer = ''
+        else:
+            self.nobuffer = 'PYTHONUNBUFFERED=true'
+    
         self.cmdl = "--config %s " % options.config
         if options.cmdl_log_level:
             self.cmdl += "--log-level %s" % options.cmdl_log_level
