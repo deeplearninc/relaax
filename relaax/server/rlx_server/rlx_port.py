@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 from builtins import object
 
-import sys
 import errno
 import socket
 import logging
@@ -36,8 +35,7 @@ class RLXPort(object):
                     break
 
                 try:
-                    p = mp.Process(target=cls.start_worker, args=(connection, address, sys.argv))
-                    p.daemon = True
+                    p = mp.Process(target=cls.start_worker, args=(connection, address))
                     p.start()
                 except Exception as e:
                     log.critical('Can\'t start child process {}: {}'.format(address, str(e)))
@@ -48,10 +46,8 @@ class RLXPort(object):
             cls.listener.close()
 
     @classmethod
-    def start_worker(cls, connection, address, argv):
+    def start_worker(cls, connection, address):
         try:
-            print('passed argv: %s' % str(argv))
-            print('sys.argv: %s' % str(sys.argv))
             RLXWorker.run(connection, address)
         finally:
             log.debug('Closing connection %s:%d' % address)
