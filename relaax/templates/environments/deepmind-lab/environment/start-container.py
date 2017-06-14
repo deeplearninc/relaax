@@ -57,6 +57,7 @@ class MDLabContainer(object):
 
     def _start_container(self):
         try:
+            net = ''
             if platform.system() == 'Linux':
                 net = '--net host'
             rlx_address = self._get_rlx_address()
