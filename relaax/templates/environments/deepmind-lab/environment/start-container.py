@@ -1,3 +1,4 @@
+from __future__ import print_function
 import sys
 import uuid
 import signal
@@ -13,7 +14,7 @@ CONTAINER_NAME = str(uuid.uuid1())
 
 
 def signal_handler(signal, frame):
-    print 'stopping %s' % CONTAINER_NAME
+    print('stopping %s' % CONTAINER_NAME)
     subprocess.call('docker stop %s' % CONTAINER_NAME, shell=True)
     sys.exit(0)
 signal.signal(signal.SIGTERM, signal_handler)
@@ -27,17 +28,18 @@ class MDLabContainer(object):
 
     def start(self):
         if not self._is_container_exists():
-            print "Building container"
+            print("Building container")
             self._build_container()
         if platform.system() == 'Darwin' and self.show_ui:
-            print 'Starting VNC viewer...'
+            print('Starting VNC viewer...')
             cmd = 'sleep 5 && open vnc://user:password@127.0.0.1:5901'
-            print cmd
+            print(cmd)
             subprocess.Popen(cmd, shell=True)
-        print "Starting docker container"
+        print("Starting docker container")
         self._start_container()
 
-    def _get_rlx_address(self):
+    @staticmethod
+    def _get_rlx_address():
         def parse_address(address):
             try:
                 host, port = address.split(':')
@@ -61,23 +63,23 @@ class MDLabContainer(object):
             if platform.system() == 'Linux':
                 net = '--net host'
             rlx_address = self._get_rlx_address()
-            cmd = ('docker run %s --name %s -t %s -v ${PWD}:/app %s --show-ui %s --rlx-server-address %s')
+            cmd = 'docker run %s --name %s -t %s -v ${PWD}:/app %s --show-ui %s --rlx-server-address %s'
             cmd = cmd % (net, CONTAINER_NAME, '-p 5901:5901' if self.show_ui else '',
                          self.image_name, self.show_ui, rlx_address)
-            print cmd
+            print(cmd)
             subprocess.call(cmd, shell=True)
         except subprocess.CalledProcessError as e:
-            print 'Start container error: %s' % str(e)
+            print('Start container error: %s' % str(e))
             raise
 
     def _build_container(self):
         try:
             cmd = ('docker build -f ./environment/.docker/Dockerfile -t '
                    '%s ./environment/.docker/' % self.image_name)
-            print cmd
+            print(cmd)
             subprocess.call(cmd, shell=True)
         except subprocess.CalledProcessError as e:
-            print 'Build container error: %s' % str(e)
+            print('Build container error: %s' % str(e))
             raise
 
     def _is_container_exists(self):

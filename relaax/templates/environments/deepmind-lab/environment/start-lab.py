@@ -1,3 +1,4 @@
+from __future__ import print_function
 import os
 import shutil
 import os.path
@@ -29,7 +30,7 @@ class MDLab(object):
         self._run_deepmind_lab()
 
     def _set_entry_point(self):
-        print 'Copy entrypoint to random_agent'
+        print('Copy entrypoint to random_agent')
         random_agent = os.path.join(self.lab_path, 'python/random_agent.py')
         old_random_agent = random_agent + '.old'
         module_path = os.path.dirname(os.path.abspath(__file__))
@@ -39,13 +40,13 @@ class MDLab(object):
 
     def _copy_maps(self):
         game_scripts = os.path.join(self.lab_path, 'assets/game_scripts/custom-map/')
-        print 'Copy environment/custom-map/ to %s' % game_scripts
+        print('Copy environment/custom-map/ to %s' % game_scripts)
         if os.path.exists(game_scripts):
             shutil.rmtree(game_scripts)
         shutil.copytree('environment/custom-map/', game_scripts)
 
     def _run_deepmind_lab(self):
-        print 'Run deepmind-lab, please wait, it may take a moment...'
+        print('Run deepmind-lab, please wait, it may take a moment...')
         try:
             rlx_address = options.get('rlx_server_address', None)
             if rlx_address is None:
@@ -56,10 +57,10 @@ class MDLab(object):
             cmd = 'cd %s && bazel run :random_agent --define headless=%s' % (self.lab_path, headless)
             cmd = '%s --%s --app_path %s --config %s --show-ui %s --rlx-server-address %s' % \
                 (cmd, self.level_script, app_path, config, self.show_ui, rlx_address)
-            print cmd
+            print(cmd)
             subprocess.call(cmd, shell=True)
         except subprocess.CalledProcessError as e:
-            print 'Error while building deepmind-lab: %s' % str(e)
+            print('Error while building deepmind-lab: %s' % str(e))
             raise
 
 
