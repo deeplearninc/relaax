@@ -18,6 +18,7 @@ from gym.wrappers.frame_skipping import SkipWrapper
 
 from relaax.environment.config import options
 
+gym.configuration.undo_logger_setup()
 log = logging.getLogger(__name__)
 
 
