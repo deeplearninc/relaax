@@ -33,7 +33,11 @@ class CmdlRun(object):
         self.exploit = exploit
         self.n_clients = n_clients
         self.components = components if bool(components) else set(['all'])
-        self.nobuffer = 'PYTHONUNBUFFERED=true'
+
+        if sys.platform == 'win32':
+            self.nobuffer = ''
+        else:
+            self.nobuffer = 'PYTHONUNBUFFERED=true'
         self.config_yaml = ConfigYaml()
         self.config_yaml.load_from_file(self.config)
 
