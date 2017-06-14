@@ -1,10 +1,10 @@
 from relaax.common.python.config.base_config import BaseConfig
 
 
-class DMLConfig(BaseConfig):
+class EnvironmentConfig(BaseConfig):
 
     def __init__(self):
-        super(DMLConfig, self).__init__()
+        super(EnvironmentConfig, self).__init__()
 
     def load_from_cmdl(self, parser):
         add = parser.add_argument
@@ -23,4 +23,4 @@ class DMLConfig(BaseConfig):
         self.log_level = getattr(self, 'log_level', 'DEBUG')
 
 
-options = DMLConfig().load()
+options = EnvironmentConfig().load()

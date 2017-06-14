@@ -2,6 +2,7 @@
 
 environment:
   run: python environment/training.py
+  steps: 3000
 
 relaax-parameter-server:
   --bind: localhost:7000
