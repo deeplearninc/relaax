@@ -3,13 +3,16 @@ from __future__ import division
 from builtins import str
 from builtins import range
 from builtins import object
-import numpy as np
+
 import random
-
+import logging
+import numpy as np
 from PIL import Image
-import deepmind_lab
 
-from config import options
+import deepmind_lab
+from relaax.environment.config import options
+
+log = logging.getLogger(__name__)
 
 
 class LabEnv(object):
@@ -18,9 +21,9 @@ class LabEnv(object):
         self._show_ui = options.get('environment/show_ui', False)
         self._no_op_max = options.get('environment/no_op_max', 9)
         self._frame_skip = options.get('environment/frame_skip', 4)
-        assert self._fps > 0, print('Frame per second rate should be above zero')
-        assert self._no_op_max > 0, print('Number of random actions at start should be above zero')
-        assert self._frame_skip > 0, print('Frame skipping rate should be above zero')
+        assert self._fps > 0, log.info('Frame per second rate should be above zero')
+        assert self._no_op_max > 0, log.info('Number of random actions at start should be above zero')
+        assert self._frame_skip > 0, log.info('Frame skipping rate should be above zero')
 
         shape = options.get('environment/shape', (84, 84))
         self._height, self._width = shape[0], shape[1]
@@ -30,8 +33,8 @@ class LabEnv(object):
         if action_size in ACTIONS:
             self._actions = list(ACTIONS[action_size].values())
         else:
-            print('You\'ve provided an invalid action size. \n'
-                  'Valid options are follows: \n {}'.format(ACTIONS.keys()))
+            log.info('You\'ve provided an invalid action size. \n'
+                     'Valid options are follows: \n {}'.format(ACTIONS.keys()))
 
         if self._show_ui:
             self._width = 640
@@ -95,39 +98,41 @@ def _action(*entries):
     return np.array(entries, dtype=np.intc)
 
 FULL_ACTIONS = {
-        'look_left': _action(-20, 0, 0, 0, 0, 0, 0),
-        'look_right': _action(20, 0, 0, 0, 0, 0, 0),
-        'look_up': _action(0, 10, 0, 0, 0, 0, 0),
-        'look_down': _action(0, -10, 0, 0, 0, 0, 0),
-        'strafe_left': _action(0, 0, -1, 0, 0, 0, 0),
-        'strafe_right': _action(0, 0, 1, 0, 0, 0, 0),
-        'forward': _action(0, 0, 0, 1, 0, 0, 0),
-        'backward': _action(0, 0, 0, -1, 0, 0, 0),
-        'fire': _action(0, 0, 0, 0, 1, 0, 0),
-        'jump': _action(0, 0, 0, 0, 0, 1, 0),
-        'crouch': _action(0, 0, 0, 0, 0, 0, 1)
+    'look_left': _action(-20, 0, 0, 0, 0, 0, 0),
+    'look_right': _action(20, 0, 0, 0, 0, 0, 0),
+    'look_up': _action(0, 10, 0, 0, 0, 0, 0),
+    'look_down': _action(0, -10, 0, 0, 0, 0, 0),
+    'strafe_left': _action(0, 0, -1, 0, 0, 0, 0),
+    'strafe_right': _action(0, 0, 1, 0, 0, 0, 0),
+    'forward': _action(0, 0, 0, 1, 0, 0, 0),
+    'backward': _action(0, 0, 0, -1, 0, 0, 0),
+    'fire': _action(0, 0, 0, 0, 1, 0, 0),
+    'jump': _action(0, 0, 0, 0, 0, 1, 0),
+    'crouch': _action(0, 0, 0, 0, 0, 0, 1)
 }
 
 SMALL_ACTIONS = {
-        'look_left': _action(-20, 0, 0, 0, 0, 0, 0),
-        'look_right': _action(20, 0, 0, 0, 0, 0, 0),
-        'forward': _action(0, 0, 0, 1, 0, 0, 0)
+    'look_left': _action(-20, 0, 0, 0, 0, 0, 0),
+    'look_right': _action(20, 0, 0, 0, 0, 0, 0),
+    'forward': _action(0, 0, 0, 1, 0, 0, 0)
 }
 
 MEDIUM_ACTIONS = {
-        'look_left': _action(-20, 0, 0, 0, 0, 0, 0),
-        'look_right': _action(20, 0, 0, 0, 0, 0, 0),
-        'strafe_left': _action(0, 0, -1, 0, 0, 0, 0),
-        'strafe_right': _action(0, 0, 1, 0, 0, 0, 0),
-        'forward': _action(0, 0, 0, 1, 0, 0, 0),
-        'backward': _action(0, 0, 0, -1, 0, 0, 0)
+    'look_left': _action(-20, 0, 0, 0, 0, 0, 0),
+    'look_right': _action(20, 0, 0, 0, 0, 0, 0),
+    'strafe_left': _action(0, 0, -1, 0, 0, 0, 0),
+    'strafe_right': _action(0, 0, 1, 0, 0, 0, 0),
+    'forward': _action(0, 0, 0, 1, 0, 0, 0),
+    'backward': _action(0, 0, 0, -1, 0, 0, 0)
 }
 
-ACTIONS = {'f': FULL_ACTIONS,
-           'full': FULL_ACTIONS,
-           'b': FULL_ACTIONS,
-           'big': FULL_ACTIONS,
-           'm': MEDIUM_ACTIONS,
-           'medium': MEDIUM_ACTIONS,
-           's': SMALL_ACTIONS,
-           'small': SMALL_ACTIONS}
+ACTIONS = {
+    'f': FULL_ACTIONS,
+    'full': FULL_ACTIONS,
+    'b': FULL_ACTIONS,
+    'big': FULL_ACTIONS,
+    'm': MEDIUM_ACTIONS,
+    'medium': MEDIUM_ACTIONS,
+    's': SMALL_ACTIONS,
+    'small': SMALL_ACTIONS
+}

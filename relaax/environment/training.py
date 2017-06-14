@@ -13,10 +13,13 @@ log = logging.getLogger(__name__)
 class TrainingBase(object):
 
     def __init__(self):
-        self.agent = AgentProxy(options.get('relaax_rlx_server/bind', 'localhost:7001'))
         self.exploit = options.get('exploit', False)
         self.max_episodes = options.get('environment/max_episodes', 1)
         self.infinite_run = options.get('environment/infinite_run', False)
+        rlx_address = options.get('rlx_server_address', None)
+        if rlx_address is None:
+            rlx_address = options.get('relaax_rlx_server/bind', 'localhost:7001')
+        self.agent = AgentProxy(rlx_address)
 
     def initialize_agent(self, retry=6):
         # connect to the server
