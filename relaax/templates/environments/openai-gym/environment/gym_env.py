@@ -89,9 +89,9 @@ class GymEnv(object):
 
         self.action_size = self._get_action_size()
         if self.action_size != options.algorithm.output.action_size:
-            print('Algorithm expects different action size (%d) from gym (%d). \n'
-                  'Please set correct action size in you configuration yaml.' % (
-                   options.algorithm.output.action_size, self.action_size))
+            log.error('Algorithm expects action size %d; gym return %d. \n'
+                      'Please set correct action size in you configuration yaml.' %
+                      (options.algorithm.output.action_size, self.action_size))
             sys.exit(-1)
 
         self._scale = (1.0 / 255.0)
