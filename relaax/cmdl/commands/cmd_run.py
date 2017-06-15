@@ -16,7 +16,7 @@ class RManager(Manager):
     def _any_stopped(self):
         clients = []
         for _, p in self._processes.items():
-            if p['process'].name.startswith('client'):
+            if p['process'].name.startswith('environment'):
                 clients.append(p.get('returncode') is not None)
         if len(clients):
             return all(clients)
@@ -88,20 +88,20 @@ class CmdlRun(object):
                 self.ctx.log(click.style("wsproxy is not configured", fg='red'))
 
     def run_client(self, manager):
-        if self.intersection(['all', 'client']):
+        if self.intersection(['all', 'environment']):
             self.client = self.config_yaml.get('environment/run')
             if self.client:
                 self.run_all_clients(manager)
             else:
-                self.ctx.log(click.style("client is not configured", fg='red'))
+                self.ctx.log(click.style("environment is not configured", fg='red'))
 
     def run_all_clients(self, manager):
         count = 0
         while count < self.n_clients:
             if count == 0:
-                self.run_one_client('client-%d' % count, manager, self.exploit, self.show_ui)
+                self.run_one_client('environment-%d' % count, manager, self.exploit, self.show_ui)
             else:
-                self.run_one_client('client-%d' % count, manager)
+                self.run_one_client('environment-%d' % count, manager)
             count += 1
 
     def run_one_client(self, process_name, manager, exploit=False, show_ui=False):
@@ -112,25 +112,25 @@ class CmdlRun(object):
 
 @click.command('run', short_help='Run RELAAX components.')
 @click.argument('components', nargs=-1, type=click.Choice(
-                ['all', 'client', 'servers', 'rlx-server', 'parameter-server', 'wsproxy']))
+                ['all', 'environment', 'servers', 'rlx-server', 'parameter-server', 'wsproxy']))
 @click.option('--config', '-c', type=click.File(lazy=True), show_default=True, default='app.yaml',
               help='Relaax configuraion yaml file.')
-@click.option('--n-clients', '-n', default=1, show_default=True,
-              help='Number of environments/clients to run at the same time.')
+@click.option('--n-environments', '-n', default=1, show_default=True,
+              help='Number of environments to run at the same time.')
 @click.option('--exploit', default=False, type=bool, show_default=True,
-              help='Only first started client will get provided exploit flag in command line parameters. '
-              'Rest of the started clients will get exploit flag set to False.')
-@click.option('--show-ui', default=False, type=bool, show_default=True,
-              help='Only first started client will get show-ui flag in command line parameters. '
-              'Rest of the started clients will get shoe-ui flag set to False.')
+              help='Only first started environment will get provided exploit flag in command line parameters.'
+              ' Rest of the started environments will get exploit flag set to False.')
+@click.option('--show-ui', is_flag=True, show_default=True,
+              help='Only first started environment will get show-ui flag in command line parameters. '
+              'Rest of the started environments will get show-ui flag set to False.')
 @pass_context
-def cmdl(ctx, components, config, n_clients, exploit, show_ui):
+def cmdl(ctx, components, config, n_environments, exploit, show_ui):
     """Run RELAAX components.
 
     \b
     COMPONENTS:
-    all              - run client and servers (default)
-    client           - run client
+    all              - run environments and servers (default)
+    environment      - run environment
     servers          - run rlx-server, parameter-server, and wsproxy (if specified in config yaml)
     rlx-server       - run rlx-server
     parameter-server - run parameter-server
@@ -138,7 +138,7 @@ def cmdl(ctx, components, config, n_clients, exploit, show_ui):
 
     \b
     For example:
-        - run client, rlx-server, parameter-server, and wsproxy
+        - run environment, rlx-server, parameter-server, and wsproxy
         $relaax run all
         - run rlx-server, parameter-server, and wsproxy
         $relaax run servers
@@ -147,4 +147,4 @@ def cmdl(ctx, components, config, n_clients, exploit, show_ui):
     # Disable TF warnings
     os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
     # Exacute command
-    CmdlRun(ctx, set(components), config.name, n_clients, exploit, show_ui).run_componenets()
+    CmdlRun(ctx, set(components), config.name, n_environments, exploit, show_ui).run_componenets()
