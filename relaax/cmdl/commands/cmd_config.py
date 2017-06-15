@@ -1,7 +1,7 @@
 from __future__ import print_function
-
 from builtins import str
 from builtins import object
+
 import os
 import sys
 import click
@@ -23,6 +23,9 @@ class CmdConfig(object):
         self.set_algorithm_path = set_algorithm_path
 
     def apply(self):
+        if self.algorithm is None and self.environment is None:
+            self.ctx.log('Nothing to do, exiting...')
+            return
         if self.algorithm is not None:
             self._configure(self.algorithm,
                             'algorithm',
@@ -78,16 +81,32 @@ class CmdConfig(object):
             sys.exit()
         return yaml
 
+    @staticmethod
+    def list_configurations():
+        module_path = os.path.dirname(os.path.abspath(__file__))
+        template_config_path = os.path.abspath(os.path.join(
+            module_path, '../../templates/configs'))
+
+        rv = []
+        for filename in os.listdir(template_config_path):
+            if filename.endswith('.yaml'):
+                rv.append(filename[:-5])
+        rv.sort()
+        return (rv, '|'.join(rv))
+
+
+CONFIGURATIONS = CmdConfig.list_configurations()
+
 
 @click.command('config', short_help='Configure algorithm.')
 @click.option('--config', '-c', type=click.File(lazy=True), show_default=True, default='app.yaml',
               help='Relaax configuraion yaml file.')
 @click.option('--algorithm', '-a', default=None, metavar='',
-              type=click.Choice(ALGORITHMS),
-              help='[%s]\nRelaax algorithm name.' % ALGORITHMS_META)
+              type=click.Choice(CONFIGURATIONS[0]),
+              help='[%s]\nRelaax algorithm configuration.' % CONFIGURATIONS[1])
 @click.option('--environment', '-e', default=None, metavar='',
               type=click.Choice(ENVIRONMENTS),
-              help='[%s] \n Environment to base application on.' % ENVIRONMENTS_META)
+              help='[%s] \n Environment configuration for the application.' % ENVIRONMENTS_META)
 @click.option('--local-algorithm', '-l', default=False, type=bool, show_default=True,
               help='Set this flag to True if your algorithm implementation is in app folder. '
               'algoritm/path key will be added to the config yaml file and algorithm will be load '

@@ -50,6 +50,14 @@ class CmdGenerate(object):
                     'Can\'t create \'%s\'. Base %s doesn\'t exist.' % (template_name, template_type))
             raise
 
+        if template_type == 'environment':
+            fn = os.path.join(self.app_path, 'README.md')
+            os.remove(fn) if os.path.exists(fn) else None
+            try:
+                shutil.copy2(os.path.abspath(os.path.join(template_path, '../README.md')), self.app_path)
+            except:
+                self.ctx.log('Can\'t find README for specified environment')
+
         self.ctx.log('Created %s %s in %s' % (template_name, template_type, target_path))
 
     def create_default_config(self, environment):
@@ -62,7 +70,9 @@ class CmdGenerate(object):
 @click.command('generate', short_help='Generate parts of RELAAX application.')
 @click.option('--algorithm', '-a', default=None, metavar='',
               type=click.Choice(ALGORITHMS),
-              help='[%s]\nGenerate RELAAX algorithm in app folder.' % ALGORITHMS_META)
+              help='[%s]\nGenerate RELAAX algorithm in the app folder. '
+              'You may use "relaax config" to configure algorithm for the '
+              'specific environment.' % ALGORITHMS_META)
 @click.option('--environment', '-e', default=None, metavar='',
               type=click.Choice(ENVIRONMENTS),
               help='[%s] \n Generate environment.' % ENVIRONMENTS_META)
