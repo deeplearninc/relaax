@@ -19,28 +19,22 @@ class RLXWorker(object):
 
         except Exception:
             log.critical("Can't load algorithm module")
-            log.error(traceback.format_exc())
-            exit()
+            raise
 
     @staticmethod
     def load_protocol():
-        try:
-            name = options.protocol_name
+        name = options.protocol_name
 
-            if name == 'rawsocket':
-                log.debug("Loading protocol over raw socket")
-                from .rlx_protocol.rawsocket import rlx_protocol as protocol
-                options.protocol = protocol
-            elif name == 'twisted':
-                log.debug("Loading protocol on twisted")
-                from .rlx_protocol.twisted import rlx_protocol as protocol
-                options.protocol = protocol
-            else:
-                raise
-
-        except Exception:
-            log.critical("Can't load protocol")
-            exit()
+        if name == 'rawsocket':
+            log.debug("Loading protocol over raw socket")
+            from .rlx_protocol.rawsocket import rlx_protocol as protocol
+            options.protocol = protocol
+        elif name == 'twisted':
+            log.debug("Loading protocol on twisted")
+            from .rlx_protocol.twisted import rlx_protocol as protocol
+            options.protocol = protocol
+        else:
+            raise Exception("Can't load protocol %s" % str(name))
 
     @classmethod
     def run(cls, socket, address):
@@ -50,6 +44,6 @@ class RLXWorker(object):
             log.debug('Running worker on connection %s:%d' % address)
             options.protocol.adoptConnection(socket, address)
 
-        except Exception:
-            log.error("Something crashed in the worker")
+        except Exception as e:
+            log.debug(str(e))
             log.error(traceback.format_exc())

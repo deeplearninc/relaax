@@ -15,7 +15,7 @@ class RLXPort(object):
 
     @classmethod
     def listen(cls, server_address):
-        cls.listener = socket.socket()
+        cls.listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
             cls.listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             cls.listener.bind(server_address)
@@ -51,7 +51,15 @@ class RLXPort(object):
             RLXWorker.run(connection, address)
         finally:
             log.debug('Closing connection %s:%d' % address)
-            connection.close()
+            try:
+                connection.shutdown(socket.SHUT_RDWR)
+            except socket.error as e:
+                # we don't care if the socket is already closed;
+                # this will often be the case if client closed connection first
+                if e.errno != errno.ENOTCONN:
+                    raise
+            finally:
+                connection.close()
 
     @classmethod
     def handle_accept_socket_exeption(cls, error):
