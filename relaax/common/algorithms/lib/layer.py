@@ -18,6 +18,18 @@ class Activation(object):
         return tf.nn.relu(x)
 
     @staticmethod
+    def Elu(x):
+        return tf.nn.elu(x)
+
+    @staticmethod
+    def Sigmoid(x):
+        return tf.nn.sigmoid(x)
+
+    @staticmethod
+    def Tanh(x):
+        return tf.nn.tanh(x)
+
+    @staticmethod
     def Softmax(x):
         return tf.nn.softmax(x)
 
@@ -31,25 +43,46 @@ class Border(object):
     Same = 'SAME'
 
 
+class LinearLayer(subgraph.Subgraph):
+    def build_graph(self, x, shape, transformation, bias=True):
+        d = 1.0 / np.sqrt(np.prod(shape[:-1]))
+        initializer = graph.RandomUniformInitializer(minval=-d, maxval=d)
+        W = graph.Variable(initializer(np.float32, shape)).node
+        if bias:
+            b = graph.Variable(initializer(np.float32, shape[-1:])).node
+            self.weight = graph.TfNode((W, b))
+            return transformation(x.node, W) + b
+        self.weight = graph.TfNode(W)
+        return transformation(x.node, W)
+
+
+class MatmulLayer(subgraph.Subgraph):
+    def build_graph(self, a, b, activation=Activation.Null):
+        return activation(tf.matmul(a.node, b.node))
+
+
 class BaseLayer(subgraph.Subgraph):
-    def build_graph(self, x, shape, transformation, activation):
+    def build_graph(self, x, shape, transformation, activation, bias=True):
         d = 1.0
         p = np.prod(shape[:-1])
         if p != 0:
             d = 1.0 / np.sqrt(p)
         initializer = graph.RandomUniformInitializer(minval=-d, maxval=d)
         W = graph.Variable(initializer(np.float32, shape)).node
-        b = graph.Variable(initializer(np.float32, shape[-1:])).node
-        self.weight = graph.TfNode((W, b))
-        return activation(transformation(x.node, W) + b)
+        if bias:
+            b = graph.Variable(initializer(np.float32, shape[-1:])).node
+            self.weight = graph.TfNode((W, b))
+            return activation(transformation(x.node, W) + b)
+        self.weight = graph.TfNode(W)
+        return activation(transformation(x.node, W))
 
 
 class Convolution(BaseLayer):
     def build_graph(self, x, n_filters, filter_size, stride,
-            border=Border.Valid, activation=Activation.Null):
+                    border=Border.Valid, activation=Activation.Null):
         shape = filter_size + [x.node.shape.as_list()[-1], n_filters]
         tr = lambda x, W: tf.nn.conv2d(x, W, strides=[1] + stride + [1],
-                    padding=border)
+                                       padding=border)
         return super(Convolution, self).build_graph(x, shape, tr, activation)
 
 
@@ -63,10 +96,10 @@ class Dense(BaseLayer):
 
 class LSTM(subgraph.Subgraph):
     def build_graph(self, x, batch_size=1, size=256):
-        self.ph_step= graph.Placeholder(np.int32, [batch_size])
+        self.ph_step = graph.Placeholder(np.int32, [batch_size])
 
         self.ph_state = graph.TfNode(tuple(graph.Placeholder(np.float32, [batch_size, size]).node
-                for _ in range(2)))
+                                           for _ in range(2)))
 
         self.zero_state = tuple(np.zeros([batch_size, size]) for _ in range(2))
 
@@ -76,13 +109,13 @@ class LSTM(subgraph.Subgraph):
 
         with tf.variable_scope('LSTM') as scope:
             outputs, self.state = tf.nn.dynamic_rnn(lstm, x.node,
-                    initial_state=state, sequence_length=self.ph_step.node,
-                    time_major=False, scope=scope)
+                                                    initial_state=state, sequence_length=self.ph_step.node,
+                                                    time_major=False, scope=scope)
             self.state = graph.TfNode(self.state)
             scope.reuse_variables()
             self.weight = graph.Variables(
-                    graph.TfNode(tf.get_variable('basic_lstm_cell/weights')),
-                    graph.TfNode(tf.get_variable('basic_lstm_cell/biases')))
+                graph.TfNode(tf.get_variable('basic_lstm_cell/weights')),
+                graph.TfNode(tf.get_variable('basic_lstm_cell/biases')))
 
         return outputs
 
@@ -130,21 +163,24 @@ def Actor(head, output):
 
 
 class Input(subgraph.Subgraph):
-    def build_graph(self, input):
+    def build_graph(self, input, descs=None):
         input_shape = input.shape
         if np.prod(input.shape) == 0:
             input_shape = [1]
-        self.ph_state = graph.Placeholder(np.float32,
-                shape=[None] + input_shape + [input.history])
 
-        descs = []
-        if input.use_convolutions:
+        shape = [None] + input_shape
+        if input.history > 1:
+            shape += [input.history]
+        self.ph_state = graph.Placeholder(np.float32, shape=shape)
+
+        if input.use_convolutions and descs is None:
             descs = [
-                    dict(type=Convolution, n_filters=16, filter_size=[8, 8],
-                        stride=[4, 4], activation=Activation.Relu),
-                    dict(type=Convolution, n_filters=32, filter_size=[4, 4],
-                        stride=[2, 2], activation=Activation.Relu)]
+                dict(type=Convolution, n_filters=16, filter_size=[8, 8],
+                     stride=[4, 4], activation=Activation.Relu),
+                dict(type=Convolution, n_filters=32, filter_size=[4, 4],
+                     stride=[2, 2], activation=Activation.Relu)]
 
+        descs = [] if descs is None else descs
         layers = GenericLayers(self.ph_state, descs)
 
         self.weight = layers.weight
@@ -156,16 +192,22 @@ class Weights(subgraph.Subgraph):
         weights = [layer.weight.node for layer in layers]
         self.ph_weights = graph.Placeholders(variables=graph.TfNode(weights))
         self.assign = graph.TfNode([tf.assign(variable, value)
-                for variable, value in utils.Utils.izip(weights, self.ph_weights.node)])
+                                    for variable, value in utils.Utils.izip(weights, self.ph_weights.node)])
         return weights
 
 
 class Gradients(subgraph.Subgraph):
-    def build_graph(self, weights, loss=None, optimizer=None):
+    def build_graph(self, weights, loss=None, optimizer=None, norm=False):
         if loss is not None:
-            self.calculate = graph.TfNode(utils.Utils.reconstruct(tf.gradients(
-                loss.node, list(utils.Utils.flatten(weights.node))), weights.node))
+            if norm:
+                self.calculate = graph.TfNode(utils.Utils.reconstruct(
+                    tf.clip_by_global_norm(tf.gradients(
+                        loss.node, list(utils.Utils.flatten(weights.node))),
+                        norm)[0], weights.node))
+            else:
+                self.calculate = graph.TfNode(utils.Utils.reconstruct(tf.gradients(
+                    loss.node, list(utils.Utils.flatten(weights.node))), weights.node))
         if optimizer is not None:
             self.ph_gradients = graph.Placeholders(weights)
             self.apply = graph.TfNode(optimizer.node.apply_gradients(
-                    utils.Utils.izip(self.ph_gradients.node, weights.node)))
+                utils.Utils.izip(self.ph_gradients.node, weights.node)))
