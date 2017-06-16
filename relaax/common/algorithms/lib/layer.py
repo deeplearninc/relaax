@@ -174,6 +174,7 @@ class Input(subgraph.Subgraph):
         self.ph_state = graph.Placeholder(np.float32, shape=shape)
 
         if input.use_convolutions and descs is None:
+            # applying vanilla A3C convolution layers
             descs = [
                 dict(type=Convolution, n_filters=16, filter_size=[8, 8],
                      stride=[4, 4], activation=Activation.Relu),
