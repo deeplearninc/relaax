@@ -1,3 +1,6 @@
+---
+# DA3C configuration for Deep Mind Lab
+
 algorithm:
   name: da3c
 
