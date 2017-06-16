@@ -90,7 +90,8 @@ class AgentModel(subgraph.Subgraph):
         sg_network = Network()
 
         sg_loss = loss.DA3CLoss(sg_network.actor, sg_network.critic,
-                                da3c_config.config.entropy_beta)
+                                da3c_config.config.entropy_beta,
+                                da3c_config.config.use_gae)
         sg_gradients = layer.Gradients(sg_network.weights, loss=sg_loss,
                                        norm=da3c_config.config.gradients_norm_clipping)
 
@@ -118,16 +119,33 @@ class AgentModel(subgraph.Subgraph):
                                                                sg_network.lstm_state, state=sg_network.ph_state,
                                                                lstm_state=sg_network.ph_lstm_state,
                                                                lstm_step=sg_network.ph_lstm_step)
-            self.op_compute_gradients = self.Op(sg_gradients.calculate,
-                                                state=sg_network.ph_state, action=sg_loss.ph_action,
-                                                value=sg_loss.ph_value, discounted_reward=sg_loss.ph_discounted_reward,
-                                                lstm_state=sg_network.ph_lstm_state, lstm_step=sg_network.ph_lstm_step)
+            if da3c_config.config.use_gae:
+                self.op_compute_gradients = \
+                    self.Op(sg_gradients.calculate,
+                            state=sg_network.ph_state, action=sg_loss.ph_action,
+                            value=sg_loss.ph_value, discounted_reward=sg_loss.ph_discounted_reward,
+                            lstm_state=sg_network.ph_lstm_state, lstm_step=sg_network.ph_lstm_step,
+                            advantage=sg_loss.ph_advantage)
+            else:
+                self.op_compute_gradients = \
+                    self.Op(sg_gradients.calculate,
+                            state=sg_network.ph_state, action=sg_loss.ph_action,
+                            value=sg_loss.ph_value, discounted_reward=sg_loss.ph_discounted_reward,
+                            lstm_state=sg_network.ph_lstm_state, lstm_step=sg_network.ph_lstm_step)
         else:
             self.op_get_action_and_value = self.Ops(sg_network.actor, sg_network.critic,
                                                     state=sg_network.ph_state)
-            self.op_compute_gradients = self.Op(sg_gradients.calculate,
-                                                state=sg_network.ph_state, action=sg_loss.ph_action,
-                                                value=sg_loss.ph_value, discounted_reward=sg_loss.ph_discounted_reward)
+            if da3c_config.config.use_gae:
+                self.op_compute_gradients = \
+                    self.Op(sg_gradients.calculate,
+                            state=sg_network.ph_state, action=sg_loss.ph_action,
+                            value=sg_loss.ph_value, discounted_reward=sg_loss.ph_discounted_reward,
+                            advantage=sg_loss.ph_advantage)
+            else:
+                self.op_compute_gradients = \
+                    self.Op(sg_gradients.calculate,
+                            state=sg_network.ph_state, action=sg_loss.ph_action,
+                            value=sg_loss.ph_value, discounted_reward=sg_loss.ph_discounted_reward)
 
 
 if __name__ == '__main__':
