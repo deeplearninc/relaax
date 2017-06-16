@@ -51,7 +51,7 @@ class SharedParameters(subgraph.Subgraph):
         sg_global_step = graph.GlobalStep()
         sg_weights = Network().weights
 
-        if da3c_config.config.use_icm:
+        if da3c_config.config.optimizer == 'Adam':
             sg_optimizer = graph.AdamOptimizer(da3c_config.config.initial_learning_rate)
             sg_icm_optimizer = graph.AdamOptimizer(da3c_config.config.initial_learning_rate)
             sg_icm_weights = icm_model.ICM().weights
