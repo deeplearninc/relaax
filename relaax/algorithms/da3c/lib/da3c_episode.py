@@ -2,6 +2,7 @@ from __future__ import absolute_import
 from builtins import range
 from builtins import object
 import numpy as np
+import scipy.signal
 
 from relaax.server.common import session
 from relaax.common.algorithms.lib import episode
@@ -128,20 +129,39 @@ class DA3CEpisode(object):
         reward = experience['reward']
         self.discounted_reward = np.zeros_like(reward, dtype=np.float32)
 
-        # compute and accumulate gradients
+        gamma = da3c_config.config.rewards_gamma
+        # compute discounted rewards
         for t in reversed(range(len(reward))):
-            r = reward[t] + da3c_config.config.rewards_gamma * r
+            r = reward[t] + gamma * r
             self.discounted_reward[t] = r
 
+        if da3c_config.config.use_gae:
+            forward_values = np.asarray(experience['value'][1:] + [r]) * gamma
+            rewards = np.asarray(reward) + forward_values - np.asarray(experience['value'])
+            gae_gamma = da3c_config.config.rewards_gamma * da3c_config.config.gae_lambda
+            advantage = self.discount(rewards, gae_gamma)
+
         if da3c_config.config.use_lstm:
-            return self.session.op_compute_gradients(
+            if da3c_config.config.use_gae:
+                return self.session.op_compute_gradients(
                     state=experience['state'], action=experience['action'],
                     value=experience['value'], discounted_reward=self.discounted_reward,
-                    lstm_state=self.lstm_state, lstm_step=[len(reward)])
+                    advantage=advantage, lstm_state=self.lstm_state, lstm_step=[len(reward)])
+            else:
+                return self.session.op_compute_gradients(
+                        state=experience['state'], action=experience['action'],
+                        value=experience['value'], discounted_reward=self.discounted_reward,
+                        lstm_state=self.lstm_state, lstm_step=[len(reward)])
 
-        return self.session.op_compute_gradients(
+        if da3c_config.config.use_gae:
+            return self.session.op_compute_gradients(
                 state=experience['state'], action=experience['action'],
-                value=experience['value'], discounted_reward=self.discounted_reward)
+                value=experience['value'], discounted_reward=self.discounted_reward,
+                advantage=advantage)
+        else:
+            return self.session.op_compute_gradients(
+                    state=experience['state'], action=experience['action'],
+                    value=experience['value'], discounted_reward=self.discounted_reward)
 
     def compute_icm_gradients(self, experience):
         states, icm_states = experience['state'], []
@@ -156,3 +176,7 @@ class DA3CEpisode(object):
             gradients=gradients,
             increment=experience_size
         )
+
+    @staticmethod
+    def discount(x, gamma):
+        return scipy.signal.lfilter([1], [1, -gamma], x[::-1], axis=0)[::-1]

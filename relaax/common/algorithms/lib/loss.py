@@ -6,10 +6,15 @@ from relaax.common.algorithms.lib import graph
 
 
 class DA3CDescreteLoss(subgraph.Subgraph):
-    def build_graph(self, actor, critic, entropy_beta):
-        self.ph_action = graph.Placeholder(np.int32, shape=(None, ))
-        self.ph_value = graph.Placeholder(np.float32, shape=(None, ))
-        self.ph_discounted_reward = graph.Placeholder(np.float32, shape=(None, ))
+    def build_graph(self, actor, critic, entropy_beta, gae):
+        self.ph_action = graph.Placeholder(np.int32, shape=(None,))
+        self.ph_value = graph.Placeholder(np.float32, shape=(None,))
+        self.ph_discounted_reward = graph.Placeholder(np.float32, shape=(None,))
+
+        diff = self.ph_discounted_reward.node - self.ph_value.node
+        if gae:
+            self.ph_advantage = graph.Placeholder(np.float32, shape=(None,))
+            diff = self.ph_advantage.node
 
         action_one_hot = tf.one_hot(self.ph_action.node, actor.action_size)
 
@@ -22,8 +27,7 @@ class DA3CDescreteLoss(subgraph.Subgraph):
         # policy loss (output)  (Adding minus, because the original paper's
         # objective function is for gradient ascent, but we use gradient descent optimizer)
         policy_loss = -tf.reduce_sum(tf.reduce_sum(log_pi * action_one_hot, axis=1) *
-                (self.ph_discounted_reward.node - self.ph_value.node) +
-                entropy * entropy_beta)
+                                     diff + entropy * entropy_beta)
 
         # value loss (output)
         # (Learning rate for Critic is half of Actor's, it's l2 without dividing by 0.5)
@@ -34,10 +38,10 @@ class DA3CDescreteLoss(subgraph.Subgraph):
 
 
 class DA3CContinuousLoss(subgraph.Subgraph):
-    def build_graph(self, actor, critic, entropy_beta):
+    def build_graph(self, actor, critic, entropy_beta, gae):
         self.ph_action = graph.Placeholder(np.float32, shape=(None, actor.action_size))
-        self.ph_value = graph.Placeholder(np.float32, shape=(None, ))
-        self.ph_discounted_reward = graph.Placeholder(np.float32, shape=(None, ))
+        self.ph_value = graph.Placeholder(np.float32, shape=(None,))
+        self.ph_discounted_reward = graph.Placeholder(np.float32, shape=(None,))
 
         mu, sigma2 = actor.node
 
@@ -54,8 +58,8 @@ class DA3CContinuousLoss(subgraph.Subgraph):
         gaussian_nll = (tf.reduce_sum(log_pi, axis=1)
                         + b_size * tf.log(2. * np.pi)) / 2. - tf.reduce_sum(x_power, axis=1)
         policy_loss = (tf.multiply(gaussian_nll,
-                tf.stop_gradient(self.ph_discounted_reward.node - self.ph_value.node)) +
-                entropy_beta * entropy)
+                                   tf.stop_gradient(self.ph_discounted_reward.node - self.ph_value.node)) +
+                       entropy_beta * entropy)
 
         # value loss (output)
         # (Learning rate for Critic is half of Actor's, it's l2 without dividing by 0.5)
@@ -65,25 +69,25 @@ class DA3CContinuousLoss(subgraph.Subgraph):
         return policy_loss + value_loss
 
 
-def DA3CLoss(actor, critic, entropy_beta):
+def DA3CLoss(actor, critic, entropy_beta, gae=False):
     Loss = DA3CContinuousLoss if actor.continuous else DA3CDescreteLoss
-    return Loss(actor, critic, entropy_beta)
+    return Loss(actor, critic, entropy_beta, gae)
 
 
 class PGLoss(subgraph.Subgraph):
     def build_graph(self, action_size, network):
-        self.ph_action = graph.Placeholder(np.int32, (None, ))
+        self.ph_action = graph.Placeholder(np.int32, (None,))
         self.ph_discounted_reward = graph.Placeholder(np.float32, (None, 1))
 
         # making actions that gave good advantage (reward over time) more likely,
         # and actions that didn't less likely.
 
         log_like_op = tf.log(tf.reduce_sum(tf.one_hot(self.ph_action.node,
-                action_size) * network.node, axis=[1]))
+                                                      action_size) * network.node, axis=[1]))
         return -tf.reduce_sum(log_like_op * self.ph_discounted_reward.node)
 
 
-class ICMLoss(subgraph.Subgraph):   # alpha=0.1 | beta=0.2
+class ICMLoss(subgraph.Subgraph):  # alpha=0.1 | beta=0.2
     def build_graph(self, policy_actor, icm_nn, alpha, beta):
         self.ph_action = graph.Placeholder(np.int32, (None,), name='action_from_policy')
         self.ph_discounted_reward = graph.Placeholder(np.float32, (None, 1), name='dr')
