@@ -3,10 +3,41 @@ import os
 import sys
 import click
 from honcho.manager import Manager
+import subprocess
+import honcho.process
+from honcho.compat import ON_WINDOWS
 
 from relaax.common.python.config.config_yaml import ConfigYaml
 from relaax.cmdl.cmdl import pass_context
 
+class PopenPatched(subprocess.Popen):
+
+    def __init__(self, cmd, **kwargs):
+        start_new_session = kwargs.pop('start_new_session', True)
+        options = {
+            'stdout': subprocess.PIPE,
+            'stderr': subprocess.STDOUT,
+            'shell': True,
+            'bufsize': 1,
+            'close_fds': not ON_WINDOWS,
+        }
+        options.update(**kwargs)
+
+        if ON_WINDOWS:
+            # MSDN reference:
+            #   http://msdn.microsoft.com/en-us/library/windows/desktop/ms684863%28v=vs.85%29.aspx
+            create_new_process_group = 0x00000200
+            detached_process = 0x00000008
+            #options.update(creationflags=detached_process | create_new_process_group)
+        elif start_new_session:
+            if sys.version_info < (3, 2):
+                options.update(preexec_fn=os.setsid)
+            else:
+                options.update(start_new_session=True)
+
+        super(PopenPatched, self).__init__(cmd, **options)
+
+honcho.process.Popen = PopenPatched
 
 class RManager(Manager):
 
@@ -35,7 +66,7 @@ class CmdlRun(object):
         self.components = components if bool(components) else set(['all'])
 
         if sys.platform == 'win32':
-            self.nobuffer = ''
+            self.nobuffer = 'set PYTHONUNBUFFERED=true&&'
         else:
             self.nobuffer = 'PYTHONUNBUFFERED=true'
         self.config_yaml = ConfigYaml()
