@@ -136,10 +136,11 @@ class DiagGauss(ProbType):
 
 
 class StochPolicyKeras(object):
-    def __init__(self, net, probtype, session):
+    def __init__(self, net, probtype, session, relaax_session):
         self._net = net
         self._probtype = probtype
         self.finalize(session)
+        self.relaax_session = relaax_session
 
     @property
     def probtype(self):
@@ -165,7 +166,8 @@ class StochPolicyKeras(object):
         return self._net.output
 
     def act(self, ob, stochastic=True):
-        prob = self._act_prob(ob[None])
+        prob = self.relaax_session.op_get_action(state=ob[None])
+        #prob = self._act_prob(ob[None])
         if stochastic:
             return self.probtype.sample(prob)[0], {"prob": prob[0]}
         else:

@@ -7,13 +7,14 @@ from collections import defaultdict
 
 import keras.backend
 
-from . import network
+from ..common import network
 
 
 class Agent(object):
-    def __init__(self, config, parameter_server):
+    def __init__(self, config, parameter_server, relaax_session):
         self._config = config
         self.ps = parameter_server
+        self.relaax_session = relaax_session
 
         self._episode_timestep = 0   # timestep for current episode (round)
         self._episode_reward = 0     # score accumulator for current episode (round)
@@ -27,15 +28,13 @@ class Agent(object):
         self._session = tf.Session()
         keras.backend.set_session(self._session)
 
-        self.policy_net, value_net = network.make(config)
-        self.policy, _ = network.make_head(config, self.policy_net, value_net, self._session)
+        self.policy_net, value_net = network.make_mlps(config, relaax_session)
+        self.policy, _ = network.make_wrappers(config, self.policy_net, value_net, self._session, relaax_session)
 
         self._session.run(tf.variables_initializer(tf.global_variables()))
 
         self._n_iter = self.ps.session.call_wait_for_iteration()  # counter for global updates at parameter server
-        self.policy.net.set_weights(
-            list(self.ps.session.call_receive_weights(self._n_iter))
-        )
+        relaax_session.op_set_weights(weights=self.ps.session.op_get_weights())
 
         if config.use_filter:
             self.obs_filter, _ = network.make_filters(config)
@@ -53,7 +52,7 @@ class Agent(object):
             obs = self.obs_filter(state)
         self.data["observation"].append(obs)
 
-        action, agentinfo = self.policy.act(obs)
+        action, agentinfo = self.policy.act(np.reshape(obs, obs.shape + (1,)))
         self.data["action"].append(action)
 
         for (k, v) in agentinfo.iteritems():
@@ -118,7 +117,7 @@ class Agent(object):
 
         if old_n_iter < self._n_iter:
             print('Collecting time for {} iteration: {}'.format(old_n_iter+1, time.time() - self.collecting_time))
-            self.policy.net.set_weights(list(self.ps.session.call_receive_weights(self._n_iter)))
+            self.relaax_session.op_set_weights(weights=self.ps.session.op_get_weights())
             self.collecting_time = time.time()
 
         if self._config.use_filter:

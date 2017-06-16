@@ -1,8 +1,12 @@
 from __future__ import absolute_import
+
 from builtins import object
 
-from .old_trpo_gae.agent import agent
+from relaax.server.common import session
+
 from . import trpo_config
+from . import trpo_model
+from .old_trpo_gae.agent import agent
 
 
 class Agent(object):
@@ -13,7 +17,9 @@ class Agent(object):
     # environment is ready and
     # waiting for agent to initialize
     def init(self, exploit=False):
-        self.agent = agent.Agent(trpo_config.options.algorithm, self.ps)
+        model = trpo_model.AgentModel()
+        self.session = session.Session(model)
+        self.agent = agent.Agent(trpo_config.options.algorithm, self.ps, self.session)
         return True
 
     # environment generated new state and reward

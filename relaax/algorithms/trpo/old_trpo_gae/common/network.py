@@ -4,19 +4,41 @@ from keras.layers.core import Dense, Lambda
 
 from relaax.algorithms.trpo.old_trpo_gae.algorithm_lib.core import *
 
+from relaax.algorithms.trpo import trpo_model
+from relaax.common.algorithms.lib import utils
 
-def make_mlps(config):
-    policy_net = Sequential()
-    for (i, layeroutsize) in enumerate(config.hidden_sizes):
-        input_shape = dict(input_shape=config.input.shape) if i == 0 else {}
-        policy_net.add(Dense(layeroutsize, activation=config.activation, **input_shape))
-    if config.output.continuous:
-        policy_net.add(Dense(config.output.action_size))
-        # policy_net.add(Lambda(lambda x: x * 0.1))
-        policy_net.add(ConcatFixedStd())
-    else:
-        policy_net.add(Dense(config.output.action_size, activation="softmax"))
-        # policy_net.add(Lambda(lambda x: x * 0.1))
+
+class PolicyNet(object):
+    def __init__(self, net):
+        for attr in ['input', 'output', 'trainable_weights', 'set_weights', 'get_weights']:
+            value = getattr(net, attr)
+            setattr(self, attr, value)
+            print('UGU', attr, type(value), repr(value))
+
+
+class NewPolicyNet(object):
+    def __init__(self, relaax_session):
+        self.session = relaax_session
+        self.input = relaax_session.model.input.node
+        self.output = relaax_session.model.output.node
+        self.trainable_weights = relaax_session.model.trainable_weights
+
+
+def make_mlps(config, relaax_session):
+    old_policy_net = False
+
+    if old_policy_net:
+        policy_net = Sequential()
+        for (i, layeroutsize) in enumerate(config.hidden_sizes):
+            input_shape = dict(input_shape=config.input.shape) if i == 0 else {}
+            policy_net.add(Dense(layeroutsize, activation=config.activation, **input_shape))
+        if config.output.continuous:
+            policy_net.add(Dense(config.output.action_size))
+            # policy_net.add(Lambda(lambda x: x * 0.1))
+            policy_net.add(ConcatFixedStd())
+        else:
+            policy_net.add(Dense(config.output.action_size, activation="softmax"))
+            # policy_net.add(Lambda(lambda x: x * 0.1))
 
     value_net = Sequential()
     for (i, layeroutsize) in enumerate(config.hidden_sizes):
@@ -25,7 +47,9 @@ def make_mlps(config):
         value_net.add(Dense(layeroutsize, activation=config.activation, **input_shape))
     value_net.add(Dense(1))
 
-    return policy_net, value_net
+    if old_policy_net:
+        return PolicyNet(policy_net), value_net
+    return NewPolicyNet(relaax_session), value_net
 
 
 def make_filters(config):
@@ -38,14 +62,15 @@ def make_filters(config):
     return obfilter, rewfilter
 
 
-def make_wrappers(config, policy_net, value_net, session):
+def make_wrappers(config, policy_net, value_net, session, relaax_session):
 
     if config.output.continuous:
         probtype = DiagGauss(config.output.action_size)
     else:
         probtype = Categorical(config.output.action_size)
 
-    policy = StochPolicyKeras(policy_net, probtype, session)
+    
+    policy = StochPolicyKeras(policy_net, probtype, session, relaax_session)
     baseline = NnVf(value_net, config.PG_OPTIONS.timestep_limit, dict(mixfrac=0.1), session)
 
     return policy, baseline
@@ -102,6 +127,9 @@ class TrpoUpdater(object):
 
         args = [ob_no, act_na, adv_n, oldprob_np]
 
+        print('definition')
+        for a in args:
+            print('arg', repr(a), repr(a.get_shape()))
         self.compute_policy_gradient = TensorFlowLazyFunction(args, pg, session)
         self.compute_losses = TensorFlowLazyFunction(args, losses, session)
         self.compute_fisher_vector_product = TensorFlowLazyFunction([flat_tangent] + args, fvp, session)
@@ -111,7 +139,7 @@ class TrpoUpdater(object):
         ob_no = concat([path["observation"] for path in paths])
         action_na = concat([path["action"] for path in paths])
         advantage_n = concat([path["advantage"] for path in paths])
-        args = (ob_no, action_na, advantage_n, prob_np)
+        args = (np.reshape(ob_no, ob_no.shape + (1,)), action_na, advantage_n, prob_np)
 
         cfg = self.cfg
         thprev = self.ezflat.get_params_flat()
@@ -119,6 +147,9 @@ class TrpoUpdater(object):
         def fisher_vector_product(p):
             return self.compute_fisher_vector_product(p, *args) + cfg.TRPO.cg_damping * p
 
+        print('call')
+        for a in args:
+            print('val', repr(a.shape))
         g = self.compute_policy_gradient(*args)
         losses_before = self.compute_losses(*args)
 
