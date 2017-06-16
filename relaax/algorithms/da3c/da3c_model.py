@@ -53,9 +53,10 @@ class SharedParameters(subgraph.Subgraph):
 
         if da3c_config.config.optimizer == 'Adam':
             sg_optimizer = graph.AdamOptimizer(da3c_config.config.initial_learning_rate)
-            sg_icm_optimizer = graph.AdamOptimizer(da3c_config.config.initial_learning_rate)
-            sg_icm_weights = icm_model.ICM().weights
-            sg_icm_gradients = layer.Gradients(sg_icm_weights, optimizer=sg_icm_optimizer)
+            if da3c_config.config.use_icm:
+                sg_icm_optimizer = graph.AdamOptimizer(da3c_config.config.initial_learning_rate)
+                sg_icm_weights = icm_model.ICM().weights
+                sg_icm_gradients = layer.Gradients(sg_icm_weights, optimizer=sg_icm_optimizer)
         else:
             sg_learning_rate = da3c_graph.LearningRate(sg_global_step)
             sg_optimizer = graph.RMSPropOptimizer(
