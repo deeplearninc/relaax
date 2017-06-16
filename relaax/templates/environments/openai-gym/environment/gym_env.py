@@ -78,8 +78,8 @@ class GymEnv(object):
 
         if options.get('environment/crop', True):
             self._crop = True
-            self._top = round(9 * (shape[0] / 42))
-            self._bottom = round(shape[0] - 4 * (shape[0] / 42))
+            self._top = int(round(9 * (shape[0] / 42)))
+            self._bottom = int(round(shape[0] - 4 * (shape[0] / 42)))
 
         self._process_state = SetFunction(self._process_all)
 
