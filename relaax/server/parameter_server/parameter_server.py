@@ -16,9 +16,13 @@ from relaax.server.common.saver import limited_saver
 from relaax.server.common.saver import multi_saver
 from relaax.server.common.saver import s3_saver
 from relaax.server.common.saver import watch
-
+import multiprocessing
+try:
+    from Queue import Queue, Empty  # noqa
+except ImportError:
+    from queue import Queue, Empty  # noqa
+    
 log = logging.getLogger(__name__)
-
 
 class ParameterServer(object):
 
@@ -48,12 +52,20 @@ class ParameterServer(object):
             ps = init_ps()
             watch = cls.make_watch(ps)
 
-            Speedometer(ps)
-
+            speedm = Speedometer(ps)
+            events = multiprocessing.Queue()
             while True:
-                time.sleep(1)
-                watch.check()
-
+                #time.sleep(1)
+                try:
+                    msg = events.get(timeout=0.1)
+                except Empty:
+                    pass
+                except:
+                    break    
+                else:
+                    watch.check()
+            
+            speedm.stop_timer()
         except KeyboardInterrupt:
             # swallow KeyboardInterrupt
             pass
@@ -145,12 +157,14 @@ class Speedometer(object):
         self.run_timer(current_time, current_n_step)
 
     def run_timer(self, start_time, start_n_steps):
-        threading.Timer(60, self.measure, args=(start_time, start_n_steps)).start()
-
+        self.timer=threading.Timer(60, self.measure, args=(start_time, start_n_steps))
+        self.timer.start()
+        
+    def stop_timer(self):
+        self.timer.cancel()
 
 def main():
     ParameterServer.start()
-
 
 if __name__ == '__main__':
     main()
