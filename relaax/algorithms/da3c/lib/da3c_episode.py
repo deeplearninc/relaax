@@ -18,13 +18,13 @@ class DA3CEpisode(object):
         self.ps = parameter_server
         model = da3c_model.AgentModel()
         self.session = session.Session(model)
+        if da3c_config.config.use_lstm:
+            self.lstm_zero_state = model.lstm_zero_state
+            self.lstm_state = self.initial_lstm_state = model.lstm_zero_state
         self.reset()
         self.observation = da3c_observation.DA3CObservation()
         self.last_action = None
         self.last_value = None
-        if da3c_config.config.use_lstm:
-            self.lstm_zero_state = model.lstm_zero_state
-            self.lstm_state = model.lstm_zero_state
         if da3c_config.config.use_icm:
             self.icm_observation = da3c_observation.DA3CObservation()
 
@@ -35,7 +35,7 @@ class DA3CEpisode(object):
     def begin(self):
         self.load_shared_parameters()
         if da3c_config.config.use_lstm:
-            self.lstm_state = self.lstm_zero_state
+            self.initial_lstm_state = self.lstm_state
         self.get_action_and_value()
         self.episode.begin()
 
@@ -62,6 +62,8 @@ class DA3CEpisode(object):
 
     def reset(self):
         self.episode = episode.Episode('reward', 'state', 'action', 'value')
+        if da3c_config.config.use_lstm:
+            self.initial_lstm_state = self.lstm_zero_state
 
     # Helper methods
 
