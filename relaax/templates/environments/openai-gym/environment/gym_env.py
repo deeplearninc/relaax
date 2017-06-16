@@ -4,20 +4,22 @@ from __future__ import division
 
 from builtins import range
 from builtins import object
+
 import os
 import sys
 import gym
 import random
+import logging
 import numpy as np
-
-from scipy.misc import imresize
-from PIL import Image, ImageCms
+from PIL import Image
 
 from gym.spaces import Box
 from gym.wrappers.frame_skipping import SkipWrapper
-from doom_wrapper import ppaquette_doom
 
-from relaax.client.rlx_client_config import options
+from relaax.environment.config import options
+
+gym.configuration.undo_logger_setup()
+log = logging.getLogger(__name__)
 
 
 class SetFunction(object):
@@ -43,33 +45,26 @@ class GymEnv(object):
         'Tennis', 'TimePilot', 'Tutankham', 'UpNDown', 'Venture',
         'VideoPinball', 'WizardOfWor', 'YarsRevenge', 'Zaxxon']
 
-    ColorSpaces = ['GS', 'CMYK', 'L', 'LAB', 'XYZ']
-
     def __init__(self, env='CartPole-v0'):
+        self.gym = gym.make(env)
+
+        frame_skip = options.get('environment/frame_skip', None)
+        if frame_skip is not None:
+            skip_wrapper = SkipWrapper(frame_skip)
+            self.gym = skip_wrapper(self.gym)
+
         self._record = options.get('environment/record', False)
-        out_dir = options.get('environment/out_dir', '/tmp/'+env)
-        if self._record and not os.path.exists(out_dir):
-            os.makedirs(out_dir)
-
-        if env.startswith('ppaquette/Doom'):
-            self.gym = ppaquette_doom(env, self._record, out_dir=out_dir)
-        else:
-            self.gym = gym.make(env)
-
-            frame_skip = options.get('environment/frame_skip', None)
-            if frame_skip is not None:
-                skip_wrapper = SkipWrapper(frame_skip)
-                self.gym = skip_wrapper(self.gym)
-
-            if self._record:
-                self.gym = gym.wrappers.Monitor(self.gym, out_dir, force=True)
-
-        self.gym.seed(random.randrange(1000000))
+        if self._record:
+            out_dir = options.get('environment/out_dir', '/tmp/' + env)
+            if not os.path.exists(out_dir):
+                os.makedirs(out_dir)
+            self.gym = gym.wrappers.Monitor(self.gym, out_dir, force=True)
 
         self._no_op_max = options.get('environment/no_op_max', 0)
         self._reset_action = self.gym.action_space.sample() \
             if options.get('environment/stochastic_reset', False) else 0
 
+        self.gym.seed(random.randrange(1000000))
         self._show_ui = options.get('show_ui', False)
 
         limit = options.get('environment/limit',
@@ -77,30 +72,36 @@ class GymEnv(object):
         if limit is not None:
             self.gym._max_episode_steps = limit
 
+        shape = options.get('environment/shape', (84, 84))
+        self._shape = (shape[0], shape[1])
+        self._channels = 1 if len(shape) == 2 else 3
+
+        if options.get('environment/crop', True):
+            self._crop = True
+            self._top = round(9 * (shape[0] / 42))
+            self._bottom = round(shape[0] - 4 * (shape[0] / 42))
+
         self._process_state = SetFunction(self._process_all)
 
         atari = [name + 'Deterministic' for name in GymEnv.AtariGameList] + GymEnv.AtariGameList
         if any(item.startswith(env.split('-')[0]) for item in atari):
-            self._process_state = SetFunction(self._process_atari)
+            self._process_state = SetFunction(self._process_img)
 
-        self.action_size, self.box = self._get_action_size()
+        self.action_size = self._get_action_size()
         if self.action_size != options.algorithm.output.action_size:
-            print('Algorithm expects different action size (%d) from gym (%d). \n'
-                  'Please set correct action size in you configuration yaml.' % (
-                  options.algorithm.output.action_size, self.action_size))
+            log.error('Algorithm expects action size %d; gym return %d. \n'
+                      'Please set correct action size in you configuration yaml.' %
+                      (options.algorithm.output.action_size, self.action_size))
             sys.exit(-1)
 
+        self._scale = (1.0 / 255.0)
         self.reset()
-
-        self._convert = False
-        self._crop = False
-        self._shape = False
 
     def _get_action_size(self):
         space = self.gym.action_space
         if isinstance(space, Box):
-            return space.shape[0], True
-        return space.n, False
+            return space.shape[0]
+        return space.n
 
     def act(self, action):
         if self._show_ui or self._record:
@@ -132,19 +133,17 @@ class GymEnv(object):
         return state
 
     def _process_img(self, screen):
-        if self._convert:
-            pass
+        if self._channels == 1:
+            screen = np.dot(screen[..., :3], [0.299, 0.587, 0.114])
 
-    @staticmethod
-    def _process_atari(screen):  # needs to scale to factor of 42 -> crop: (55, 42)
-        gray = np.dot(screen[..., :3], [0.299, 0.587, 0.114])
+        if self._crop:
+            screen = screen[self._top:self._bottom, ...]
 
-        resized_screen = imresize(gray, (110, 84))
-        state = resized_screen[18:102, :]
+        screen = np.array(Image.fromarray(screen).resize(
+            self._shape, resample=Image.BILINEAR), dtype=np.uint8)
 
-        state = state.astype(np.float32)
-        state *= (1.0 / 255.0)
-        return state
+        # return processed screen
+        return screen.astype(np.float32) * self._scale
 
     @staticmethod
     def _process_all(state):
