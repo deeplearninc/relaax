@@ -83,3 +83,22 @@ class PGLoss(subgraph.Subgraph):
         return -tf.reduce_sum(log_like_op * self.ph_discounted_reward.node)
 
 
+class ICMLoss(subgraph.Subgraph):   # alpha=0.1 | beta=0.2
+    def build_graph(self, policy_actor, icm_nn, alpha, beta):
+        self.ph_action = graph.Placeholder(np.int32, (None,), name='action_from_policy')
+        self.ph_discounted_reward = graph.Placeholder(np.float32, (None, 1), name='dr')
+
+        action_one_hot = tf.one_hot(self.ph_action.node, policy_actor.action_size)
+        action_log_prob = tf.log(tf.maximum(policy_actor.node, 1e-20))
+
+        log_like = tf.reduce_sum(action_log_prob * action_one_hot, axis=1)
+        policy_loss = -tf.reduce_sum(log_like * self.ph_discounted_reward.node) * alpha
+
+        icm_action = tf.maximum(icm_nn.inv_out.node, 1e-20)
+        max_like_sum = tf.reduce_sum(icm_action * action_one_hot)
+        inv_loss = (1 - beta) * max_like_sum
+
+        print('icm_nn.discrepancy', icm_nn.discrepancy.get_shape())
+        fwd_loss = tf.reduce_sum(icm_nn.discrepancy) * beta
+
+        return policy_loss + inv_loss + fwd_loss

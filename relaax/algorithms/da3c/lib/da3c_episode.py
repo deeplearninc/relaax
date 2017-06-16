@@ -25,6 +25,8 @@ class DA3CEpisode(object):
         if da3c_config.config.use_lstm:
             self.lstm_zero_state = model.lstm_zero_state
             self.lstm_state = model.lstm_zero_state
+        if da3c_config.config.use_icm:
+            self.icm_observation = da3c_observation.DA3CObservation()
 
     @property
     def experience(self):
@@ -39,6 +41,8 @@ class DA3CEpisode(object):
 
     def step(self, reward, state, terminal):
         if reward is not None:
+            if da3c_config.config.use_icm:
+                reward += self.get_intrinsic_reward(state)
             self.push_experience(reward)
         assert (state is None) == terminal
         self.observation.add_state(state)
@@ -52,6 +56,9 @@ class DA3CEpisode(object):
         experience = self.episode.end()
         if not self.exploit:
             self.apply_gradients(self.compute_gradients(experience), len(experience))
+            if da3c_config.config.use_icm:
+                self.ps.session.op_apply_gradients(
+                    gradients=self.compute_icm_gradients(experience))
 
     def reset(self):
         self.episode = episode.Episode('reward', 'state', 'action', 'value')
@@ -81,15 +88,10 @@ class DA3CEpisode(object):
             assert self.last_action is not None
             assert self.last_value is not None
 
-    def keep_action_and_value(self, action, value):
-        assert self.last_action is None
-        assert self.last_value is None
-
-        self.last_action = action
-        self.last_value = value
-
     def load_shared_parameters(self):
         self.session.op_assign_weights(weights=self.ps.session.op_get_weights())
+        if da3c_config.config.use_icm:
+            self.session.op_icm_assign_weights(weights=self.ps.session.op_icm_get_weights())
 
     def get_action_and_value_from_network(self):
         if da3c_config.config.use_lstm:
@@ -105,26 +107,47 @@ class DA3CEpisode(object):
         mu, sigma2 = action
         return utils.choose_action_continuous(mu, sigma2), value
 
+    def get_intrinsic_reward(self, state):
+        self.icm_observation.add_state(state)
+
+        if state is not None:
+            icm_input = [self.observation.queue, self.icm_observation.queue]
+            intrinsic_reward = self.session.op_get_intrinsic_reward(state=icm_input)
+
+            print('intrinsic_reward', intrinsic_reward.shape, intrinsic_reward)
+            return intrinsic_reward
+        return 0
+
     def compute_gradients(self, experience):
         r = 0.0
         if self.last_value is not None:
             r = self.last_value
 
         reward = experience['reward']
-        discounted_reward = np.zeros_like(reward, dtype=np.float32)
+        self.discounted_reward = np.zeros_like(reward, dtype=np.float32)
 
         # compute and accumulate gradients
         for t in reversed(range(len(reward))):
             r = reward[t] + da3c_config.config.rewards_gamma * r
-            discounted_reward[t] = r
+            self.discounted_reward[t] = r
 
         if da3c_config.config.use_lstm:
-            return self.session.op_compute_gradients(state=experience['state'], action=experience['action'],
-                    value=experience['value'], discounted_reward=discounted_reward,
+            return self.session.op_compute_gradients(
+                    state=experience['state'], action=experience['action'],
+                    value=experience['value'], discounted_reward=self.discounted_reward,
                     lstm_state=self.lstm_state, lstm_step=[len(reward)])
-        return self.session.op_compute_gradients(state=experience['state'], action=experience['action'],
-                value=experience['value'], discounted_reward=discounted_reward)
 
+        return self.session.op_compute_gradients(
+                state=experience['state'], action=experience['action'],
+                value=experience['value'], discounted_reward=self.discounted_reward)
+
+    def compute_icm_gradients(self, experience):
+        states, icm_states = experience['state'], []
+        for i in range(len(states)-1):
+            icm_states.extend((states[i], states[i+1]))
+        return self.session.op_compute_icm_gradients(
+            state=icm_states, action=experience['action'],
+            discounted_reward=self.discounted_reward)
 
     def apply_gradients(self, gradients, experience_size):
         self.ps.session.op_apply_gradients(
