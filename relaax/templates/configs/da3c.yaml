@@ -1,3 +1,6 @@
+---
+# generic DA3C configuration
+
 algorithm:
   name: da3c
 

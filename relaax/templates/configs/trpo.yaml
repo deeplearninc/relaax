@@ -1,2 +1,5 @@
+---
+# generic TRPO configuration
+
 algorithm:
-  name: trpo
+  name: trpo # comment
