@@ -1,8 +1,8 @@
 ---
 
 environment:
-  run: python environment/training.py
-  name: PongDeterministic-v3
+  run: python3 environment/training.py
+  name: PongDeterministic-v4
   shape: [42, 42, 3]                    # [height, width, channels] of env's input
   max_episodes: 100000
   infinite_run: False
