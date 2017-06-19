@@ -37,8 +37,6 @@ class PopenPatched(subprocess.Popen):
 
         super(PopenPatched, self).__init__(cmd, **options)
 
-honcho.process.Popen = PopenPatched
-
 class RManager(Manager):
 
     def __init__(self, *args, **kwargs):
@@ -177,5 +175,22 @@ def cmdl(ctx, components, config, n_environments, exploit, show_ui):
     ctx.setup_logger(format='%(asctime)s %(name)s\t\t  | %(message)s')
     # Disable TF warnings
     os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-    # Exacute command
-    CmdlRun(ctx, set(components), config.name, n_environments, exploit, show_ui).run_componenets()
+    # Execute command
+    
+    if sys.platform == 'win32':
+        import _winapi, time, ctypes
+        firstRun = False 
+        mutex = ctypes.windll.kernel32.CreateMutexA(None, False, "RELAAX_WINDOWS_MUTEX")
+        if _winapi.GetLastError() == 0:
+            firstRun = True
+            
+        if firstRun:
+            os.system("start " + ' '.join(sys.argv))
+            time.sleep(2)
+            _winapi.CloseHandle(mutex)
+        else:
+            _winapi.CloseHandle(mutex)    
+            honcho.process.Popen = PopenPatched
+            CmdlRun(ctx, set(components), config.name, n_environments, exploit, show_ui).run_componenets()
+    else:    
+        CmdlRun(ctx, set(components), config.name, n_environments, exploit, show_ui).run_componenets()
