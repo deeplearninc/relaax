@@ -65,6 +65,7 @@ class ParameterServer(object):
                 else:
                     watch.check()
             
+            ps.save_checkpoint()
             speedm.stop_timer()
         except KeyboardInterrupt:
             # swallow KeyboardInterrupt
