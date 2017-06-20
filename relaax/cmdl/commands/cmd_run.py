@@ -6,6 +6,7 @@ from honcho.manager import Manager
 import subprocess
 import honcho.process
 from honcho.compat import ON_WINDOWS
+import honcho.manager
 
 from relaax.common.python.config.config_yaml import ConfigYaml
 from relaax.cmdl.cmdl import pass_context
@@ -176,7 +177,7 @@ def cmdl(ctx, components, config, n_environments, exploit, show_ui):
     # Disable TF warnings
     os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
     # Execute command
-    
+    honcho.manager.KILL_WAIT = 120
     if sys.platform == 'win32':
         import _winapi, time, ctypes
         firstRun = False 
