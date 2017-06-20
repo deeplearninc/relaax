@@ -5,6 +5,7 @@ import logging
 import ruamel.yaml
 import time
 import threading
+import signal
 
 # Load configuration options
 # do it as early as possible
@@ -38,6 +39,10 @@ class ParameterServer(object):
 
         return ParameterServer(cls.saver_factory, cls.metrics_factory)
 
+    @classmethod    
+    def stop_server(cls):
+        cls.stop_server = True
+            
     @classmethod
     def start(cls):
         try:
@@ -54,10 +59,14 @@ class ParameterServer(object):
 
             speedm = Speedometer(ps)
             events = multiprocessing.Queue()
-            while True:
+            signal.signal(signal.SIGINT, cls.stop_server)
+            signal.signal(signal.SIGTERM, cls.stop_server)
+            cls.stop_server = False
+
+            while not cls.stop_server:
                 #time.sleep(1)
                 try:
-                    msg = events.get(timeout=0.1)
+                    msg = events.get(timeout=1)
                 except Empty:
                     pass
                 except:
