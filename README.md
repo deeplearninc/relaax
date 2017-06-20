@@ -22,6 +22,7 @@ The components of RELAAX include:
 
 ## Contents
 - [Quick start](#quick-start)
+- [Running on Windows](#run-windows)
 - [System Architecture](#system-architecture)
 - [RELAAX Clients](#relaax-clients)
     - [Reinforcement Learning eXchange protocol](#reinforcement-learning-exchange-protocol)
@@ -126,6 +127,45 @@ To see what algorithms are available run:
 ```bash
 relaax generate --help
 ```
+
+## [Running on Windows](#contents)
+
+To run RELAAX on Windows you need to have NumPy, SciPy and tensorflow packages installed. Here is how to configure a separate Anaconda environment for running RELAAX on Windows:
+
+```bash
+(C:\Anaconda3) C:\Users\User>conda create -n relaax python=3.5 numpy scipy pillow psutil boto3 h5py click future ruamel_yaml colorama
+(C:\Anaconda3) C:\Users\User>activate relaax
+(relaax) C:\Users\User>
+```
+This command will create and activate a new Python 3.5 environment and install optimized NumPy and SciPy binaries, as well as some other packages.
+
+```bash
+(relaax) C:\Users\User>conda install -c conda-forge tensorflow
+```
+After that we install Tensorflow and it's dependencies from conda-forge channel. This version is optimized and compatible with previously installed NumPy and SciPy.
+
+```bash
+(relaax) C:\Users\User>pip install --no-deps grpcio grpcio_tools honcho==0.7.1
+```
+Finally we install packages that are not provided through Anaconda.
+ 
+After these steps are complete, you can install the main RELAAX package:
+
+```bash
+(relaax) C:\Users\User>git clone git@github.com:deeplearninc/relaax.git
+(relaax) C:\Users\User>cd relaax
+(relaax) C:\Users\User\relaax>pip install -e .[all]
+```
+
+Now you can create a test environment to test if everything is working:
+```bash
+(relaax) C:\Users\User\relaax>cd ..
+(relaax) C:\Users\User>relaax new app-name
+(relaax) C:\Users\User>cd app-name
+(relaax) C:\Users\User\app-name>relaax run all
+```
+
+This will run the test environment. You should see output in a separate console window. 
 
 ## [System Architecture](#contents)
 
