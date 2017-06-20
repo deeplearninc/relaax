@@ -217,7 +217,7 @@ Avalable `from relaax.environment.training import TrainingBase`
 
 Reinforcement Learning eXchange protocol is a simple protocol implemented over TCP using JSON. It allows to send State of the Environment and Reward to the Server and deliver Action from the Agent to the Environment.
 
-![img](resources/protocol-flow.png)
+![img](resources/protocol-flow.jpg)
 <br><br>
 
 ## [RELAAX Server](#contents)
