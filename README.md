@@ -12,7 +12,7 @@ The components of RELAAX include:
 
 * [Reinforcement Learning eXchange (RLX) protocol](#reinforcement-learning-exchange-protocol) connects RL Agents with an RL Environment
 
-* [RELAAX Client](#relaax-clients) wraps details of the [RLX Protocol](#reinforcement-learning-exchange-protocol) implementation and exposes simple API to be used to exchange States, Rewards, and Actions between the scalable RL Server and Environment. 
+* [RELAAX Agent Proxy](#relaax-agent-proxy) wraps details of the [RLX Protocol](#reinforcement-learning-exchange-protocol) implementation and exposes simple API to be used to exchange States, Rewards, and Actions between the scalable RL Server and Environment. 
 
 * [RELAAX Server](#relaax-server) allows developers to run RL Agents locally or at scale on popular cloud platforms. See more details below.
 
@@ -22,9 +22,9 @@ The components of RELAAX include:
 
 ## Contents
 - [Quick start](#quick-start)
-- [Running on Windows](#run-windows)
+    - [Running on Windows](#run-windows)
 - [System Architecture](#system-architecture)
-- [RELAAX Clients](#relaax-clients)
+- [RELAAX Agent Proxy](#relaax-agent-proxy)
     - [Reinforcement Learning eXchange protocol](#reinforcement-learning-exchange-protocol)
     - [Supported Environments](docs/Environments.md#supported-environments)
         - [ALE](docs/Environments.md#arcade-learning-environment)
@@ -66,7 +66,6 @@ We recommended you use an isolated Python environment to run RELAAX.
 Virtualenv or Anaconda are examples. If you're using the system's python environment,
 you may need to run `pip install` commands with `sudo` and you also have to be sure
 that you have `python-pip` installed.
-On OSX / macOS, we recommend using [Homebrew](http://brew.sh/) to install a current python version.
 
 * Clone RELAAX repo.
 ```bash
@@ -118,6 +117,16 @@ To see what environments are available, run:
 relaax generate --help
 ```
 
+* Different configurations
+Different envoronments would require different algoritm configurations. To see list of available configurations, run:
+```bash
+relaax config
+```
+To see how to apply these configurations, run:
+```
+relaax config --help
+```
+
 * Local copy of algorithm implementation
 If you would like to base your RL algorithm on RELAAX implementation or modify existing implementation you may copy algorithm in your app folder. From your application folder, run: 
 ```bash
@@ -128,7 +137,7 @@ To see what algorithms are available run:
 relaax generate --help
 ```
 
-## [Running on Windows](#contents)
+### [Running on Windows](#contents)
 
 To run RELAAX on Windows you need to have NumPy, SciPy and tensorflow packages installed. Here is how to configure a separate Anaconda environment for running RELAAX on Windows:
 
@@ -172,25 +181,37 @@ This will run the test environment. You should see output in a separate console 
 ![img](resources/RELAAX_Architecture.jpg)
 
 * Environment - computer simulation, game, or "hardware" in real world (say industrial manipulator, robot, car, etc.). To accelerate learning number of Environment(s) could be run in parallel.
-* RELAAX Client - simple library which is embedded into Environment. It collects the State and Reward in Environment, sends it to the RELAAX Server, receives back Action(s) and communicates it to the Environment.
+* RELAAX Agent Proxy - simple library which is embedded into Environment. It collects the State and Reward in Environment, sends it to the RELAAX Server, receives back Action(s) and communicates it to the Environment.
 * RLX Server - listens on a port for a connection from the RELAAX Clients. After connection is accepted it starts Worker and passes control over communication with the client to that Worker.
 * Worker - communicates with the client and runs Agent's NN. Each parallel replica of Environment/Client will have corresponding replica of the Agent.
 * Parameter Server - one or several nodes which run Global Function NN (Q, value, or policy function). Parameter Server node(s) communicates with Workers over GRPC bridge to synchronize state of the Global Function NN with Agents.
 * CheckPoints - storage where Parameter Server saves state of the Global Function NN; when system is re-stared, it may restore Global Function NN state from the stored previously checkpoint and continue learning.
 * Metrics - Workers and Parameter Server send various metrics to the Metrics node; developer may see these metrics in Web Browser by connecting to the Metrics node.
 
-## [RELAAX Clients](#contents)
-Client is small library used to communicate with RL Agents. It could be used with the Environment implemented in many popular programming languages or embedded into specialized hardware systems. Currently client support Arcade Learning Environments (ALE), OpenAI Gym, and OpenAI Universe Environments. At the moment client implemented in Python, later on we are planning to implement client code in C/C++, Ruby, GO, etc. to simplify integration of other environments.
+## [RELAAX Agent Proxy](#contents)
+Agent Proxy run with your Environments training and is used to communicate with RL Agents. At the moment client implemented in Python, later on we are planning to implement client code in C/C++, Ruby, GO, etc. to simplify integration of other environments.
 
-Python Client API:
+Python API:
 
-Available from: `from relaax.client.rlx_client import RlxClient, RlxClientException`
+Available `from relaax.environment.agent_proxy import AgentProxy, AgentProxyException`
 
 * `connect()` - connect to the Agent (through RLX server) 
-* `init(expoit=False)` - send `init` command to the Agent to give it time to load model and do any other required initialization steps
+* `init(expoit=False)` - send `init` command to the Agent to give it time to load model and do any other required initialization steps; you may use `exploit` flag to switch off exploration and traing of the model for the given Agent. Agent would copy latest trained weights from parameter server (PS) and do inferring, but wouldnt update model weights on PS.     
 * `update(reward=None, state=None, terminal=False)` - send `update` to the Agent with state and reward and indication if this is terminal state or not 
 * `reset()` - send `reset` command to the Agent
 * `metrics.scalar` - send scalar to parameter server to add to the tensorboard metrics 
+
+Agent Proxy is simple but requires certain amout of code to iitialize Agent, connection and reconnect to the Agents, handle exceptions, etc. To simplify all that even further, you may use `TrainingBase` class, which wrapps all details of the Agent Proxy operations. 
+
+Python API:
+
+Avalable `from relaax.environment.training import TrainingBase`
+
+* `__init__` - use to instantiate your environment. Base calass will load configuration options and instantiate Agent Proxy. Agent Proxy will be available as self.agent. Following options will be loaded: 
+    * `exploit` - passed to Agent Proxy `init` (this option is passed from commad line)
+    * `environment/max_episodes` - how many apisodes to run
+    * `environment/infinite_run` - don't stop after `max_episodes` reached
+* `episode(self, number)` - called for each episode; return `episode_reward` from this method to capture `game_score` metric 
 
 ###  [Reinforcement Learning eXchange protocol](#contents)
 
