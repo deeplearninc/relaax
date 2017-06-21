@@ -146,7 +146,7 @@ class DA3CEpisode(object):
                      value=experience['value'], discounted_reward=self.discounted_reward)
 
         if da3c_config.config.use_lstm:
-            feeds.update(dict(lstm_state=self.lstm_state, lstm_step=[len(reward)]))
+            feeds.update(dict(lstm_state=self.initial_lstm_state, lstm_step=[len(reward)]))
         if da3c_config.config.use_gae:
             feeds.update(dict(advantage=advantage))
 
