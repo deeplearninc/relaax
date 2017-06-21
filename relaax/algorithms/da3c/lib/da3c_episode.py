@@ -64,7 +64,7 @@ class DA3CEpisode(object):
     def reset(self):
         self.episode = episode.Episode('reward', 'state', 'action', 'value')
         if da3c_config.config.use_lstm:
-            self.initial_lstm_state = self.lstm_zero_state
+            self.initial_lstm_state = self.lstm_state = self.lstm_zero_state
 
     # Helper methods
 
