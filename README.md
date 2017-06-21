@@ -223,7 +223,7 @@ Reinforcement Learning eXchange protocol is a simple protocol implemented over T
 
 RELAAX Server implements dynamic loading of the algorithm implementation. By convention, every algorithm implementation exposes Agent (agent.py) and ParameterServer (parameter_server.py) classes. RLX Server loads and instattiate Agent model for every incomming connection from Environment. There usually single Parameter Server (PS). PS loads and instantiate ParameterServer class. Every Agent gets RPC connection to PS and could call remotely methods exposed on PS model.
 
-Model(s) on PS should be registered with Session and methods exposed to RPC using Op method. See 'samples/simple-exchange-js/algorithm/' to very basic sample of the Agent, ParameterServer, and Model implementation and data exchange between them.
+Model(s) on PS should be registered with Session and methods exposed to RPC using Op method. See [samples/simple-exchange-js/algorithm/](samples/simple-exchange-js/algorithm/) to very basic sample of the Agent, ParameterServer, and Model implementation and data exchange between them.
 
 ### [RLX Server](#contents)
 
