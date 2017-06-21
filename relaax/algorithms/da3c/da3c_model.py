@@ -13,7 +13,7 @@ from . import icm_model
 class Network(subgraph.Subgraph):
     def build_graph(self):
         conv_layer = dict(type=layer.Convolution, activation=layer.Activation.Elu,
-                          n_filters=32, filter_size=[3, 3], stride=[1, 1],
+                          n_filters=32, filter_size=[3, 3], stride=[2, 2],
                           border=layer.Border.Same)
         input = layer.Input(da3c_config.config.input, descs=[dict(conv_layer)] * 4)
 
