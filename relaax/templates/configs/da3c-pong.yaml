@@ -3,7 +3,7 @@
 environment:
   run: python3 environment/training.py
   name: PongDeterministic-v4
-  shape: [42, 42, 3]                    # [height, width, channels] of env's input
+  shape: [42, 42, 1]                    # [height, width, channels] of env's input
   max_episodes: 100000
   infinite_run: False
 
@@ -21,7 +21,7 @@ algorithm:
   name: da3c
 
   input:
-    shape: [42, 42, 3]
+    shape: [42, 42, 1]
     history: 1
     use_convolutions: true
 

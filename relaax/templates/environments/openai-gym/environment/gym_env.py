@@ -74,7 +74,7 @@ class GymEnv(object):
 
         shape = options.get('environment/shape', (84, 84))
         self._shape = (shape[0], shape[1])
-        self._channels = 1 if len(shape) == 2 else 3
+        self._channels = 0 if len(shape) == 2 else shape[-1]
 
         if options.get('environment/crop', True):
             self._crop = True
@@ -133,8 +133,8 @@ class GymEnv(object):
         return state
 
     def _process_img(self, screen):
-        if self._channels == 1:
-            screen = np.dot(screen[..., :3], [0.299, 0.587, 0.114])
+        if self._channels < 2:
+            screen = np.dot(screen[..., :3], [0.299, 0.587, 0.114]).astype(np.uint8)
 
         if self._crop:
             screen = screen[self._top:self._bottom, ...]
@@ -143,6 +143,8 @@ class GymEnv(object):
             self._shape, resample=Image.BILINEAR), dtype=np.uint8)
 
         # return processed screen
+        if self._channels == 1:
+            screen = np.reshape(screen, self._shape + (1,))
         return screen.astype(np.float32) * self._scale
 
     @staticmethod
