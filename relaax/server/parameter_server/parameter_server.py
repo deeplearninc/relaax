@@ -40,8 +40,8 @@ class ParameterServer(object):
         return ParameterServer(cls.saver_factory, cls.metrics_factory)
 
     @classmethod    
-    def stop_server(cls):
-        cls.stop_server = True
+    def exit_server(cls, signum, frame):
+        cls.stopped_server = True
             
     @classmethod
     def start(cls):
@@ -59,11 +59,11 @@ class ParameterServer(object):
 
             speedm = Speedometer(ps)
             events = multiprocessing.Queue()
-            signal.signal(signal.SIGINT, cls.stop_server)
-            signal.signal(signal.SIGTERM, cls.stop_server)
-            cls.stop_server = False
+            signal.signal(signal.SIGINT, cls.exit_server)
+            signal.signal(signal.SIGTERM, cls.exit_server)
+            cls.stopped_server = False
 
-            while not cls.stop_server:
+            while not cls.stopped_server:
                 #time.sleep(1)
                 try:
                     msg = events.get(timeout=1)

@@ -1,11 +1,13 @@
 from builtins import object
 import os
 import sys
+import time
 import click
 from honcho.manager import Manager
 import subprocess
 import honcho.process
 from honcho.compat import ON_WINDOWS
+from honcho.compat import iteritems
 import honcho.manager
 
 from relaax.common.python.config.config_yaml import ConfigYaml
@@ -52,8 +54,32 @@ class RManager(Manager):
             return all(clients)
         else:
             super(RManager, self)._any_stopped()
+            
+    def _killall(self, force=False):
+        """Kill all remaining processes, forcefully if requested."""
+        for_termination = []
 
+        for n, p in iteritems(self._processes):
+            if 'returncode' not in p:
+                for_termination.append(n)
 
+        for n in for_termination:
+            p = self._processes[n]
+            signame = 'SIGKILL' if force else 'SIGTERM'
+            self._system_print("sending %s to %s (pid %s)\n" %
+                               (signame, n, p['pid']))
+            if sys.platform == 'win32':
+                import ctypes
+                ctypes.windll.kernel32.SetConsoleCtrlHandler(0, True);
+                ctypes.windll.kernel32.GenerateConsoleCtrlEvent(0, 0)
+                time.sleep(0.1)
+                ctypes.windll.kernel32.SetConsoleCtrlHandler(0, False);
+            else:                   
+                if force:
+                    self._env.kill(p['pid'])
+                else:
+                    self._env.terminate(p['pid'])
+         
 class CmdlRun(object):
 
     def __init__(self, ctx, components, config, n_clients, exploit, show_ui):
@@ -177,9 +203,12 @@ def cmdl(ctx, components, config, n_environments, exploit, show_ui):
     # Disable TF warnings
     os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
     # Execute command
-    honcho.manager.KILL_WAIT = 120
     if sys.platform == 'win32':
-        import _winapi, time, ctypes
+        honcho.manager.KILL_WAIT = 120
+        honcho.process.Popen = PopenPatched
+    
+        import _winapi, ctypes
+        
         firstRun = False 
         mutex = ctypes.windll.kernel32.CreateMutexA(None, False, "RELAAX_WINDOWS_MUTEX")
         if _winapi.GetLastError() == 0:
