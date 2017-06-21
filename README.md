@@ -163,7 +163,7 @@ This will run the test environment. You should see output in a separate console 
 
 ## [System Architecture](#contents)
 
-![img](resources/RELAAX_Architecture.jpg)
+![img](docs/resources/RELAAX_Architecture.jpg)
 
 * Environment - computer simulation, game, or "hardware" in real world (say industrial manipulator, robot, car, etc.). To accelerate learning number of Environment(s) could be run in parallel.
 * RELAAX Agent Proxy - simple library which is embedded into Environment. It collects the State and Reward in Environment, sends it to the RELAAX Server, receives back Action(s) and communicates it to the Environment.
@@ -201,7 +201,7 @@ Avalable `from relaax.environment.training import TrainingBase`
 
 Reinforcement Learning eXchange protocol is a simple protocol implemented over TCP using JSON. It allows to send State of the Environment and Reward to the Server and deliver Action from the Agent to the Environment.
 
-![img](resources/protocol-flow.jpg)
+![img](docs/resources/protocol-flow.jpg)
 <br><br>
 
 ## [RELAAX Servers](#contents)
