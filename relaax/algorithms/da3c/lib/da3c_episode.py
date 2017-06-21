@@ -58,7 +58,7 @@ class DA3CEpisode(object):
         if not self.exploit:
             self.apply_gradients(self.compute_gradients(experience), len(experience))
             if da3c_config.config.use_icm:
-                self.ps.session.op_apply_gradients(
+                self.ps.session.op_icm_apply_gradients(
                     gradients=self.compute_icm_gradients(experience))
 
     def reset(self):
@@ -97,10 +97,12 @@ class DA3CEpisode(object):
             self.session.op_icm_assign_weights(weights=self.ps.session.op_icm_get_weights())
 
     def get_action_and_value_from_network(self):
-        feeds = dict(state=[self.observation.queue])
         if da3c_config.config.use_lstm:
-            feeds.update(dict(lstm_state=self.lstm_state, lstm_step=[1]))
-        action, value = self.session.op_get_action_and_value(**feeds)
+            action, value, self.lstm_state = self.session.op_get_action_value_and_lstm_state(
+                state=[self.observation.queue], lstm_state=self.lstm_state, lstm_step=[1])
+        else:
+            action, value = self.session.op_get_action_and_value(
+                state=[self.observation.queue])
 
         value, = value
         if len(action) == 1:
