@@ -2,7 +2,7 @@ algorithm:
   name: da3c
 
   input:
-    shape: [42, 42, 3]
+    shape: [42, 42, 1]
     history: 1
     use_convolutions: true
 
