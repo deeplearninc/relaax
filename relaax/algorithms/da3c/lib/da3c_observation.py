@@ -13,6 +13,10 @@ class DA3CObservation(object):
             self.queue = None
             return
 
+        if da3c_config.config.input.history == 1:
+            self.queue = state
+            return
+
         state = np.asarray(state)
         axis = len(state.shape)  # extra dimension for observation
         observation = np.reshape(state, state.shape + (1,))
