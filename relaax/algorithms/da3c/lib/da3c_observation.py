@@ -14,7 +14,7 @@ class DA3CObservation(object):
             return
 
         if da3c_config.config.input.history == 1:
-            self.queue = state
+            self.queue = np.asarray(state)
             return
 
         state = np.asarray(state)
