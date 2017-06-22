@@ -13,8 +13,8 @@ class ParameterServer(parameter_server_base.ParameterServerBase):
     def close(self):
         self.session.close()
 
-    def make_checkpoint(self):
-        return self.session.make_checkpoint()
+    def create_checkpoint(self):
+        return self.session.create_checkpoint()
 
     def get_session(self):
         return self.session
