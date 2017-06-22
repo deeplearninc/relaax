@@ -14,6 +14,7 @@ algorithm:
     action_size: 6                # action size for the given environment
     action_high: []               # upper boundary for clipping continuous action
     action_low: []                # lower boundary for clipping continuous action
+    scale: 1.0                    # multiplier to scale continuous output
 
   hidden_sizes: [256]
   batch_size: 20                  # local loop size for one episode
