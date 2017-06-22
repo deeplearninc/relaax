@@ -9,6 +9,8 @@ algorithm:
   output:
     continuous: false
     action_size: 6                # action size for the given environment
+    action_high: []               # upper boundary for clipping continuous action
+    action_low: []                # lower boundary for clipping continuous action
 
   hidden_sizes: [256]
   batch_size: 20                  # local loop size for one episode
