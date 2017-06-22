@@ -183,7 +183,7 @@ class Input(subgraph.Subgraph):
                 dict(type=Convolution, n_filters=32, filter_size=[4, 4],
                      stride=[2, 2], activation=Activation.Relu)]
 
-        descs = [] if descs is None else descs
+        descs = [] if not input.use_convolutions else descs
         layers = GenericLayers(self.ph_state, descs)
 
         self.weight = layers.weight
