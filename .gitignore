@@ -3,6 +3,7 @@
 *.py~
 *.egg*
 .DS_Store
+.idea
 
 # Testing artifacts
 **/__pycache__/*

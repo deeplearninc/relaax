@@ -6,12 +6,13 @@ from . import da3c_model
 
 
 class ParameterServer(parameter_server_base.ParameterServerBase):
-    def close(self):
-        self.session.close()
-
-    def initialize_algorithm(self):
+    def __init__(self, saver_factory, metrics_factory):
         self.session = session.Session(da3c_model.SharedParameters())
         self.session.op_initialize()
+        super(ParameterServer, self).__init__(saver_factory, metrics_factory)
+
+    def close(self):
+        self.session.close()
 
     def make_checkpoint(self):
         return self.session.make_checkpoint()
