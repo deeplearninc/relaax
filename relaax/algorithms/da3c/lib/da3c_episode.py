@@ -109,7 +109,9 @@ class DA3CEpisode(object):
             probabilities, = action
             return utils.choose_action_descrete(probabilities), value
         mu, sigma2 = action
-        return utils.choose_action_continuous(mu, sigma2), value
+        return utils.choose_action_continuous(mu, sigma2,
+                                              da3c_config.config.output.action_high,
+                                              da3c_config.config.output.action_low), value
 
     def get_intrinsic_reward(self, state):
         self.icm_observation.add_state(state)
