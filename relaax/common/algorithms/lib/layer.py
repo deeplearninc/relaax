@@ -139,7 +139,8 @@ class GenericLayers(subgraph.Subgraph):
 
 
 class DescreteActor(subgraph.Subgraph):
-    def build_graph(self, head, action_size):
+    def build_graph(self, head, output):
+        action_size = output.action_size
         actor = Dense(head, action_size, activation=Activation.Softmax)
         self.weight = actor.weight
         self.action_size = action_size
@@ -148,18 +149,19 @@ class DescreteActor(subgraph.Subgraph):
 
 
 class ContinuousActor(subgraph.Subgraph):
-    def build_graph(self, head, action_size):
+    def build_graph(self, head, output):
+        action_size = output.action_size
         self.mu = Dense(head, action_size)
         self.sigma2 = Dense(head, action_size, activation=Activation.Softplus)
         self.weight = graph.Variables(self.mu.weight, self.sigma2.weight)
         self.action_size = action_size
         self.continuous = True
-        return self.mu.node, self.sigma2.node
+        return self.mu.node * graph.TfNode(output.scale).node, self.sigma2.node
 
 
 def Actor(head, output):
     Actor = ContinuousActor if output.continuous else DescreteActor
-    return Actor(head, output.action_size)
+    return Actor(head, output)
 
 
 class Input(subgraph.Subgraph):
