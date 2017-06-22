@@ -1,4 +1,6 @@
 from __future__ import absolute_import
+from builtins import str
+
 import json
 import numpy
 import logging
@@ -28,7 +30,7 @@ class ProxyClient(NetstringReceiver):
         self.cli_queue.get().addCallback(self.serverDataReceived)
 
     def stringReceived(self, data):
-        msg = RLXMessage.from_wire(data)
+        msg = RLXMessage.from_wire(data.decode('utf8'))
         msg['sid'] = self.client_id
         if 'data' in msg and isinstance(msg['data'], numpy.ndarray):
             msg['data'] = msg['data'].tolist()
@@ -107,7 +109,7 @@ class WsServerProtocol(WebSocketServerProtocol):
         return factory.cli_queue
 
     def onMessage(self, payload, isBinary):
-        msg = json.loads(payload)
+        msg = json.loads(payload.decode('utf8'))
         client = self.clients.get(msg['sid'])
         if client is None:
             cli_queue = self.connectRLX(msg['sid'], self.srv_queue)
