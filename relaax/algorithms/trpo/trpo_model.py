@@ -38,42 +38,99 @@ class SetVariablesFlatten(subgraph.Subgraph):
 
 
 class Categorical(subgraph.Subgraph):
-    def build_graph(self, n, a, prob):
-        self.ph_sampled_variable = graph.TfNode(tf.placeholder(tf.int32))
-        self.ph_prob_variable = graph.TfNode(tf.placeholder(tf.float32))
-        self.likelihood = tf.reduce_sum(prob.node * tf.one_hot(a.node, n), axis=1)
-        self.loglikelihood = tf.log(self.likelihood)
+    def build_graph(self, n):
+        self._n = n
+        self.ph_sampled_variable = graph.TfNode(tf.placeholder(tf.int32, name='a'))
 
-    def kl(self, prob0, prob1):
-        return tf.reduce_sum((prob0 * tf.log(prob0 / prob1)), axis=1)
+    class ProbVariableSubgraph(subgraph.Subgraph):
+        def build_graph(self):
+            return tf.placeholder(tf.float32, name='prob')
 
-    def entropy(self, prob0):
-        return -tf.reduce_sum((prob0 * tf.log(prob0)), axis=1)
+    class LoglikelihoodSubgraph(subgraph.Subgraph):
+        def build_graph(self, prob, sampled_variable, n):
+            return tf.log(tf.reduce_sum(prob.node *
+                tf.one_hot(sampled_variable.node, n), axis=1))
+
+    class KlSubgraph(subgraph.Subgraph):
+        def build_graph(self, prob0, prob1):
+            return tf.reduce_sum(prob0.node *
+                tf.log(prob0.node / prob1.node), axis=1)
+
+    class EntropySubgraph(subgraph.Subgraph):
+        def build_graph(self, prob):
+            return -tf.reduce_sum((prob.node * tf.log(prob).node), axis=1)
+
+    @property
+    def ProbVariable(self):
+        return ProbVariableSubgraph
+
+    @property
+    def Loglikelihood(self):
+        return lambda prob: LoglikelihoodSubgraph(
+                prob, self.ph_sampled_variable, self._n)
+
+    @property
+    def Kl(self):
+        return KlSubgraph
+
+    @property
+    def Entropy(self):
+        return EntropySubgraph
 
 
 class DiagGauss(subgraph.Subgraph):
-    def build_graph(self, d, a, prob):
-        mean0 = prob.node[:, :self.d]
-        std0 = prob.node[:, self.d:]
+    def build_graph(self, d):
+        self._d = d
+        self.ph_sampled_variable = graph.TfNode(tf.placeholder(tf.float32, name='a'))
 
-        self.ph_sampled_variable = graph.TfNode(tf.placeholder(tf.float32))
-        self.ph_prob_variable = graph.TfNode(tf.placeholder(tf.float32))
+    class ProbVariableSubgraph(subgraph.Subgraph):
+        def build_graph(self):
+            return tf.placeholder(tf.float32, name='prob')
 
-        self.loglikelihood = - 0.5 * tf.reduce_sum(tf.square((a.node - mean0) / std0), axis=1) \
-               - 0.5 * tf.log(2.0 * np.pi) * d - tf.reduce_sum(tf.log(std0), axis=1)
-        self.likelihood = tf.exp(self.loglikelihood)
+    class LoglikelihoodSubgraph(subgraph.Subgraph):
+        def build_graph(self, prob, sampled_variable, d):
+            mean0 = prob.node[:, :d]
+            std0 = prob.node[:, d:]
+            return - 0.5 * tf.reduce_sum(tf.square((sampled_variable.node - mean0) /
+                    std0), axis=1) - 0.5 * tf.log(2.0 * np.pi) * d - tf.reduce_sum(tf.log(std0), axis=1)
 
-    def kl(self, prob0, prob1):
-        mean0 = prob0[:, :self.d]
-        std0 = prob0[:, self.d:]
-        mean1 = prob1[:, :self.d]
-        std1 = prob1[:, self.d:]
-        return tf.reduce_sum(tf.log(std1 / std0), axis=1) + tf.reduce_sum(
-            ((tf.square(std0) + tf.square(mean0 - mean1)) / (2.0 * tf.square(std1))), axis=1) - 0.5 * self.d
+    class KlSubgraph(subgraph.Subgraph):
+        def build_graph(self, prob0, prob1, d):
+            mean0 = prob0.node[:, :d]
+            std0 = prob0.node[:, d:]
+            mean1 = prob1.node[:, :d]
+            std1 = prob1.node[:, d:]
+            return tf.reduce_sum(tf.log(std1 / std0), axis=1) + \
+                    tf.reduce_sum(((tf.square(std0) + tf.square(mean0 - mean1)) /
+                    (2.0 * tf.square(std1))), axis=1) - 0.5 * d
 
-    def entropy(self, prob):
-        std_nd = prob[:, self.d:]
-        return tf.reduce_sum(tf.log(std_nd), axis=1) + .5 * np.log(2 * np.pi * np.e) * self.d
+    class EntropySubgraph(subgraph.Subgraph):
+        def build_graph(self, prob, d):
+            std_nd = prob.node[:, d:]
+            return tf.reduce_sum(tf.log(std_nd), axis=1) + .5 * np.log(2 * np.pi * np.e) * d
+
+    @property
+    def ProbVariable(self):
+        return self.ProbVariableSubgraph
+
+    @property
+    def Loglikelihood(self):
+        return lambda prob: self.LoglikelihoodSubgraph(
+                prob, self.ph_sampled_variable, self._d)
+
+    @property
+    def Kl(self):
+        return lambda prob0, prob1: self.KlSubgraph(prob0, prob1, self._d)
+
+    @property
+    def Entropy(self):
+        return lambda prob: self.EntropySubgraph(prob, self._d)
+
+
+def ProbType(*args):
+    if trpo_config.config.output.continuous:
+        return DiagGauss(*args)
+    return Categorical(*args)
 
 
 class ConcatFixedStd(subgraph.Subgraph):
@@ -134,11 +191,30 @@ class SharedParameters(subgraph.Subgraph):
         sg_set_weights_flatten = SetVariablesFlatten(sg_network.weights)
         #sg_gradients = layer.Gradients(loss, sg_network.weights)
 
+        ph_adv_n = graph.TfNode(tf.placeholder(tf.float32, name='adv_n'))
+
+        sg_probtype = ProbType(trpo_config.config.output.action_size)
+
+        ph_oldprob_np = sg_probtype.ProbVariable()
+
+        sg_logp_n = sg_probtype.Loglikelihood(sg_network.actor)
+        sg_oldlogp_n = sg_probtype.Loglikelihood(ph_oldprob_np)
+
+        # Policy gradient:
+        sg_surr = graph.TfNode(-tf.reduce_mean(tf.multiply(tf.exp(sg_logp_n.node -
+            sg_oldlogp_n.node), ph_adv_n.node)))
+        sg_gradients = layer.Gradients(sg_network.weights, loss=sg_surr)
+        sg_gradients_flatten = GetVariablesFlatten(sg_gradients.calculate)
+
         sg_initialize = graph.Initialize()
 
         self.input = sg_network.ph_state
         self.output = sg_network.actor
         self.trainable_weights = list(utils.Utils.flatten(sg_network.weights.node))
+        self.surr = sg_surr
+        self.sampled_variable = sg_probtype.ph_sampled_variable
+        self.prob_variable = ph_oldprob_np
+        self.adv_n = ph_adv_n
 
         # Expose public API
         self.op_n_step = self.Op(sg_global_step.n)
@@ -162,6 +238,11 @@ class SharedParameters(subgraph.Subgraph):
 
         self.op_get_weights = self.Op(sg_network.weights)
 
+        self.op_compute_policy_gradient = self.Op(sg_gradients_flatten,
+                state=sg_network.ph_state, sampled_variable=self.sampled_variable,
+                adv_n=ph_adv_n, oldprob_np=ph_oldprob_np)
+
+
 
 # Policy run by Agent(s)
 class AgentModel(subgraph.Subgraph):
@@ -171,7 +252,7 @@ class AgentModel(subgraph.Subgraph):
 
         self.input = sg_network.ph_state
         self.output = sg_network.actor
-        self.trainable_weights = list(utils.Utils.flatten(sg_network.weights.node))
+        # self.trainable_weights = list(utils.Utils.flatten(sg_network.weights.node))
 
         # Expose public API
         self.op_set_weights = self.Op(sg_network.weights.assign, weights=sg_network.weights.ph_weights)

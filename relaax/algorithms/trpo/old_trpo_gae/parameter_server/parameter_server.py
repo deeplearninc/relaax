@@ -23,13 +23,13 @@ class ParameterServer(object):
         # inform Keras that we are going to initialize variables here
         keras.backend.manual_variable_initialization(True)
 
-        self._session = tf.Session()
+        self._session = relaax_session.session
         keras.backend.set_session(self._session)
 
         self.policy_net, self.value_net = network.make_mlps(config, relaax_session)
 
         self.policy, self.baseline = network.make_wrappers(config, self.policy_net, self.value_net, self._session, relaax_session)
-        self.trpo_updater = network.TrpoUpdater(config, self.policy, self._session)
+        self.trpo_updater = network.TrpoUpdater(config, self.policy, self._session, relaax_session)
 
         self._saver = None
 
@@ -82,7 +82,7 @@ class ParameterServer(object):
         # Value Update
         vf_stats = self.baseline.fit(self.paths)
         # Policy Update
-        pol_stats = self.trpo_updater(self.paths)
+        self.trpo_updater(self.paths)
 
         print('Update time for {} iteration: {}'.format(self.n_iter(), time() - start))
         self.relaax_session.op_turn_collect_on()

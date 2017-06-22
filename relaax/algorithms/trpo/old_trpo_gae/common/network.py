@@ -19,9 +19,34 @@ class PolicyNet(object):
 class NewPolicyNet(object):
     def __init__(self, relaax_session):
         self.session = relaax_session
-        self.input = relaax_session.model.input.node
-        self.output = relaax_session.model.output.node
-        self.trainable_weights = relaax_session.model.trainable_weights
+
+    @property
+    def input(self):
+        return self.session.model.input.node
+
+    @property
+    def output(self):
+        return self.session.model.output.node
+
+    @property
+    def trainable_weights(self):
+        return self.session.model.trainable_weights
+
+    @property
+    def surr(self):
+        return self.session.model.surr.node
+
+    @property
+    def sampled_variable(self):
+        return self.session.model.sampled_variable.node
+
+    @property
+    def prob_variable(self):
+        return self.session.model.prob_variable.node
+
+    @property
+    def adv_n(self):
+        return self.session.model.adv_n.node
 
 
 def make_mlps(config, relaax_session):
@@ -77,32 +102,28 @@ def make_wrappers(config, policy_net, value_net, session, relaax_session):
 
 
 class TrpoUpdater(object):
-    def __init__(self, config, stochpol, session):
+    def __init__(self, config, stochpol, session, relaax_session):
+
         self.cfg = config
         self.stochpol = stochpol
+        self.relaax_session = relaax_session
 
         probtype = stochpol.probtype
-        params = stochpol.trainable_variables
+        params = stochpol.net.trainable_weights
         self.ezflat = EzFlat(params, session)
 
-        ob_no = stochpol.input
-        act_na = probtype.sampled_variable()
-        adv_n = tf.placeholder(dtype, name='adv_n')
+        ob_no = stochpol.net.input
+        act_na = stochpol.net.sampled_variable
+        adv_n = stochpol.net.adv_n
 
         # Probability distribution:
-        prob_np = stochpol.get_output()
-        oldprob_np = probtype.prob_variable()
-
-        logp_n = probtype.loglikelihood(act_na, prob_np)
-        oldlogp_n = probtype.loglikelihood(act_na, oldprob_np)
+        prob_np = stochpol.net.output
+        oldprob_np = stochpol.net.prob_variable
 
         # Policy gradient:
-        surr = -tf.reduce_mean(tf.multiply(tf.exp(logp_n - oldlogp_n), adv_n))
-        pg = flatgrad(surr, params)
+        surr = stochpol.net.surr
 
-        N = tf.cast(tf.shape(ob_no)[0], tf.float32)
-        prob_np_fixed = tf.stop_gradient(prob_np)
-        kl_firstfixed = tf.reduce_sum(probtype.kl(prob_np_fixed, prob_np)) / N
+        kl_firstfixed = tf.reduce_sum(probtype.kl(tf.stop_gradient(prob_np), prob_np)) / tf.cast(tf.shape(ob_no)[0], tf.float32)
 
         grads = tf.gradients(kl_firstfixed, params)
         flat_tangent = tf.placeholder(dtype, name='flat_tan')
@@ -122,16 +143,9 @@ class TrpoUpdater(object):
         ent = tf.reduce_mean(probtype.entropy(prob_np))
         kl = tf.reduce_mean(probtype.kl(oldprob_np, prob_np))
 
-        losses = [surr, kl, ent]
-        self.loss_names = ["surr", "kl", "ent"]
-
         args = [ob_no, act_na, adv_n, oldprob_np]
 
-        print('definition')
-        for a in args:
-            print('arg', repr(a), repr(a.get_shape()))
-        self.compute_policy_gradient = TensorFlowLazyFunction(args, pg, session)
-        self.compute_losses = TensorFlowLazyFunction(args, losses, session)
+        self.compute_losses = TensorFlowLazyFunction(args, [surr, kl, ent], session)
         self.compute_fisher_vector_product = TensorFlowLazyFunction([flat_tangent] + args, fvp, session)
 
     def __call__(self, paths):
@@ -147,11 +161,9 @@ class TrpoUpdater(object):
         def fisher_vector_product(p):
             return self.compute_fisher_vector_product(p, *args) + cfg.TRPO.cg_damping * p
 
-        print('call')
-        for a in args:
-            print('val', repr(a.shape))
-        g = self.compute_policy_gradient(*args)
-        losses_before = self.compute_losses(*args)
+        g = self.relaax_session.op_compute_policy_gradient(
+                state=np.reshape(ob_no, ob_no.shape + (1,)), sampled_variable=action_na,
+                adv_n=advantage_n, oldprob_np=prob_np)
 
         if np.allclose(g, 0):
             print("got zero gradient. not updating")
@@ -170,14 +182,6 @@ class TrpoUpdater(object):
             success, theta = linesearch(loss, thprev, fullstep, neggdotstepdir/lm)
             print("success", success)
             self.ezflat.set_params_flat(theta)
-
-        losses_after = self.compute_losses(*args)
-
-        out = OrderedDict()
-        for (lname, lbefore, lafter) in zipsame(self.loss_names, losses_before, losses_after):
-            out[lname+"_before"] = lbefore
-            out[lname+"_after"] = lafter
-        return out
 
 
 def linesearch(f, x, fullstep, expected_improve_rate, max_backtracks=10, accept_ratio=.1):

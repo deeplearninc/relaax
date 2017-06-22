@@ -151,19 +151,8 @@ class StochPolicyKeras(object):
         return self._net
 
     @property
-    def trainable_variables(self):
-        return self._net.trainable_weights
-
-    @property
     def variables(self):
         return self._net.get_params()[0]
-
-    @property
-    def input(self):
-        return self._net.input
-
-    def get_output(self):
-        return self._net.output
 
     def act(self, ob, stochastic=True):
         prob = self.relaax_session.op_get_action(state=ob[None])
@@ -175,7 +164,7 @@ class StochPolicyKeras(object):
 
     def finalize(self, session):
         # misc_utils.TensorFlowLazyFunction
-        self._act_prob = TensorFlowLazyFunction([self.input], self.get_output(), session)
+        self._act_prob = TensorFlowLazyFunction([self.net.input], self.net.output, session)
 
     def get_updates(self):
         return self._net.updates
