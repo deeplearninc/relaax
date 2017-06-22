@@ -20,7 +20,7 @@ algorithm:
   entropy_beta: 0.01              # entropy regularization constant
   rewards_gamma: 0.99             # rewards discount factor
   use_gae: True                   # switcher for generalized advantage estimation
-  gae_lambda: 0.97                # lambda for generalized advantage estimation
+  gae_lambda: 1.00                # lambda for generalized advantage estimation
 
   initial_learning_rate: 1e-4
   gradients_norm_clipping: 40.    # gradients clipping global norm
