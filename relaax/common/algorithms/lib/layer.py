@@ -169,11 +169,8 @@ class Input(subgraph.Subgraph):
         input_shape = input.shape
         if np.prod(input.shape) == 0:
             input_shape = [1]
-
-        shape = [None] + input_shape
-        if input.history > 1:
-            shape += [input.history]
-        self.ph_state = graph.Placeholder(np.float32, shape=shape)
+        self.ph_state = graph.Placeholder(np.float32,
+                            shape=[None] + input_shape + [input.history])
 
         if input.use_convolutions and descs is None:
             # applying vanilla A3C convolution layers
