@@ -5,22 +5,22 @@ algorithm:
   name: da3c
 
   input:
-    shape: [42, 42, 1]
-    history: 1
+    shape: [42, 42]
+    history: 4
     use_convolutions: true
 
   output:
     continuous: false
-    action_size: 6                # action size for the given environment
+    action_size: 18               # action size for the given environment
     action_high: []               # upper boundary for clipping continuous action
     action_low: []                # lower boundary for clipping continuous action
     scale: 1.0                    # multiplier to scale continuous output
 
   hidden_sizes: [256]
-  batch_size: 20                  # local loop size for one episode
+  batch_size: 5                   # local loop size for one episode
 
   use_icm: false                  # to use ICM, set to the True
-  use_lstm: true                  # to use LSTM instead of FF, set to the True
+  use_lstm: false                 # to use LSTM instead of FF, set to the True
   max_global_step: 1e8            # amount of maximum global steps to pass through the training
 
   entropy_beta: 0.01              # entropy regularization constant
