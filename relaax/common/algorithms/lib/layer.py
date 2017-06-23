@@ -175,7 +175,13 @@ class Input(subgraph.Subgraph):
         if not input.use_convolutions or len(shape) <= 4:
             state_input = self.ph_state
         else:
-            state_input = graph.TfNode(tf.reshape(self.ph_state.node,
+            # move channels after history
+            perm = list(range(len(shape)))
+            perm = perm[0:3] + perm[-1:] + perm[3:-1]
+            transpose = tf.transpose(self.ph_state.node, perm=perm)
+
+            # mix history and channels in one dimension
+            state_input = graph.TfNode(tf.reshape(transpose,
                 [-1] + shape[1:3] + [np.prod(shape[3:])]))
 
         if input.use_convolutions and descs is None:
