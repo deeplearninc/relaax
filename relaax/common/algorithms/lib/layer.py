@@ -169,8 +169,14 @@ class Input(subgraph.Subgraph):
         input_shape = input.shape
         if np.prod(input.shape) == 0:
             input_shape = [1]
-        self.ph_state = graph.Placeholder(np.float32,
-                            shape=[None] + input_shape + [input.history])
+        shape = [None] + input_shape + [input.history]
+        self.ph_state = graph.Placeholder(np.float32, shape=shape)
+
+        if not input.use_convolutions or len(shape) <= 4:
+            state_input = self.ph_state
+        else:
+            state_input = graph.TfNode(tf.reshape(self.ph_state.node,
+                [-1] + shape[1:3] + [np.prod(shape[3:])]))
 
         if input.use_convolutions and descs is None:
             # applying vanilla A3C convolution layers
@@ -181,7 +187,7 @@ class Input(subgraph.Subgraph):
                      stride=[2, 2], activation=Activation.Relu)]
 
         descs = [] if not input.use_convolutions else descs
-        layers = GenericLayers(self.ph_state, descs)
+        layers = GenericLayers(state_input, descs)
 
         self.weight = layers.weight
         return layers.node
