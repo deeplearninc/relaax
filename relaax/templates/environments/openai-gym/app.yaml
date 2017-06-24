@@ -2,9 +2,8 @@
 
 environment:
   run: python environment/training.py
-  name: BoxingDeterministic-v4
-  shape: [42, 42]                    # [height, width, {channels}] of env's input
-  max_episodes: 100000
+  name: CartPole-v0
+  max_episodes: 1000
   infinite_run: False
 
 relaax-parameter-server:
