@@ -92,9 +92,9 @@ class Flatten(subgraph.Subgraph):
         return Reshape(x, (-1, )).node
 
 
-class Expand(subgraph.Subgraph):
-    def build_graph(self, x, dim):
-        return tf.expand_dims(x.node, dim)
+class Reshape(subgraph.Subgraph):
+    def build_graph(self, x, shape):
+        return tf.reshape(x.node, shape)
 
 
 class List(subgraph.Subgraph):
@@ -119,14 +119,6 @@ class Increment(subgraph.Subgraph):
         return tf.assign_add(variable.node, increment.node)
 
 
-class VarAssign(subgraph.Subgraph):
-    def build_graph(self, variable, value):
-        self.ph_variable = Placeholders(variables=TfNode(variable))
-        self.assign_from_ph = TfNode(tf.assign(variable, self.ph_variable.node))
-        self.assign_from_value = TfNode(tf.assign(variable, tf.constant(value)))
-        return variable
-
-
 class Placeholder(subgraph.Subgraph):
     """Placeholder of given shape."""
 
@@ -136,19 +128,18 @@ class Placeholder(subgraph.Subgraph):
         np.float32: tf.float32
     }
 
-    def build_graph(self, dtype, shape=None, name=None):
+    def build_graph(self, dtype, shape=None):
         """Assemble one placeholder.
 
         Args:
-            shape: placeholder shape
+            shape: placehoder shape
             dtype: placeholder data type
-            name: placeholder name
 
         Returns:
             placeholder of given shape and data type
         """
 
-        return tf.placeholder(self.DTYPE[dtype], shape=shape, name=name)
+        return tf.placeholder(self.DTYPE[dtype], shape=shape)
 
 
 class Placeholders(subgraph.Subgraph):
@@ -169,13 +160,11 @@ class GlobalStep(subgraph.Subgraph):
 class Variable(subgraph.Subgraph):
     DTYPE = {
         None: None,
-        np.int64: tf.int64,
-        np.float32: tf.float32,
-        np.float64: tf.float64
+        np.int64: tf.int64
     }
 
-    def build_graph(self, initial_value, dtype=None, name=None):
-        return tf.Variable(initial_value, dtype=self.DTYPE[dtype], name=name)
+    def build_graph(self, initial_value, dtype=None):
+        return tf.Variable(initial_value, dtype=self.DTYPE[dtype])
 
 
 class Variables(subgraph.Subgraph):

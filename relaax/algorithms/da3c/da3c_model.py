@@ -12,15 +12,16 @@ from . import da3c_config
 class Network(subgraph.Subgraph):
     def build_graph(self):
         input = layer.Input(da3c_config.config.input)
-        sizes = da3c_config.config.hidden_sizes
 
         sizes = da3c_config.config.hidden_sizes
         dense = layer.GenericLayers(layer.Flatten(input),
                 [dict(type=layer.Dense, size=size, activation=layer.Activation.Relu)
                 for size in sizes])
+
         head = dense
         if da3c_config.config.use_lstm:
-            lstm = layer.LSTM(graph.Expand(dense, 0), size=sizes[-1])
+            lstm = layer.LSTM(graph.Reshape(dense, [1, -1, sizes[-1]]),
+                    size=sizes[-1])
             head = graph.Reshape(lstm, [-1, sizes[-1]])
 
         actor = layer.Actor(head, da3c_config.config.output)
@@ -74,8 +75,7 @@ class AgentModel(subgraph.Subgraph):
 
         sg_loss = loss.DA3CLoss(sg_network.actor, sg_network.critic,
                 da3c_config.config.entropy_beta)
-        sg_gradients = layer.Gradients(sg_network.weights, loss=sg_loss,
-                                       norm=da3c_config.config.gradients_norm_clipping)
+        sg_gradients = layer.Gradients(sg_network.weights, loss=sg_loss)
 
         # Expose public API
         self.op_assign_weights = self.Op(sg_network.weights.assign,

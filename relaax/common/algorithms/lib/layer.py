@@ -31,38 +31,17 @@ class Border(object):
     Same = 'SAME'
 
 
-class LinearLayer(subgraph.Subgraph):
-    def build_graph(self, x, shape, transformation, bias=True):
-        d = 1.0 / np.sqrt(np.prod(shape[:-1]))
-        initializer = graph.RandomUniformInitializer(minval=-d, maxval=d)
-        W = graph.Variable(initializer(np.float32, shape)).node
-        if bias:
-            b = graph.Variable(initializer(np.float32, shape[-1:])).node
-            self.weight = graph.TfNode((W, b))
-            return transformation(x.node, W) + b
-        self.weight = graph.TfNode(W)
-        return transformation(x.node, W)
-
-
-class MatmulLayer(subgraph.Subgraph):
-    def build_graph(self, a, b, activation=Activation.Null):
-        return activation(tf.matmul(a.node, b.node))
-
-
 class BaseLayer(subgraph.Subgraph):
-    def build_graph(self, x, shape, transformation, activation, bias=True):
+    def build_graph(self, x, shape, transformation, activation):
         d = 1.0
         p = np.prod(shape[:-1])
         if p != 0:
             d = 1.0 / np.sqrt(p)
         initializer = graph.RandomUniformInitializer(minval=-d, maxval=d)
         W = graph.Variable(initializer(np.float32, shape)).node
-        if bias:
-            b = graph.Variable(initializer(np.float32, shape[-1:])).node
-            self.weight = graph.TfNode((W, b))
-            return activation(transformation(x.node, W) + b)
-        self.weight = graph.TfNode(W)
-        return activation(transformation(x.node, W))
+        b = graph.Variable(initializer(np.float32, shape[-1:])).node
+        self.weight = graph.TfNode((W, b))
+        return activation(transformation(x.node, W) + b)
 
 
 class Convolution(BaseLayer):
@@ -151,22 +130,35 @@ def Actor(head, output):
 
 
 class Input(subgraph.Subgraph):
-    def build_graph(self, input):
+    def build_graph(self, input, descs=None):
         input_shape = input.shape
         if np.prod(input.shape) == 0:
             input_shape = [1]
-        self.ph_state = graph.Placeholder(np.float32,
-                shape=[None] + input_shape + [input.history])
+        shape = [None] + input_shape + [input.history]
+        self.ph_state = graph.Placeholder(np.float32, shape=shape)
 
-        descs = []
-        if input.use_convolutions:
+        if not input.use_convolutions or len(shape) <= 4:
+            state_input = self.ph_state
+        else:
+            # move channels after history
+            perm = list(range(len(shape)))
+            perm = perm[0:3] + perm[-1:] + perm[3:-1]
+            transpose = tf.transpose(self.ph_state.node, perm=perm)
+
+            # mix history and channels in one dimension
+            state_input = graph.TfNode(tf.reshape(transpose,
+                [-1] + shape[1:3] + [np.prod(shape[3:])]))
+
+        if input.use_convolutions and descs is None:
+            # applying vanilla A3C convolution layers
             descs = [
-                    dict(type=Convolution, n_filters=16, filter_size=[8, 8],
-                        stride=[4, 4], activation=Activation.Relu),
-                    dict(type=Convolution, n_filters=32, filter_size=[4, 4],
-                        stride=[2, 2], activation=Activation.Relu)]
+                dict(type=Convolution, n_filters=16, filter_size=[8, 8],
+                     stride=[4, 4], activation=Activation.Relu),
+                dict(type=Convolution, n_filters=32, filter_size=[4, 4],
+                     stride=[2, 2], activation=Activation.Relu)]
 
-        layers = GenericLayers(self.ph_state, descs)
+        descs = [] if not input.use_convolutions else descs
+        layers = GenericLayers(state_input, descs)
 
         self.weight = layers.weight
         return layers.node
@@ -182,16 +174,10 @@ class Weights(subgraph.Subgraph):
 
 
 class Gradients(subgraph.Subgraph):
-    def build_graph(self, weights, loss=None, optimizer=None, norm=None):
+    def build_graph(self, weights, loss=None, optimizer=None):
         if loss is not None:
-            if norm is not None:
-                self.calculate = graph.TfNode(utils.Utils.reconstruct(
-                    tf.clip_by_norm(tf.gradients(
-                        loss.node, list(utils.Utils.flatten(weights.node))),
-                        norm), weights.node))
-            else:
-                self.calculate = graph.TfNode(utils.Utils.reconstruct(tf.gradients(
-                    loss.node, list(utils.Utils.flatten(weights.node))), weights.node))
+            self.calculate = graph.TfNode(utils.Utils.reconstruct(tf.gradients(
+                loss.node, list(utils.Utils.flatten(weights.node))), weights.node))
         if optimizer is not None:
             self.ph_gradients = graph.Placeholders(weights)
             self.apply = graph.TfNode(optimizer.node.apply_gradients(

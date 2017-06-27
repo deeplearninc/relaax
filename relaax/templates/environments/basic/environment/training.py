@@ -25,9 +25,9 @@ class Training(object):
             # update agent with state and reward
             for step in range(self.steps):
                 try:
-                    reward = self.bandit.pull(action['data'])
+                    reward = self.bandit.pull(action)
                     action = self.agent.update(reward=reward, state=[])
-                    print('action:', action['data'])
+                    print('step: %s, action: %s' % (step, action))
                 except RlxClientException as e:
                     print("agent connection lost: ", e)
                     print ('reconnecting to another agent, '

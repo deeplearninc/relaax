@@ -19,8 +19,6 @@ algorithm:
   initial_learning_rate: 0.02
   entropy_beta: 0.01              # entropy regularization constant
   rewards_gamma: 0.99             # rewards discount factor
-
   RMSProp:
     decay: 0.99
     epsilon: 0.1
-  gradients_norm_clipping: 40

@@ -107,7 +107,7 @@ class WsServerProtocol(WebSocketServerProtocol):
         return factory.cli_queue
 
     def onMessage(self, payload, isBinary):
-        msg = json.loads(payload)
+        msg = json.loads(payload.decode("utf-8"))
         client = self.clients.get(msg['sid'])
         if client is None:
             cli_queue = self.connectRLX(msg['sid'], self.srv_queue)
