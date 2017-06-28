@@ -9,7 +9,7 @@ from PIL import Image
 class TestRLXMessage(object):
 
     def test_to_wire_and_back(self):
-        npar1 = np.array([1.001, 2.002, 3.003])
+        npar1 = np.array([1.001, 2.002, 3.003], dtype=np.float32)
         npar2 = np.array([[1.001, 2.002, 3.003], [1.001, 2.002, 3.003]])
         npar2empty = np.array([[], []])
         npar1empty = np.array([])
