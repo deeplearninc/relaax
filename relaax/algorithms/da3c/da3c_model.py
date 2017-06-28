@@ -90,9 +90,7 @@ class AgentModel(subgraph.Subgraph):
         # Build graph
         sg_network = Network()
 
-        sg_loss = loss.DA3CLoss(sg_network.actor, sg_network.critic,
-                                da3c_config.config.entropy_beta,
-                                da3c_config.config.use_gae)
+        sg_loss = loss.DA3CLoss(sg_network.actor, sg_network.critic, da3c_config.config)
         sg_gradients = layer.Gradients(sg_network.weights, loss=sg_loss,
                                        norm=da3c_config.config.gradients_norm_clipping)
 
