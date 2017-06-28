@@ -206,7 +206,7 @@ Reinforcement Learning eXchange protocol is a simple binary protocol implemented
 
 ###  [Reinforcement Learning eXchange protocol definition](#contents)
 
-#### Message format:
+#### Message exchange:
 
 {'command': 'init', 'exploit': False|True} -> {'response': 'ready'} OR {'response': 'error', 'message': 'can\'t initialize agent'}
 
@@ -234,6 +234,9 @@ TYPE_IMAGE|          6|       variable
 TYPE_NDARRAY|        7|       variable
 TYPE_LIST|           8|       variable
 TYPE_UINT4|          9|       4
+
+#### Message format:
+| "<size in bytes>:"| key value0 | ... | key valueN | ","
 
 #### Key/Typed Value format:
 | Key name(TYPE_STRING_UTF8)| Type(1 byte) | Value |
