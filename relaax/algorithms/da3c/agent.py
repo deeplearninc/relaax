@@ -6,9 +6,6 @@ from .lib import da3c_episode
 from relaax.common import profiling
 
 
-profiling.enable(False)
-
-
 profiler = profiling.get_profiler(__name__)
 
 

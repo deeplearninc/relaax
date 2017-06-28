@@ -1,5 +1,7 @@
 from __future__ import absolute_import
+import glob
 import logging
+import os
 import traceback
 
 # Load configuration options
@@ -46,6 +48,10 @@ class RLXServer():
 
     @classmethod
     def start(cls):
+        if hasattr(options.relaax_rlx_server, 'profile_dir'):
+            for f in glob.glob(os.path.join(
+                    options.relaax_rlx_server.profile_dir, 'rlx_*.txt')):
+                os.remove(f)
         cls.preload_protocol()
         cls.preload_algorithm()
         log.info("Starting RLX server on %s:%d" % options.bind)

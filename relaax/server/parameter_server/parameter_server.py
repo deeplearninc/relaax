@@ -2,6 +2,7 @@ from __future__ import absolute_import
 from __future__ import division
 from builtins import object
 import logging
+import os
 import ruamel.yaml
 import time
 import threading
@@ -9,6 +10,7 @@ import threading
 # Load configuration options
 # do it as early as possible
 from .parameter_server_config import options
+from relaax.common import profiling
 from relaax.server.common.bridge import bridge_server
 from relaax.server.common.metrics import tensorflow_metrics
 from relaax.server.common.saver import fs_saver
@@ -37,6 +39,11 @@ class ParameterServer(object):
     @classmethod
     def start(cls):
         try:
+            if hasattr(options.relaax_parameter_server, 'profile_dir'):
+                profiling.set_handlers([profiling.FileHandler(os.path.join(
+                    options.relaax_parameter_server.profile_dir, 'ps.txt'))])
+                profiling.enable(True)
+
             log.info("Starting parameter server on %s:%d" % options.bind)
 
             init_ps = CallOnce(cls.init)

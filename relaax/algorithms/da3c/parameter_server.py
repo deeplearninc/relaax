@@ -4,14 +4,6 @@ from relaax.server.common import session
 
 from . import da3c_model
 
-from relaax.common import profiling
-
-
-profiling.enable(True)
-
-
-profiler = profiling.get_profiler(__name__)
-
 
 class ParameterServer(parameter_server_base.ParameterServerBase):
     def close(self):

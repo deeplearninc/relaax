@@ -51,6 +51,21 @@ class StreamHandler(Handler):
         self.stream.write(self.pattern % json.dumps(record))
 
 
+class FileHandler(Handler):
+    def __init__(self, fname):
+        super(FileHandler, self).__init__()
+        dirname = os.path.dirname(fname)
+        if dirname != '':
+            try:
+                os.makedirs(dirname)
+            except FileExistsError:
+                pass
+        self.stream = open(fname, 'w')
+
+    def emit(self, record):
+        self.stream.write('%s\n' % json.dumps(record))
+
+
 class Profiler(object):
     # TODO: introduce enable/disable context manager
     enabled = False
