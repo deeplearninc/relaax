@@ -208,21 +208,24 @@ Reinforcement Learning eXchange protocol is a simple protocol implemented over T
 
 #### Basic types:
 
-Name | Value | Size in bytes|Format
------|-------|--------------|------
-TYPE_NONE|0|0|
-TYPE_NULL|           1|       0|
-TYPE_INT4 |          2|       4|
-TYPE_STRING_UTF8|    3|       variable| Length in bytes(TYPE_UINT4), bytes in UTF8
+Name | Value | Size in bytes
+-----|-------|--------------
+TYPE_NONE|0|0
+TYPE_NULL|           1|       0
+TYPE_INT4 |          2|       4
+TYPE_STRING_UTF8|    3|       variable
 TYPE_DOUBLE|         4|       8
 TYPE_BOOLEAN|        5|       1
-TYPE_IMAGE|          6|       variable| image type(TYPE_STRING_UTF8),xdim(TYPE_UINT4),ydim(TYPE_UINT4),Length in bytes(TYPE_UINT4),bytes
+TYPE_IMAGE|          6|       variable
 TYPE_NDARRAY|        7|       variable
 TYPE_LIST|           8|       variable
 TYPE_UINT4|          9|       4
 
 #### Typed Value format:
 | Type(1 byte) | Value |
+
+#### TYPE_STRING_UTF8 value:
+| Length in bytes(TYPE_UINT4) | bytes UTF8 |
 
 #### TYPE_IMAGE value:
 | image type(TYPE_STRING_UTF8) | xdim(TYPE_UINT4) | ydim(TYPE_UINT4) | Length in bytes(TYPE_UINT4) | bytes |
