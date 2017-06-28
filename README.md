@@ -236,7 +236,7 @@ TYPE_LIST|           8|       variable
 TYPE_UINT4|          9|       4
 
 #### Message format:
-| "<size in bytes>:"| key value0 | ... | key valueN | ","
+| "[size in bytes]:"| key value0 | ... | key valueN | ","
 
 #### Key/Typed Value format:
 | Key name(TYPE_STRING_UTF8)| Type(1 byte) | Value |
