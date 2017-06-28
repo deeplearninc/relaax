@@ -22,7 +22,7 @@ The components of RELAAX include:
 
 ## Contents
 - [Quick start](#quick-start)
-    - [Running on Windows](#run-windows)
+    - [Running on Windows](#running-on-windows)
 - [System Architecture](#system-architecture)
 - [RELAAX Agent Proxy](#relaax-agent-proxy)
     - [Reinforcement Learning eXchange protocol](#reinforcement-learning-exchange-protocol)
