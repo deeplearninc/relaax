@@ -26,6 +26,7 @@ The components of RELAAX include:
 - [System Architecture](#system-architecture)
 - [RELAAX Agent Proxy](#relaax-agent-proxy)
     - [Reinforcement Learning eXchange protocol](#reinforcement-learning-exchange-protocol)
+    - [Reinforcement Learning eXchange protocol definition](#reinforcement-learning-exchange-protocol-definition)
     - [Supported Environments](docs/Environments.md#supported-environments)
         - [ALE](docs/Environments.md#arcade-learning-environment)
         - [OpenAI Gym](docs/Environments.md#openai-gym)
