@@ -23,7 +23,7 @@ class NetString(object):
         if slen > self.MAX_STRING_LEN:
             raise NetStringException("net string too long")
         s = self._receiveb(slen)
-        if self._receiveb(1) != ',':
+        if self._receiveb(1) != ','.encode():
             raise NetStringException("wrong net string format")
         return s
 
