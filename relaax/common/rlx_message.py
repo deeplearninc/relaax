@@ -47,7 +47,6 @@ class RLXMessage(object):
     @classmethod
     def _pack_string(cls, value):
         buf = bytearray()
-        buf += pack("B", cls.TYPE_STRING_UTF8)
         bval = bytearray(value.encode('UTF-8'))
         buf += pack("I", len(bval))
         buf += bval
@@ -67,6 +66,7 @@ class RLXMessage(object):
             buf += pack("B", cls.TYPE_DOUBLE)
             buf += pack("d", value)
         elif isinstance(value, str):
+            buf += pack("B", cls.TYPE_STRING_UTF8)
             buf += cls._pack_string(value)
         elif value is None:
             buf += pack("B", cls.TYPE_NULL)
@@ -81,6 +81,7 @@ class RLXMessage(object):
             buf += bval
         elif isinstance(value, np.ndarray):
             buf += pack("B", cls.TYPE_NDARRAY)
+            buf += cls._pack_string(str(value.dtype))
             buf += pack("I", len(value.shape))
             for ns in value.shape:
                 buf += pack("I", ns)
@@ -94,17 +95,12 @@ class RLXMessage(object):
             for item in value:
                 buf += cls._pack_value(item)
         else:
-            raise Exception("Pack Unknown type:"+type(value))
+            print("Pack Unknown type:"+str(type(value)))
+            raise Exception("Pack Unknown type:"+str(type(value)))
         return buf
 
     @classmethod
     def _unpack_string(cls, buf, offset):
-        res = ""
-        restype = unpack_from("B", buf, offset)[0]
-        if restype != cls.TYPE_STRING_UTF8:
-            return (res, offset)
-
-        offset += 1
         reslen = unpack_from("I", buf, offset)[0]
         offset += 4
         res = str(buf[offset:offset+reslen].decode('UTF-8'))
@@ -126,7 +122,6 @@ class RLXMessage(object):
             res = unpack_from("d", buf, offset)[0]
             offset += 8
         elif valtype == cls.TYPE_STRING_UTF8:
-            offset -= 1
             (res, offset) = cls._unpack_string(buf, offset)
         elif valtype == cls.TYPE_BOOLEAN:
             res = unpack_from("B", buf, offset)[0]
@@ -147,6 +142,7 @@ class RLXMessage(object):
             res = np.asarray(img)
             offset += reslen
         elif valtype == cls.TYPE_NDARRAY:
+            (dtype, offset) = cls._unpack_string(buf, offset)
             shape_len = unpack_from("I", buf, offset)[0]
             offset += 4
             shape = []
@@ -157,8 +153,8 @@ class RLXMessage(object):
 
             reslen = unpack_from("I", buf, offset)[0]
             offset += 4
-
-            res = np.frombuffer(buf[offset:offset+reslen]).reshape(shape)
+            res = np.frombuffer(buf[offset:offset+reslen], dtype=np.dtype(dtype) ) #, count=reslen, offset=offset)
+            res = res.reshape(shape)
             offset += reslen
         elif valtype == cls.TYPE_LIST:
             reslen = unpack_from("I", buf, offset)[0]
