@@ -175,7 +175,7 @@ class RLXMessage(object):
 
     @classmethod
     def to_wire(cls, data):
-        print("To_wire:"+str(data))
+        #print("To_wire:"+str(data))
         buf = bytearray()#json.dumps(data, cls=cls._NDArrayEncoder)#bytearray()
 
         for key in data:
