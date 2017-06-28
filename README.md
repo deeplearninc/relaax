@@ -26,6 +26,7 @@ The components of RELAAX include:
 - [System Architecture](#system-architecture)
 - [RELAAX Agent Proxy](#relaax-agent-proxy)
     - [Reinforcement Learning eXchange protocol](#reinforcement-learning-exchange-protocol)
+    - [Reinforcement Learning eXchange protocol definition](#reinforcement-learning-exchange-protocol-definition)
     - [Supported Environments](docs/Environments.md#supported-environments)
         - [ALE](docs/Environments.md#arcade-learning-environment)
         - [OpenAI Gym](docs/Environments.md#openai-gym)
@@ -200,12 +201,26 @@ Avalable `from relaax.environment.training import TrainingBase`
 
 ###  [Reinforcement Learning eXchange protocol](#contents)
 
-Reinforcement Learning eXchange protocol is a simple protocol implemented over TCP using JSON. It allows to send State of the Environment and Reward to the Server and deliver Action from the Agent to the Environment.
+Reinforcement Learning eXchange protocol is a simple binary protocol implemented over TCP. It allows to send State of the Environment and Reward to the Server and deliver Action from the Agent to the Environment.
 
 ![img](docs/resources/protocol-flow.jpg)
 <br><br>
 
 ###  [Reinforcement Learning eXchange protocol definition](#contents)
+
+#### Message exchange:
+
+{'command': 'init', 'exploit': False|True} -> {'response': 'ready'} OR {'response': 'error', 'message': 'can\'t initialize agent'}
+
+{'command': 'update', 'terminal': False|True, 'state': [], 'reward': 1} -> {'response': 'action', 'data': 1} OR {'response': 'error', 'message': 'can\'t update state'}
+
+{'command': 'reset'} -> {'response': 'done'} OR {'response': 'error', 'message': 'can\'t reset agent'}
+
+{'command': 'update_metrics', 'name': name, 'y': y, 'x': x} -> {'response': 'done'} OR {'response': 'error', 'message': 'can\'t update metrics'}
+
+'reward' can be TYPE_NULL, TYPE_DOUBLE or TYPE_LIST(TYPE_DOUBLE)<br>
+'state' can be TYPE_IMAGE, TYPE_LIST or TYPE_NDARRAY<br>
+'data' can be TYPE_INT4, TYPE_DOUBLE or TYPE_LIST
 
 #### Basic types:
 
@@ -222,8 +237,14 @@ TYPE_NDARRAY|        7|       variable
 TYPE_LIST|           8|       variable
 TYPE_UINT4|          9|       4
 
-#### Typed Value format:
-| Type(1 byte) | Value |
+#### Message format:
+| "[size in bytes]:"| key value0 | ... | key valueN | ","
+
+#### Key/Typed Value format:
+| Key name(TYPE_STRING_UTF8)| Type(1 byte) | Value |
+
+#### TYPE_BOOLEAN value:
+| 0(False)/1(True) |
 
 #### TYPE_STRING_UTF8 value:
 | Length in bytes(TYPE_UINT4) | bytes UTF8 |
