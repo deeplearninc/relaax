@@ -134,11 +134,11 @@ class GymEnv(object):
             screen = np.dot(screen[..., :3], [0.299, 0.587, 0.114]).astype(np.uint8)
 
         if self._crop:
-            screen = screen[34:34 + 160, :160]
+            screen = screen[32:36 + 160, :160]
 
-        if self._shape[0] < 80:
+        if self._shape[0] < 84:
             screen = np.array(Image.fromarray(screen).resize(
-                (80, 80), resample=Image.BILINEAR), dtype=np.uint8)
+                (84, 84), resample=Image.BILINEAR), dtype=np.uint8)
 
         screen = np.array(Image.fromarray(screen).resize(
             self._shape, resample=Image.BILINEAR), dtype=np.uint8)
