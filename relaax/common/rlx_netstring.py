@@ -1,7 +1,7 @@
 from builtins import str
 from builtins import object
 import re
-
+from struct import *
 
 class NetStringException(Exception):
     pass
@@ -31,10 +31,16 @@ class NetString(object):
         try:
             if len(data) > self.MAX_STRING_LEN:
                 raise NetStringException("can't send, net string too long")
-            self.skt.sendall(('%d:%s,' % (len(data), data)).encode())
+
+            self.skt.sendall(('%d:' % (len(data))).encode())
+            self.skt.sendall(data)
+            self.skt.sendall(','.encode())
+
         except NetStringException as e:
+            print(str(e))
             raise e
-        except:
+        except Exception as e1:
+            print(str(e1))
             raise NetStringClosed("connection closed")
 
     def _receiveb(self, length):
@@ -48,13 +54,14 @@ class NetString(object):
             rest -= len(packet)
         data = b''.join(packets)
         assert len(data) == length
-        return data.decode()
+        return data#.decode()
 
     def _receive_length(self):
         digits = []
 
         while True:
-            char = self.skt.recv(1).decode()
+            b = self.skt.recv(1)
+            char = b.decode()
             if char == ':':
                 break
             if not char:
