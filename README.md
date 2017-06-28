@@ -124,42 +124,43 @@ relaax generate --help
 
 ### [Running on Windows](#contents)
 
-To run RELAAX on Windows you need to have NumPy, SciPy and tensorflow packages installed. Here is how to configure a separate Anaconda environment for running RELAAX on Windows:
+To run RELAAX on Windows we recommend using [WinPython](https://winpython.github.io) distribution. We have tested WinPython 3.6.1.0Qt5 64bit version on Windows 8.1 and Windows 10. You will also need Microsoft Visual C++ Build Tools 14.00 if you want to use OpenAI Gym environments. You can download it [here](https://go.microsoft.com/fwlink/?LinkId=691126) or [here](http://landinghub.visualstudio.com/visual-cpp-build-tools).
 
+Once you have installed these distributions you need to run "WinPython Command Prompt.exe", which is located in you WinPython installation directory. 
+This will open a command prompt windows configured to use WinPython as Python distribution. After that you can install relaax using pip:
 ```bash
-(C:\Anaconda3) C:\Users\User>conda create -n relaax python=3.5 numpy scipy pillow psutil boto3 h5py click future ruamel_yaml colorama
-(C:\Anaconda3) C:\Users\User>activate relaax
-(relaax) C:\Users\User>
+C:\WinPython-64bit-3.6.1.0Qt5>cd ..
+C:\>git clone git@github.com:deeplearninc/relaax.git
+C:\>cd relaax
+C:\relaax>pip install -e .
 ```
-This command will create and activate a new Python 3.5 environment and install optimized NumPy and SciPy binaries, as well as some other packages.
 
-```bash
-(relaax) C:\Users\User>conda install -c conda-forge tensorflow
-```
-After that we install Tensorflow and it's dependencies from conda-forge channel. This version is optimized and compatible with previously installed NumPy and SciPy.
+This command will install relaax and it's dependencies under WinPython's Python environment. You will need run relaax from WinPython Command Prompt or create a custom shortcut for it.
 
+To add OpenAI Gym support run the following comands (again, from WinPythonCommand Prompt):
 ```bash
-(relaax) C:\Users\User>pip install --no-deps grpcio grpcio_tools honcho==0.7.1
-```
-Finally we install packages that are not provided through Anaconda.
- 
-After these steps are complete, you can install the main RELAAX package:
-
-```bash
-(relaax) C:\Users\User>git clone git@github.com:deeplearninc/relaax.git
-(relaax) C:\Users\User>cd relaax
-(relaax) C:\Users\User\relaax>pip install -e .[all]
+C:\WinPython-64bit-3.6.1.0Qt5>pip install gym
+C:\WinPython-64bit-3.6.1.0Qt5>pip install git+https://github.com/Kojoley/atari-py.git
 ```
 
 Now you can create a test environment to test if everything is working:
 ```bash
-(relaax) C:\Users\User\relaax>cd ..
-(relaax) C:\Users\User>relaax new app-name
-(relaax) C:\Users\User>cd app-name
-(relaax) C:\Users\User\app-name>relaax run all
+C:\WinPython-64bit-3.6.1.0Qt5>cd ..
+C:\relaax new bandit-test
+C:\>cd bandt-test
+C:\bandit-test>relaax run all
+```
+This will run a test environment with multi-armed bandit. You should see output in a separate console window. 
+
+To test OpenAI Gym environment:
+```bash
+C:\WinPython-64bit-3.6.1.0Qt5>cd ..
+C:\relaax new gym-test -e openai-gym
+C:\>cd gym-test
+C:\gym-test>relaax run all
 ```
 
-This will run the test environment. You should see output in a separate console window. 
+This will run a CartPole-v0 environment. 
 
 ## [System Architecture](#contents)
 
