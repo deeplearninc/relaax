@@ -216,8 +216,8 @@ Reinforcement Learning eXchange protocol is a simple binary protocol implemented
 
 {'command': 'update_metrics', 'name': name, 'y': y, 'x': x} -> {'response': 'done'} OR {'response': 'error', 'message': 'can\'t update metrics'}
 
-'reward' can be TYPE_NULL, TYPE_DOUBLE or TYPE_LIST(TYPE_DOUBLE)
-'state' can be TYPE_IMAGE, TYPE_LIST or TYPE_NDARRAY
+'reward' can be TYPE_NULL, TYPE_DOUBLE or TYPE_LIST(TYPE_DOUBLE)<br>
+'state' can be TYPE_IMAGE, TYPE_LIST or TYPE_NDARRAY<br>
 'data' can be TYPE_INT4, TYPE_DOUBLE or TYPE_LIST
 
 #### Basic types:
