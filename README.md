@@ -210,21 +210,16 @@ Reinforcement Learning eXchange protocol is a simple protocol implemented over T
 
 Name | Value | Size in bytes
 -----|-------|--------------
-1|2|3
-
-
-
-
-TYPE_NONE           0       0<br>
-TYPE_NULL           1       0<br>
-TYPE_INT4           2       4<br>
-TYPE_STRING_UTF8    3       variable<br>
-TYPE_DOUBLE         4       8<br>
-TYPE_BOOLEAN        5       1<br>
-TYPE_IMAGE          6       variable<br>
-TYPE_NDARRAY        7       variable<br>
-TYPE_LIST           8       variable<br>
-TYPE_UINT4          9       4<br>
+TYPE_NONE|0|0
+TYPE_NULL|           1|       0
+TYPE_INT4 |          2|       4
+TYPE_STRING_UTF8|    3|       variable
+TYPE_DOUBLE|         4|       8
+TYPE_BOOLEAN|        5|       1
+TYPE_IMAGE|          6|       variable
+TYPE_NDARRAY|        7|       variable
+TYPE_LIST|           8|       variable
+TYPE_UINT4|          9|       4
 
 #### Typed Value format:
 | Type(1 byte) | Value |
