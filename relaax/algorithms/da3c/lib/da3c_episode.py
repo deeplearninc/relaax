@@ -48,6 +48,7 @@ class DA3CEpisode(object):
         assert (state is None) == terminal
         self.observation.add_state(state)
 
+        self.terminal = terminal
         assert self.last_action is None
         assert self.last_value is None
 
@@ -98,8 +99,11 @@ class DA3CEpisode(object):
 
     def get_action_and_value_from_network(self):
         if da3c_config.config.use_lstm:
-            action, value, self.lstm_state = self.session.op_get_action_value_and_lstm_state(
+            action, value, lstm_state = self.session.op_get_action_value_and_lstm_state(
                 state=[self.observation.queue], lstm_state=self.lstm_state, lstm_step=[1])
+            condition = len(self.episode.experience) == da3c_config.config.batch_size or self.terminal
+            if not (self.episode.experience is not None and condition):
+                self.lstm_state = lstm_state
         else:
             action, value = self.session.op_get_action_and_value(
                 state=[self.observation.queue])
@@ -156,8 +160,8 @@ class DA3CEpisode(object):
 
     def compute_icm_gradients(self, experience):
         states, icm_states = experience['state'], []
-        for i in range(len(states)-1):
-            icm_states.extend((states[i], states[i+1]))
+        for i in range(len(states) - 1):
+            icm_states.extend((states[i], states[i + 1]))
         return self.session.op_compute_icm_gradients(
             state=icm_states, action=experience['action'],
             discounted_reward=self.discounted_reward)

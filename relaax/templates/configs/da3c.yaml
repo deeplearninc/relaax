@@ -11,6 +11,7 @@ algorithm:
 
   output:
     continuous: false             # set to true to switch to continuous action space
+    loss_type: Normal             # choose loss_type by name for continuous action space
     action_size: 2                # action size for the given environment
     action_high: []               # upper boundary for clipping continuous action
     action_low: []                # lower boundary for clipping continuous action
