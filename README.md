@@ -204,6 +204,45 @@ Reinforcement Learning eXchange protocol is a simple protocol implemented over T
 ![img](docs/resources/protocol-flow.jpg)
 <br><br>
 
+###  [Reinforcement Learning eXchange protocol definition](#contents)
+
+#### Basic types:
+
+Name | Value | Size in bytes
+-----|-------|--------------
+1|2|3
+
+
+
+
+TYPE_NONE           0       0<br>
+TYPE_NULL           1       0<br>
+TYPE_INT4           2       4<br>
+TYPE_STRING_UTF8    3       variable<br>
+TYPE_DOUBLE         4       8<br>
+TYPE_BOOLEAN        5       1<br>
+TYPE_IMAGE          6       variable<br>
+TYPE_NDARRAY        7       variable<br>
+TYPE_LIST           8       variable<br>
+TYPE_UINT4          9       4<br>
+
+#### Typed Value format:
+| Type(1 byte) | Value |
+
+#### TYPE_STRING_UTF8 value:
+| Length in bytes(TYPE_UINT4) | bytes UTF8 |
+
+#### TYPE_IMAGE value:
+| image type(TYPE_STRING_UTF8) | xdim(TYPE_UINT4) | ydim(TYPE_UINT4) | Length in bytes(TYPE_UINT4) | bytes |
+
+image type values: BMP, JPG etc
+
+#### TYPE_NDARRAY value:
+| shapes count(TYPE_UINT4) | shape0 |...| shapeN | Length in bytes(TYPE_UINT4) | bytes |
+
+#### TYPE_LIST value:
+| number of items(TYPE_UINT4) | item0 |...| itemN |
+
 ## [RELAAX Servers](#contents)
 
 RELAAX Server implements dynamic loading of the algorithm implementation. By convention, every algorithm implementation exposes Agent (agent.py) and ParameterServer (parameter_server.py) classes. RLX Server loads and instattiate Agent model for every incomming connection from Environment. There usually single Parameter Server (PS). PS loads and instantiate ParameterServer class. Every Agent gets RPC connection to PS and could call remotely methods exposed on PS model.
