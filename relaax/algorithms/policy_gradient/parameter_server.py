@@ -6,15 +6,16 @@ from . import pg_model
 
 
 class ParameterServer(parameter_server_base.ParameterServerBase):
+    def __init__(self, saver_factory, metrics_factory):
+        self.session = session.Session(pg_model.SharedParameters())
+        self.session.op_initialize()
+        super(ParameterServer, self).__init__(saver_factory, metrics_factory)
+
     def close(self):
         self.session.close()
 
-    def initialize_algorithm(self):
-        self.session = session.Session(pg_model.SharedParameters())
-        self.session.op_initialize()
-
-    def make_checkpoint(self):
-        return self.session.make_checkpoint()
+    def create_checkpoint(self):
+        return self.session.create_checkpoint()
 
     def get_session(self):
         return self.session

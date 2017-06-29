@@ -5,6 +5,7 @@ import logging
 import ruamel.yaml
 import time
 import threading
+import signal
 
 # Load configuration options
 # do it as early as possible
@@ -16,9 +17,13 @@ from relaax.server.common.saver import limited_saver
 from relaax.server.common.saver import multi_saver
 from relaax.server.common.saver import s3_saver
 from relaax.server.common.saver import watch
-
+import multiprocessing
+try:
+    from Queue import Queue, Empty  # noqa
+except ImportError:
+    from queue import Queue, Empty  # noqa
+    
 log = logging.getLogger(__name__)
-
 
 class ParameterServer(object):
 
@@ -34,6 +39,10 @@ class ParameterServer(object):
 
         return ParameterServer(cls.saver_factory, cls.metrics_factory)
 
+    @classmethod    
+    def exit_server(cls, signum, frame):
+        cls.stopped_server = True
+            
     @classmethod
     def start(cls):
         try:
@@ -48,12 +57,25 @@ class ParameterServer(object):
             ps = init_ps()
             watch = cls.make_watch(ps)
 
-            Speedometer(ps)
+            speedm = Speedometer(ps)
+            events = multiprocessing.Queue()
+            signal.signal(signal.SIGINT, cls.exit_server)
+            signal.signal(signal.SIGTERM, cls.exit_server)
+            cls.stopped_server = False
 
-            while True:
-                time.sleep(1)
-                watch.check()
-
+            while not cls.stopped_server:
+                #time.sleep(1)
+                try:
+                    msg = events.get(timeout=1)
+                except Empty:
+                    pass
+                except:
+                    break    
+                else:
+                    watch.check()
+            
+            ps.save_checkpoint()
+            speedm.stop_timer()
         except KeyboardInterrupt:
             # swallow KeyboardInterrupt
             pass
@@ -145,12 +167,14 @@ class Speedometer(object):
         self.run_timer(current_time, current_n_step)
 
     def run_timer(self, start_time, start_n_steps):
-        threading.Timer(60, self.measure, args=(start_time, start_n_steps)).start()
-
+        self.timer=threading.Timer(60, self.measure, args=(start_time, start_n_steps))
+        self.timer.start()
+        
+    def stop_timer(self):
+        self.timer.cancel()
 
 def main():
     ParameterServer.start()
-
 
 if __name__ == '__main__':
     main()

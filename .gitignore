@@ -3,6 +3,8 @@
 *.py~
 *.egg*
 .DS_Store
+.idea
+metastore_db
 
 # Testing artifacts
 **/__pycache__/*

@@ -1,5 +1,5 @@
-local make_map = require 'common.make_map'
-local pickups = require 'common.pickups'
+local make_map = require 'custom-map/make_map'
+local pickups = require 'custom-map/pickups'
 local api = {}
 
 function api:start(episode, seed)
@@ -24,7 +24,7 @@ end
 
 function api:nextMap()
   api._count = api._count + 1
-  map = readFile('t_maze')
+  map = readFile('/app/environment/custom-map/t_maze')
   return make_map.makeMap("t_maze_" .. api._count, map)
 end
 

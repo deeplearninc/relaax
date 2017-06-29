@@ -21,7 +21,7 @@ class Session(object):
         # print('name', name)
         return SessionMethod(self.session, getattr(self.model, name))
 
-    def make_checkpoint(self):
+    def create_checkpoint(self):
         return tensorflow_checkpoint.TensorflowCheckpoint(self.session)
 
 
