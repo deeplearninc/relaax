@@ -13,6 +13,7 @@ from autobahn.twisted.websocket import WebSocketServerProtocol
 from autobahn.twisted.websocket import WebSocketServerFactory
 
 from relaax.common.rlx_message import RLXMessage
+
 from .wsproxy_config import options
 
 log = logging.getLogger(__name__)
@@ -30,17 +31,21 @@ class ProxyClient(NetstringReceiver):
         self.cli_queue.get().addCallback(self.serverDataReceived)
 
     def stringReceived(self, data):
-        msg = RLXMessage.from_wire(data.decode('utf8'))
+        print("stringReceived")
+
+        msg = RLXMessage.from_wire(data)
         msg['sid'] = self.client_id
         if 'data' in msg and isinstance(msg['data'], numpy.ndarray):
             msg['data'] = msg['data'].tolist()
         self.srv_queue.put(json.dumps(msg))
 
     def serverDataReceived(self, data):
+        print("serverDataReceived")
+        print(data)
         if data['command'] == 'disconnect':
             self.disconnect()
         else:
-            self.sendString(RLXMessage.to_wire(data).encode())
+            self.sendString(RLXMessage.to_wire(data))
             self.cli_queue.get().addCallback(self.serverDataReceived)
 
     def connectionLost(self, reason):

@@ -9,7 +9,7 @@ from relaax.server.rlx_server.rlx_config import options
 from relaax.common.rlx_netstring import NetStringClosed
 from relaax.server.rlx_server.\
     rlx_protocol.rawsocket.rlx_protocol import RLXProtocol, adoptConnection
-
+from relaax.common.rlx_message import RLXMessage as rlxm
 
 class TestRlxProtocol(object):
 
@@ -57,7 +57,7 @@ class TestRlxProtocol(object):
             assert False
 
     def test_string_received_and_send_string(self, monkeypatch):
-        data = json.dumps({'response': 'ready'})
+        data = rlxm.to_wire({'response': 'ready'})
         protocol = RLXProtocol('socket', ('localhost', 7000))
         protocol.agent = Mock()
         protocol.agent.data_received = lambda x: x
