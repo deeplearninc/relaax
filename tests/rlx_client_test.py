@@ -78,7 +78,7 @@ class TestAgentProxy(object):
         called_with = self._mock_exchange(monkeypatch)
         c = AgentProxy('localhost:7000')
         c.init()
-        assert called_with[0] == {'command': 'init'}
+        assert called_with[0] == {'command': 'init', 'exploit': False}
 
     def test_update(self, monkeypatch):
         called_with = self._mock_exchange(monkeypatch)
