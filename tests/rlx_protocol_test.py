@@ -5,6 +5,7 @@ from mock import Mock
 
 from .fixtures.mock_cmdl import cmdl
 from .fixtures.mock_utils import MockUtils
+from relaax.server.common.algorithm_loader import AlgorithmLoader
 from relaax.server.rlx_server.rlx_config import options
 from relaax.common.rlx_netstring import NetStringClosed
 from relaax.server.rlx_server.\
@@ -15,6 +16,7 @@ class TestRlxProtocol(object):
 
     @classmethod
     def setup_class(cls):
+        options.Agent = AlgorithmLoader.load_agent(None, 'policy_gradient')
         options.algorithm_module = Mock()
         cls.protocol = RLXProtocol('socket', ('localhost', 7000))
 
