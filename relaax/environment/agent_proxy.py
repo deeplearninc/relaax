@@ -11,17 +11,17 @@ from relaax.common.rlx_message import RLXMessage as rlxm
 log = logging.getLogger(__name__)
 
 
-class RlxClientException(Exception):
+class AgentProxyException(Exception):
     pass
 
 
-class RlxClient(object):
+class AgentProxy(object):
 
     def __init__(self, rlx_server_url):
         self.skt = None
         self.transport = None
         self.address = rlx_server_url
-        self.metrics = RlxClientMetrics(self._update_metrics)
+        self.metrics = AgentProxyMetrics(self._update_metrics)
 
     def init(self, exploit=False):
         return self._exchange({'command': 'init', 'exploit': exploit})
@@ -50,14 +50,14 @@ class RlxClient(object):
                 self.transport.write_string(rlxm.to_wire(data))
                 ret = rlxm.from_wire(self.transport.read_string())
             except Exception as e:
-                raise RlxClientException(str(e))
+                raise AgentProxyException(str(e))
             if not ('response' in ret):
-                raise RlxClientException("wring message format")
+                raise AgentProxyException("wring message format")
             elif ret['response'] == 'error':
-                raise RlxClientException(
+                raise AgentProxyException(
                     ret['message'] if 'message' in ret else "unknown error")
         else:
-            raise RlxClientException("no connection is available.")
+            raise AgentProxyException("no connection is available.")
         return ret['data'] if 'data' in ret else ret['response']
 
     def connect(self, retry=6):
@@ -69,7 +69,7 @@ class RlxClient(object):
                 host, port = address.split(':')
                 return host, int(port)
             except Exception:
-                raise RlxClientException("can't parse server address.")
+                raise AgentProxyException("can't parse server address.")
 
         if not isinstance(self.address, tuple):
             self.address = parse_address(self.address)
@@ -93,9 +93,9 @@ class RlxClient(object):
                     time.sleep(random.uniform(0.5, 6))
                     continue
                 else:
-                    raise RlxClientException(str(e))
+                    raise AgentProxyException(str(e))
             except Exception as e:
-                raise RlxClientException(str(e))
+                raise AgentProxyException(str(e))
 
     def disconnect(self):
         if self.skt:
@@ -103,7 +103,7 @@ class RlxClient(object):
             self.skt = None
 
 
-class RlxClientMetrics(object):
+class AgentProxyMetrics(object):
     def __init__(self, send_metrics):
         self._update_metrics = send_metrics
 

@@ -4,17 +4,22 @@ from __future__ import division
 
 from builtins import range
 from builtins import object
+
 import os
 import sys
 import gym
 import random
+import logging
 import numpy as np
 from PIL import Image
 
 from gym.spaces import Box
 from gym.wrappers.frame_skipping import SkipWrapper
 
-from relaax.client.rlx_client_config import options
+from relaax.environment.config import options
+
+gym.configuration.undo_logger_setup()
+log = logging.getLogger(__name__)
 
 
 class SetFunction(object):
@@ -68,14 +73,11 @@ class GymEnv(object):
             self.gym._max_episode_steps = limit
 
         shape = options.get('environment/shape', (84, 84))
-        self._shape = (shape[0], shape[1])
-        self._channels = 1 if len(shape) == 2 else 3
+        if len(shape) > 2:
+            self._shape = (shape[0], shape[1])
+            self._channels = 0 if len(shape) == 2 else shape[-1]
 
-        if options.get('environment/crop', True):
-            self._crop = True
-            self._top = round(9 * (shape[0] / 42))
-            self._bottom = round(shape[0] - 4 * (shape[0] / 42))
-
+        self._crop = options.get('environment/crop', True)
         self._process_state = SetFunction(self._process_all)
 
         atari = [name + 'Deterministic' for name in GymEnv.AtariGameList] + GymEnv.AtariGameList
@@ -84,9 +86,9 @@ class GymEnv(object):
 
         self.action_size = self._get_action_size()
         if self.action_size != options.algorithm.output.action_size:
-            print('Algorithm expects different action size (%d) from gym (%d). \n'
-                  'Please set correct action size in you configuration yaml.' % (
-                   options.algorithm.output.action_size, self.action_size))
+            log.error('Algorithm expects action size %d; gym return %d. \n'
+                      'Please set correct action size in you configuration yaml.' %
+                      (options.algorithm.output.action_size, self.action_size))
             sys.exit(-1)
 
         self._scale = (1.0 / 255.0)
@@ -128,16 +130,22 @@ class GymEnv(object):
         return state
 
     def _process_img(self, screen):
-        if self._channels == 1:
-            screen = np.dot(screen[..., :3], [0.299, 0.587, 0.114])
+        if self._channels < 2:
+            screen = np.dot(screen[..., :3], [0.299, 0.587, 0.114]).astype(np.uint8)
 
         if self._crop:
-            screen = screen[self._top:self._bottom, ...]
+            screen = screen[32:36 + 160, :160]
+
+        if self._shape[0] < 84:
+            screen = np.array(Image.fromarray(screen).resize(
+                (84, 84), resample=Image.BILINEAR), dtype=np.uint8)
 
         screen = np.array(Image.fromarray(screen).resize(
             self._shape, resample=Image.BILINEAR), dtype=np.uint8)
 
         # return processed screen
+        if self._channels == 1:
+            screen = np.reshape(screen, self._shape + (1,))
         return screen.astype(np.float32) * self._scale
 
     @staticmethod

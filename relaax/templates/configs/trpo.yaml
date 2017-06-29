@@ -1,3 +1,6 @@
+---
+# generic TRPO configuration
+
 algorithm:
   name: trpo
 

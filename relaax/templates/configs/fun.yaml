@@ -1,0 +1,37 @@
+algorithm:
+  name: fun
+
+  input:
+    shape: [84, 84]
+    channels: 3
+    history: 1
+    use_convolutions: true
+
+  output:
+    continuous: false
+    action_size: 6                # action size for given game rom (18 fits ale boxing)
+
+  batch_size: 10                  # local loop size for one episode
+
+  use_lstm: true                  # to use LSTM instead of FF, set to the True
+  max_global_step: 1e9            # amount of maximum global steps to pass through the training
+
+  initial_learning_rate: 2e-4     # learning rate
+  annealing_step_limit: 2e8       # annealing lr within first 200mil
+
+  entropy_beta: 1e-2              # entropy regularization constant
+  worker_gamma: 0.99              # rewards discount factor for workers
+  manager_gamma: 0.999            # discount factor for managers
+
+  RMSProp:
+    decay: 0.99
+    epsilon: 0.1
+  gradients_norm_clipping: 40
+
+  specific:   # FuN specific additional parameters
+    d: 256    # internal representation size
+    k: 16     # output representation size
+    h: 10     # number of manager's cores (horizon)
+    c: 10     # goal horizon to sum up
+    alpha: 1  # alpha for intrinsic reward
+

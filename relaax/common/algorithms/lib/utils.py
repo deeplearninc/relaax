@@ -36,6 +36,10 @@ def choose_action_descrete(probabilities, exploit=False):
 
 def choose_action_continuous(mu, sigma2,
         min_clip=-float('inf'), max_clip=float('inf'), exploit=False):
+    if min_clip is None or (type(min_clip) is list and len(min_clip) == 0):
+        min_clip = -float('inf')
+    if max_clip is None or (type(max_clip) is list and len(max_clip) == 0):
+        max_clip = float('inf')
     if exploit:
         act, = mu
     else:

@@ -48,7 +48,7 @@ setup(
         'psutil',
         'honcho==0.7.1',
         'h5py',
-        'tensorflow==1.1.0',
+        'tensorflow>=1,<2',
         'click',
         'future'
     ],

@@ -33,7 +33,7 @@ class TestRLXPort(object):
         called = MockUtils.Placeholder()
         worker.run = worker_run
         monkeypatch.setattr(os, 'fork', lambda: 0)
-        monkeypatch.setattr(socket, 'socket', lambda: self.socket)
+        monkeypatch.setattr(socket, 'socket', lambda family, type, proto=0, fileno=None: self.socket)
         monkeypatch.setattr('relaax.server.rlx_server.rlx_port.RLXWorker', worker)
 
         RLXPort.listen(('localhost', 7000))

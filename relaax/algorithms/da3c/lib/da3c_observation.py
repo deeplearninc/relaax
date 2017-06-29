@@ -20,7 +20,7 @@ class DA3CObservation(object):
             self.queue = np.repeat(observation,
                     da3c_config.config.input.history, axis=axis)
         else:
-            # remove oldest observation from the begining of the observation queue
+            # remove oldest observation from the beginning of the observation queue
             self.queue = np.delete(self.queue, 0, axis=axis)
 
             # append latest observation to the end of the observation queue
