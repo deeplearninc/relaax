@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 from builtins import range
 from builtins import object
+import logging
 import numpy as np
 import scipy.signal
 
@@ -11,6 +12,9 @@ from relaax.common.algorithms.lib import utils
 from .. import da3c_config
 from .. import da3c_model
 from . import da3c_observation
+
+
+logger = logging.getLogger(__name__)
 
 
 class DA3CEpisode(object):
@@ -45,7 +49,10 @@ class DA3CEpisode(object):
             if da3c_config.config.use_icm:
                 reward += self.get_intrinsic_reward(state)
             self.push_experience(reward)
-        assert (state is None) == terminal
+        if terminal and state is not None:
+            logger.warning('DA3CEpisode.step ignores state in case of terminal.')
+        else:
+            assert (state is None) == terminal
         self.observation.add_state(state)
 
         self.terminal = terminal
