@@ -1,7 +1,5 @@
 from builtins import object
-import io
-import json
-import base64
+import sys
 import numpy as np
 from PIL import Image
 from struct import *
@@ -22,27 +20,6 @@ class RLXMessage(object):
     TYPE_NDARRAY = 7
     TYPE_LIST = 8
     TYPE_UINT4 = 9
-
-    # class _NDArrayEncoder(json.JSONEncoder):
-    #     def default(self, obj):
-    #         # Encoder from numpy.nparray to base64
-    #         if isinstance(obj, np.ndarray):
-    #             output = io.BytesIO()
-    #             np.savez_compressed(output, obj=obj)
-    #             return {'b64npz': base64.b64encode(output.getvalue()).decode()}
-    #         return json.JSONEncoder.default(self, obj)
-    #
-    # @staticmethod
-    # def _ndarray_decoder(obj):
-    #     # Decoder from base64 to numpy.ndarray
-    #     if isinstance(obj, dict) and 'b64npz' in obj:
-    #         output = io.BytesIO(base64.b64decode(obj['b64npz']))
-    #         output.seek(0)
-    #         return np.load(output)['obj']
-    #     elif isinstance(obj, RLXMessageImage):
-    #         return np.array(obj.image.convert("RGB"))
-    #
-    #     return obj
 
     @classmethod
     def _pack_string(cls, value):
@@ -65,9 +42,6 @@ class RLXMessage(object):
         elif isinstance(value, float):
             buf += pack("B", cls.TYPE_DOUBLE)
             buf += pack("d", value)
-        elif isinstance(value, str):
-            buf += pack("B", cls.TYPE_STRING_UTF8)
-            buf += cls._pack_string(value)
         elif value is None:
             buf += pack("B", cls.TYPE_NULL)
         elif isinstance(value, RLXMessageImage):
@@ -95,8 +69,13 @@ class RLXMessage(object):
             for item in value:
                 buf += cls._pack_value(item)
         else:
-            print("Pack Unknown type:"+str(type(value)))
-            raise Exception("Pack Unknown type:"+str(type(value)))
+            try:
+                vstr = str(value)
+                buf += pack("B", cls.TYPE_STRING_UTF8)
+                buf += cls._pack_string(vstr)
+            except:
+                print("Pack Unknown type:"+str(type(value))+"; Exception:"+sys.exc_info()[0])
+                raise Exception("Pack Unknown type:"+str(type(value))+"; Exception:"+sys.exc_info()[0])
         return buf
 
     @classmethod
@@ -153,7 +132,7 @@ class RLXMessage(object):
 
             reslen = unpack_from("I", buf, offset)[0]
             offset += 4
-            res = np.frombuffer(buf[offset:offset+reslen], dtype=np.dtype(dtype) ) #, count=reslen, offset=offset)
+            res = np.frombuffer(buf[offset:offset+reslen], dtype=np.dtype(dtype) )
             res = res.reshape(shape)
             offset += reslen
         elif valtype == cls.TYPE_LIST:
@@ -171,7 +150,7 @@ class RLXMessage(object):
 
     @classmethod
     def to_wire(cls, data):
-        #print("To_wire:"+str(data))
+        print("To_wire:"+str(data))
         buf = bytearray()#json.dumps(data, cls=cls._NDArrayEncoder)#bytearray()
 
         for key in data:
@@ -183,6 +162,7 @@ class RLXMessage(object):
 
     @classmethod
     def from_wire(cls, data):
+        #print(data)
         res = {}#json.loads(data, object_hook=cls._ndarray_decoder) #{}
         offset = 0
 
