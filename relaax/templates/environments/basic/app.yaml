@@ -3,6 +3,8 @@
 environment:
   run: python environment/training.py
   steps: 3000
+  max_episodes: 1
+  infinite_run: False
 
 relaax-parameter-server:
   --bind: localhost:7000
