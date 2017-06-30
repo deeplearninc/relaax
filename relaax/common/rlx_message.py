@@ -20,10 +20,13 @@ class RLXMessage(object):
     TYPE_NDARRAY = 7
     TYPE_LIST = 8
     TYPE_UINT4 = 9
+    TYPE_INT64 = 10
 
     pack_info = {
         type(None).__name__: {'id': TYPE_NULL, 'pack_func': lambda cls, *args:cls._pack_null(*args), 'unpack_func': lambda cls, *args:cls._unpack_null(*args)},
         int.__name__: {'id': TYPE_INT4, 'pack_func': lambda cls, *args:cls._pack_int(*args), 'unpack_func': lambda cls, *args:cls._unpack_int(*args)},
+        'int32': {'id': TYPE_INT4, 'pack_func': lambda cls, *args:cls._pack_int(*args), 'unpack_func': lambda cls, *args:cls._unpack_int(*args)},
+        'int64': {'id': TYPE_INT64, 'pack_func': lambda cls, *args:cls._pack_int64(*args), 'unpack_func': lambda cls, *args:cls._unpack_int64(*args)},
         str.__name__: {'id': TYPE_STRING_UTF8, 'pack_func': lambda cls, *args:cls._pack_string(*args), 'unpack_func': lambda cls,*args:cls._unpack_string(*args)},
         float.__name__: {'id': TYPE_DOUBLE, 'pack_func': lambda cls, *args:cls._pack_double(*args), 'unpack_func': lambda cls,*args:cls._unpack_double(*args)},
         'float64': {'id': TYPE_DOUBLE, 'pack_func': lambda cls, *args:cls._pack_double(*args), 'unpack_func': lambda cls,*args:cls._unpack_double(*args)},
@@ -73,6 +76,16 @@ class RLXMessage(object):
     def _unpack_int(cls, buf, offset):
         res = unpack_from("i", buf, offset)[0]
         offset += 4
+        return res, offset
+
+    @classmethod
+    def _pack_int64(cls, value, buf, pack_type=True):
+        cls._pack_type(cls.TYPE_INT64, buf, pack_type)
+        buf += pack("q", value)
+    @classmethod
+    def _unpack_int64(cls, buf, offset):
+        res = unpack_from("q", buf, offset)[0]
+        offset += 8
         return res, offset
 
     @classmethod
