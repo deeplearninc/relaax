@@ -13,7 +13,7 @@ class TestNetString(object):
         self.socket = MockSocket.create()
 
     def test_to_wire_and_read_back(self):
-        some_string = "some string"
+        some_string = b"some string"
         nstr = NetString(self.socket)
         nstr.write_string(some_string)
         data = nstr.read_string()
