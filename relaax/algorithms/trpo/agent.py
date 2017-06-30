@@ -1,12 +1,16 @@
 from __future__ import absolute_import
 
 from builtins import object
+import logging
 
 from relaax.server.common import session
 
 from . import trpo_config
 from . import trpo_model
 from .old_trpo_gae.agent import agent
+
+
+logger = logging.getLogger(__name__)
 
 
 class Agent(object):
@@ -25,10 +29,11 @@ class Agent(object):
     # environment generated new state and reward
     # and asking agent for an action for this state
     def update(self, reward, state, terminal):
-        assert (state is None) == terminal
+        self.check_state_shape(state)
         if reward is not None:
             if self.agent.reward(reward):
                 return None
+        assert (state is None) == terminal
         if state is not None:
             return self.agent.act(state)
         self.agent.reset()
@@ -38,3 +43,13 @@ class Agent(object):
     def reset(self):
         self.agent.reset()
         return True
+
+    @staticmethod
+    def check_state_shape(state):
+        if state is None:
+            return
+        expected_shape = list(trpo_config.options.algorithm.input.shape)
+        actual_shape = list(state.shape)
+        if actual_shape != expected_shape:
+            logger.warning('State shape %s does not match to expected one %s.',
+                    repr(actual_shape), repr(expected_shape))

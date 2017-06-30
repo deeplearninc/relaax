@@ -1,7 +1,13 @@
 from __future__ import absolute_import
+
 from builtins import object
+import logging
+
 from .fun_config import config as cfg
 from .lib.fun_episode import FuNEpisode as Episode
+
+
+logger = logging.getLogger(__name__)
 
 
 # FuN Agent implements training regime for FuN algorithm
@@ -23,6 +29,8 @@ class Agent(object):
     # environment generated new state and reward
     # and asking agent for an action for this state
     def update(self, reward, state, terminal):
+        self.check_state_shape(state)
+
         self.episode.step(reward, state, terminal)
 
         if len(self.episode.experience) == (cfg.c + self.episode.first) or terminal:
@@ -37,3 +45,13 @@ class Agent(object):
     def reset(self):
         self.episode.reset()
         return True
+
+    @staticmethod
+    def check_state_shape(state):
+        if state is None:
+            return
+        expected_shape = list(cfg.algorithm.input.shape)
+        actual_shape = list(state.shape)
+        if actual_shape != expected_shape:
+            logger.warning('State shape %s does not match to expected one %s.',
+                    repr(actual_shape), repr(expected_shape))
