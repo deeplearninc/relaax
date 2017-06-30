@@ -27,11 +27,8 @@ class Agent(object):
 
         if len(self.episode.experience) == da3c_config.config.batch_size or terminal:
             self.episode.end()
+            if terminal:
+                self.episode.reset()
             self.episode.begin()
 
         return self.episode.last_action
-
-    # environment is asking to reset agent
-    def reset(self):
-        self.episode.reset()
-        return True
