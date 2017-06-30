@@ -18,8 +18,8 @@ class ParameterServer(parameter_server_base.ParameterServerBase):
         sp._ps_bridge = parameter_server.ParameterServer(trpo_config.config, None, None, self.session).bridge()
         self.session.op_initialize()
 
-    def make_checkpoint(self):
-        return self.session.make_checkpoint()
+    def create_checkpoint(self):
+        return self.session.create_checkpoint()
 
     def get_session(self):
         return self.session
