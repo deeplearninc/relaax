@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from builtins import object
 import logging
+import numpy as np
 
 from relaax.server.common import session
 
@@ -40,7 +41,7 @@ class Agent(object):
         if terminal:
             self.agent.reset()
             return None
-        return self.agent.act(state)
+        return self.agent.act(np.asarray(state))
 
     # environment is asking to reset agent
     def reset(self):
@@ -52,7 +53,7 @@ class Agent(object):
         if state is None:
             return
         expected_shape = list(trpo_config.options.algorithm.input.shape)
-        actual_shape = list(state.shape)
+        actual_shape = list(np.asarray(state).shape)
         if actual_shape != expected_shape:
             logger.warning('State shape %s does not match to expected one %s.',
                     repr(actual_shape), repr(expected_shape))
