@@ -1,8 +1,6 @@
 from __future__ import print_function
 
 import keras.backend
-import os.path
-import re
 import tensorflow as tf
 import numpy as np
 from scipy.signal import lfilter
@@ -28,7 +26,8 @@ class ParameterServer(object):
 
         self.policy_net, self.value_net = network.make_mlps(config, relaax_session)
 
-        self.policy, self.baseline = network.make_wrappers(config, self.policy_net, self.value_net, self._session, relaax_session)
+        self.policy, self.baseline = network.make_wrappers(config, self.policy_net, self.value_net,
+                                                           self._session, relaax_session)
         self.trpo_updater = network.TrpoUpdater(config, self.policy, self._session, relaax_session)
 
         self._saver = None
@@ -80,7 +79,7 @@ class ParameterServer(object):
         self.relaax_session.op_next_iter()
         self.compute_advantage()
         # Value Update
-        vf_stats = self.baseline.fit(self.paths)
+        self.baseline.fit(self.paths)
         # Policy Update
         self.trpo_updater(self.paths)
 
@@ -94,7 +93,8 @@ class ParameterServer(object):
             b = path["baseline"] = self.baseline.predict(path)
             b1 = np.append(b, 0 if path["terminated"] else b[-1])
             deltas = path["reward"] + self.config.PG_OPTIONS.rewards_gamma * b1[1:] - b1[:-1]
-            path["advantage"] = discount(deltas, self.config.PG_OPTIONS.rewards_gamma * self.config.PG_OPTIONS.gae_lambda)
+            path["advantage"] = discount(deltas, self.config.PG_OPTIONS.rewards_gamma *
+                                         self.config.PG_OPTIONS.gae_lambda)
         alladv = np.concatenate([path["advantage"] for path in self.paths])
         # Standardize advantage
         std = alladv.std()
@@ -109,7 +109,8 @@ class ParameterServer(object):
         return self.relaax_session.op_n_step(), self.M, self.S
 
     def update_filter_state(self, diff):
-        self.M = (self.M*self.relaax_session.op_n_step() + diff[1]) / (self.relaax_session.op_n_step() + diff[0])
+        self.M = (self.M*self.relaax_session.op_n_step() + diff[1]) / (
+                self.relaax_session.op_n_step() + diff[0])
         self.S += diff[2]
 
     def n_iter(self):

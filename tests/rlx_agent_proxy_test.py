@@ -29,7 +29,8 @@ class TestRLXAgentProxy(object):
 
     def test_agent_init_fail(self):
         self.ap.agent.init = lambda exploit: False
-        assert self.ap.init({'command': 'init', 'exploit': False}) == {'response': 'error', 'message': 'can\'t initialize agent'}
+        assert self.ap.init({'command': 'init', 'exploit': False}) == \
+            {'response': 'error', 'message': 'can\'t initialize agent'}
 
     def test_agent_reset_done(self):
         self.ap.agent.reset = lambda: True
