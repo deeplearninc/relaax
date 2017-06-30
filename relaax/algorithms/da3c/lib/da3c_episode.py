@@ -51,6 +51,7 @@ class DA3CEpisode(object):
             self.push_experience(reward)
         if terminal and state is not None:
             logger.warning('DA3CEpisode.step ignores state in case of terminal.')
+            state = None
         else:
             assert (state is None) == terminal
         self.observation.add_state(state)

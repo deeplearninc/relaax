@@ -1,5 +1,6 @@
 from builtins import object
 
+import logging
 import numpy as np
 
 from relaax.server.common import session
@@ -8,6 +9,9 @@ from relaax.common.algorithms.lib import utils
 
 from .. import pg_config
 from .. import pg_model
+
+
+logger = logging.getLogger(__name__)
 
 
 class PGEpisode(object):
@@ -30,8 +34,12 @@ class PGEpisode(object):
     def step(self, reward, state, terminal):
         if reward is not None:
             self.push_experience(reward)
-        assert (state is None) == terminal
-        if state is not None:
+        if terminal and state is not None:
+            logger.warning('PGEpisode.step ignores state in case of terminal.')
+            state = None
+        else:
+            assert (state is None) == terminal
+        if not terminal:
             state = np.asarray(state)
             if state.size == 0:
                 state = np.asarray([0])
