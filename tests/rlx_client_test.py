@@ -4,6 +4,7 @@ from builtins import object
 import errno
 import time
 import socket
+import sys
 
 from .fixtures.mock_utils import MockUtils
 from .fixtures.mock_socket import MockSocket
@@ -42,7 +43,10 @@ class TestAgentProxy(object):
             AgentProxy('localhost:7000').connect()
             assert False
         except AgentProxyException as e:
-            assert str(e) == '[Errno %d] Connection refused' % errno.ECONNREFUSED
+            if sys.platform == 'win32': 
+                assert str(e) == '[WinError %d] No connection could be made because the target machine actively refused it' % errno.ECONNREFUSED
+            else:            
+                assert str(e) == '[Errno %d] Connection refused' % errno.ECONNREFUSED
 
     def test_some_unknown_exception_in_netstring_constructor(self, monkeypatch):
         # paranoid a bit
