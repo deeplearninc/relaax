@@ -1,7 +1,13 @@
 from __future__ import absolute_import
+
 from builtins import object
+import logging
+
 from . import da3c_config
 from .lib import da3c_episode
+
+
+logger = logging.getLogger(__name__)
 
 
 # DA3CAgent implements training regime for DA3C algorithm
@@ -23,6 +29,7 @@ class Agent(object):
     # environment generated new state and reward
     # and asking agent for an action for this state
     def update(self, reward, state, terminal):
+        self.check_state_shape(state)
         self.episode.step(reward, state, terminal)
 
         if len(self.episode.experience) == da3c_config.config.batch_size or terminal:
@@ -35,3 +42,13 @@ class Agent(object):
     def reset(self):
         self.episode.reset()
         return True
+
+    @staticmethod
+    def check_state_shape(state):
+        if state is None:
+            return
+        expected_shape = list(da3c_config.options.algorithm.input.shape)
+        actual_shape = list(state.shape)
+        if actual_shape != expected_shape:
+            logger.warning('State shape %s does not match to expected one %s.',
+                    repr(actual_shape), repr(expected_shape))
