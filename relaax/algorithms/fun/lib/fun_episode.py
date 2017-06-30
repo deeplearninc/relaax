@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 from builtins import range
 from builtins import object
+import logging
 import numpy as np
 
 from relaax.server.common import session
@@ -10,6 +11,9 @@ from relaax.common.algorithms.lib import utils
 from ..fun_config import config as cfg
 from ..fun_model import LocalWorkerNetwork, LocalManagerNetwork
 from .utils import RingBuffer2D
+
+
+logger = logging.getLogger(__name__)
 
 
 class FuNEpisode(object):
@@ -67,7 +71,10 @@ class FuNEpisode(object):
 
             self.push_experience(reward, reward_i)
 
-        assert (state is None) == terminal
+        if terminal and state is not None:
+            logger.warning('FuNEpisode.step ignores state in case of terminal.')
+        else:
+            assert (state is None) == terminal
 
         if state is not None:   # except terminal
             self.states.append(state)   # also as first state
