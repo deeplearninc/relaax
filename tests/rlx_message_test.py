@@ -17,10 +17,11 @@ class TestRLXMessage(object):
         imageJPG = Image.open("./tests/fixtures/testimage.jpg")
         imageBMP = Image.open("./tests/fixtures/testimage.bmp")
 
-        data = {'arg1': 1, 'arg_1': -1, "args": "test1", "argn": -234, "argbt": True, "argbf": False, "argnone": None,
+        data = {'arg1': 1, 'arg_1': -1, "args": "test1", "argn": -234, "argd": 0.067, "argbt": True, "argbf": False, "argnone": None,
                 "array_empty": [], 'array': [4.02, 5.2, 6.006],
                 'nparray1': npar1, 'nparray2': npar2, 'nparray1empty': npar1empty, 'nparray2empty': npar2empty,
-                'image_jpg': RLXMessageImage(imageJPG), 'image_bmp': RLXMessageImage(imageBMP)}
+                'image_jpg': RLXMessageImage(imageJPG), 'image_bmp': RLXMessageImage(imageBMP)
+                }
         wire = RLXMessage.to_wire(data)
         back = RLXMessage.from_wire(wire)
         assert len(data) == len(back)
