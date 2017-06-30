@@ -8,6 +8,7 @@ import socket
 import signal
 import traceback
 from mock import Mock
+import sys
 
 from .fixtures.mock_cmdl import cmdl
 from .fixtures.mock_utils import MockUtils
@@ -24,24 +25,11 @@ class TestRLXPort(object):
 
     def setup_method(self, method):
         self.socket = MockSocket.create()
-
-    def test_listen_accept_and_fork(self, monkeypatch):
-        def worker_run(*args):
-            called.times += 1
-
-        worker = Mock()
-        called = MockUtils.Placeholder()
-        worker.run = worker_run
-        monkeypatch.setattr(os, 'fork', lambda: 0)
-        monkeypatch.setattr(socket, 'socket', lambda family, type, proto=0, fileno=None: self.socket)
-        monkeypatch.setattr('relaax.server.rlx_server.rlx_port.RLXWorker', worker)
-
-        RLXPort.listen(('localhost', 7000))
-        assert called.times == 1
-
+        
     def test_socket_error_on_accept(self, monkeypatch):
-        monkeypatch.setattr(os, 'fork', lambda: 0)
-        monkeypatch.setattr(socket, 'socket', lambda: self.socket)
+        if sys.platform != 'win32':
+            monkeypatch.setattr(os, 'fork', lambda: 0)
+        monkeypatch.setattr(socket, 'socket', lambda af, st: self.socket)
         self.socket.accept = lambda: MockUtils.raise_(
             socket.error(errno.ECONNABORTED, "error message"))
         try:
@@ -49,7 +37,7 @@ class TestRLXPort(object):
             assert False
         except Exception as e:
             assert str(e) == '[Errno %d] error message' % errno.ECONNABORTED
-
+            
     def test_socket_error_on_accept2(self, monkeypatch):
         def error(*args):
             called.times += 1
@@ -59,8 +47,9 @@ class TestRLXPort(object):
         called = MockUtils.Placeholder()
         logger.error = error
         monkeypatch.setattr('relaax.server.rlx_server.rlx_port.log', logger)
-        monkeypatch.setattr(os, 'fork', lambda: 0)
-        monkeypatch.setattr(socket, 'socket', lambda: self.socket)
+        if sys.platform != 'win32':
+            monkeypatch.setattr(os, 'fork', lambda: 0)
+        monkeypatch.setattr(socket, 'socket', lambda af, st: self.socket)
         self.socket.accept = lambda: MockUtils.raise_(socket.error(errno.ENOMEM, "fatal error message"))
         try:
             RLXPort.listen(('localhost', 7000))
@@ -70,24 +59,15 @@ class TestRLXPort(object):
             assert called.times == 1
             assert str(e) == '[Errno %d] fatal error message' % errno.ENOMEM
 
-    def test_keyboard_interrupt_on_accept(self, monkeypatch):
-        monkeypatch.setattr(os, 'fork', lambda: 0)
-        monkeypatch.setattr(socket, 'socket', lambda: self.socket)
-        self.socket.accept = lambda: os.kill(os.getpid(), signal.SIGINT)
-        try:
-            RLXPort.listen(('localhost', 7000))
-            assert True  # no exception, ctrl-c was handled
-        except Exception as e:
-            assert False
-
     def test_socket_busy_on_accept(self, monkeypatch):
         accept_responses = [
             lambda: MockUtils.raise_(socket.error(errno.ENOBUFS, "fatal error message")),
             lambda: MockUtils.raise_(socket.error(errno.EAGAIN, "busy, try accept again")),
             lambda: MockUtils.raise_(socket.error(errno.EPERM, "rejected, but try accept again"))
         ]
-        monkeypatch.setattr(os, 'fork', lambda: 0)
-        monkeypatch.setattr(socket, 'socket', lambda: self.socket)
+        if sys.platform != 'win32':
+            monkeypatch.setattr(os, 'fork', lambda: 0)
+        monkeypatch.setattr(socket, 'socket', lambda af, st: self.socket)
         self.socket.accept = lambda: accept_responses.pop()()
         try:
             RLXPort.listen(('localhost', 7000))
@@ -95,7 +75,7 @@ class TestRLXPort(object):
         except Exception as e:
             traceback.format_exc()
             assert str(e) == '[Errno %d] fatal error message' % errno.ENOBUFS
-
+            
     def test_fork_error(self, monkeypatch):
         def critical(*args):
             called.times += 1
@@ -109,13 +89,43 @@ class TestRLXPort(object):
             lambda: (MockSocket.create(), ('some-address', 7000))
         ]
         monkeypatch.setattr('relaax.server.rlx_server.rlx_port.log', logger)
-        monkeypatch.setattr(os, 'fork', lambda: MockUtils.raise_(OSError('can\'t fork')))
-        monkeypatch.setattr(socket, 'socket', lambda: self.socket)
+        if sys.platform != 'win32':
+            monkeypatch.setattr(os, 'fork', lambda: MockUtils.raise_(OSError('can\'t fork')))
+        monkeypatch.setattr(socket, 'socket', lambda af, st: self.socket)
         self.socket.accept = lambda: accept_responses.pop()()
         try:
             RLXPort.listen(('localhost', 7000))
             assert False
         except Exception as e:
-            assert called.args == ("OSError ('some-address', 7000): can't fork",)
-            assert called.times == 1
+            if sys.platform != 'win32':
+                assert called.args == ("OSError ('some-address', 7000): can't fork",)
+                assert called.times == 1
             assert str(e) == '[Errno %d] fatal error message' % errno.EMFILE
+            
+if sys.platform != 'win32':            
+    def test_listen_accept_and_fork(self, monkeypatch):
+        def worker_run(*args):
+            called.times += 1
+
+        worker = Mock()
+        called = MockUtils.Placeholder()
+        worker.run = worker_run
+        if sys.platform != 'win32':
+            monkeypatch.setattr(os, 'fork', lambda: 0)
+        monkeypatch.setattr(socket, 'socket', lambda family, type, proto=0, fileno=None: self.socket)
+        monkeypatch.setattr('relaax.server.rlx_server.rlx_port.RLXWorker', worker)
+
+        RLXPort.listen(('localhost', 7000))
+        assert called.times == 1
+        
+    def test_keyboard_interrupt_on_accept(self, monkeypatch):
+        if sys.platform != 'win32':
+            monkeypatch.setattr(os, 'fork', lambda: 0)
+        monkeypatch.setattr(socket, 'socket', lambda af, st: self.socket)
+        self.socket.accept = lambda: os.kill(os.getpid(), signal.SIGINT)
+        try:
+            RLXPort.listen(('localhost', 7000))
+            assert True  # no exception, ctrl-c was handled
+        except Exception as e:
+            assert False
+            
