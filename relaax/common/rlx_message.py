@@ -62,8 +62,7 @@ class RLXMessage(object):
     def _unpack_string(cls, buf, offset):
         reslen = unpack_from("I", buf, offset)[0]
         offset += 4
-        test = buf[offset:offset+reslen]
-        res = str(test.decode('UTF-8'))
+        res = str(buf[offset:offset+reslen].decode('UTF-8'))
         offset += reslen
 
         return res, offset
@@ -105,7 +104,7 @@ class RLXMessage(object):
     @classmethod
     def _unpack_bool(cls, buf, offset):
         res = unpack_from("B", buf, offset)[0]
-        res = True if res == 1 else False
+        res = res == 1
         offset += 1
         return res, offset
 
@@ -121,7 +120,7 @@ class RLXMessage(object):
         buf += bval
     @classmethod
     def _unpack_image(cls, buf, offset):
-        (mode, offset) = cls._unpack_string(buf, offset)
+        mode, offset = cls._unpack_string(buf, offset)
         x = unpack_from("I", buf, offset)[0]
         offset += 4
         y = unpack_from("I", buf, offset)[0]
@@ -147,7 +146,7 @@ class RLXMessage(object):
         buf += bval
     @classmethod
     def _unpack_ndarray(cls, buf, offset):
-        (dtype, offset) = cls._unpack_string(buf, offset)
+        dtype, offset = cls._unpack_string(buf, offset)
         shape_len = unpack_from("I", buf, offset)[0]
         offset += 4
         shape = []
@@ -189,7 +188,7 @@ class RLXMessage(object):
 
     @classmethod
     def _unpack_value(cls, buf, offset):
-        (valtype, offset) = cls._unpack_type(buf, offset)
+        valtype, offset = cls._unpack_type(buf, offset)
         for key, item in cls.pack_info.iteritems():
             if item['id'] == valtype:
                 return item['unpack_func'](cls, buf, offset)
