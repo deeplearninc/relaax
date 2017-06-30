@@ -189,7 +189,7 @@ class RLXMessage(object):
     @classmethod
     def _unpack_value(cls, buf, offset):
         valtype, offset = cls._unpack_type(buf, offset)
-        for key, item in cls.pack_info.iteritems():
+        for key, item in cls.pack_info.items():
             if item['id'] == valtype:
                 return item['unpack_func'](cls, buf, offset)
 
