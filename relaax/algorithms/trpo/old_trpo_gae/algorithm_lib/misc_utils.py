@@ -56,7 +56,7 @@ def flatten(arrs):
 
 
 def unflatten(vec, shapes):
-    i=0
+    i = 0
     arrs = []
     for shape in shapes:
         size = np.prod(shape)

@@ -29,11 +29,13 @@ class Agent(object):
         keras.backend.set_session(self._session)
 
         self.policy_net, value_net = network.make_mlps(config, relaax_session)
-        self.policy, _ = network.make_wrappers(config, self.policy_net, value_net, self._session, relaax_session)
+        self.policy, _ = network.make_wrappers(config, self.policy_net, value_net,
+                                               self._session, relaax_session)
 
         self._session.run(tf.variables_initializer(tf.global_variables()))
 
-        self._n_iter = self.ps.session.call_wait_for_iteration()  # counter for global updates at parameter server
+        # counter for global updates at parameter server
+        self._n_iter = self.ps.session.call_wait_for_iteration()
         relaax_session.op_set_weights(weights=self.ps.session.op_get_weights())
 
         if config.use_filter:
@@ -116,7 +118,8 @@ class Agent(object):
             return
 
         if old_n_iter < self._n_iter:
-            print('Collecting time for {} iteration: {}'.format(old_n_iter+1, time.time() - self.collecting_time))
+            print('Collecting time for {} iteration: {}'.format(old_n_iter+1,
+                  time.time() - self.collecting_time))
             self.relaax_session.op_set_weights(weights=self.ps.session.op_get_weights())
             self.collecting_time = time.time()
 

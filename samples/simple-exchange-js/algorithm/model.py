@@ -27,5 +27,6 @@ class Model(subgraph.Subgraph):
         # Expose public API
         self.op_get_action = self.Op(reverse, state=state)
 
+
 if __name__ == '__main__':
     utils.assemble_and_show_graphs(SharedParameters, Model)

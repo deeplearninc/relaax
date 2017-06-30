@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 from builtins import object
-import json
 from mock import Mock
 
 from .fixtures.mock_cmdl import cmdl
@@ -10,6 +9,7 @@ from relaax.common.rlx_netstring import NetStringClosed
 from relaax.server.rlx_server.\
     rlx_protocol.rawsocket.rlx_protocol import RLXProtocol, adoptConnection
 from relaax.common.rlx_message import RLXMessage as rlxm
+
 
 class TestRlxProtocol(object):
 

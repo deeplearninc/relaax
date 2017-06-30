@@ -4,6 +4,7 @@ from relaax.server.common import session
 
 from . import model
 
+
 class ParameterServer(parameter_server_base.ParameterServerBase):
     def init_session(self):
         self.session = session.Session(model.SharedParameters())

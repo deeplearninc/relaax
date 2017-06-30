@@ -35,7 +35,7 @@ class MockSocket(object):
     def shutdown(self, how):
         assert self.opened
         return True
-    
+
     def close(self):
         assert self.opened
         self.opened = False

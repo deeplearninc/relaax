@@ -106,7 +106,7 @@ class CustomBasicLSTMCell(RNNCell):
 
 class DilatedBasicLSTMCell(RNNCell):
     """Dilated Basic LSTM recurrent network cell.
-    
+
     Modified to handle groups of sub-states (or 'cores'),
     also as to store matrix and bias as member variable.
 

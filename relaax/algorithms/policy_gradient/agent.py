@@ -52,4 +52,4 @@ class Agent(object):
         actual_shape = list(state.shape)
         if actual_shape != expected_shape:
             logger.warning('State shape %s does not match to expected one %s.',
-                    repr(actual_shape), repr(expected_shape))
+                           repr(actual_shape), repr(expected_shape))
