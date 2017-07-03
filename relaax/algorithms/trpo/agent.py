@@ -5,6 +5,7 @@ import logging
 import numpy as np
 
 from relaax.server.common import session
+from relaax.common import profiling
 
 from . import trpo_config
 from . import trpo_model
@@ -12,6 +13,7 @@ from .old_trpo_gae.agent import agent
 
 
 logger = logging.getLogger(__name__)
+profiler = profiling.get_profiler(__name__)
 
 
 class Agent(object):
@@ -29,6 +31,7 @@ class Agent(object):
 
     # environment generated new state and reward
     # and asking agent for an action for this state
+    @profiler.wrap
     def update(self, reward, state, terminal):
         self.check_state_shape(state)
         if reward is not None:
