@@ -4,6 +4,7 @@ from builtins import object
 
 import json
 import os
+import six
 import sys
 import threading
 import time
@@ -58,7 +59,7 @@ class FileHandler(Handler):
         if dirname != '':
             try:
                 os.makedirs(dirname)
-            except FileExistsError:
+            except OSError:
                 pass
         self.stream = open(fname, 'w')
 
@@ -77,7 +78,11 @@ class Profiler(object):
         self.name = name
 
     def wrap(self, f):
-        event = CompleteEvent(self, f.__qualname__)
+        try:
+            name = f.__qualname__
+        except AttributeError:
+            name = f.__name__
+        event = CompleteEvent(self, name)
         def wrapper(*args, **kwargs):
             with event:
                 return f(*args, **kwargs)
