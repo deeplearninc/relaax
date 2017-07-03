@@ -20,8 +20,6 @@ class RLXServer():
             for f in glob.glob(os.path.join(
                     options.relaax_rlx_server.profile_dir, 'rlx_*.txt')):
                 os.remove(f)
-        cls.preload_protocol()
-        cls.preload_algorithm()
         log.info("Starting RLX server on %s:%d" % options.bind)
         log.info("Expecting parameter server on %s:%d" % options.parameter_server)
         RLXPort.listen(options.bind)
