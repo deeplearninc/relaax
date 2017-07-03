@@ -7,6 +7,11 @@ from relaax.server.common.metrics import metrics
 from . import bridge_pb2
 from . import bridge_message
 
+from relaax.common import profiling
+
+
+profiler = profiling.get_profiler(__name__)
+
 
 class BridgeConnection(object):
     def __init__(self, server):
@@ -39,6 +44,7 @@ class BridgeSessionMethod(object):
     def __getattr__(self, name):
         return BridgeSessionMethod(self.connection, self.names + [name])
 
+    @profiler.wrap
     def __call__(self, *args, **kwargs):
         messages = bridge_message.BridgeMessage.serialize([self.names, list(args), kwargs])
         result = self.connection.stub.Run(messages)

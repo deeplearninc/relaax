@@ -31,8 +31,6 @@ class ProxyClient(NetstringReceiver):
         self.cli_queue.get().addCallback(self.serverDataReceived)
 
     def stringReceived(self, data):
-        # print("stringReceived")
-
         msg = RLXMessage.from_wire(data)
         msg['sid'] = self.client_id
         if 'data' in msg and isinstance(msg['data'], numpy.ndarray):
@@ -40,8 +38,6 @@ class ProxyClient(NetstringReceiver):
         self.srv_queue.put(json.dumps(msg))
 
     def serverDataReceived(self, data):
-        # print("serverDataReceived")
-        # print(data)
         if data['command'] == 'disconnect':
             self.disconnect()
         else:

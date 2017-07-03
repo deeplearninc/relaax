@@ -6,6 +6,11 @@ import logging
 from . import da3c_config
 from .lib import da3c_episode
 
+from relaax.common import profiling
+
+
+profiler = profiling.get_profiler(__name__)
+
 
 logger = logging.getLogger(__name__)
 
@@ -21,27 +26,25 @@ class Agent(object):
 
     # environment is ready and
     # waiting for agent to initialize
-    def init(self, exploit=False):
-        self.episode = da3c_episode.DA3CEpisode(self.ps, exploit)
+    def init(self, exploit=False, hogwild_update=True):
+        self.episode = da3c_episode.DA3CEpisode(self.ps, exploit, hogwild_update)
         self.episode.begin()
         return True
 
     # environment generated new state and reward
     # and asking agent for an action for this state
+    @profiler.wrap
     def update(self, reward, state, terminal):
         self.check_state_shape(state)
         self.episode.step(reward, state, terminal)
 
         if len(self.episode.experience) == da3c_config.config.batch_size or terminal:
             self.episode.end()
+            if terminal:
+                self.episode.reset()
             self.episode.begin()
 
         return self.episode.last_action
-
-    # environment is asking to reset agent
-    def reset(self):
-        self.episode.reset()
-        return True
 
     @staticmethod
     def check_state_shape(state):
