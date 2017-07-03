@@ -3,16 +3,15 @@ from __future__ import absolute_import
 from builtins import object
 import logging
 
+from relaax.common import profiling
+
 from . import da3c_config
 from .lib import da3c_episode
 
-from relaax.common import profiling
-
-
-profiler = profiling.get_profiler(__name__)
 
 
 logger = logging.getLogger(__name__)
+profiler = profiling.get_profiler(__name__)
 
 
 # DA3CAgent implements training regime for DA3C algorithm
