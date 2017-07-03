@@ -1,5 +1,4 @@
 from __future__ import absolute_import
-import numpy as np
 
 from relaax.common.algorithms import subgraph
 from relaax.common.algorithms.lib import graph
