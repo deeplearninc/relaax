@@ -7,8 +7,10 @@ import logging
 
 from relaax.common.rlx_netstring import NetString
 from relaax.common.rlx_message import RLXMessage as rlxm
+from relaax.common import profiling
 
 log = logging.getLogger(__name__)
+profiler = profiling.get_profiler(__name__)
 
 
 class AgentProxyException(Exception):
@@ -23,9 +25,11 @@ class AgentProxy(object):
         self.address = rlx_server_url
         self.metrics = AgentProxyMetrics(self._update_metrics)
 
+    @profiler.wrap
     def init(self, exploit=False):
         return self._exchange({'command': 'init', 'exploit': exploit})
 
+    @profiler.wrap
     def update(self, reward=None, state=None, terminal=False):
         return self._exchange({
             'command': 'update',
@@ -33,6 +37,7 @@ class AgentProxy(object):
             'state': state,
             'terminal': terminal})
 
+    @profiler.wrap
     def reset(self):
         return self._exchange({'command': 'reset'})
 
@@ -60,6 +65,7 @@ class AgentProxy(object):
             raise AgentProxyException("no connection is available.")
         return ret['data'] if 'data' in ret else ret['response']
 
+    @profiler.wrap
     def connect(self, retry=6):
 
         self.disconnect()
@@ -97,6 +103,7 @@ class AgentProxy(object):
             except Exception as e:
                 raise AgentProxyException(str(e))
 
+    @profiler.wrap
     def disconnect(self):
         if self.skt:
             self.skt.close()
