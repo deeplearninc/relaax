@@ -17,6 +17,7 @@ from gym.spaces import Box
 from gym.wrappers.frame_skipping import SkipWrapper
 
 from relaax.environment.config import options
+from relaax.common.rlx_message import RLXMessageImage
 
 gym.configuration.undo_logger_setup()
 log = logging.getLogger(__name__)
@@ -73,9 +74,12 @@ class GymEnv(object):
             self.gym._max_episode_steps = limit
 
         shape = options.get('environment/shape', (84, 84))
-        if len(shape) > 2:
-            self._shape = (shape[0], shape[1])
-            self._channels = 0 if len(shape) == 2 else shape[-1]
+        self._shape = shape[:2]
+        self._channels = 0 if len(shape) == 2 else shape[-1]
+
+        # if len(shape) > 2:
+        #     self._shape = (shape[0], shape[1])
+        #     self._channels = 0 if len(shape) == 2 else shape[-1]
 
         self._crop = options.get('environment/crop', True)
         self._process_state = SetFunction(self._process_all)
@@ -140,13 +144,22 @@ class GymEnv(object):
             screen = np.array(Image.fromarray(screen).resize(
                 (84, 84), resample=Image.BILINEAR), dtype=np.uint8)
 
-        screen = np.array(Image.fromarray(screen).resize(
-            self._shape, resample=Image.BILINEAR), dtype=np.uint8)
+        screen = RLXMessageImage(Image.fromarray(screen).resize(
+            self._shape, resample=Image.BILINEAR))
+
+        return screen
+
+        # if self._shape[0] < 84:
+        #     screen = np.array(Image.fromarray(screen).resize(
+        #         (84, 84), resample=Image.BILINEAR), dtype=np.uint8)
+        #
+        # screen = np.array(Image.fromarray(screen).resize(
+        #     self._shape, resample=Image.BILINEAR), dtype=np.uint8)
 
         # return processed screen
-        if self._channels == 1:
-            screen = np.reshape(screen, self._shape + (1,))
-        return screen.astype(np.float32) * self._scale
+        # if self._channels == 1:
+        #     screen = np.reshape(screen, self._shape + (1,))
+        # return screen.astype(np.float32) * self._scale
 
     @staticmethod
     def _process_all(state):
