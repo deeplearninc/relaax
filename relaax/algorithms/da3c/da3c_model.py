@@ -18,14 +18,10 @@ class Network(subgraph.Subgraph):
         input = layer.Input(da3c_config.config.input, descs=[dict(conv_layer)] * 4)
 
         sizes = da3c_config.config.hidden_sizes
-        dense = layer.GenericLayers(layer.Flatten(input),
-                                    [dict(type=layer.Dense, size=size,
-                                          activation=layer.Activation.Relu) for size in sizes])
-        head = dense
-        layers = [input, dense]
+        layers = [input]
 
         if da3c_config.config.use_lstm:
-            lstm = layer.LSTM(graph.Expand(dense, 0), size=sizes[-1])
+            lstm = layer.LSTM(graph.Expand(layer.Flatten(input), 0), size=sizes[-1])
             head = graph.Reshape(lstm, [-1, sizes[-1]])
             layers.append(lstm)
 
@@ -33,6 +29,11 @@ class Network(subgraph.Subgraph):
             self.ph_lstm_step = lstm.ph_step
             self.lstm_zero_state = lstm.zero_state
             self.lstm_state = lstm.state
+        else:
+            head = layer.GenericLayers(layer.Flatten(input),
+                                       [dict(type=layer.Dense, size=size,
+                                             activation=layer.Activation.Relu) for size in sizes])
+            layers.append(head)
 
         actor = layer.Actor(head, da3c_config.config.output)
         critic = layer.Dense(head, 1)
