@@ -2,6 +2,7 @@
 
 import argparse
 import json
+import logging
 import sys
 
 
@@ -14,6 +15,11 @@ records = []
 for fname in args.profile:
     with open(fname, 'r') as f:
         for line in f:
-            records.append(json.loads(line))
+            try:
+                record = json.loads(line)
+            except ValueError as e:
+                logging.exception(e)
+            else:
+                records.append(record)
 
 print(json.dumps({'traceEvents': records}))
