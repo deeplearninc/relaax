@@ -43,38 +43,17 @@ class Border(object):
     Same = 'SAME'
 
 
-class LinearLayer(subgraph.Subgraph):
-    def build_graph(self, x, shape, transformation, bias=True):
-        d = 1.0 / np.sqrt(np.prod(shape[:-1]))
-        initializer = graph.RandomUniformInitializer(minval=-d, maxval=d)
-        W = graph.Variable(initializer(np.float32, shape)).node
-        if bias:
-            b = graph.Variable(initializer(np.float32, shape[-1:])).node
-            self.weight = graph.TfNode((W, b))
-            return transformation(x.node, W) + b
-        self.weight = graph.TfNode(W)
-        return transformation(x.node, W)
-
-
-class MatmulLayer(subgraph.Subgraph):
-    def build_graph(self, a, b, activation=Activation.Null):
-        return activation(tf.matmul(a.node, b.node))
-
-
 class BaseLayer(subgraph.Subgraph):
-    def build_graph(self, x, shape, transformation, activation, bias=True):
+    def build_graph(self, x, shape, transformation, activation):
         d = 1.0
         p = np.prod(shape[:-1])
         if p != 0:
             d = 1.0 / np.sqrt(p)
         initializer = graph.RandomUniformInitializer(minval=-d, maxval=d)
         W = graph.Variable(initializer(np.float32, shape)).node
-        if bias:
-            b = graph.Variable(initializer(np.float32, shape[-1:])).node
-            self.weight = graph.TfNode((W, b))
-            return activation(transformation(x.node, W) + b)
-        self.weight = graph.TfNode(W)
-        return activation(transformation(x.node, W))
+        b = graph.Variable(initializer(np.float32, shape[-1:])).node
+        self.weight = graph.TfNode((W, b))
+        return activation(transformation(x.node, W) + b)
 
 
 class Convolution(BaseLayer):
@@ -113,10 +92,8 @@ class LSTM(subgraph.Subgraph):
                                                     time_major=False, scope=scope)
             self.state = graph.TfNode(self.state)
             scope.reuse_variables()
-            self.weight = graph.Variables(
-                graph.TfNode(tf.get_variable('basic_lstm_cell/weights')),
-                graph.TfNode(tf.get_variable('basic_lstm_cell/biases')))
-
+            self.weight = graph.TfNode((tf.get_variable('basic_lstm_cell/weights'),
+                                        tf.get_variable('basic_lstm_cell/biases')))
         return outputs
 
 
@@ -211,14 +188,10 @@ class Weights(subgraph.Subgraph):
 class Gradients(subgraph.Subgraph):
     def build_graph(self, weights, loss=None, optimizer=None, norm=False):
         if loss is not None:
+            grads = tf.gradients(loss.node, list(utils.Utils.flatten(weights.node)))
             if norm:
-                self.calculate = graph.TfNode(utils.Utils.reconstruct(
-                    tf.clip_by_global_norm(tf.gradients(
-                        loss.node, list(utils.Utils.flatten(weights.node))),
-                        norm)[0], weights.node))
-            else:
-                self.calculate = graph.TfNode(utils.Utils.reconstruct(tf.gradients(
-                    loss.node, list(utils.Utils.flatten(weights.node))), weights.node))
+                grads, _ = tf.clip_by_global_norm(grads, norm)
+            self.calculate = graph.TfNode(utils.Utils.reconstruct(grads, weights.node))
         if optimizer is not None:
             self.ph_gradients = graph.Placeholders(weights)
             self.apply = graph.TfNode(optimizer.node.apply_gradients(
