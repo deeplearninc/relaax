@@ -24,12 +24,12 @@ class TestRLXAgentProxy(object):
         self.ap.agent = Mock()
 
     def test_agent_init_done(self):
-        self.ap.agent.init = lambda: True
-        assert self.ap.init() == {'response': 'ready'}
+        self.ap.agent.init = lambda exploit: True
+        assert self.ap.init({'command': 'init', 'exploit': False}) == {'response': 'ready'}
 
     def test_agent_init_fail(self):
-        self.ap.agent.init = lambda: False
-        assert self.ap.init() == {'response': 'error', 'message': 'can\'t initialize agent'}
+        self.ap.agent.init = lambda exploit: False
+        assert self.ap.init({'command': 'init', 'exploit': False}) == {'response': 'error', 'message': 'can\'t initialize agent'}
 
     def test_agent_reset_done(self):
         self.ap.agent.reset = lambda: True
@@ -45,7 +45,7 @@ class TestRLXAgentProxy(object):
                 == {'response': 'action', 'data': [10, 10]})
 
     def test_agent_command_exception(self):
-        self.ap.agent.init = lambda: MockUtils.raise_(Exception('some init error'))
+        self.ap.agent.init = lambda exploit: MockUtils.raise_(Exception('some init error'))
         res = self.ap.data_received({'command': 'init'})
         assert res == {'message': 'some init error', 'response': 'error'}
 

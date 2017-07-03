@@ -1,4 +1,6 @@
 from builtins import object
+
+
 class Experience(object):
     def __init__(self, *args):
         self._lists = {k: [] for k in args}
