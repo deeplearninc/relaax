@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from builtins import object
 import logging
+import numpy as np
 
 from .fun_config import config as cfg
 from .lib.fun_episode import FuNEpisode as Episode

@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from builtins import object
 import logging
+import numpy as np
 
 from . import pg_config
 from .lib import pg_episode
