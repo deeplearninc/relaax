@@ -113,10 +113,8 @@ class LSTM(subgraph.Subgraph):
                                                     time_major=False, scope=scope)
             self.state = graph.TfNode(self.state)
             scope.reuse_variables()
-            self.weight = graph.Variables(
-                graph.TfNode(tf.get_variable('basic_lstm_cell/weights')),
-                graph.TfNode(tf.get_variable('basic_lstm_cell/biases')))
-
+            self.weight = graph.TfNode((tf.get_variable('basic_lstm_cell/weights'),
+                                        tf.get_variable('basic_lstm_cell/biases')))
         return outputs
 
 
