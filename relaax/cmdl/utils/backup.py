@@ -1,11 +1,11 @@
 from __future__ import print_function
 
 from builtins import object
-from builtins import str
 
 import os
 import glob
 import shutil
+import string
 
 
 class Backup(object):
@@ -42,7 +42,7 @@ class Backup(object):
         backup_names = glob.glob("%s.~[0-9]*~" % (self.filename))
         for name in backup_names:
             try:
-                revision = int(str.split(name, "~")[-2])
+                revision = int(string.split(name, "~")[-2])
                 revisions.append(revision)
             except ValueError:
                 # Some ~[0-9]*~ extensions may not be wholly numeric.
