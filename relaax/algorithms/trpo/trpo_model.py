@@ -62,11 +62,11 @@ class Categorical(subgraph.Subgraph):
 
     @property
     def ProbVariable(self):
-        return ProbVariableSubgraph
+        return self.ProbVariableSubgraph
 
     @property
     def Loglikelihood(self):
-        return lambda prob: LoglikelihoodSubgraph(
+        return lambda prob: self.LoglikelihoodSubgraph(
                 prob, self.ph_sampled_variable, self._n)
 
     @property
