@@ -1,4 +1,5 @@
 from builtins import object
+import glob
 import os
 import sys
 import time
@@ -147,9 +148,16 @@ class CmdlRun(object):
         if self.intersection(['all', 'environment']):
             self.client = self.config_yaml.get('environment/run')
             if self.client:
+                self.clean_old_prfiles()
                 self.run_all_clients(manager)
             else:
                 self.ctx.log(click.style("environment is not configured", fg='red'))
+
+    def clean_old_prfiles(self):
+        profile_dir = self.config_yaml.get('environment/profile_dir')
+        if profile_dir is not None:
+            for f in glob.glob(os.path.join(profile_dir, 'env_*.txt')):
+                os.remove(f)
 
     def run_all_clients(self, manager):
         count = 0
