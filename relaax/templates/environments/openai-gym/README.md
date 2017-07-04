@@ -46,21 +46,18 @@ environment:
     name: AirRaid-v0
 ```
 
-#### shape
+#### image OR shape
 Should contain image dimensions and color planes.
 
 For example for RGB image 84x84 pixels:
 
 ```yaml
 environment:
-    shape: [84,84,3]
+  image: [84, 84, 3]    # image dimensions (width, height, color planes)
 
 algorithm:
-  name: da3c                      # short name for algorithm to load
-
   input:
-    shape: [84,84,3]                    # shape of input state
-
+    image: [84, 84, 3]  # image dimensions (width, height, color planes)
 ```
 
-
+You can use shape key as a synonym of image key.
