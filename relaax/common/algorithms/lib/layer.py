@@ -142,11 +142,13 @@ def Actor(head, output):
 class DDPGActor(subgraph.Subgraph):
     def build_graph(self, head, output):
         action_size = output.action_size
-        actor = Dense(head, action_size, activation=Activation.Tanh)
-        self.weight = actor.weight
+        self.out = Dense(head, action_size, activation=Activation.Tanh)
+        self.scaled_out = self.out.node * graph.TfNode(output.scale).node
+
+        self.weight = self.out.weight
         self.action_size = action_size
         self.continuous = True
-        return actor.node, actor.node * graph.TfNode(output.scale).node
+        return self.out.node, self.scaled_out
 
 
 class Input(subgraph.Subgraph):
