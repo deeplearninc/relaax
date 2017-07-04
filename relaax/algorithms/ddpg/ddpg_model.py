@@ -82,10 +82,9 @@ class PolicyModel(subgraph.Subgraph):
         sg_actor_network = ActorNetwork()
         sg_critic_network = CriticNetwork()
 
-        _, sg_actor_loss = sg_actor_network.actor
-        sg_gradients = layer.Gradients(sg_actor_network.weights, loss=sg_actor_loss,
+        sg_gradients = layer.Gradients(sg_actor_network.weights,
+                                       sg_actor_network.actor.scaled_out,
                                        initial_value=-ph_action_gradient)
-
         # Expose public API
         self.op_assign_weights = self.Op(sg_network.weights.assign,
                 weights=sg_network.weights.ph_weights)
