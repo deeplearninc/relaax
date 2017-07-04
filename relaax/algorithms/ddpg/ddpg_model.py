@@ -1,4 +1,5 @@
 from __future__ import absolute_import
+import numpy as np
 
 from relaax.common.algorithms import subgraph
 from relaax.common.algorithms.lib import graph
@@ -82,9 +83,10 @@ class PolicyModel(subgraph.Subgraph):
         sg_actor_network = ActorNetwork()
         sg_critic_network = CriticNetwork()
 
+        ph_action_gradient = graph.Placeholder(np.float32, (None, cfg.config.output.action_size))
         sg_gradients = layer.Gradients(sg_actor_network.weights,
                                        sg_actor_network.actor.scaled_out,
-                                       initial_value=-ph_action_gradient)
+                                       initial_value=-ph_action_gradient.node)
         # Expose public API
         self.op_assign_weights = self.Op(sg_network.weights.assign,
                 weights=sg_network.weights.ph_weights)
