@@ -43,38 +43,17 @@ class Border(object):
     Same = 'SAME'
 
 
-class LinearLayer(subgraph.Subgraph):
-    def build_graph(self, x, shape, transformation, bias=True):
-        d = 1.0 / np.sqrt(np.prod(shape[:-1]))
-        initializer = graph.RandomUniformInitializer(minval=-d, maxval=d)
-        W = graph.Variable(initializer(np.float32, shape)).node
-        if bias:
-            b = graph.Variable(initializer(np.float32, shape[-1:])).node
-            self.weight = graph.TfNode((W, b))
-            return transformation(x.node, W) + b
-        self.weight = graph.TfNode(W)
-        return transformation(x.node, W)
-
-
-class MatmulLayer(subgraph.Subgraph):
-    def build_graph(self, a, b, activation=Activation.Null):
-        return activation(tf.matmul(a.node, b.node))
-
-
 class BaseLayer(subgraph.Subgraph):
-    def build_graph(self, x, shape, transformation, activation, bias=True):
+    def build_graph(self, x, shape, transformation, activation):
         d = 1.0
         p = np.prod(shape[:-1])
         if p != 0:
             d = 1.0 / np.sqrt(p)
         initializer = graph.RandomUniformInitializer(minval=-d, maxval=d)
         W = graph.Variable(initializer(np.float32, shape)).node
-        if bias:
-            b = graph.Variable(initializer(np.float32, shape[-1:])).node
-            self.weight = graph.TfNode((W, b))
-            return activation(transformation(x.node, W) + b)
-        self.weight = graph.TfNode(W)
-        return activation(transformation(x.node, W))
+        b = graph.Variable(initializer(np.float32, shape[-1:])).node
+        self.weight = graph.TfNode((W, b))
+        return activation(transformation(x.node, W) + b)
 
 
 class Convolution(BaseLayer):
@@ -137,8 +116,7 @@ class GenericLayers(subgraph.Subgraph):
 
 
 class DescreteActor(subgraph.Subgraph):
-    def build_graph(self, head, output):
-        action_size = output.action_size
+    def build_graph(self, head, action_size):
         actor = Dense(head, action_size, activation=Activation.Softmax)
         self.weight = actor.weight
         self.action_size = action_size
@@ -147,19 +125,18 @@ class DescreteActor(subgraph.Subgraph):
 
 
 class ContinuousActor(subgraph.Subgraph):
-    def build_graph(self, head, output):
-        action_size = output.action_size
+    def build_graph(self, head, action_size):
         self.mu = Dense(head, action_size)
         self.sigma2 = Dense(head, action_size, activation=Activation.Softplus)
         self.weight = graph.Variables(self.mu.weight, self.sigma2.weight)
         self.action_size = action_size
         self.continuous = True
-        return self.mu.node * graph.TfNode(output.scale).node, self.sigma2.node
+        return self.mu.node, self.sigma2.node
 
 
 def Actor(head, output):
     Actor = ContinuousActor if output.continuous else DescreteActor
-    return Actor(head, output)
+    return Actor(head, output.action_size)
 
 
 class Input(subgraph.Subgraph):
@@ -209,14 +186,10 @@ class Weights(subgraph.Subgraph):
 class Gradients(subgraph.Subgraph):
     def build_graph(self, weights, loss=None, optimizer=None, norm=False):
         if loss is not None:
+            grads = tf.gradients(loss.node, list(utils.Utils.flatten(weights.node)))
             if norm:
-                self.calculate = graph.TfNode(utils.Utils.reconstruct(
-                    tf.clip_by_global_norm(tf.gradients(
-                        loss.node, list(utils.Utils.flatten(weights.node))),
-                        norm)[0], weights.node))
-            else:
-                self.calculate = graph.TfNode(utils.Utils.reconstruct(tf.gradients(
-                    loss.node, list(utils.Utils.flatten(weights.node))), weights.node))
+                grads, _ = tf.clip_by_global_norm(grads, norm)
+            self.calculate = graph.TfNode(utils.Utils.reconstruct(grads, weights.node))
         if optimizer is not None:
             self.ph_gradients = graph.Placeholders(weights)
             self.apply = graph.TfNode(optimizer.node.apply_gradients(
