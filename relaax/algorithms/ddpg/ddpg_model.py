@@ -17,12 +17,11 @@ class ActorNetwork(subgraph.Subgraph):
                                     [dict(type=layer.Dense, size=size, activation=layer.Activation.Relu)
                                      for size in cfg.config.hidden_sizes])
 
-        actor = layer.Dense(dense, cfg.config.output.action_size,
-                            activation=layer.Activation.Tanh)
+        actor = layer.DDPGActor(dense, cfg.config.output)
 
-        self.state = input.ph_state
+        self.ph_state = input.ph_state
+        self.actor = actor
         self.weights = layer.Weights(input, dense, actor)
-        return actor.node
 
 
 class CriticNetwork(subgraph.Subgraph):
@@ -35,9 +34,10 @@ class CriticNetwork(subgraph.Subgraph):
 
         critic = layer.Dense(dense, cfg.config.output.action_size)
 
-        self.state = input.ph_state
+        self.ph_state = input.ph_state
         self.weights = layer.Weights(input, dense, critic)
-        return critic.node
+
+        return graph.Flatten(critic).node
 
 
 # Weights of the policy are shared across
@@ -73,3 +73,23 @@ class SharedParameters(subgraph.Subgraph):
                                                   gradients=sg_critic_gradients.ph_gradients,
                                                   increment=sg_global_step.ph_increment)
         self.op_initialize = self.Op(sg_initialize)
+
+
+# Policy run by Agent(s)
+class PolicyModel(subgraph.Subgraph):
+    def build_graph(self):
+        # Build graph
+        sg_actor_network = ActorNetwork()
+        sg_critic_network = CriticNetwork()
+
+        _, sg_actor_loss = sg_actor_network.actor
+        sg_gradients = layer.Gradients(sg_actor_network.weights, loss=sg_actor_loss,
+                                       initial_value=-ph_action_gradient)
+
+        # Expose public API
+        self.op_assign_weights = self.Op(sg_network.weights.assign,
+                weights=sg_network.weights.ph_weights)
+        self.op_get_action = self.Op(sg_network, state=sg_network.state)
+        self.op_compute_gradients = self.Op(sg_gradients.calculate,
+                state=sg_network.state, action=sg_loss.ph_action,
+                discounted_reward=sg_loss.ph_discounted_reward)
