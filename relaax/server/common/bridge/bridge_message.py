@@ -7,6 +7,11 @@ import numpy
 import types
 from . import bridge_pb2
 
+from relaax.common import profiling
+
+
+profiler = profiling.get_profiler(__name__)
+
 
 class MessageStream(object):
     def __init__(self, messages):
@@ -25,9 +30,11 @@ class BaseMarshaller(object):
 
 
 class NoneMarshaller(BaseMarshaller):
+    @profiler.wrap
     def serialize(self, value, dict_key):
         yield bridge_pb2.Item(item_type=self.item_type, dict_key=dict_key)
 
+    @profiler.wrap
     def deserialize(self, stream):
         return None
 
@@ -37,16 +44,19 @@ class ScalarMarshaller(BaseMarshaller):
         super(ScalarMarshaller, self).__init__(item_type, value_type)
         self.value_attr = value_attr
 
+    @profiler.wrap
     def serialize(self, value, dict_key):
         item = bridge_pb2.Item(item_type=self.item_type, dict_key=dict_key)
         setattr(item, self.value_attr, value)
         yield item
 
+    @profiler.wrap
     def deserialize(self, stream):
         return self.value_type(getattr(stream.first, self.value_attr))
 
 
 class NdarrayMarshaller(BaseMarshaller):
+    @profiler.wrap
     def serialize(self, array, dict_key):
         # TODO: select more appropriate block size
         block_size = 1024 * 1024
@@ -64,6 +74,7 @@ class NdarrayMarshaller(BaseMarshaller):
                 )
             )
 
+    @profiler.wrap
     def deserialize(self, stream):
         data = []
         while True:
@@ -102,6 +113,7 @@ class ContainerMarshaller(BaseMarshaller):
         super(ContainerMarshaller, self).__init__(item_type, value_type)
         self.end_item_type = end_item_type
 
+    @profiler.wrap
     def serialize(self, value, dict_key):
         yield bridge_pb2.Item(item_type=self.item_type)
         for key, item in self.items(value):
@@ -109,6 +121,7 @@ class ContainerMarshaller(BaseMarshaller):
                 yield message
         yield bridge_pb2.Item(item_type=self.end_item_type, dict_key=dict_key)
 
+    @profiler.wrap
     def deserialize(self, stream):
         container = self.value_type()
         while next(stream).item_type != self.end_item_type:
@@ -134,10 +147,12 @@ class DictMarshaller(ContainerMarshaller):
 
 class BridgeMessage(object):
     @classmethod
+    @profiler.wrap
     def serialize(cls, value):
         return cls.serialize_any(value, dict_key=None)
 
     @classmethod
+    @profiler.wrap
     def deserialize(cls, messages):
         value = cls.deserialize_any(MessageStream(messages))
         the_end = object()
