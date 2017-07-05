@@ -28,15 +28,19 @@ class ActorNetwork(subgraph.Subgraph):
 class CriticNetwork(subgraph.Subgraph):
     def build_graph(self):
         input = layer.Input(cfg.config.input)
+        ph_action = graph.Placeholder(np.float32, (None, cfg.config.output.action_size))
 
-        dense = layer.GenericLayers(layer.Flatten(input),
-                                    [dict(type=layer.Dense, size=size, activation=layer.Activation.Relu)
-                                     for size in cfg.config.hidden_sizes])
+        sizes = cfg.config.hidden_sizes
+        assert len(sizes) > 1, 'You need to provide sizes at least for 2 layers'
 
-        critic = layer.Dense(dense, cfg.config.output.action_size)
+        dense_1st = layer.Dense(layer.Flatten(input), sizes[0], layer.Activation.Relu)
+        dense_2nd = layer.DoubleDense(dense_1st, ph_action, sizes[1], layer.Activation.Relu)
+
+        critic = layer.Dense(dense_2nd, cfg.config.output.action_size)
 
         self.ph_state = input.ph_state
-        self.weights = layer.Weights(input, dense, critic)
+        self.ph_action = ph_action.node
+        self.weights = layer.Weights(input, dense_1st, dense_2nd, critic)
 
         return graph.Flatten(critic).node
 
@@ -50,6 +54,16 @@ class SharedParameters(subgraph.Subgraph):
 
         sg_actor_weights = ActorNetwork().weights
         sg_critic_weights = CriticNetwork().weights
+        sg_actor_target_weights = graph.Variables(sg_actor_weights)
+        sg_critic_target_weights = graph.Variables(sg_critic_weights)
+
+        # needs reassign weights from actor & critic to target networks
+        sg_init_actor_target_weights = sg_actor_target_weights.assign(sg_actor_weights)
+        sg_init_critic_target_weights = sg_critic_target_weights.assign(sg_critic_weights)
+        sg_update_actor_target_weights = \
+            sg_actor_target_weights.assign(graph.TfNode(cfg.config.tau).node * sg_actor_weights.node)
+        sg_update_critic_target_weights = \
+            sg_critic_target_weights.assign(graph.TfNode(cfg.config.tau).node * sg_critic_weights.node)
 
         sg_actor_optimizer = graph.AdamOptimizer(cfg.config.actor_learning_rate)
         sg_critic_optimizer = graph.AdamOptimizer(cfg.config.critic_learning_rate)
@@ -65,6 +79,12 @@ class SharedParameters(subgraph.Subgraph):
         self.op_get_actor_weights = self.Op(sg_actor_weights)
         self.op_get_critic_weights = self.Op(sg_critic_weights)
 
+        self.op_init_actor_target_weights = self.Op(sg_init_actor_target_weights)
+        self.op_init_critic_target_weights = self.Op(sg_init_critic_target_weights)
+
+        self.op_update_actor_target_weights = self.Op(sg_update_actor_target_weights)
+        self.op_update_critic_target_weights = self.Op(sg_update_critic_target_weights)
+
         self.op_apply_actor_gradients = self.Ops(sg_actor_gradients.apply,
                                                  sg_global_step.increment,
                                                  gradients=sg_actor_gradients.ph_gradients,
@@ -77,20 +97,29 @@ class SharedParameters(subgraph.Subgraph):
 
 
 # Policy run by Agent(s)
-class PolicyModel(subgraph.Subgraph):
+class AgentModel(subgraph.Subgraph):
     def build_graph(self):
         # Build graph
         sg_actor_network = ActorNetwork()
         sg_critic_network = CriticNetwork()
+        sg_actor_target_network = ActorNetwork()
+        sg_critic_target_network = CriticNetwork()
 
         ph_action_gradient = graph.Placeholder(np.float32, (None, cfg.config.output.action_size))
-        sg_gradients = layer.Gradients(sg_actor_network.weights,
-                                       sg_actor_network.actor.scaled_out,
-                                       initial_value=-ph_action_gradient.node)
+        sg_actor_gradients = layer.Gradients(sg_actor_network.weights,
+                                             sg_actor_network.actor.scaled_out,
+                                             initial_value=-ph_action_gradient.node)
         # Expose public API
-        self.op_assign_weights = self.Op(sg_network.weights.assign,
-                weights=sg_network.weights.ph_weights)
-        self.op_get_action = self.Op(sg_network, state=sg_network.state)
-        self.op_compute_gradients = self.Op(sg_gradients.calculate,
-                state=sg_network.state, action=sg_loss.ph_action,
-                discounted_reward=sg_loss.ph_discounted_reward)
+        self.op_assign_actor_weights = self.Op(sg_actor_network.weights.assign,
+                                               weights=sg_actor_network.weights.ph_weights)
+        self.op_assign_critic_weights = self.Op(sg_critic_network.weights.assign,
+                                                weights=sg_critic_network.weights.ph_weights)
+        self.op_assign_actor_target_weights = self.Op(sg_actor_target_network.weights.assign,
+                                                      weights=sg_actor_target_network.weights.ph_weights)
+        self.op_assign_critic_target_weights = self.Op(sg_critic_target_network.weights.assign,
+                                                       weights=sg_critic_target_network.weights.ph_weights)
+
+        self.op_get_action = self.Op(sg_actor_network, state=sg_actor_network.ph_state)
+        self.op_compute_gradients = self.Op(sg_actor_gradients.calculate,
+                                            state=sg_actor_network.ph_state,
+                                            action=sg_actor_network.actor.scaled_out)

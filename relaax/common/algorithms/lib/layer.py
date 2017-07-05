@@ -73,6 +73,35 @@ class Dense(BaseLayer):
         return super(Dense, self).build_graph(x, shape, tr, activation)
 
 
+class DoubleDense(BaseLayer):
+    def build_graph(self, x1, x2, size=1, activation=Activation.Null):
+        assert len(x1.node.shape) == 2
+        shape1 = (x1.node.shape.as_list()[1], size)
+        assert len(x2.node.shape) == 2
+        shape2 = (x2.node.shape.as_list()[1], size)
+
+        ops = lambda x1, W1, x2, W2: tf.matmul(x1, W1) + tf.matmul(x2, W2)
+
+        d = 1.0
+        p = np.prod(shape1[:-1])
+        if p != 0:
+            d = 1.0 / np.sqrt(p)
+        initializer = graph.RandomUniformInitializer(minval=-d, maxval=d)
+        W1 = graph.Variable(initializer(np.float32, shape1)).node
+
+        d = 1.0
+        p = np.prod(shape2[:-1])
+        if p != 0:
+            d = 1.0 / np.sqrt(p)
+        initializer = graph.RandomUniformInitializer(minval=-d, maxval=d)
+        W2 = graph.Variable(initializer(np.float32, shape2)).node
+
+        b = graph.Variable(initializer(np.float32, shape2[-1:])).node
+        self.weight = graph.TfNode((W1, W2, b))
+
+        return activation(ops(x1.node, W1, x2.node, W2) + b)
+
+
 class LSTM(subgraph.Subgraph):
     def build_graph(self, x, batch_size=1, size=256):
         self.ph_step = graph.Placeholder(np.int32, [batch_size])
@@ -115,7 +144,7 @@ class GenericLayers(subgraph.Subgraph):
         return last.node
 
 
-class DescreteActor(subgraph.Subgraph):
+class DiscreteActor(subgraph.Subgraph):
     def build_graph(self, head, action_size):
         actor = Dense(head, action_size, activation=Activation.Softmax)
         self.weight = actor.weight
@@ -135,7 +164,7 @@ class ContinuousActor(subgraph.Subgraph):
 
 
 def Actor(head, output):
-    Actor = ContinuousActor if output.continuous else DescreteActor
+    Actor = ContinuousActor if output.continuous else DiscreteActor
     return Actor(head, output.action_size)
 
 
