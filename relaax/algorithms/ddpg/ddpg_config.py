@@ -3,6 +3,7 @@ from relaax.common.python.config.loaded_config import options
 config = options.get('algorithm')
 
 config.buffer_size = options.get('algorithm/buffer_size', 10**6)
+config.hidden_sizes = options.get('algorithm/hidden_sizes', [400, 300])  # needs at least two layers
 
 config.actor_learning_rate = options.get('algorithm/actor_learning_rate', 1e-4)
 config.critic_learning_rate = options.get('algorithm/critic_learning_rate', 1e-3)
