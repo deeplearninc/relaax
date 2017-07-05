@@ -33,9 +33,7 @@ class Servicer(bridge_pb2.BridgeServicer):
         result = last(*args, **kwargs)
         return bridge_message.BridgeMessage.serialize(result)
 
-    def StoreScalarMetric(self, request, context):
-        x = None
-        if request.HasField('x'):
-            x = request.x.value
-        self.ps.metrics.scalar(name=request.name, y=request.y, x=x)
+    def StoreMetric(self, request_iterator, context):
+        data = bridge_message.BridgeMessage.deserialize(request_iterator)
+        getattr(self.ps.metrics, data['method'])(**data['kwargs'])
         return bridge_pb2.NullMessage()

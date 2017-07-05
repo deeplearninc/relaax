@@ -53,10 +53,17 @@ class BridgeSessionMethod(object):
 
 class BridgeMetrics(metrics.Metrics):
     def __init__(self, connection):
-        self.__connection = connection
+        self.connection = connection
 
+    @profiler.wrap
     def scalar(self, name, y, x=None):
-        kwargs = {'name': name, 'y': y}
-        if x is not None:
-            kwargs['x'] = bridge_pb2.ScalarMetric.Arg(value=x)
-        self.__connection.stub.StoreScalarMetric(bridge_pb2.ScalarMetric(**kwargs))
+        self.send('scalar', name, y, x)
+
+    @profiler.wrap
+    def histogram(self, name, y, x=None):
+        self.send('histogram', name, y, x)
+
+    def send(self, method, name, y, x):
+        messages = bridge_message.BridgeMessage.serialize(
+                dict(method=method, kwargs=dict(name=name, y=y, x=x)))
+        self.connection.stub.StoreMetric(messages)

@@ -41,9 +41,10 @@ class AgentProxy(object):
     def reset(self):
         return self._exchange({'command': 'reset'})
 
-    def _update_metrics(self, name, y, x=None):
+    def _update_metrics(self, method, name, y, x=None):
         return self._exchange({
             'command': 'update_metrics',
+            'method': method,
             'name': name,
             'y': y,
             'x': x
@@ -115,4 +116,7 @@ class AgentProxyMetrics(object):
         self._update_metrics = send_metrics
 
     def scalar(self, name, y, x=None):
-        self._update_metrics(name, y, x)
+        self._update_metrics('scalar', name, y, x)
+
+    def histogram(self, name, y, x=None):
+        self._update_metrics('histogram', name, y, x)
