@@ -136,11 +136,11 @@ class DiagGauss(ProbType):
 
 
 class StochPolicyKeras(object):
-    def __init__(self, net, probtype, session, relaax_session):
+    def __init__(self, net, probtype, session, relaax_session, relaax_metrics):
         self._net = net
         self._probtype = probtype
-        self.finalize(session)
         self.relaax_session = relaax_session
+        self.relaax_metrics = relaax_metrics
 
     @property
     def probtype(self):
@@ -156,15 +156,11 @@ class StochPolicyKeras(object):
 
     def act(self, ob, stochastic=True):
         prob = self.relaax_session.op_get_action(state=ob[None])
-        #prob = self._act_prob(ob[None])
+        self.relaax_metrics.histogram('action', prob)
         if stochastic:
             return self.probtype.sample(prob)[0], {"prob": prob[0]}
         else:
             return self.probtype.maxprob(prob)[0], {"prob": prob[0]}
-
-    def finalize(self, session):
-        # misc_utils.TensorFlowLazyFunction
-        self._act_prob = TensorFlowLazyFunction([self.net.input], self.net.output, session)
 
     def get_updates(self):
         return self._net.updates

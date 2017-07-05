@@ -30,7 +30,7 @@ class Agent(object):
 
         self.policy_net, value_net = network.make_mlps(config, relaax_session)
         self.policy, _ = network.make_wrappers(config, self.policy_net, value_net,
-                                               self._session, relaax_session)
+                                               self._session, relaax_session, parameter_server.metrics)
 
         self._session.run(tf.variables_initializer(tf.global_variables()))
 
