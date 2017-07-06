@@ -17,6 +17,7 @@ class RLXPort(object):
     def listen(cls, server_address):
         cls.listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
+            cls.listener.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
             cls.listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             cls.listener.bind(server_address)
             cls.listener.listen(100)
