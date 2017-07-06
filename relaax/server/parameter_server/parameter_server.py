@@ -13,6 +13,8 @@ import signal
 from .parameter_server_config import options
 from relaax.common import profiling
 from relaax.server.common.bridge import bridge_server
+from relaax.server.common.metrics import multi_metrics
+from relaax.server.common.metrics import logging_metrics
 from relaax.server.common.metrics import tensorflow_metrics
 from relaax.server.common.saver import fs_saver
 from relaax.server.common.saver import limited_saver
@@ -124,7 +126,13 @@ class ParameterServer(object):
 
     @staticmethod
     def metrics_factory(x):
-        return tensorflow_metrics.TensorflowMetrics(options.relaax_parameter_server.metrics_dir, x)
+        metrics = []
+        if options.get('relaax_parameter_server/log_metrics', False):
+            metrics.append(logging_metrics.LoggingMetrics(x))
+        metrics_dir = options.get('relaax_parameter_server/metrics_dir')
+        if metrics_dir is not None:
+            metrics.append(tensorflow_metrics.TensorflowMetrics(metrics_dir, x))
+        return multi_metrics.MultiMetrics(metrics)
 
     @staticmethod
     def load_aws_keys():
