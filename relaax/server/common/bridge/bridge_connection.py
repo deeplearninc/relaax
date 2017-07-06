@@ -2,7 +2,9 @@ from __future__ import absolute_import
 from builtins import object
 import grpc
 
+from relaax.server.rlx_server.rlx_config import options
 from relaax.server.common.metrics import metrics
+from relaax.server.common.metrics import enabled_metrics
 
 from . import bridge_pb2
 from . import bridge_message
@@ -17,7 +19,8 @@ class BridgeConnection(object):
     def __init__(self, server):
         self._server = server
         self.session = BridgeSession(self)
-        self.metrics = BridgeMetrics(self)
+        self.metrics = enabled_metrics.EnabledMetrics(options.get('metrics'),
+                                                      BridgeMetrics(self))
         self._stub = None
 
     @property

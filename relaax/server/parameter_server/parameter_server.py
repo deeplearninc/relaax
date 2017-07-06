@@ -13,8 +13,9 @@ import signal
 from .parameter_server_config import options
 from relaax.common import profiling
 from relaax.server.common.bridge import bridge_server
-from relaax.server.common.metrics import multi_metrics
+from relaax.server.common.metrics import enabled_metrics
 from relaax.server.common.metrics import logging_metrics
+from relaax.server.common.metrics import multi_metrics
 from relaax.server.common.metrics import tensorflow_metrics
 from relaax.server.common.saver import fs_saver
 from relaax.server.common.saver import limited_saver
@@ -26,8 +27,10 @@ try:
     from Queue import Queue, Empty  # noqa
 except ImportError:
     from queue import Queue, Empty  # noqa
+
     
 log = logging.getLogger(__name__)
+
 
 class ParameterServer(object):
 
@@ -50,9 +53,10 @@ class ParameterServer(object):
     @classmethod
     def start(cls):
         try:
-            if hasattr(options.relaax_parameter_server, 'profile_dir'):
+            profile_dir = options.get('relaax_parameter_server/profile_dir')
+            if profile_dir is not None:
                 profiling.set_handlers([profiling.FileHandler(os.path.join(
-                    options.relaax_parameter_server.profile_dir, 'ps.txt'))])
+                                        profile_dir, 'ps.txt'))])
                 profiling.enable(True)
 
             log.info("Starting parameter server on %s:%d" % options.bind)
@@ -132,7 +136,8 @@ class ParameterServer(object):
         metrics_dir = options.get('relaax_parameter_server/metrics_dir')
         if metrics_dir is not None:
             metrics.append(tensorflow_metrics.TensorflowMetrics(metrics_dir, x))
-        return multi_metrics.MultiMetrics(metrics)
+        return enabled_metrics.EnabledMetrics(options.get('metrics'),
+                                              multi_metrics.MultiMetrics(metrics))
 
     @staticmethod
     def load_aws_keys():
