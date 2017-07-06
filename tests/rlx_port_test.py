@@ -98,34 +98,34 @@ class TestRLXPort(object):
             assert False
         except Exception as e:
             if sys.platform != 'win32':
-                assert called.args == ("OSError ('some-address', 7000): can't fork",)
+                assert called.args == ("Can't start child process ('some-address', 7000): can't fork",)
                 assert called.times == 1
             assert str(e) == '[Errno %d] fatal error message' % errno.EMFILE
             
-if sys.platform != 'win32':            
     def test_listen_accept_and_fork(self, monkeypatch):
-        def worker_run(*args):
-            called.times += 1
-
-        worker = Mock()
-        called = MockUtils.Placeholder()
-        worker.run = worker_run
         if sys.platform != 'win32':
-            monkeypatch.setattr(os, 'fork', lambda: 0)
-        monkeypatch.setattr(socket, 'socket', lambda family, type, proto=0, fileno=None: self.socket)
-        monkeypatch.setattr('relaax.server.rlx_server.rlx_port.RLXWorker', worker)
+            def worker_run(*args):
+                called.times += 1
 
-        RLXPort.listen(('localhost', 7000))
-        assert called.times == 1
+            worker = Mock()
+            called = MockUtils.Placeholder()
+            worker.run = worker_run
+            if sys.platform != 'win32':
+                monkeypatch.setattr(os, 'fork', lambda: 0)
+            monkeypatch.setattr(socket, 'socket', lambda family, type, proto=0, fileno=None: self.socket)
+            monkeypatch.setattr('relaax.server.rlx_server.rlx_port.RLXWorker', worker)
+
+            RLXPort.listen(('localhost', 7000))
+            assert called.times == 1
         
     def test_keyboard_interrupt_on_accept(self, monkeypatch):
         if sys.platform != 'win32':
             monkeypatch.setattr(os, 'fork', lambda: 0)
-        monkeypatch.setattr(socket, 'socket', lambda af, st: self.socket)
-        self.socket.accept = lambda: os.kill(os.getpid(), signal.SIGINT)
-        try:
-            RLXPort.listen(('localhost', 7000))
-            assert True  # no exception, ctrl-c was handled
-        except Exception as e:
-            assert False
+            monkeypatch.setattr(socket, 'socket', lambda af, st: self.socket)
+            self.socket.accept = lambda: os.kill(os.getpid(), signal.SIGINT)
+            try:
+                RLXPort.listen(('localhost', 7000))
+                assert True  # no exception, ctrl-c was handled
+            except Exception as e:
+                assert False
             
