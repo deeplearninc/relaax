@@ -4,6 +4,7 @@ environment:
 relaax-parameter-server:
   --bind: localhost:7000
   --metrics-dir: logs/metrics/
+  --log-metrics: false
   --checkpoint-dir: logs/checkpoints/
   --log-level: DEBUG
 
