@@ -26,7 +26,7 @@ class TensorflowMetrics(metrics.Metrics):
         y = np.asarray(y)
         with self._graph.as_default():
             if name not in summaries:
-                placeholder = tf.placeholder(y.dtype, y.shape)
+                placeholder = tf.placeholder(y.dtype)
                 summaries[name] = (placeholder, new_summary(name, placeholder))
             placeholder, summary = summaries[name]
             self._writer.add_summary(

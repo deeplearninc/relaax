@@ -1,10 +1,10 @@
 from builtins import object
 class ParameterServerBase(object):
     def __init__(self, saver_factory, metrics_factory):
+        self.metrics = metrics_factory(self.n_step)
         self.init_session()
         assert hasattr(self, 'session')
         self.saver = saver_factory(self.create_checkpoint())
-        self.metrics = metrics_factory(self.n_step)
 
     def close(self):
         self.session.close()

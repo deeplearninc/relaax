@@ -96,7 +96,7 @@ def make_wrappers(config, policy_net, value_net, session, relaax_session, relaax
 
     
     policy = StochPolicyKeras(policy_net, probtype, session, relaax_session, relaax_metrics)
-    baseline = NnVf(value_net, config.PG_OPTIONS.timestep_limit, dict(mixfrac=0.1), session)
+    baseline = NnVf(value_net, config.PG_OPTIONS.timestep_limit, dict(mixfrac=0.1), session, relaax_metrics)
 
     return policy, baseline
 

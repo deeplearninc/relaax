@@ -313,13 +313,16 @@ class NnRegression(object):
 
 
 class NnVf(object):
-    def __init__(self, vnet, timestep_limit, regression_params, session):
+    def __init__(self, vnet, timestep_limit, regression_params, session, metrics):
         self.reg = NnRegression(vnet, session, **regression_params)
         self.timestep_limit = timestep_limit
+        self.metrics = metrics
 
     def predict(self, path):
         ob_no = self.preproc(path["observation"])
-        return self.reg.predict(ob_no)[:, 0]
+        value = self.reg.predict(ob_no)[:, 0]
+        self.metrics.histogram('critic', value)
+        return value
 
     def fit(self, paths):
         ob_no = concat([self.preproc(path["observation"]) for path in paths], axis=0)
