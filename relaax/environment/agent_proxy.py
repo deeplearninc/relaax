@@ -5,6 +5,9 @@ import socket
 import random
 import logging
 
+from relaax.environment.config import options
+from relaax.server.common.metrics import metrics
+from relaax.server.common.metrics import enabled_metrics
 from relaax.common.rlx_netstring import NetString
 from relaax.common.rlx_message import RLXMessage as rlxm
 from relaax.common import profiling
@@ -23,7 +26,8 @@ class AgentProxy(object):
         self.skt = None
         self.transport = None
         self.address = rlx_server_url
-        self.metrics = AgentProxyMetrics(self._update_metrics)
+        self.metrics = enabled_metrics.EnabledMetrics(options.get('metrics'),
+                                                      AgentProxyMetrics(self._update_metrics))
 
     @profiler.wrap
     def init(self, exploit=False):
@@ -111,7 +115,7 @@ class AgentProxy(object):
             self.skt = None
 
 
-class AgentProxyMetrics(object):
+class AgentProxyMetrics(metrics.Metrics):
     def __init__(self, send_metrics):
         self._update_metrics = send_metrics
 
