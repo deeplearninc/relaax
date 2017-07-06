@@ -16,6 +16,11 @@ Then you can install specific packages for `atari`
 ```bash
 $ pip install gym[atari]
 ```
+Windows:
+```bash
+$ pip install gym
+$ pip install git+https://github.com/Kojoley/atari-py.git
+```
 
 ### Generate new application:
 ```bash
@@ -58,6 +63,11 @@ environment:
 algorithm:
   input:
     image: [84, 84, 3]  # image dimensions (width, height, color planes)
+
+  output:
+    action_size: 6                # action size for the AirRaid environment
+
 ```
+
 
 You can use shape key as a synonym of image key.
