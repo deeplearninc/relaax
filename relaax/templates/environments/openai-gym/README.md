@@ -46,20 +46,19 @@ environment:
     name: AirRaid-v0
 ```
 
-#### shape
-Should contain image dimensions and color planes.
-
+#### shape or image
+Should contain image dimensions and color planes. If your state is image, use 'image' key instead of 'shape'
 For example for RGB image 84x84 pixels:
 
 ```yaml
 environment:
-    shape: [84,84,3]
+    image: [84,84,3]
 
 algorithm:
   name: da3c                      # short name for algorithm to load
 
   input:
-    shape: [84,84,3]                    # shape of input state
+    image: [84,84,3]                    # shape of input state
 
 ```
 
