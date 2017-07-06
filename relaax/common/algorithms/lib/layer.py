@@ -44,11 +44,12 @@ class Border(object):
 
 
 class BaseLayer(subgraph.Subgraph):
-    def build_graph(self, x, shape, transformation, activation):
-        d = 1.0
-        p = np.prod(shape[:-1])
-        if p != 0:
-            d = 1.0 / np.sqrt(p)
+    def build_graph(self, x, shape, transformation, activation, d=None):
+        if d is None:
+            d = 1.0
+            p = np.prod(shape[:-1])
+            if p != 0:
+                d = 1.0 / np.sqrt(p)
         initializer = graph.RandomUniformInitializer(minval=-d, maxval=d)
         W = graph.Variable(initializer(np.float32, shape)).node
         b = graph.Variable(initializer(np.float32, shape[-1:])).node
@@ -66,11 +67,11 @@ class Convolution(BaseLayer):
 
 
 class Dense(BaseLayer):
-    def build_graph(self, x, size=1, activation=Activation.Null):
+    def build_graph(self, x, size=1, activation=Activation.Null, init_var=None):
         assert len(x.node.shape) == 2
         shape = (x.node.shape.as_list()[1], size)
         tr = lambda x, W: tf.matmul(x, W)
-        return super(Dense, self).build_graph(x, shape, tr, activation)
+        return super(Dense, self).build_graph(x, shape, tr, activation, d=init_var)
 
 
 class DoubleDense(BaseLayer):
@@ -171,7 +172,7 @@ def Actor(head, output):
 class DDPGActor(subgraph.Subgraph):
     def build_graph(self, head, output):
         action_size = output.action_size
-        self.out = Dense(head, action_size, activation=Activation.Tanh)
+        self.out = Dense(head, action_size, activation=Activation.Tanh, init_var=3e-3)
         self.scaled_out = self.out.node * graph.TfNode(output.scale).node
 
         self.weight = self.out.weight
