@@ -9,9 +9,12 @@ class EnabledMetrics(metrics.Metrics):
         self._metrics = metrics
 
     def scalar(self, name, y, x=None):
-        if getattr(self._options, name, True):
+        if self._enabled(name):
             self._metrics.scalar(name, y, x)
 
     def histogram(self, name, y, x=None):
-        if getattr(self._options, name, True):
+        if self._enabled(name):
             self._metrics.histogram(name, y, x)
+
+    def _enabled(self, name):
+        return getattr(self._options, name, False)
