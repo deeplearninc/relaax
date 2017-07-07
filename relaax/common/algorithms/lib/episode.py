@@ -23,18 +23,9 @@ class Episode(object):
         return experience
 
 
-class ReplayBuffer(object):
+class ReplayBuffer(Episode):
     def __init__(self, *args):
-        self.keys = args
-        self.experience = None
-
-    def begin(self):
-        assert self.experience is None
-        self.experience = experience.Experience(*self.keys)
-
-    def step(self, **kwargs):
-        assert self.experience is not None
-        self.experience.push_record(**kwargs)
+        super(ReplayBuffer, self).__init__(*args)
 
     def sample(self):
         pass
