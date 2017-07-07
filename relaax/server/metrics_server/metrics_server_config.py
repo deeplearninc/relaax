@@ -26,11 +26,11 @@ class MetricsServerConfig(BaseConfig):
     def process_after_loaded(self):
         if self.log_level is None:
             self.log_level = self.get(
-                'metrics_server/log_level', 'DEBUG')
+                'relaax_metrics_server/log_level', 'DEBUG')
 
         if self.bind is None:
             self.bind = self.get(
-                'metrics_server/bind', 'localhost:7002')
+                'relaax_metrics_server/bind', 'localhost:7002')
 
         # Simple check of the bind address format
 
