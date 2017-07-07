@@ -24,8 +24,8 @@ class Episode(object):
 
 
 class ReplayBuffer(Episode):
-    def __init__(self, args):
-        super(ReplayBuffer, self).__init__(args)
+    def __init__(self, *args):
+        super(ReplayBuffer, self).__init__(*args)
 
     def sample(self):
         pass
