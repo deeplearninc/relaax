@@ -67,7 +67,7 @@ class DA3CEpisode(object):
             logger.warning('DA3CEpisode.step ignores state in case of terminal.')
             state = None
         else:
-            assert (state is None) == terminal
+            assert state is not None
         self.observation.add_state(state)
 
         self.terminal = terminal
