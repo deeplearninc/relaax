@@ -31,7 +31,7 @@ class Agent(object):
     def update(self, reward, state, terminal):
         self.episode.step(reward, state, terminal)
 
-        if len(self.episode.experience) == ddpg_config.config.batch_size or terminal:
+        if len(self.episode.experience) == ddpg_config.config.loop_size or terminal:
             self.episode.end()
             if terminal:
                 self.episode.reset()
