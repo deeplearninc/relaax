@@ -32,7 +32,7 @@ class DDPGEpisode(object):
         self.reset()
         self.observation = ddpg_observation.DDPGObservation()
         self.last_action = None
-        self.last_value = None
+
         if hogwild_update:
             self.queue = queue.Queue(10)
             threading.Thread(target=self.execute_tasks).start()
@@ -47,24 +47,23 @@ class DDPGEpisode(object):
     @profiler.wrap
     def begin(self):
         self.do_task(self.receive_experience)
-        self.get_action_and_value()
+        self.get_action()
         self.episode.begin()
 
     @profiler.wrap
     def step(self, reward, state, terminal):
         if reward is not None:
-            self.push_experience(reward)
+            self.push_experience(reward, state, terminal)
+        else:
+            self.observation.add_state(state)
+
         if terminal and state is not None:
             logger.warning('DDPGEpisode.step ignores state in case of terminal.')
         else:
             assert (state is None) == terminal
-        self.observation.add_state(state)
 
-        self.terminal = terminal
         assert self.last_action is None
-        assert self.last_value is None
-
-        self.get_action_and_value()
+        self.get_action()
 
     @profiler.wrap
     def end(self):
@@ -74,7 +73,7 @@ class DDPGEpisode(object):
 
     @profiler.wrap
     def reset(self):
-        self.episode = episode.Episode('reward', 'state', 'action', 'value')
+        self.episode = episode.Episode('state', 'action', 'reward', 'terminal', 'next_state')
 
     # Helper methods
 
@@ -88,3 +87,39 @@ class DDPGEpisode(object):
             f()
         else:
             self.queue.put(f)
+
+    @profiler.wrap
+    def send_experience(self, experience):
+        self.apply_gradients(self.compute_gradients(experience), len(experience))
+
+    @profiler.wrap
+    def receive_experience(self):
+        self.session.op_assign_weights(weights=self.ps.session.op_get_weights())
+
+    def push_experience(self, reward, state, terminal):
+        assert self.observation.queue is not None
+        assert self.last_action is not None
+
+        old_state = self.observation.queue
+        if not terminal:
+            self.observation.add_state(state)
+
+        self.episode.step(
+            state=old_state,
+            action=self.last_action,
+            reward=reward,
+            terminal=terminal,
+            next_state=self.observation.queue
+        )
+        self.last_action = None
+
+    def get_action(self):
+        if self.observation.queue is None:
+            self.last_action = None
+        else:
+            self.last_action = self.get_action_from_network()
+            assert self.last_action is not None
+
+    def get_action_from_network(self):
+        out, scaled_out = self.session.op_get_action(state=[self.observation.queue])
+        return scaled_out
