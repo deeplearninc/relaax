@@ -4,6 +4,10 @@ syntax = "proto3";
 message NullMessage {
 }
 
+message X {
+    double x = 2;
+}
+
 message Item {
     enum ItemType {
         TUPLE_OPEN = 0;
@@ -41,5 +45,6 @@ message Item {
 service Bridge {
     rpc Init(NullMessage) returns (NullMessage) {}
     rpc Run(stream Item) returns (stream Item) {}
+    rpc SetX(X) returns (NullMessage) {}
     rpc StoreMetric(stream Item) returns (NullMessage) {}
 }
