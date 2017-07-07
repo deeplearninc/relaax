@@ -36,7 +36,7 @@ class MetricsServer(object):
     @classmethod
     def start(cls):
         try:
-            profile_dir = options.get('metrics_server/profile_dir')
+            profile_dir = options.get('relaax_metrics_server/profile_dir')
             if profile_dir is not None:
                 profiling.set_handlers([profiling.FileHandler(os.path.join(
                                         profile_dir, 'metrics.txt'))])
@@ -71,9 +71,9 @@ class MetricsServer(object):
     @staticmethod
     def metrics_factory(x):
         metrics = []
-        if options.get('metrics_server/log_metrics', False):
+        if options.get('relaax_metrics_server/log_metrics', False):
             metrics.append(logging_metrics.LoggingMetrics(x))
-        metrics_dir = options.get('metrics_server/metrics_dir')
+        metrics_dir = options.get('relaax_metrics_server/metrics_dir')
         if metrics_dir is not None:
             metrics.append(tensorflow_metrics.TensorflowMetrics(metrics_dir, x))
         return enabled_metrics.EnabledMetrics(options.get('metrics'),
