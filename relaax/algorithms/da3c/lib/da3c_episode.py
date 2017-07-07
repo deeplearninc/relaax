@@ -36,9 +36,6 @@ class DA3CEpisode(object):
         self.observation = da3c_observation.DA3CObservation()
         self.last_action = None
         self.last_value = None
-        if da3c_config.config.use_lstm:
-            self.lstm_zero_state = model.lstm_zero_state
-            self.lstm_state = model.lstm_zero_state
         if hogwild_update:
             self.queue = queue.Queue(10)
             threading.Thread(target=self.execute_tasks).start()
