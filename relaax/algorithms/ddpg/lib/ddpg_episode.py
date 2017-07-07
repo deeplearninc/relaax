@@ -13,7 +13,7 @@ from relaax.server.common import session
 from relaax.common.algorithms.lib import episode
 from relaax.common.algorithms.lib import utils
 
-from .. import ddpg_config
+from .. import ddpg_config as cfg
 from .. import ddpg_model
 from . import ddpg_observation
 
@@ -29,7 +29,7 @@ class DDPGEpisode(object):
         model = ddpg_model.AgentModel()
         self.session = session.Session(model)
 
-        self.reset()
+        self.episode = episode.ReplayBuffer('state', 'action', 'reward', 'terminal', 'next_state')
         self.observation = ddpg_observation.DDPGObservation()
         self.last_action = None
 
@@ -57,23 +57,14 @@ class DDPGEpisode(object):
         else:
             self.observation.add_state(state)
 
-        if terminal and state is not None:
-            logger.warning('DDPGEpisode.step ignores state in case of terminal.')
-        else:
-            assert (state is None) == terminal
-
         assert self.last_action is None
         self.get_action()
 
     @profiler.wrap
     def end(self):
-        experience = self.episode.end()
+        experience = self.episode.sample(cfg.config.batch_size)
         if not self.exploit:
             self.do_task(lambda: self.send_experience(experience))
-
-    @profiler.wrap
-    def reset(self):
-        self.episode = episode.Episode('state', 'action', 'reward', 'terminal', 'next_state')
 
     # Helper methods
 
@@ -94,14 +85,17 @@ class DDPGEpisode(object):
 
     @profiler.wrap
     def receive_experience(self):
-        self.session.op_assign_weights(weights=self.ps.session.op_get_weights())
+        self.session.op_assign_actor_weights(weights=self.ps.session.op_get_actor_weights())
+        self.session.op_assign_critic_weights(weights=self.ps.session.op_get_critic_weights())
+        self.session.op_assign_actor_target_weights(weights=self.ps.session.op_get_actor_target_weights())
+        self.session.op_assign_critic_target_weights(weights=self.ps.session.op_get_critic_target_weights())
 
     def push_experience(self, reward, state, terminal):
         assert self.observation.queue is not None
         assert self.last_action is not None
 
         old_state = self.observation.queue
-        if not terminal:
+        if state is not None:
             self.observation.add_state(state)
 
         self.episode.step(

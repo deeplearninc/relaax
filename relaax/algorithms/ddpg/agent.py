@@ -33,8 +33,6 @@ class Agent(object):
 
         if len(self.episode.experience) == ddpg_config.config.loop_size or terminal:
             self.episode.end()
-            if terminal:
-                self.episode.reset()
             self.episode.begin()
 
         return self.episode.last_action

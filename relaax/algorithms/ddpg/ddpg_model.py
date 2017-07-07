@@ -78,6 +78,8 @@ class SharedParameters(subgraph.Subgraph):
 
         self.op_get_actor_weights = self.Op(sg_actor_weights)
         self.op_get_critic_weights = self.Op(sg_critic_weights)
+        self.op_get_actor_target_weights = self.Op(sg_actor_target_weights)
+        self.op_get_critic_target_weights = self.Op(sg_critic_target_weights)
 
         self.op_init_actor_target_weights = self.Op(sg_init_actor_target_weights)
         self.op_init_critic_target_weights = self.Op(sg_init_critic_target_weights)
