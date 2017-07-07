@@ -75,11 +75,11 @@ class Agent(object):
 
     def reset(self):
         score = self._episode_reward
-        self.metrics().scalar('episode_reward', score)
+        self.ps.metrics.scalar('episode_reward', score)
 
         latency = self.server_latency_accumulator / self._episode_timestep
         self.server_latency_accumulator = 0
-        self.metrics().scalar('server_latency', latency)
+        self.ps.metrics.scalar('server_latency', latency)
 
         self._send_experience(terminated=(self._episode_timestep < self._config.PG_OPTIONS.timestep_limit))
         return score
@@ -125,6 +125,3 @@ class Agent(object):
         if self._config.use_filter:
             state = self.ps.session.call_get_filter_state()
             self.obs_filter.rs.set(*state)
-
-    def metrics(self):
-        return self.ps.metrics
