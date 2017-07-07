@@ -12,7 +12,7 @@ import signal
 # do it as early as possible
 from .parameter_server_config import options
 from relaax.common import profiling
-from relaax.server.common.bridge import bridge_server
+from relaax.server.common.bridge import ps_bridge_server
 from relaax.server.common.metrics import enabled_metrics
 from relaax.server.common.metrics import logging_metrics
 from relaax.server.common.metrics import multi_metrics
@@ -61,13 +61,13 @@ class ParameterServer(object):
 
             log.info("Starting parameter server on %s:%d" % options.bind)
 
-            init_ps = CallOnce(cls.init)
+            ps_factory = CallOnce(cls.init)
 
             # keep the server or else GC will stop it
-            server = bridge_server.BridgeServer(options.bind, init_ps)
+            server = ps_bridge_server.PsBridgeServer(options.bind, ps_factory)
             server.start()
 
-            ps = init_ps()
+            ps = ps_factory()
             watch = cls.make_watch(ps)
 
             speedm = Speedometer(ps)

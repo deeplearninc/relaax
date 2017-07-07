@@ -56,6 +56,7 @@ setup(
     entry_points={
         'console_scripts': [
             'relaax=relaax.cmdl.cmdl:cmdl',
+            'relaax-metrics-server=relaax.server.metrics_server.metrics_server:main',
             'relaax-parameter-server=relaax.server.parameter_server.parameter_server:main',
             'relaax-rlx-server=relaax.server.rlx_server.rlx_server:main',
             'relaax-wsproxy=relaax.server.wsproxy.wsproxy:main'
