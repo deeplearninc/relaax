@@ -1,6 +1,12 @@
 environment:
   run: environment/start
 
+relaax-metrics-server:
+  bind: localhost:7002
+  metrics_dir: logs/metrics
+  log_metrics: false
+  log_level: INFO
+
 relaax-parameter-server:
   --bind: localhost:7000
   --metrics-dir: logs/metrics/
