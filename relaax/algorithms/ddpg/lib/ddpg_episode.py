@@ -15,6 +15,7 @@ from relaax.common.algorithms.lib import utils
 
 from .. import ddpg_config
 from .. import ddpg_model
+from . import ddpg_observation
 
 
 logger = logging.getLogger(__name__)
@@ -29,7 +30,7 @@ class DDPGEpisode(object):
         self.session = session.Session(model)
 
         self.reset()
-        self.observation = None
+        self.observation = ddpg_observation.DDPGObservation()
         self.last_action = None
         self.last_value = None
         if hogwild_update:

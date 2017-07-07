@@ -4,6 +4,7 @@ config = options.get('algorithm')
 
 config.buffer_size = options.get('algorithm/buffer_size', 4*10**5)
 config.loop_size = options.get('algorithm/loop_size', 4)
+config.input.history = options.get('algorithm/input/history', 1)
 config.hidden_sizes = options.get('algorithm/hidden_sizes', [400, 300])  # needs at least two layers
 
 config.actor_learning_rate = options.get('algorithm/actor_learning_rate', 1e-4)
