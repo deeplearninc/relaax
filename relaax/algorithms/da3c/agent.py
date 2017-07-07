@@ -44,7 +44,7 @@ class Agent(object):
                 self.episode.reset()
             self.episode.begin()
 
-        return self.episode.last_action
+        return self.episode.last_action * da3c_config.config.output.scale
 
     @staticmethod
     def check_state_shape(state):
