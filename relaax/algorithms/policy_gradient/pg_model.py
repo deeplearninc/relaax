@@ -1,5 +1,4 @@
 from __future__ import absolute_import
-import numpy as np
 
 from relaax.common.algorithms import subgraph
 from relaax.common.algorithms.lib import graph
@@ -15,11 +14,11 @@ class Network(subgraph.Subgraph):
         input = layer.Input(pg_config.config.input)
 
         dense = layer.GenericLayers(layer.Flatten(input),
-                [dict(type=layer.Dense, size=size, activation=layer.Activation.Relu)
-                for size in pg_config.config.hidden_sizes])
+                                    [dict(type=layer.Dense, size=size, activation=layer.Activation.Relu)
+                                    for size in pg_config.config.hidden_sizes])
 
         actor = layer.Dense(dense, pg_config.config.output.action_size,
-                activation=layer.Activation.Softmax)
+                            activation=layer.Activation.Softmax)
 
         self.state = input.ph_state
         self.weights = layer.Weights(input, dense, actor)
@@ -41,8 +40,8 @@ class SharedParameters(subgraph.Subgraph):
         self.op_n_step = self.Op(sg_global_step.n)
         self.op_get_weights = self.Op(sg_weights)
         self.op_apply_gradients = self.Ops(sg_gradients.apply,
-                sg_global_step.increment, gradients=sg_gradients.ph_gradients,
-                increment=sg_global_step.ph_increment)
+                                           sg_global_step.increment, gradients=sg_gradients.ph_gradients,
+                                           increment=sg_global_step.ph_increment)
         self.op_initialize = self.Op(sg_initialize)
 
 
@@ -53,16 +52,16 @@ class PolicyModel(subgraph.Subgraph):
         sg_network = Network()
 
         sg_loss = loss.PGLoss(action_size=pg_config.config.output.action_size,
-                network=sg_network)
+                              network=sg_network)
         sg_gradients = layer.Gradients(sg_network.weights, loss=sg_loss)
 
         # Expose public API
         self.op_assign_weights = self.Op(sg_network.weights.assign,
-                weights=sg_network.weights.ph_weights)
+                                         weights=sg_network.weights.ph_weights)
         self.op_get_action = self.Op(sg_network, state=sg_network.state)
         self.op_compute_gradients = self.Op(sg_gradients.calculate,
-                state=sg_network.state, action=sg_loss.ph_action,
-                discounted_reward=sg_loss.ph_discounted_reward)
+                                            state=sg_network.state, action=sg_loss.ph_action,
+                                            discounted_reward=sg_loss.ph_discounted_reward)
 
 
 if __name__ == '__main__':
