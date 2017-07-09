@@ -104,11 +104,7 @@ class GymEnv(object):
             self.gym.render()
 
         state, reward, terminal, info = self.gym.step(action)
-
-        if terminal:
-            state = None
-        else:
-            state = self._process_state(state)
+        state = self._process_state(state)
 
         return reward, state, terminal
 

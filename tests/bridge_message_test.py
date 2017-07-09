@@ -2,7 +2,6 @@
 
 from builtins import zip
 import numpy
-import types
 import unittest
 
 from relaax.server.common.bridge.bridge_message import BridgeMessage

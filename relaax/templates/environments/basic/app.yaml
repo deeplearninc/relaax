@@ -11,6 +11,7 @@ relaax-parameter-server:
   --checkpoint-dir: logs/checkpoints
   --log-level: INFO
   --metrics-dir: logs/metrics
+  --log-metrics: false
 
 relaax-rlx-server:
   --bind: localhost:7001

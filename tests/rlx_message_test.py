@@ -6,6 +6,7 @@ from relaax.common.rlx_message import RLXMessage
 from relaax.common.rlx_message import RLXMessageImage
 from PIL import Image
 
+
 class TestRLXMessage(object):
 
     def test_to_wire_and_back(self):

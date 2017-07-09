@@ -2,6 +2,7 @@ from __future__ import absolute_import
 from __future__ import division
 from builtins import object
 import logging
+import os
 import ruamel.yaml
 import time
 import threading
@@ -10,7 +11,11 @@ import signal
 # Load configuration options
 # do it as early as possible
 from .parameter_server_config import options
+from relaax.common import profiling
 from relaax.server.common.bridge import bridge_server
+from relaax.server.common.metrics import enabled_metrics
+from relaax.server.common.metrics import logging_metrics
+from relaax.server.common.metrics import multi_metrics
 from relaax.server.common.metrics import tensorflow_metrics
 from relaax.server.common.saver import fs_saver
 from relaax.server.common.saver import limited_saver
@@ -22,8 +27,10 @@ try:
     from Queue import Queue, Empty  # noqa
 except ImportError:
     from queue import Queue, Empty  # noqa
+
     
 log = logging.getLogger(__name__)
+
 
 class ParameterServer(object):
 
@@ -46,6 +53,12 @@ class ParameterServer(object):
     @classmethod
     def start(cls):
         try:
+            profile_dir = options.get('relaax_parameter_server/profile_dir')
+            if profile_dir is not None:
+                profiling.set_handlers([profiling.FileHandler(os.path.join(
+                                        profile_dir, 'ps.txt'))])
+                profiling.enable(True)
+
             log.info("Starting parameter server on %s:%d" % options.bind)
 
             init_ps = CallOnce(cls.init)
@@ -117,7 +130,14 @@ class ParameterServer(object):
 
     @staticmethod
     def metrics_factory(x):
-        return tensorflow_metrics.TensorflowMetrics(options.relaax_parameter_server.metrics_dir, x)
+        metrics = []
+        if options.get('relaax_parameter_server/log_metrics', False):
+            metrics.append(logging_metrics.LoggingMetrics(x))
+        metrics_dir = options.get('relaax_parameter_server/metrics_dir')
+        if metrics_dir is not None:
+            metrics.append(tensorflow_metrics.TensorflowMetrics(metrics_dir, x))
+        return enabled_metrics.EnabledMetrics(options.get('metrics'),
+                                              multi_metrics.MultiMetrics(metrics))
 
     @staticmethod
     def load_aws_keys():

@@ -5,10 +5,15 @@ import socket
 import random
 import logging
 
+from relaax.environment.config import options
+from relaax.server.common.metrics import metrics
+from relaax.server.common.metrics import enabled_metrics
 from relaax.common.rlx_netstring import NetString
 from relaax.common.rlx_message import RLXMessage as rlxm
+from relaax.common import profiling
 
 log = logging.getLogger(__name__)
+profiler = profiling.get_profiler(__name__)
 
 
 class AgentProxyException(Exception):
@@ -21,11 +26,14 @@ class AgentProxy(object):
         self.skt = None
         self.transport = None
         self.address = rlx_server_url
-        self.metrics = AgentProxyMetrics(self._update_metrics)
+        self.metrics = enabled_metrics.EnabledMetrics(options.get('metrics'),
+                                                      AgentProxyMetrics(self._update_metrics))
 
+    @profiler.wrap
     def init(self, exploit=False):
         return self._exchange({'command': 'init', 'exploit': exploit})
 
+    @profiler.wrap
     def update(self, reward=None, state=None, terminal=False):
         return self._exchange({
             'command': 'update',
@@ -33,12 +41,14 @@ class AgentProxy(object):
             'state': state,
             'terminal': terminal})
 
+    @profiler.wrap
     def reset(self):
         return self._exchange({'command': 'reset'})
 
-    def _update_metrics(self, name, y, x=None):
+    def _update_metrics(self, method, name, y, x=None):
         return self._exchange({
             'command': 'update_metrics',
+            'method': method,
             'name': name,
             'y': y,
             'x': x
@@ -60,6 +70,7 @@ class AgentProxy(object):
             raise AgentProxyException("no connection is available.")
         return ret['data'] if 'data' in ret else ret['response']
 
+    @profiler.wrap
     def connect(self, retry=6):
 
         self.disconnect()
@@ -97,15 +108,19 @@ class AgentProxy(object):
             except Exception as e:
                 raise AgentProxyException(str(e))
 
+    @profiler.wrap
     def disconnect(self):
         if self.skt:
             self.skt.close()
             self.skt = None
 
 
-class AgentProxyMetrics(object):
+class AgentProxyMetrics(metrics.Metrics):
     def __init__(self, send_metrics):
         self._update_metrics = send_metrics
 
     def scalar(self, name, y, x=None):
-        self._update_metrics(name, y, x)
+        self._update_metrics('scalar', name, y, x)
+
+    def histogram(self, name, y, x=None):
+        self._update_metrics('histogram', name, y, x)
