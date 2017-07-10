@@ -63,11 +63,12 @@ class DA3CEpisode(object):
             if da3c_config.config.use_icm:
                 reward += self.get_intrinsic_reward(state)
             self.push_experience(reward)
-        if terminal and state is not None:
-            logger.warning('DA3CEpisode.step ignores state in case of terminal.')
-            state = None
+        if terminal:
+            if state is not None:
+                logger.warning('DA3CEpisode.step ignores state in case of terminal.')
+                state = None
         else:
-            assert (state is None) == terminal
+            assert state is not None
         self.observation.add_state(state)
 
         self.terminal = terminal

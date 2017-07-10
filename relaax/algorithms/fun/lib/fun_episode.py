@@ -73,8 +73,9 @@ class FuNEpisode(object):
 
         if terminal and state is not None:
             logger.warning('FuNEpisode.step ignores state in case of terminal.')
+            state = None
         else:
-            assert (state is None) == terminal
+            assert state is not None
 
         if state is not None:   # except terminal
             self.states.append(state)   # also as first state
