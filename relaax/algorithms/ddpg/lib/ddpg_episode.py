@@ -29,7 +29,8 @@ class DDPGEpisode(object):
         model = ddpg_model.AgentModel()
         self.session = session.Session(model)
 
-        self.episode = episode.ReplayBuffer('state', 'action', 'reward', 'terminal', 'next_state')
+        self.episode = episode.ReplayBuffer('state', 'action', 'reward', 'terminal', 'next_state',
+                                            buffer_size=cfg.config.buffer_size)
         self.observation = ddpg_observation.DDPGObservation()
         self.last_action = None
 
