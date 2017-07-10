@@ -132,7 +132,7 @@ class AgentModel(subgraph.Subgraph):
                                                   state=sg_actor_network.ph_state,
                                                   grad_ys=-ph_action_gradient.node)
 
-        self.op_get_value = self.Op(sg_critic_network,
+        self.op_get_value = self.Op(sg_critic_network,  # not used, cuz below try
                                     state=sg_critic_network.ph_state,
                                     action=sg_critic_network.ph_action)
         self.op_compute_critic_gradients = self.Op(sg_critic_gradients.calculate,
