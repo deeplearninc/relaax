@@ -4,7 +4,7 @@ from builtins import object
 import logging
 import traceback
 
-from relaax.server.common.bridge.bridge_connection import BridgeConnection
+from relaax.server.common.bridge.ps_bridge_connection import PsBridgeConnection
 from .rlx_config import options
 
 log = logging.getLogger(__name__)
@@ -13,7 +13,7 @@ log = logging.getLogger(__name__)
 class RLXAgentProxy(object):
 
     def __init__(self):
-        connection = BridgeConnection(options.parameter_server)
+        connection = PsBridgeConnection(options.parameter_server)
         self.agent = options.Agent(connection)
 
     def init(self, data):
