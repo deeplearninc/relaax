@@ -1,9 +1,13 @@
 from __future__ import absolute_import
-import sys
-import logging as log
 import argparse
+import logging
+import re
+import sys
 
 from .config_yaml import ConfigYaml
+
+
+logger = logging.getLogger(__name__)
 
 
 class RelaaxHelpFormatter(argparse.HelpFormatter):
@@ -50,7 +54,7 @@ class BaseConfig(ConfigYaml):
         add('--log-dir', type=str, default=None,
             help='Folder to store log files.')
         add('--short-log-messages', type='bool', default=True, metavar='True|False',
-            help='Log messages will skip long log prefix.')
+            help='Log messages will skip long logging prefix.')
 
     def load_from_yaml(self):
         try:
@@ -58,7 +62,7 @@ class BaseConfig(ConfigYaml):
                 self.load_from_file(self.config)
             self.process_after_loaded()
         except:
-            log.critical("Can't load configuration file")
+            logger.critical("Can't load configuration file")
             raise
 
     def process_after_loaded(self):
@@ -66,21 +70,24 @@ class BaseConfig(ConfigYaml):
             self.log_level = 'DEBUG'
 
     def setup_logger(self):
-        log_level = getattr(log, self.log_level.upper(), None)
+        log_level = getattr(logging, self.log_level.upper(), None)
 
         if not isinstance(log_level, int):
-            raise ValueError('Invalid log level: %s' % self.log_level)
+            raise ValueError('Invalid logging level: %s' % self.log_level)
 
         if self.get('short_log_messages', False):
             format = '%(message)s'
         else:
             format = '[%(asctime)s]:[%(levelname)s]:[%(name)s]: %(message)s'
 
-        log.basicConfig(
-            stream=sys.stdout,
-            datefmt='%H:%M:%S',
-            format=format,
-            level=log_level)
+        logging.basicConfig(stream=sys.stdout, datefmt='%H:%M:%S', format=format, level=log_level)
+
+    def parse_address(self, address, address_name):
+        m = re.match('^\s*([^\s:]*)\s*:\s*(\d+)\s*$', address)
+        if m is None:
+            logger.error('Please specify %s address in host:port format.', address_name)
+            exit(1)
+        return m.group(1), int(m.group(2))
 
     def load(self):
         self.load_command_line()

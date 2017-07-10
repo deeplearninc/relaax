@@ -1,10 +1,4 @@
-import logging
-import re
-
 from relaax.common.python.config.base_config import BaseConfig
-
-
-logger = logging.getLogger(__name__)
 
 
 class RLXConfig(BaseConfig):
@@ -63,13 +57,6 @@ class RLXConfig(BaseConfig):
         self.bind = self.parse_address(self.bind, 'RLX server bind')
         self.metrics_server = self.parse_address(self.metrics_server, 'metrics server')
         self.parameter_server = self.parse_address(self.parameter_server, 'parameter server')
-
-    def parse_address(self, address, address_name):
-        m = re.match('^\s*([^\s:]*)\s*:\s*(\d+)\s*$', address)
-        if m is None:
-            logger.error('Please specify %s address in host:port format.', address_name)
-            exit(1)
-        return m.group(1), int(m.group(2))
 
 
 options = RLXConfig().load()

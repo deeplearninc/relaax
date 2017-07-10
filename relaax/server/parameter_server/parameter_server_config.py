@@ -1,10 +1,4 @@
-import logging
-import re
-
 from relaax.common.python.config.base_config import BaseConfig
-
-
-logger = logging.getLogger(__name__)
 
 
 class ParameterServerConfig(BaseConfig):
@@ -52,14 +46,6 @@ class ParameterServerConfig(BaseConfig):
         # Simple check of the bind address format
         self.bind = self.parse_address(self.bind, 'parameter server bind')
         self.metrics_server = self.parse_address(self.metrics_server, 'metrics server')
-
-    def parse_address(self, address, address_name):
-        m = re.match('^\s*([^\s:]*)\s*:\s*(\d+)\s*$', address)
-        if m is None:
-            logger.error('Please specify %s address in host:port format.', address_name)
-            exit(1)
-        return m.group(1), int(m.group(2))
-
 
     def define_missing(self, key, value):
         if not hasattr(self.relaax_parameter_server, key):

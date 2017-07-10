@@ -1,9 +1,4 @@
-import logging
-
 from relaax.common.python.config.base_config import BaseConfig
-
-
-logger = logging.getLogger(__name__)
 
 
 class MetricsServerConfig(BaseConfig):
@@ -33,15 +28,7 @@ class MetricsServerConfig(BaseConfig):
                 'relaax_metrics_server/bind', 'localhost:7002')
 
         # Simple check of the bind address format
-
-        self.bind = [x.strip() for x in self.bind.split(':')]
-        if len(self.bind) != 2:
-            logger.error(
-                ('Please specify metrics server'
-                 'bind address in host:port format'))
-            exit()
-        self.bind[1] = int(self.bind[1])
-        self.bind = tuple(self.bind)
+        self.bind = self.parse_address(self.bind, 'metrics server bind')
 
 
 options = MetricsServerConfig().load()
