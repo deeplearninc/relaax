@@ -13,10 +13,8 @@ import signal
 from .parameter_server_config import options
 from relaax.common import profiling
 from relaax.server.common.bridge import ps_bridge_server
-from relaax.server.common.metrics import enabled_metrics
-from relaax.server.common.metrics import logging_metrics
-from relaax.server.common.metrics import multi_metrics
-from relaax.server.common.metrics import tensorflow_metrics
+from relaax.server.common.bridge import metrics_bridge_connection
+from relaax.server.common.metrics import x_metrics
 from relaax.server.common.saver import fs_saver
 from relaax.server.common.saver import limited_saver
 from relaax.server.common.saver import multi_saver
@@ -131,14 +129,8 @@ class ParameterServer(object):
 
     @staticmethod
     def metrics_factory(x):
-        metrics = []
-        if options.get('relaax_parameter_server/log_metrics', False):
-            metrics.append(logging_metrics.LoggingMetrics(x))
-        metrics_dir = options.get('relaax_parameter_server/metrics_dir')
-        if metrics_dir is not None:
-            metrics.append(tensorflow_metrics.TensorflowMetrics(metrics_dir, x))
-        return enabled_metrics.EnabledMetrics(options.get('metrics'),
-                                              multi_metrics.MultiMetrics(metrics))
+        connection = metrics_bridge_connection.MetricsBridgeConnection(options.metrics_server)
+        return x_metrics.XMetrics(x, connection.metrics)
 
     @staticmethod
     def load_aws_keys():
@@ -194,8 +186,10 @@ class Speedometer(object):
     def stop_timer(self):
         self.timer.cancel()
 
+
 def main():
     ParameterServer.start()
+
 
 if __name__ == '__main__':
     main()
