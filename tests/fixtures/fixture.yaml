@@ -3,6 +3,13 @@
 environment:
   client: client/sample_exchange.py
 
+metrics:
+  episode_reward: true
+  game_score: true
+  server_latency: true
+  action: true
+  critic: true
+
 relaax-metrics-server:
   bind: localhost:7002
   metrics_dir: logs/metrics
@@ -13,8 +20,6 @@ relaax-parameter-server:
   --bind: localhost:7000
   --checkpoint-dir: training/checkpoints/sample_app
   --log-level: INFO
-  --metrics-dir: training/metrics/sample_app
-  --log-metrics: false
 
 relaax-rlx-server:
   --bind: localhost:7001
