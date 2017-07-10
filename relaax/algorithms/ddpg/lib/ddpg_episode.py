@@ -41,9 +41,6 @@ class DDPGEpisode(object):
         else:
             self.queue = None
 
-        self.ps.session.op_init_critic_target_weights()
-        self.ps.session.op_init_actor_target_weights()
-
     @property
     def experience(self):
         return self.episode.experience
