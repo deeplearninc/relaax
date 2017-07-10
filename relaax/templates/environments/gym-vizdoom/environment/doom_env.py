@@ -83,11 +83,7 @@ class DoomEnv(object):
             self.env.render()
 
         state, reward, terminal, info = self.env.step(action)
-
-        if terminal:
-            state = None
-        else:
-            state = self._process_img(state)
+        state = self._process_img(state)
 
         return reward, state, terminal
 

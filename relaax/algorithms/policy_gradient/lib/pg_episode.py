@@ -38,7 +38,7 @@ class PGEpisode(object):
             logger.warning('PGEpisode.step ignores state in case of terminal.')
             state = None
         else:
-            assert (state is None) == terminal
+            assert state is not None
         if not terminal:
             state = np.asarray(state)
             if state.size == 0:
