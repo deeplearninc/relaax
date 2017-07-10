@@ -226,7 +226,7 @@ def cmdl(ctx, components, config, n_environments, exploit, show_ui):
             
         if firstRun:
             os.system("start powershell " + ' '.join(sys.argv))
-            time.sleep(2)
+            time.sleep(3)
             _winapi.CloseHandle(mutex)
         else:
             _winapi.CloseHandle(mutex)    
