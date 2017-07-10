@@ -22,6 +22,7 @@ class RLXServer():
                 os.remove(f)
         log.info("Starting RLX server on %s:%d" % options.bind)
         log.info("Expecting parameter server on %s:%d" % options.parameter_server)
+        log.info("Expecting metrics server on %s:%d" % options.metrics_server)
         RLXPort.listen(options.bind)
 
 

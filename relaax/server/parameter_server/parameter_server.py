@@ -60,6 +60,7 @@ class ParameterServer(object):
                 profiling.enable(True)
 
             log.info("Starting parameter server on %s:%d" % options.bind)
+            log.info("Expecting metrics server on %s:%d" % options.metrics_server)
 
             ps_factory = CallOnce(cls.init)
 

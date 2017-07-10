@@ -1,6 +1,10 @@
-import logging as log
+import logging
+import re
 
 from relaax.common.python.config.base_config import BaseConfig
+
+
+logger = logging.getLogger(__name__)
 
 
 class RLXConfig(BaseConfig):
@@ -14,6 +18,9 @@ class RLXConfig(BaseConfig):
             help='RELAAX config yaml file')
         add('--bind', type=str, default=None,
             help='Address of the RLX server in the format host:port')
+        add('--metrics-server', type=str, default=None,
+            help=('Address of the metrics server '
+                  'address in the format host:port'))
         add('--parameter-server', type=str, default=None,
             help=('Address of the parameter server '
                   'address in the format host:port'))
@@ -38,9 +45,13 @@ class RLXConfig(BaseConfig):
             self.timeout = self.get(
                 'relaax-rlx-server/--timeout', 1000000)
 
+        if self.metrics_server is None:
+            self.metrics_server = self.get(
+                'relaax_metrics_server/bind', 'localhost:7002')
+
         if self.parameter_server is None:
             self.parameter_server = self.get(
-                'relaax_parameter_server/bind', 'localhost:9000')
+                'relaax_parameter_server/bind', 'localhost:7000')
 
         self.protocol_name = self.get(
             'relaax_rlx_server/protocol', 'rawsocket')
@@ -49,23 +60,16 @@ class RLXConfig(BaseConfig):
         self.algorithm_name = self.get('algorithm/name')
 
         # Simple check of the servers addresses format
+        self.bind = self.parse_address(self.bind, 'RLX server bind')
+        self.metrics_server = self.parse_address(self.metrics_server, 'metrics server')
+        self.parameter_server = self.parse_address(self.parameter_server, 'parameter server')
 
-        self.bind = [x.strip() for x in self.bind.split(':')]
-        if len(self.bind) != 2:
-            log.error(
-                "Please specify RLX server address in host:port format")
-            exit()
-        self.bind[1] = int(self.bind[1])
-        self.bind = tuple(self.bind)
-
-        self.parameter_server = [x.strip() for x in self.parameter_server.split(':')]
-        if len(self.parameter_server) != 2:
-            log.error(
-                ('Please specify Parameter Server '
-                 'server address in host:port format'))
-            exit()
-        self.parameter_server[1] = int(self.parameter_server[1])
-        self.parameter_server = tuple(self.parameter_server)
+    def parse_address(self, address, address_name):
+        m = re.match('^\s*([^\s:]*)\s*:\s*(\d+)\s*$', address)
+        if m is None:
+            logger.error('Please specify %s address in host:port format.', address_name)
+            exit(1)
+        return m.group(1), int(m.group(2))
 
 
 options = RLXConfig().load()
