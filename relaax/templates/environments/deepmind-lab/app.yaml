@@ -6,6 +6,13 @@ environment:
   run_in_container: False
   # level_script: custom-map/custom_map
 
+metrics:
+  episode_reward: true
+  game_score: true
+  server_latency: true
+  action: true
+  critic: true
+
 relaax-metrics-server:
   bind: localhost:7002
   metrics_dir: logs/metrics
@@ -14,8 +21,6 @@ relaax-metrics-server:
 
 relaax-parameter-server:
   --bind: localhost:7000
-  --metrics-dir: logs/metrics
-  --log-metrics: false
   --checkpoint-dir: logs/checkpoints
   --log-level: INFO
 

@@ -16,9 +16,9 @@ logger = logging.getLogger(__name__)
 # stop updating shared parameters and at the end of every episode load
 # new policy parameters from PS
 class Agent(object):
-    def __init__(self, parameter_server):
+    def __init__(self, parameter_server, metrics):
         self.ps = parameter_server
-        self.metrics = parameter_server.metrics
+        self.metrics = metrics
 
     # environment is ready and
     # waiting for agent to initialize
