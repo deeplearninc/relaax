@@ -41,6 +41,9 @@ class DDPGEpisode(object):
         else:
             self.queue = None
 
+        self.ps.session.op_init_critic_target_weights()
+        self.ps.session.op_init_actor_target_weights()
+
     @property
     def experience(self):
         return self.episode.experience
@@ -63,9 +66,10 @@ class DDPGEpisode(object):
 
     @profiler.wrap
     def end(self):
-        experience = self.episode.sample(cfg.config.batch_size)
-        if not self.exploit:
-            self.do_task(lambda: self.send_experience(experience))
+        if self.episode.experience._len > cfg.config.batch_size:
+            experience = self.episode.sample(cfg.config.batch_size)
+            if not self.exploit:
+                self.do_task(lambda: self.send_experience(experience))
 
     # Helper methods
 
@@ -82,7 +86,26 @@ class DDPGEpisode(object):
 
     @profiler.wrap
     def send_experience(self, experience):
-        self.apply_gradients(self.compute_gradients(experience), len(experience))
+        # Calculate targets
+        target_q = self.session.op_get_critic_target(
+            experience['next_state'], self.session.op_get_actor_target(experience['next_state'])[-1])
+
+        y = experience['reward'] + cfg.config.rewards_gamma * target_q * ~experience['terminal']
+        critic_grads = self.session.op_compute_critic_gradients(state=experience['state'],
+                                                                action=experience['action'],
+                                                                predicted=y)
+
+        _, scaled_out = self.session.op_get_action(state=experience['state'])
+        action_grads = self.session.op_compute_critic_action_gradients(state=experience['state'],
+                                                                       action=scaled_out)
+        actor_grads = self.session.op_compute_actor_gradients(state=experience['state'],
+                                                              grad_ys=action_grads[0])
+
+        self.ps.session.op_apply_critic_gradients(gradients=critic_grads, increment=[1])
+        self.ps.session.op_apply_actor_gradients(gradients=actor_grads, increment=[1])
+
+        self.ps.session.op_update_critic_target_weights()
+        self.ps.session.op_update_actor_target_weights()
 
     @profiler.wrap
     def receive_experience(self):
