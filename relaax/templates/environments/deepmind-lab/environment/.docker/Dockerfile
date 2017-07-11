@@ -90,7 +90,7 @@ ENV XVFB_RESOLUTION=800x600x16
 # Set up relaax 
 RUN git clone https://github.com/deeplearninc/relaax.git && \
     cd /relaax && \
-    git checkout pixie_updated_envs && \
+    git checkout pixie && \
     pip install -e .[all] && \
     cd ..
 

@@ -74,6 +74,9 @@ class GymEnv(object):
             self.gym._max_episode_steps = limit
 
         shape = options.get('environment/shape', options.get('environment/image', (84, 84)))
+        # if len(shape) > 1:
+        #     self._shape = (shape[0], shape[1])
+        #     self._channels = 0 if len(shape) == 2 else shape[-1]
         self._shape = shape[:2]
 
         self._crop = options.get('environment/crop', True)

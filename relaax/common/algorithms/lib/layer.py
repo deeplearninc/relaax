@@ -143,8 +143,12 @@ def Actor(head, output):
 
 class Input(subgraph.Subgraph):
     def build_graph(self, input, descs=None):
-        input_shape = input.shape
-        if np.prod(input.shape) == 0:
+        if hasattr(input, 'shape'):
+            input_shape = input.shape
+        else:
+            input_shape = input.image
+
+        if np.prod(input_shape) == 0:
             input_shape = [1]
         shape = [None] + input_shape + [input.history]
         self.ph_state = graph.Placeholder(np.float32, shape=shape)
