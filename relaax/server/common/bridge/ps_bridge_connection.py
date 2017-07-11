@@ -15,12 +15,12 @@ from relaax.common import profiling
 profiler = profiling.get_profiler(__name__)
 
 
-class BridgeConnection(object):
+class PsBridgeConnection(object):
     def __init__(self, server):
         self._server = server
-        self.session = BridgeSession(self)
+        self.session = PsBridgeSession(self)
         self.metrics = enabled_metrics.EnabledMetrics(options.get('metrics'),
-                                                      BridgeMetrics(self))
+                                                      PsBridgeMetrics(self))
         self._stub = None
 
     @property
@@ -31,21 +31,21 @@ class BridgeConnection(object):
         return self._stub
 
 
-class BridgeSession(object):
+class PsBridgeSession(object):
     def __init__(self, connection):
         self.__connection = connection
 
     def __getattr__(self, name):
-        return BridgeSessionMethod(self.__connection, [name])
+        return PsBridgeSessionMethod(self.__connection, [name])
 
 
-class BridgeSessionMethod(object):
+class PsBridgeSessionMethod(object):
     def __init__(self, connection, names):
         self.connection = connection
         self.names = names
 
     def __getattr__(self, name):
-        return BridgeSessionMethod(self.connection, self.names + [name])
+        return PsBridgeSessionMethod(self.connection, self.names + [name])
 
     @profiler.wrap
     def __call__(self, *args, **kwargs):
@@ -54,7 +54,7 @@ class BridgeSessionMethod(object):
         return bridge_message.BridgeMessage.deserialize(result)
 
 
-class BridgeMetrics(metrics.Metrics):
+class PsBridgeMetrics(metrics.Metrics):
     def __init__(self, connection):
         self.connection = connection
 
