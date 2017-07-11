@@ -34,6 +34,7 @@ class TestRLXMessage(object):
             elif isinstance(data[key], RLXMessageImage):
                 assert isinstance(back[key], np.ndarray)
                 ndimage = np.asarray(data[key].image)
+                ndimage = ndimage.astype(np.float32) * (1.0 / 255.0)
                 npt.assert_allclose(ndimage, back[key])
             elif isinstance(data[key], np.int32):
                 assert int == type(back[key])
