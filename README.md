@@ -290,3 +290,4 @@ def init(self):
 ```
 * `close(self)` - called before PS is stopped to close session.
 * `create_checkpoint(self)` - called by PS to create check point of the Model. 
+
