@@ -114,7 +114,8 @@ class AgentModel(subgraph.Subgraph):
 
         sg_critic_loss = loss.SquaredDiffLoss(sg_critic_network.node)
         sg_critic_gradients = layer.Gradients(sg_critic_network.weights, loss=sg_critic_loss)
-        sg_critic_action_gradients = layer.Gradients(sg_critic_network.ph_action, sg_critic_network)
+        sg_critic_action_gradients = layer.Gradients(graph.TfNode(sg_critic_network.ph_action),
+                                                     loss=sg_critic_network)
 
         # Expose public API
         self.op_assign_actor_weights = self.Op(sg_actor_network.weights.assign,
