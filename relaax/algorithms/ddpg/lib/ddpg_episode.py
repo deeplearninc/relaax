@@ -106,7 +106,8 @@ class DDPGEpisode(object):
 
     @profiler.wrap
     def receive_experience(self):
-        self.session.op_assign_actor_weights(weights=self.ps.session.op_get_actor_weights())
+        weights = self.ps.session.op_get_actor_weights()
+        self.session.op_assign_actor_weights(weights=weights)
         self.session.op_assign_critic_weights(weights=self.ps.session.op_get_critic_weights())
         self.session.op_assign_actor_target_weights(weights=self.ps.session.op_get_actor_target_weights())
         self.session.op_assign_critic_target_weights(weights=self.ps.session.op_get_critic_target_weights())

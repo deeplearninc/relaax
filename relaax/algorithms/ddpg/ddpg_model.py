@@ -52,18 +52,25 @@ class SharedParameters(subgraph.Subgraph):
         # Build graph
         sg_global_step = graph.GlobalStep()
 
-        sg_actor_weights = ActorNetwork().weights
-        sg_critic_weights = CriticNetwork().weights
-        sg_actor_target_weights = graph.Variables(sg_actor_weights)
-        sg_critic_target_weights = graph.Variables(sg_critic_weights)
+        sg_actor_weights = list(utils.Utils.flatten(ActorNetwork().weights.node))
+        sg_critic_weights = list(utils.Utils.flatten(CriticNetwork().weights.node))
+        sg_actor_target_weights = graph.Variables(
+            *[graph.TfNode(w) for w in sg_actor_weights]
+        )
+        sg_critic_target_weights = graph.Variables(
+            *[graph.TfNode(w) for w in sg_critic_weights]
+        )
 
         # needs reassign weights from actor & critic to target networks
-        sg_init_actor_target_weights = sg_actor_target_weights.assign(sg_actor_weights.node)
-        sg_init_critic_target_weights = sg_critic_target_weights.assign(sg_critic_weights.node)
-        sg_update_actor_target_weights = \
-            sg_actor_target_weights.assign(graph.TfNode(cfg.config.tau).node * sg_actor_weights.node)
-        sg_update_critic_target_weights = \
-            sg_critic_target_weights.assign(graph.TfNode(cfg.config.tau).node * sg_critic_weights.node)
+        sg_init_actor_target_weights = sg_actor_target_weights.assign(graph.TfNode(sg_actor_weights))
+        sg_init_critic_target_weights = sg_critic_target_weights.assign(graph.TfNode(sg_critic_weights))
+
+        sg_update_actor_target_weights = sg_actor_target_weights.assign(
+            graph.TfNode([cfg.config.tau * w for w in sg_actor_weights])
+        )
+        sg_update_critic_target_weights = sg_critic_target_weights.assign(
+            graph.TfNode([cfg.config.tau * w for w in sg_critic_weights])
+        )
 
         sg_actor_optimizer = graph.AdamOptimizer(cfg.config.actor_learning_rate)
         sg_critic_optimizer = graph.AdamOptimizer(cfg.config.critic_learning_rate)
