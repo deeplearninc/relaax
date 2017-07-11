@@ -58,8 +58,8 @@ class SharedParameters(subgraph.Subgraph):
         sg_critic_target_weights = graph.Variables(sg_critic_weights)
 
         # needs reassign weights from actor & critic to target networks
-        sg_init_actor_target_weights = sg_actor_target_weights.assign(sg_actor_weights)
-        sg_init_critic_target_weights = sg_critic_target_weights.assign(sg_critic_weights)
+        sg_init_actor_target_weights = sg_actor_target_weights.assign(sg_actor_weights.node)
+        sg_init_critic_target_weights = sg_critic_target_weights.assign(sg_critic_weights.node)
         sg_update_actor_target_weights = \
             sg_actor_target_weights.assign(graph.TfNode(cfg.config.tau).node * sg_actor_weights.node)
         sg_update_critic_target_weights = \
@@ -109,10 +109,10 @@ class AgentModel(subgraph.Subgraph):
 
         ph_action_gradient = graph.Placeholder(np.float32, (None, cfg.config.output.action_size))
         sg_actor_gradients = layer.Gradients(sg_actor_network.weights,
-                                             sg_actor_network.actor.scaled_out,
+                                             loss=graph.TfNode(sg_actor_network.actor.scaled_out),
                                              grad_ys=-ph_action_gradient.node)
 
-        sg_critic_loss = loss.SquaredDiffLoss(sg_critic_network)
+        sg_critic_loss = loss.SquaredDiffLoss(sg_critic_network.node)
         sg_critic_gradients = layer.Gradients(sg_critic_network.weights, loss=sg_critic_loss)
         sg_critic_action_gradients = layer.Gradients(sg_critic_network.ph_action, sg_critic_network)
 

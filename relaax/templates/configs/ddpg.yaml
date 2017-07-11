@@ -32,3 +32,9 @@ algorithm:
   actor_learning_rate: 1e-4       # actor learning rate
   critic_learning_rate: 1e-3      # critic learning rate
   tau: 1e-3                       # rate of target updates
+
+  exploration:                    # exploration relevant parameters such as OU
+    ou_mu: 0.0
+    ou_theta: 0.15
+    ou_sigma: 0.20
+    tau: 25
