@@ -7,9 +7,9 @@ from . import model
 
 
 class Agent(object):
-    def __init__(self, parameter_server):
+    def __init__(self, parameter_server, metrics):
         self.ps = parameter_server
-        self.metrics = parameter_server.metrics
+        self.metrics = metrics
         self.session = session.Session(model.Model())
 
     def init(self, exploit=False):
