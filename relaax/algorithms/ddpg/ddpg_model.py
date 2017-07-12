@@ -75,16 +75,18 @@ class SharedParameters(subgraph.Subgraph):
         sg_actor_optimizer = graph.AdamOptimizer(cfg.config.actor_learning_rate)
         sg_critic_optimizer = graph.AdamOptimizer(cfg.config.critic_learning_rate)
 
-        sg_actor_gradients = layer.Gradients(sg_actor_weights, optimizer=sg_actor_optimizer)
-        sg_critic_gradients = layer.Gradients(sg_critic_weights, optimizer=sg_critic_optimizer)
+        sg_actor_gradients = layer.Gradients(graph.TfNode(sg_actor_weights),
+                                             optimizer=sg_actor_optimizer)
+        sg_critic_gradients = layer.Gradients(graph.TfNode(sg_critic_weights),
+                                              optimizer=sg_critic_optimizer)
 
         sg_initialize = graph.Initialize()
 
         # Expose public API
         self.op_n_step = self.Op(sg_global_step.n)
 
-        self.op_get_actor_weights = self.Op(sg_actor_weights)
-        self.op_get_critic_weights = self.Op(sg_critic_weights)
+        self.op_get_actor_weights = self.Op(graph.TfNode(sg_actor_weights))
+        self.op_get_critic_weights = self.Op(graph.TfNode(sg_critic_weights))
         self.op_get_actor_target_weights = self.Op(sg_actor_target_weights)
         self.op_get_critic_target_weights = self.Op(sg_critic_target_weights)
 
