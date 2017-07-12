@@ -31,6 +31,7 @@ class DDPGEpisode(object):
 
         self.episode = episode.ReplayBuffer(cfg.config.buffer_size,
                                             'state', 'action', 'reward', 'terminal', 'next_state')
+        self.episode.begin()
         self.observation = ddpg_observation.DDPGObservation()
         self.last_action = None
 
@@ -49,10 +50,11 @@ class DDPGEpisode(object):
     def begin(self):
         self.do_task(self.receive_experience)
         self.get_action()
-        self.episode.begin()
+        # self.episode.begin()
 
     @profiler.wrap
     def step(self, reward, state, terminal):
+        state = state.flatten()
         if reward is not None:
             self.push_experience(reward, state, terminal)
         else:
