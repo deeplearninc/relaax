@@ -160,7 +160,7 @@ class AgentModel(subgraph.Subgraph):
 
         self.op_get_actor_target = self.Op(sg_actor_target_network.actor,  # needs scaled_out (2nd)
                                            state=sg_actor_target_network.ph_state)
-        self.op_get_critic_target = self.Op(sg_critic_network,
+        self.op_get_critic_target = self.Op(sg_critic_target_network,
                                             state=sg_critic_target_network.ph_state,
                                             action=sg_critic_target_network.ph_action)
 
