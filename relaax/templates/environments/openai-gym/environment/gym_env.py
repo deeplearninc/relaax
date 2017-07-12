@@ -72,10 +72,10 @@ class GymEnv(object):
         if limit is not None:
             self.gym._max_episode_steps = limit
 
-        shape = options.get('environment/shape', (84, 84))
-        if len(shape) > 1:
-            self._shape = (shape[0], shape[1])
-            self._channels = 0 if len(shape) == 2 else shape[-1]
+        self.shape = options.get('environment/shape', (84, 84))
+        if len(self.shape) > 1:
+            self._shape = (self.shape[0], self.shape[1])
+            self._channels = 0 if len(self.shape) == 2 else self.shape[-1]
 
         self._crop = options.get('environment/crop', True)
         self._process_state = SetFunction(self._process_all)
@@ -144,6 +144,9 @@ class GymEnv(object):
             screen = np.reshape(screen, self._shape + (1,))
         return screen.astype(np.float32) * self._scale
 
-    @staticmethod
-    def _process_all(state):
+    def _process_all(self, state):
+        if self.shape == (84, 84):
+            self.shape = state.shape
+        if state.shape != self.shape:
+            state = np.reshape(state, self.shape)
         return state

@@ -17,7 +17,6 @@ from .. import ddpg_config as cfg
 from .. import ddpg_model
 from . import ddpg_observation
 
-
 logger = logging.getLogger(__name__)
 profiler = profiling.get_profiler(__name__)
 
@@ -54,7 +53,7 @@ class DDPGEpisode(object):
 
     @profiler.wrap
     def step(self, reward, state, terminal):
-        state = state.flatten()
+        # state = state.flatten()
         if reward is not None:
             self.push_experience(reward, state, terminal)
         else:
@@ -93,10 +92,12 @@ class DDPGEpisode(object):
         target_q = self.session.op_get_critic_target(state=experience['next_state'],
                                                      action=action_target_scaled.astype(np.float32))
 
-        y = experience['reward'] + cfg.config.rewards_gamma * target_q * ~np.asarray(experience['terminal'])
+        y = np.squeeze(np.asarray(experience['reward'])) + \
+            cfg.config.rewards_gamma * target_q * np.transpose(~np.asarray(experience['terminal']))
+        # print('y', y.shape)
         critic_grads = self.session.op_compute_critic_gradients(state=experience['state'],
                                                                 action=experience['action'],
-                                                                predicted=y)
+                                                                predicted=np.vstack(y))
 
         _, scaled_out = self.session.op_get_action(state=experience['state'])
         action_grads = self.session.op_compute_critic_action_gradients(state=experience['state'],
