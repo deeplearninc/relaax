@@ -52,32 +52,35 @@ class SharedParameters(subgraph.Subgraph):
         # Build graph
         sg_global_step = graph.GlobalStep()
 
-        sg_actor_weights = list(utils.Utils.flatten(ActorNetwork().weights.node))
-        sg_critic_weights = list(utils.Utils.flatten(CriticNetwork().weights.node))
+        sg_actor_weights = ActorNetwork().weights
+        sg_critic_weights = CriticNetwork().weights
+
+        actor_weights = list(utils.Utils.flatten(sg_actor_weights.node))
+        critic_weights = list(utils.Utils.flatten(sg_critic_weights.node))
         sg_actor_target_weights = graph.Variables(
-            *[graph.TfNode(w) for w in sg_actor_weights]
+            *[graph.TfNode(w) for w in actor_weights]
         )
         sg_critic_target_weights = graph.Variables(
-            *[graph.TfNode(w) for w in sg_critic_weights]
+            *[graph.TfNode(w) for w in critic_weights]
         )
 
         # needs reassign weights from actor & critic to target networks
-        sg_init_actor_target_weights = sg_actor_target_weights.assign(graph.TfNode(sg_actor_weights))
-        sg_init_critic_target_weights = sg_critic_target_weights.assign(graph.TfNode(sg_critic_weights))
+        sg_init_actor_target_weights = sg_actor_target_weights.assign(graph.TfNode(actor_weights))
+        sg_init_critic_target_weights = sg_critic_target_weights.assign(graph.TfNode(critic_weights))
 
         sg_update_actor_target_weights = sg_actor_target_weights.assign(
-            graph.TfNode([cfg.config.tau * w for w in sg_actor_weights])
+            graph.TfNode([cfg.config.tau * w for w in actor_weights])
         )
         sg_update_critic_target_weights = sg_critic_target_weights.assign(
-            graph.TfNode([cfg.config.tau * w for w in sg_critic_weights])
+            graph.TfNode([cfg.config.tau * w for w in critic_weights])
         )
 
         sg_actor_optimizer = graph.AdamOptimizer(cfg.config.actor_learning_rate)
         sg_critic_optimizer = graph.AdamOptimizer(cfg.config.critic_learning_rate)
 
-        sg_actor_gradients = layer.Gradients(graph.TfNode(sg_actor_weights),
+        sg_actor_gradients = layer.Gradients(graph.TfNode(actor_weights),
                                              optimizer=sg_actor_optimizer)
-        sg_critic_gradients = layer.Gradients(graph.TfNode(sg_critic_weights),
+        sg_critic_gradients = layer.Gradients(graph.TfNode(critic_weights),
                                               optimizer=sg_critic_optimizer)
 
         sg_initialize = graph.Initialize()
@@ -85,8 +88,8 @@ class SharedParameters(subgraph.Subgraph):
         # Expose public API
         self.op_n_step = self.Op(sg_global_step.n)
 
-        self.op_get_actor_weights = self.Op(graph.TfNode(sg_actor_weights))
-        self.op_get_critic_weights = self.Op(graph.TfNode(sg_critic_weights))
+        self.op_get_actor_weights = self.Op(sg_actor_weights)
+        self.op_get_critic_weights = self.Op(sg_critic_weights)
         self.op_get_actor_target_weights = self.Op(sg_actor_target_weights)
         self.op_get_critic_target_weights = self.Op(sg_critic_target_weights)
 
