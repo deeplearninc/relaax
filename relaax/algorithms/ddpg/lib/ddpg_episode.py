@@ -60,6 +60,9 @@ class DDPGEpisode(object):
         else:
             self.observation.add_state(state)
 
+        if terminal:
+            self.observation.add_state(None)
+
         assert self.last_action is None
         self.get_action()
 
@@ -86,8 +89,9 @@ class DDPGEpisode(object):
     @profiler.wrap
     def send_experience(self, experience):
         # Calculate targets
-        target_q = self.session.op_get_critic_target(
-            experience['next_state'], self.session.op_get_actor_target(experience['next_state'])[-1])
+        _, action_target_scaled = self.session.op_get_actor_target(state=experience['next_state'])
+        target_q = self.session.op_get_critic_target(state=experience['next_state'],
+                                                     action=action_target_scaled)
 
         y = experience['reward'] + cfg.config.rewards_gamma * target_q * ~experience['terminal']
         critic_grads = self.session.op_compute_critic_gradients(state=experience['state'],
