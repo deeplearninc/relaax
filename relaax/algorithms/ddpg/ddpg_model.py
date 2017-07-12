@@ -1,4 +1,5 @@
 from __future__ import absolute_import
+import tensorflow as tf
 import numpy as np
 
 from relaax.common.algorithms import subgraph
@@ -54,26 +55,26 @@ class SharedParameters(subgraph.Subgraph):
 
         sg_actor_weights = ActorNetwork().weights
         sg_critic_weights = CriticNetwork().weights
-
         actor_weights = list(utils.Utils.flatten(sg_actor_weights.node))
         critic_weights = list(utils.Utils.flatten(sg_critic_weights.node))
-        sg_actor_target_weights = graph.Variables(
-            *[graph.TfNode(w) for w in actor_weights]
-        )
-        sg_critic_target_weights = graph.Variables(
-            *[graph.TfNode(w) for w in critic_weights]
-        )
+
+        sg_actor_target_weights = ActorNetwork().weights
+        sg_critic_target_weights = CriticNetwork().weights
 
         # needs reassign weights from actor & critic to target networks
-        sg_init_actor_target_weights = sg_actor_target_weights.assign(graph.TfNode(actor_weights))
-        sg_init_critic_target_weights = sg_critic_target_weights.assign(graph.TfNode(critic_weights))
+        sg_init_actor_target_weights = \
+            graph.TfNode([tf.assign(variable, value) for variable, value
+                          in utils.Utils.izip(sg_actor_target_weights.node, sg_actor_weights.node)])
+        sg_init_critic_target_weights = \
+            graph.TfNode([tf.assign(variable, value) for variable, value
+                          in utils.Utils.izip(sg_critic_target_weights.node, sg_critic_weights.node)])
 
-        sg_update_actor_target_weights = sg_actor_target_weights.assign(
-            graph.TfNode([cfg.config.tau * w for w in actor_weights])
-        )
-        sg_update_critic_target_weights = sg_critic_target_weights.assign(
-            graph.TfNode([cfg.config.tau * w for w in critic_weights])
-        )
+        sg_update_actor_target_weights = \
+            graph.TfNode([tf.assign(variable, cfg.config.tau * value) for variable, value
+                          in utils.Utils.izip(sg_actor_target_weights.node, sg_actor_weights.node)])
+        sg_update_critic_target_weights = \
+            graph.TfNode([tf.assign(variable, cfg.config.tau * value) for variable, value
+                          in utils.Utils.izip(sg_critic_target_weights.node, sg_critic_weights.node)])
 
         sg_actor_optimizer = graph.AdamOptimizer(cfg.config.actor_learning_rate)
         sg_critic_optimizer = graph.AdamOptimizer(cfg.config.critic_learning_rate)
@@ -139,7 +140,7 @@ class AgentModel(subgraph.Subgraph):
         self.op_assign_critic_target_weights = self.Op(sg_critic_target_network.weights.assign,
                                                        weights=sg_critic_target_network.weights.ph_weights)
 
-        self.op_get_action = self.Op(sg_actor_network,  # needs scaled_out (2nd)
+        self.op_get_action = self.Op(sg_actor_network.actor,  # needs scaled_out (2nd)
                                      state=sg_actor_network.ph_state)
         self.op_compute_actor_gradients = self.Op(sg_actor_gradients.calculate,
                                                   state=sg_actor_network.ph_state,
@@ -157,7 +158,7 @@ class AgentModel(subgraph.Subgraph):
                                                           state=sg_critic_network.ph_state,
                                                           action=sg_critic_network.ph_action)
 
-        self.op_get_actor_target = self.Op(sg_actor_target_network,  # needs scaled_out (2nd)
+        self.op_get_actor_target = self.Op(sg_actor_target_network.actor,  # needs scaled_out (2nd)
                                            state=sg_actor_target_network.ph_state)
         self.op_get_critic_target = self.Op(sg_critic_network,
                                             state=sg_critic_target_network.ph_state,
