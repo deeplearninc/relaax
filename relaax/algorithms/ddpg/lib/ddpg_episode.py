@@ -93,7 +93,7 @@ class DDPGEpisode(object):
         target_q = self.session.op_get_critic_target(state=experience['next_state'],
                                                      action=action_target_scaled.astype(np.float32))
 
-        y = experience['reward'] + cfg.config.rewards_gamma * target_q * ~experience['terminal']
+        y = experience['reward'] + cfg.config.rewards_gamma * target_q * ~np.asarray(experience['terminal'])
         critic_grads = self.session.op_compute_critic_gradients(state=experience['state'],
                                                                 action=experience['action'],
                                                                 predicted=y)
