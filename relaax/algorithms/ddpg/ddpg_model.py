@@ -120,12 +120,16 @@ class AgentModel(subgraph.Subgraph):
         ph_action_gradient = graph.Placeholder(np.float32, (None, cfg.config.output.action_size))
         sg_actor_gradients = layer.Gradients(sg_actor_network.weights,
                                              loss=graph.TfNode(sg_actor_network.actor.scaled_out),
-                                             grad_ys=-ph_action_gradient.node)
+                                             grad_ys=-ph_action_gradient.node,
+                                             batch_size=cfg.config.batch_size)
 
         sg_critic_loss = loss.SquaredDiffLoss(sg_critic_network.node)
-        sg_critic_gradients = layer.Gradients(sg_critic_network.weights, loss=sg_critic_loss)
+        sg_critic_gradients = layer.Gradients(sg_critic_network.weights,
+                                              loss=sg_critic_loss,
+                                              batch_size=cfg.config.batch_size)
         sg_critic_action_gradients = layer.Gradients(graph.TfNode(sg_critic_network.ph_action),
-                                                     loss=sg_critic_network)
+                                                     loss=sg_critic_network,
+                                                     batch_size=cfg.config.batch_size)
 
         # Expose public API
         self.op_assign_actor_weights = self.Op(sg_actor_network.weights.assign,
