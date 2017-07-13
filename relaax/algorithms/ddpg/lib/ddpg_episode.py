@@ -94,7 +94,6 @@ class DDPGEpisode(object):
 
         y = np.squeeze(np.asarray(experience['reward'])) + \
             cfg.config.rewards_gamma * target_q * np.transpose(~np.asarray(experience['terminal']))
-        # print('y', y.shape)
         critic_grads = self.session.op_compute_critic_gradients(state=experience['state'],
                                                                 action=experience['action'],
                                                                 predicted=np.vstack(y))
@@ -103,10 +102,10 @@ class DDPGEpisode(object):
         action_grads = self.session.op_compute_critic_action_gradients(state=experience['state'],
                                                                        action=scaled_out)
         actor_grads = self.session.op_compute_actor_gradients(state=experience['state'],
-                                                              grad_ys=action_grads[0])
+                                                              grad_ys=action_grads)
 
-        self.ps.session.op_apply_critic_gradients(gradients=critic_grads, increment=[1])
-        self.ps.session.op_apply_actor_gradients(gradients=actor_grads, increment=[1])
+        self.ps.session.op_apply_actor_gradients(gradients=actor_grads, increment=1)
+        self.ps.session.op_apply_critic_gradients(gradients=critic_grads, increment=1)
 
         self.ps.session.op_update_critic_target_weights()
         self.ps.session.op_update_actor_target_weights()
@@ -144,4 +143,5 @@ class DDPGEpisode(object):
 
     def get_action_from_network(self):
         out, scaled_out = self.session.op_get_action(state=[self.observation.queue])
+        scaled_out, = scaled_out
         return scaled_out

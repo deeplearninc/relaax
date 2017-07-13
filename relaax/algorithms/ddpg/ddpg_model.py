@@ -55,8 +55,6 @@ class SharedParameters(subgraph.Subgraph):
 
         sg_actor_weights = ActorNetwork().weights
         sg_critic_weights = CriticNetwork().weights
-        actor_weights = list(utils.Utils.flatten(sg_actor_weights.node))
-        critic_weights = list(utils.Utils.flatten(sg_critic_weights.node))
 
         sg_actor_target_weights = ActorNetwork().weights
         sg_critic_target_weights = CriticNetwork().weights
@@ -79,9 +77,9 @@ class SharedParameters(subgraph.Subgraph):
         sg_actor_optimizer = graph.AdamOptimizer(cfg.config.actor_learning_rate)
         sg_critic_optimizer = graph.AdamOptimizer(cfg.config.critic_learning_rate)
 
-        sg_actor_gradients = layer.Gradients(graph.TfNode(actor_weights),
+        sg_actor_gradients = layer.Gradients(sg_actor_weights,
                                              optimizer=sg_actor_optimizer)
-        sg_critic_gradients = layer.Gradients(graph.TfNode(critic_weights),
+        sg_critic_gradients = layer.Gradients(sg_critic_weights,
                                               optimizer=sg_critic_optimizer)
 
         sg_initialize = graph.Initialize()
@@ -144,7 +142,7 @@ class AgentModel(subgraph.Subgraph):
                                      state=sg_actor_network.ph_state)
         self.op_compute_actor_gradients = self.Op(sg_actor_gradients.calculate,
                                                   state=sg_actor_network.ph_state,
-                                                  grad_ys=-ph_action_gradient.node)
+                                                  grad_ys=ph_action_gradient)
 
         self.op_get_value = self.Op(sg_critic_network,  # not used, cuz below try
                                     state=sg_critic_network.ph_state,
