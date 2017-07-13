@@ -67,11 +67,12 @@ class SharedParameters(subgraph.Subgraph):
             graph.TfNode([tf.assign(variable, value) for variable, value
                           in utils.Utils.izip(sg_critic_target_weights.node, sg_critic_weights.node)])
 
+        tau_res = graph.TfNode(1. - cfg.config.tau).node
         sg_update_actor_target_weights = \
-            graph.TfNode([tf.assign(variable, cfg.config.tau * value) for variable, value
+            graph.TfNode([tf.assign(variable, tau_res * variable + cfg.config.tau * value) for variable, value
                           in utils.Utils.izip(sg_actor_target_weights.node, sg_actor_weights.node)])
         sg_update_critic_target_weights = \
-            graph.TfNode([tf.assign(variable, cfg.config.tau * value) for variable, value
+            graph.TfNode([tf.assign(variable, tau_res * variable + cfg.config.tau * value) for variable, value
                           in utils.Utils.izip(sg_critic_target_weights.node, sg_critic_weights.node)])
 
         sg_actor_optimizer = graph.AdamOptimizer(cfg.config.actor_learning_rate)
