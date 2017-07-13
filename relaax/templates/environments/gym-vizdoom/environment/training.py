@@ -34,7 +34,6 @@ class Training(object):
                         episode_reward += reward
                     episode_cnt += 1
                     print('Episode:', episode_cnt, '| reward:', episode_reward)
-                    self.agent.metrics.scalar('game_score', episode_reward)
 
                 except RlxClientException as e:
                     print("agent connection lost: ", e)

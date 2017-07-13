@@ -77,18 +77,19 @@ class LSTM(subgraph.Subgraph):
     def build_graph(self, x, batch_size=1, size=256):
         self.ph_step = graph.Placeholder(np.int32, [batch_size])
 
-        self.ph_state = graph.TfNode(tuple(graph.Placeholder(np.float32, [batch_size, size]).node
-                                           for _ in range(2)))
+        self.phs = [graph.Placeholder(np.float32, [batch_size, size]) for _ in range(2)]
+        self.ph_state = graph.TfNode(tuple(ph.node for ph in phs))
+        self.ph_state.checked = tuple(ph.checked for ph in phs)
 
         self.zero_state = tuple(np.zeros([batch_size, size]) for _ in range(2))
 
-        state = tf.contrib.rnn.LSTMStateTuple(*self.ph_state.node)
+        state = tf.contrib.rnn.LSTMStateTuple(*self.ph_state.checked)
 
         lstm = tf.contrib.rnn.BasicLSTMCell(size, state_is_tuple=True)
 
         with tf.variable_scope('LSTM') as scope:
             outputs, self.state = tf.nn.dynamic_rnn(lstm, x.node,
-                                                    initial_state=state, sequence_length=self.ph_step.node,
+                                                    initial_state=state, sequence_length=self.ph_step.checked,
                                                     time_major=False, scope=scope)
             self.state = graph.TfNode(self.state)
             scope.reuse_variables()
@@ -150,12 +151,12 @@ class Input(subgraph.Subgraph):
         self.ph_state = graph.Placeholder(np.float32, shape=shape)
 
         if not input.use_convolutions or len(shape) <= 4:
-            state_input = self.ph_state
+            state_input = graph.TfNode(self.ph_state.checked)
         else:
             # move channels after history
             perm = list(range(len(shape)))
             perm = perm[0:3] + perm[-1:] + perm[3:-1]
-            transpose = tf.transpose(self.ph_state.node, perm=perm)
+            transpose = tf.transpose(self.ph_state.checked, perm=perm)
 
             # mix history and channels in one dimension
             state_input = graph.TfNode(tf.reshape(transpose,
@@ -181,7 +182,9 @@ class Weights(subgraph.Subgraph):
         weights = [layer.weight.node for layer in layers]
         self.ph_weights = graph.Placeholders(variables=graph.TfNode(weights))
         self.assign = graph.TfNode([tf.assign(variable, value)
-                                    for variable, value in utils.Utils.izip(weights, self.ph_weights.node)])
+                                    for variable, value in utils.Utils.izip(weights, self.ph_weights.checked)])
+        self.check = graph.TfNode(tf.group(*map(lambda w: tf.check_numerics(w, ''),
+                                           list(utils.Utils.flatten(weights)))))
         return weights
 
 
@@ -191,8 +194,10 @@ class Gradients(subgraph.Subgraph):
             grads = tf.gradients(loss.node, list(utils.Utils.flatten(weights.node)))
             if norm:
                 grads, _ = tf.clip_by_global_norm(grads, norm)
+            grads = map(lambda g: tf.check_numerics(g, ''), grads)
             self.calculate = graph.TfNode(utils.Utils.reconstruct(grads, weights.node))
         if optimizer is not None:
             self.ph_gradients = graph.Placeholders(weights)
             self.apply = graph.TfNode(optimizer.node.apply_gradients(
-                utils.Utils.izip(self.ph_gradients.node, weights.node)))
+                utils.Utils.izip(self.ph_gradients.checked, weights.node)))
+

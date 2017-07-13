@@ -143,7 +143,7 @@ class Increment(subgraph.Subgraph):
 class VarAssign(subgraph.Subgraph):
     def build_graph(self, variable, value):
         self.ph_variable = Placeholders(variables=TfNode(variable))
-        self.assign_from_ph = TfNode(tf.assign(variable, self.ph_variable.node))
+        self.assign_from_ph = TfNode(tf.assign(variable, self.ph_variable.checked))
         self.assign_from_value = TfNode(tf.assign(variable, tf.constant(value)))
         return variable
 
@@ -186,15 +186,17 @@ class Placeholder(subgraph.Subgraph):
             placeholder of given shape and data type
         """
 
-        return tf.placeholder(self.DTYPE[dtype], shape=shape)
+        ph = tf.placeholder(self.DTYPE[dtype], shape=shape)
+        if dtype not in [np.int32, np.int64]:
+            self.checked = tf.check_numerics(ph, '')
+        return ph
 
 
 class Placeholders(subgraph.Subgraph):
     def build_graph(self, variables):
-        return utils.Utils.map(
-            variables.node,
-            lambda v: tf.placeholder(shape=v.get_shape(), dtype=v.dtype)
-        )
+        phs = utils.Utils.map(variables.node, lambda v: tf.placeholder(shape=v.get_shape(), dtype=v.dtype))
+        self.checked = utils.Utils.map(phs, lambda ph: tf.check_numerics(ph, ''))
+        return phs
 
 
 class GlobalStep(subgraph.Subgraph):

@@ -22,3 +22,11 @@ class AlgorithmLoader(object):
         elif '.' not in algorithm_name:
             algorithm_name = 'relaax.algorithms.%s' % algorithm_name
         return class_loader.ClassLoader.load(algorithm_path, '%s.%s' % (algorithm_name, suffix))
+
+    @classmethod
+    def get_model_package(cls, algorithm_path, algorithm_name):
+        if algorithm_path is not None:
+            _, algorithm_name = os.path.split(algorithm_path)
+        elif '.' not in algorithm_name:
+            algorithm_name = 'relaax.algorithms.%s' % algorithm_name
+        return algorithm_path, '%s.%s' % (algorithm_name, suffix)
