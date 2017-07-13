@@ -104,9 +104,7 @@ class SharedParameters(subgraph.Subgraph):
                                                  gradients=sg_actor_gradients.ph_gradients,
                                                  increment=sg_global_step.ph_increment)
         self.op_apply_critic_gradients = self.Ops(sg_critic_gradients.apply,
-                                                  sg_global_step.increment,
-                                                  gradients=sg_critic_gradients.ph_gradients,
-                                                  increment=sg_global_step.ph_increment)
+                                                  gradients=sg_critic_gradients.ph_gradients)
         self.op_initialize = self.Op(sg_initialize)
 
 

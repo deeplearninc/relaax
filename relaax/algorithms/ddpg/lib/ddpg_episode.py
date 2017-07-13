@@ -105,7 +105,7 @@ class DDPGEpisode(object):
                                                               grad_ys=action_grads)
 
         self.ps.session.op_apply_actor_gradients(gradients=actor_grads, increment=1)
-        self.ps.session.op_apply_critic_gradients(gradients=critic_grads, increment=1)
+        self.ps.session.op_apply_critic_gradients(gradients=critic_grads)
 
         self.ps.session.op_update_critic_target_weights()
         self.ps.session.op_update_actor_target_weights()
