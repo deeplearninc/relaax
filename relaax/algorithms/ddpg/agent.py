@@ -31,8 +31,10 @@ class Agent(object):
     def update(self, reward, state, terminal):
         self.episode.step(reward, state, terminal)
 
-        if len(self.episode.experience) == ddpg_config.config.loop_size or terminal:
+        if len(self.episode.experience) > ddpg_config.config.loop_size:  # redo local loop
             self.episode.end()
+
+        if terminal:
             self.episode.begin()
 
         return self.episode.last_action
