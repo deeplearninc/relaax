@@ -33,6 +33,7 @@ class DDPGEpisode(object):
         self.episode.begin()
         self.observation = ddpg_observation.DDPGObservation()
         self.last_action = None
+        self.cur_loop_cnt = 0
 
         if hogwild_update:
             self.queue = queue.Queue(10)
@@ -49,16 +50,24 @@ class DDPGEpisode(object):
     def begin(self):
         self.do_task(self.receive_experience)
         self.get_action()
-        # self.episode.begin()
 
     @profiler.wrap
     def step(self, reward, state, terminal):
+        if self.cur_loop_cnt == cfg.config.loop_size:
+            self.update()
+            self.receive_experience()
+            self.cur_loop_cnt = 0
+
         if reward is not None:
             self.push_experience(reward, state, terminal)
         else:
             self.observation.add_state(state)
 
+        self.cur_loop_cnt += 1
+
         if terminal:
+            self.update()
+            self.cur_loop_cnt = 0
             self.observation.add_state(None)
 
         assert self.last_action is None
@@ -86,7 +95,6 @@ class DDPGEpisode(object):
 
     @profiler.wrap
     def send_experience(self, experience):
-        self.receive_experience()
         # Calculate targets
         _, action_target_scaled = self.session.op_get_actor_target(state=experience['next_state'])
         target_q = self.session.op_get_critic_target(state=experience['next_state'],
