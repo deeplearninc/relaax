@@ -71,6 +71,8 @@ class DA3CEpisode(object):
                 state = None
         else:
             assert state is not None
+        if state is not None:
+            self.metrics.histogram('state', state)
         self.observation.add_state(state)
 
         self.terminal = terminal
