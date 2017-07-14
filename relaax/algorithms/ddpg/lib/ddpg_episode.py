@@ -53,7 +53,6 @@ class DDPGEpisode(object):
 
     @profiler.wrap
     def step(self, reward, state, terminal):
-        # state = state.flatten()
         if reward is not None:
             self.push_experience(reward, state, terminal)
         else:
@@ -66,7 +65,7 @@ class DDPGEpisode(object):
         self.get_action()
 
     @profiler.wrap
-    def end(self):
+    def update(self):
         if self.episode.experience._len > cfg.config.batch_size:
             experience = self.episode.sample(cfg.config.batch_size)
             if not self.exploit:
@@ -87,6 +86,7 @@ class DDPGEpisode(object):
 
     @profiler.wrap
     def send_experience(self, experience):
+        self.receive_experience()
         # Calculate targets
         _, action_target_scaled = self.session.op_get_actor_target(state=experience['next_state'])
         target_q = self.session.op_get_critic_target(state=experience['next_state'],

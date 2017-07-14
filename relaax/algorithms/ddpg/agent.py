@@ -22,6 +22,7 @@ class Agent(object):
     # waiting for agent to initialize
     def init(self, exploit=False, hogwild_update=True):
         self.episode = ddpg_episode.DDPGEpisode(self.ps, exploit, hogwild_update)
+        self.cur_loop_cnt = 0
         self.episode.begin()
         return True
 
@@ -30,9 +31,11 @@ class Agent(object):
     @profiler.wrap
     def update(self, reward, state, terminal):
         self.episode.step(reward, state, terminal)
+        self.cur_loop_cnt += 1
 
-        if len(self.episode.experience) > ddpg_config.config.loop_size:  # redo local loop
-            self.episode.end()
+        if self.cur_loop_cnt >= ddpg_config.config.loop_size or terminal:
+            self.episode.update()
+            self.cur_loop_cnt = 0
 
         if terminal:
             self.episode.begin()
