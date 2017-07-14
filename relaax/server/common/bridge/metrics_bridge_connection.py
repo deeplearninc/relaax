@@ -18,8 +18,7 @@ profiler = profiling.get_profiler(__name__)
 class MetricsBridgeConnection(object):
     def __init__(self, server):
         self._server = server
-        self.metrics = enabled_metrics.EnabledMetrics(options.get('metrics'),
-                                                      BridgeMetrics(self))
+        self.metrics = enabled_metrics.EnabledMetrics(options, BridgeMetrics(self))
         self._stub = None
 
     def set_x(self, x):
