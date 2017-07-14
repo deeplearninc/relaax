@@ -5,7 +5,7 @@ from setuptools import setup
 from setuptools import find_packages
 from subprocess import Popen, PIPE
 import platform
-import ctypes
+from ctypes.util import find_library
 
 
 def read(*path):
@@ -25,23 +25,23 @@ def find_nvcc():
 
 
 def find_cuda():
-    CUDA_HOME = os.getenv('CUDA_HOME', '/usr/local/cuda')
-    if not os.path.exists(CUDA_HOME):
+    cuda_home = os.getenv('CUDA_HOME', '/usr/local/cuda')
+    if not os.path.exists(cuda_home):
         # We use nvcc path on Linux and cudart path on macOS
         osname = platform.system()
         if osname == 'Linux':
             cuda_path = find_nvcc()
         else:
-            cudart_path = ctypes.util.find_library('cudart')
+            cudart_path = find_library('cudart')
             if cudart_path is not None:
                 cuda_path = os.path.dirname(cudart_path)
             else:
                 cuda_path = None
         if cuda_path is not None:
-            CUDA_HOME = os.path.dirname(cuda_path)
+            cuda_home = os.path.dirname(cuda_path)
         else:
-            CUDA_HOME = None
-    return CUDA_HOME is not None
+            cuda_home = None
+    return cuda_home is not None
 
 
 # Build-specific dependencies.
@@ -63,19 +63,19 @@ VERSION = re.search(
 ).group(1)
 
 install_requires = [
-                       'ruamel.yaml',
-                       'grpcio_tools',
-                       'grpcio',
-                       'boto3',
-                       'pillow',
-                       'numpy>=1.11.0',
-                       'scipy',
-                       'psutil',
-                       'honcho==0.7.1',
-                       'h5py',
-                       'click',
-                       'future'
-                   ],
+    'ruamel.yaml',
+    'grpcio_tools',
+    'grpcio',
+    'boto3',
+    'pillow',
+    'numpy>=1.11.0',
+    'scipy',
+    'psutil',
+    'honcho==0.7.1',
+    'h5py',
+    'click',
+    'future'
+]
 
 # Determine TensorFlow version to be installed
 try:
