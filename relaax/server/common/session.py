@@ -8,7 +8,10 @@ from relaax.server.common.saver import tensorflow_checkpoint
 
 class Session(object):
     def __init__(self, *args, **kwargs):
-        self.session = tf.Session()
+        # Prevents TF from consuming all GPU RAM if running on GPU
+        config = tf.ConfigProto()
+        config.gpu_options.allow_growth = True
+        self.session = tf.Session(config=config)
         if len(args) == 0:
             assert len(kwargs) > 0
             self.model = SuperModel(kwargs)
