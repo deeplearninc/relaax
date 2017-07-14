@@ -3,6 +3,7 @@ import tensorflow as tf
 
 from relaax.common.algorithms import subgraph
 from relaax.common.algorithms.lib import graph
+from relaax.common.algorithms.lib import utils
 
 
 class DA3CDiscreteLoss(subgraph.Subgraph):
@@ -138,6 +139,13 @@ class SquaredDiffLoss(subgraph.Subgraph):
     def build_graph(self, y, size=1):
         self.ph_predicted = tf.placeholder(tf.float32, [None, size])
         return tf.reduce_mean(tf.squared_difference(self.ph_predicted, y))
+
+
+class L2Loss(subgraph.Subgraph):
+    def build_graph(self, weights, l2_decay=0.01):
+        flattened_weights = list(utils.Utils.flatten(weights))
+        l2_loss = tf.add_n([l2_decay * tf.nn.l2_loss(w.node) for w in flattened_weights])
+        return l2_loss
 
 
 class PGLoss(subgraph.Subgraph):
