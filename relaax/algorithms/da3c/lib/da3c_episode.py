@@ -114,7 +114,10 @@ class DA3CEpisode(object):
     @profiler.wrap
     def receive_experience(self):
         self.ps.session.op_check_weights()
-        self.session.op_assign_weights(weights=self.ps.session.op_get_weights())
+        weights = self.ps.session.op_get_weights()
+        for i, w in enumerate(utils.Utils.flatten(weights)):
+            self.metrics.histogram('weight_%d' % i, w)
+        self.session.op_assign_weights(weights=weights)
         if da3c_config.config.use_icm:
             self.session.op_icm_assign_weights(weights=self.ps.session.op_icm_get_weights())
 
@@ -213,6 +216,8 @@ class DA3CEpisode(object):
             discounted_reward=self.discounted_reward)
 
     def apply_gradients(self, gradients, experience_size):
+        for i, g in enumerate(utils.Utils.flatten(gradients)):
+            self.metrics.histogram('gradients_%d' % i, g)
         self.ps.session.op_apply_gradients(gradients=gradients, increment=experience_size)
         self.ps.session.op_check_weights()
 

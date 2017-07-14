@@ -181,10 +181,10 @@ class Weights(subgraph.Subgraph):
     def build_graph(self, *layers):
         weights = [layer.weight.node for layer in layers]
         self.ph_weights = graph.Placeholders(variables=graph.TfNode(weights))
-        self.assign = graph.TfNode([tf.assign(variable, value)
-                                    for variable, value in utils.Utils.izip(weights, self.ph_weights.checked)])
-        self.check = graph.TfNode(tf.group(*map(lambda w: tf.check_numerics(w, ''),
-                                           list(utils.Utils.flatten(weights)))))
+        self.assign = graph.TfNode([tf.assign(variable, value) for variable, value in
+                                    utils.Utils.izip(weights, self.ph_weights.checked)])
+        self.check = graph.TfNode(tf.group(*[tf.check_numerics(w, 'weight_%d' % i) for i, w in
+                                             enumerate(utils.Utils.flatten(weights))]))
         return weights
 
 
@@ -194,7 +194,7 @@ class Gradients(subgraph.Subgraph):
             grads = tf.gradients(loss.node, list(utils.Utils.flatten(weights.node)))
             if norm:
                 grads, _ = tf.clip_by_global_norm(grads, norm)
-            grads = map(lambda g: tf.check_numerics(g, ''), grads)
+            grads = (tf.check_numerics(g, 'gradient_%d' % i) for i, g in enumerate(grads))
             self.calculate = graph.TfNode(utils.Utils.reconstruct(grads, weights.node))
         if optimizer is not None:
             self.ph_gradients = graph.Placeholders(weights)
