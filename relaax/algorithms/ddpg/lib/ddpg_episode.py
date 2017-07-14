@@ -112,7 +112,7 @@ class DDPGEpisode(object):
         actor_grads = self.session.op_compute_actor_gradients(state=experience['state'],
                                                               grad_ys=action_grads)
 
-        self.ps.session.op_apply_actor_gradients(gradients=actor_grads, increment=1)
+        self.ps.session.op_apply_actor_gradients(gradients=actor_grads, increment=self.cur_loop_cnt)
         self.ps.session.op_apply_critic_gradients(gradients=critic_grads)
 
         self.ps.session.op_update_critic_target_weights()
