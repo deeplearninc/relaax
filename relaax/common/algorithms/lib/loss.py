@@ -143,8 +143,8 @@ class SquaredDiffLoss(subgraph.Subgraph):
 
 class L2Loss(subgraph.Subgraph):
     def build_graph(self, weights, l2_decay=0.01):
-        flattened_weights = list(utils.Utils.flatten(weights))
-        l2_loss = tf.add_n([l2_decay * tf.nn.l2_loss(w.node) for w in flattened_weights])
+        flattened_weights = list(utils.Utils.flatten(weights.node))
+        l2_loss = tf.add_n([l2_decay * tf.nn.l2_loss(w) for w in flattened_weights])
         return l2_loss
 
 

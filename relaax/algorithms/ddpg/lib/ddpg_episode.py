@@ -55,7 +55,7 @@ class DDPGEpisode(object):
     def step(self, reward, state, terminal):
         if self.cur_loop_cnt == cfg.config.loop_size:
             self.update()
-            self.receive_experience()
+            self.do_task(self.receive_experience)
             self.cur_loop_cnt = 0
 
         if reward is not None:

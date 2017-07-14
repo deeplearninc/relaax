@@ -124,10 +124,10 @@ class AgentModel(subgraph.Subgraph):
                                              batch_size=cfg.config.batch_size)
 
         sg_critic_sq_loss = loss.SquaredDiffLoss(sg_critic_network.node)
-        # sg_critic_l2loss = loss.L2Loss(sg_critic_network.weights, cfg.config.l2_decay)
-        # sg_critic_loss = graph.TfNode(sg_critic_sq_loss.node + sg_critic_l2loss.node)
+        sg_critic_l2loss = loss.L2Loss(sg_critic_network.weights, cfg.config.l2_decay)
+        sg_critic_loss = graph.TfNode(sg_critic_sq_loss.node + sg_critic_l2loss.node)
         sg_critic_gradients = layer.Gradients(sg_critic_network.weights,
-                                              loss=sg_critic_sq_loss,
+                                              loss=sg_critic_loss,
                                               batch_size=cfg.config.batch_size)
         sg_critic_action_gradients = layer.Gradients(graph.TfNode(sg_critic_network.ph_action),
                                                      loss=sg_critic_network,
