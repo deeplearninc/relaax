@@ -3,7 +3,7 @@ from builtins import next
 from builtins import str
 from builtins import range
 from builtins import object
-import numpy
+import numpy as np
 import types
 from . import bridge_pb2
 
@@ -84,9 +84,9 @@ class NdarrayMarshaller(BaseMarshaller):
                 break
             next(stream)
 
-        value = numpy.ndarray(
+        value = np.ndarray(
             shape=stream.first.numpy_array_value.shape,
-            dtype=numpy.dtype(stream.first.numpy_array_value.dtype),
+            dtype=np.dtype(stream.first.numpy_array_value.dtype),
             # optimization to avoid extra data copying if array data fits to one block
             # TODO: compare actual performance
             buffer=data[0] if len(data) == 1 else b''.join(data)
@@ -190,11 +190,13 @@ class BridgeMessage(object):
             NoneMarshaller(bridge_pb2.Item.NONE, type(None)),
             ScalarMarshaller(bridge_pb2.Item.BOOL, bool, 'bool_value'),
             ScalarMarshaller(bridge_pb2.Item.INT, int, 'int_value'),
-            ScalarMarshaller(bridge_pb2.Item.NUMPY_INT_32, numpy.int32, 'int_value'),
-            ScalarMarshaller(bridge_pb2.Item.NUMPY_INT_64, numpy.int64, 'int_value'),
+            ScalarMarshaller(bridge_pb2.Item.NUMPY_INT_32, np.int32, 'int_value'),
+            ScalarMarshaller(bridge_pb2.Item.NUMPY_INT_64, np.int64, 'int_value'),
             ScalarMarshaller(bridge_pb2.Item.FLOAT, float, 'float_value'),
+            ScalarMarshaller(bridge_pb2.Item.FLOAT_32, np.float32, 'float_value'),
+            ScalarMarshaller(bridge_pb2.Item.FLOAT_64, np.float64, 'float_value'),
             ScalarMarshaller(bridge_pb2.Item.STR, type(''), 'str_value'),
-            NdarrayMarshaller(bridge_pb2.Item.NUMPY_ARRAY, numpy.ndarray),
+            NdarrayMarshaller(bridge_pb2.Item.NUMPY_ARRAY, np.ndarray),
             ListMarshaller(bridge_pb2.Item.LIST_OPEN, list, bridge_pb2.Item.LIST_CLOSE),
             TupleMarshaller(bridge_pb2.Item.TUPLE_OPEN, tuple, bridge_pb2.Item.TUPLE_CLOSE),
             DictMarshaller(bridge_pb2.Item.DICT_OPEN, dict, bridge_pb2.Item.DICT_CLOSE)

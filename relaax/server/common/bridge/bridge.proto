@@ -19,11 +19,13 @@ message Item {
         NONE = 6;
         BOOL = 7;
         INT = 8;
-        FLOAT = 9;
-        STR = 10;
-        NUMPY_INT_32 = 11;
-        NUMPY_INT_64 = 12;
-        NUMPY_ARRAY = 13;
+        NUMPY_INT_32 = 9;
+        NUMPY_INT_64 = 10;
+        FLOAT = 11;
+        FLOAT_32 = 12;
+        FLOAT_64 = 13;
+        STR = 14;
+        NUMPY_ARRAY = 15;
     }
 
     message NumpyArray {
