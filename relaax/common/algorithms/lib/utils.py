@@ -56,6 +56,28 @@ def assemble_and_show_graphs(*graphs):
     tf.summary.FileWriter(log_dir, graph=tf.get_default_graph())
 
 
+class OUNoise:
+    """Ornstein-Uhlenbeck Noise Process"""
+    def __init__(self, action_size, mu=0.0, theta=0.15, sigma=0.3, seed=123):
+        self.action_size = action_size
+        self.mu = mu
+        self.theta = theta
+        self.sigma = sigma
+        self.state = np.ones(self.action_size) * self.mu
+        np.random.seed(seed)
+
+    def reset(self, seed=None):
+        if seed is not None:
+            np.random.seed(seed)
+        self.state = np.ones(self.action_size) * self.mu
+
+    def noise(self):
+        x = self.state
+        dx = self.theta * (self.mu - x) + self.sigma * np.random.randn(len(x))
+        self.state = x + dx
+        return self.state
+
+
 class Utils(object):
     @staticmethod
     def map(v, mapping):

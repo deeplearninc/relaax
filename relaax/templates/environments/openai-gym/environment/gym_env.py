@@ -100,6 +100,9 @@ class GymEnv(object):
             return space.shape[0]
         return space.n
 
+    def get_action_high(self):
+        return self.gym.action_space.high
+
     def act(self, action):
         if self._show_ui or self._record:
             self.gym.render()

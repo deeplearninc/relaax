@@ -35,7 +35,12 @@ class DDPGEpisode(object):
         self.last_action = None
         self.episode_cnt = 0
         self.cur_loop_cnt = 0
-
+        self.noise_epsilon = None
+        self.exploration_noise = utils.OUNoise(cfg.config.output.action_size,
+                                               cfg.config.exploration.ou_mu,
+                                               cfg.config.exploration.ou_theta,
+                                               cfg.config.exploration.ou_sigma,
+                                               cfg.config.exploration.rnd_seed)
         if hogwild_update:
             self.queue = queue.Queue(10)
             threading.Thread(target=self.execute_tasks).start()
@@ -51,7 +56,8 @@ class DDPGEpisode(object):
     def begin(self):
         self.do_task(self.receive_experience)
         self.episode_cnt = self.ps.session.op_get_episode_cnt()
-        print(self.episode_cnt)
+        self.exploration_noise.reset(self.episode_cnt + cfg.config.exploration.rnd_seed)
+        self.noise_epsilon = np.exp(-self.episode_cnt / cfg.config.exploration.tau)
         self.get_action()
 
     @profiler.wrap
@@ -151,6 +157,7 @@ class DDPGEpisode(object):
             self.last_action = None
         else:
             self.last_action = self.get_action_from_network()
+            self.last_action += self.noise_epsilon * self.exploration_noise.noise()
             assert self.last_action is not None
 
     def get_action_from_network(self):
