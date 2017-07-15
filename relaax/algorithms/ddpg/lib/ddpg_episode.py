@@ -126,8 +126,8 @@ class DDPGEpisode(object):
         self.ps.session.op_apply_actor_gradients(gradients=actor_grads, increment=self.cur_loop_cnt)
         self.ps.session.op_apply_critic_gradients(gradients=critic_grads)
 
-        self.ps.session.op_update_critic_target_weights()
         self.ps.session.op_update_actor_target_weights()
+        self.ps.session.op_update_critic_target_weights()
 
     @profiler.wrap
     def receive_experience(self):

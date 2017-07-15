@@ -10,8 +10,8 @@ class ParameterServer(parameter_server_base.ParameterServerBase):
         self.session = session.Session(ddpg_model.SharedParameters())
         self.session.op_initialize()
         super(ParameterServer, self).__init__(saver_factory, metrics_factory)
-        self.session.op_init_critic_target_weights()
         self.session.op_init_actor_target_weights()
+        self.session.op_init_critic_target_weights()
 
     def close(self):
         self.session.close()
