@@ -33,6 +33,7 @@ class DDPGEpisode(object):
         self.episode.begin()
         self.observation = ddpg_observation.DDPGObservation()
         self.last_action = None
+        self.episode_cnt = 0
         self.cur_loop_cnt = 0
 
         if hogwild_update:
@@ -49,6 +50,8 @@ class DDPGEpisode(object):
     @profiler.wrap
     def begin(self):
         self.do_task(self.receive_experience)
+        self.episode_cnt = self.ps.session.op_get_episode_cnt()
+        print(self.episode_cnt)
         self.get_action()
 
     @profiler.wrap
@@ -68,6 +71,7 @@ class DDPGEpisode(object):
         if terminal:
             self.update()
             self.cur_loop_cnt = 0
+            self.ps.session.op_inc_episode_cnt(increment=1)
             self.observation.add_state(None)
 
         assert self.last_action is None

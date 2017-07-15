@@ -52,6 +52,7 @@ class SharedParameters(subgraph.Subgraph):
     def build_graph(self):
         # Build graph
         sg_global_step = graph.GlobalStep()
+        sg_episode_step = graph.GlobalStep()
 
         sg_actor_weights = ActorNetwork().weights
         sg_critic_weights = CriticNetwork().weights
@@ -105,6 +106,10 @@ class SharedParameters(subgraph.Subgraph):
                                                  increment=sg_global_step.ph_increment)
         self.op_apply_critic_gradients = self.Ops(sg_critic_gradients.apply,
                                                   gradients=sg_critic_gradients.ph_gradients)
+
+        self.op_get_episode_cnt = self.Op(sg_episode_step.n)
+        self.op_inc_episode_cnt = self.Op(sg_episode_step.increment,
+                                          increment=sg_episode_step.ph_increment)
         self.op_initialize = self.Op(sg_initialize)
 
 
