@@ -29,6 +29,7 @@ class DDPGEpisode(object):
         self.session = session.Session(model)
 
         self.episode = episode.ReplayBuffer(cfg.config.buffer_size,
+                                            cfg.config.exploration.rnd_seed,
                                             'state', 'action', 'reward', 'terminal', 'next_state')
         self.episode.begin()
         self.observation = ddpg_observation.DDPGObservation()

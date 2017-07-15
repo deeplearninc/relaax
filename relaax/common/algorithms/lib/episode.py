@@ -25,10 +25,12 @@ class Episode(object):
 
 
 class ReplayBuffer(Episode):
-    def __init__(self, buffer_size, *args):
+    def __init__(self, buffer_size, seed=None, *args):
         super(ReplayBuffer, self).__init__(*args)
         assert buffer_size > 0, 'You have to provide positive buffer size'
         self.buffer_size = buffer_size
+        if seed is not None:
+            np.random.seed(seed)
 
     def step(self, **kwargs):
         assert self.experience is not None
