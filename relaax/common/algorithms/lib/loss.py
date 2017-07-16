@@ -138,7 +138,7 @@ def DA3CLoss(actor, critic, cfg):
 class SquaredDiffLoss(subgraph.Subgraph):
     def build_graph(self, y, size=1):
         self.ph_predicted = tf.placeholder(tf.float32, [None, size])
-        return tf.reduce_mean(tf.squared_difference(self.ph_predicted, y))
+        return tf.reduce_mean(tf.square(self.ph_predicted - y))
 
 
 class L2Loss(subgraph.Subgraph):
