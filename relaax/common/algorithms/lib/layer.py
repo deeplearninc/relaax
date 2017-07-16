@@ -232,7 +232,7 @@ class Gradients(subgraph.Subgraph):
         if loss is not None:
             grads = tf.gradients(loss.node, list(utils.Utils.flatten(weights.node)), grad_ys)
             if batch_size is not None:
-                grads = [g / float(batch_size) for g in grads]
+                grads = [g / float(batch_size) if g is not None else g for g in grads]
             if norm:
                 grads, _ = tf.clip_by_global_norm(grads, norm)
             self.calculate = graph.TfNode(utils.Utils.reconstruct(grads, weights.node))
