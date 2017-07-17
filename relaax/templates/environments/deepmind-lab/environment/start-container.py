@@ -51,10 +51,12 @@ class MDLabContainer(object):
         if platform.system() == 'Linux':
             host = '127.0.0.1'
         elif host == '0.0.0.0':
-            host = subprocess.check_output(
-                'ifconfig | grep -E "([0-9]{1,3}\.){3}[0-9]{1,3}" | grep -v 127.0.0.1 |'
-                ' awk \'{ print $2 }\' | cut -f2 -d: | head -n1',
-                shell=True).strip()
+            import socket
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            s.connect(("8.8.8.8", 80))
+            host = s.getsockname()[0]
+            s.close()
+
         return '%s:%d' % (host, port)
 
     def _start_container(self):

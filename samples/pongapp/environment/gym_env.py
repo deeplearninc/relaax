@@ -23,6 +23,14 @@ gym.configuration.undo_logger_setup()
 log = logging.getLogger(__name__)
 
 
+class SetFunction(object):
+    def __init__(self, func):
+        self.func = func
+
+    def __call__(self, *args, **kwargs):
+        return self.func(*args, **kwargs)
+
+
 class GymEnv(object):
     AtariGameList = [
         'AirRaid', 'Alien', 'Amidar', 'Assault', 'Asterix',
@@ -66,14 +74,17 @@ class GymEnv(object):
             self.gym._max_episode_steps = limit
 
         shape = options.get('environment/shape', options.get('environment/image', (84, 84)))
+        # if len(shape) > 1:
+        #     self._shape = (shape[0], shape[1])
+        #     self._channels = 0 if len(shape) == 2 else shape[-1]
         self._shape = shape[:2]
 
         self._crop = options.get('environment/crop', True)
-        self._process_state = self._process_all
+        self._process_state = SetFunction(self._process_all)
 
         atari = [name + 'Deterministic' for name in GymEnv.AtariGameList] + GymEnv.AtariGameList
         if any(item.startswith(env.split('-')[0]) for item in atari):
-            self._process_state = self._process_img
+            self._process_state = SetFunction(self._process_img)
 
         self.action_size = self._get_action_size()
         if self.action_size != options.algorithm.output.action_size:
@@ -96,10 +107,7 @@ class GymEnv(object):
             self.gym.render()
 
         state, reward, terminal, info = self.gym.step(action)
-        if terminal:
-            state = None
-        else:
-            state = self._process_state(state)
+        state = self._process_state(state)
 
         return reward, state, terminal
 

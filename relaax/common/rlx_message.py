@@ -131,8 +131,13 @@ class RLXMessage(object):
 
         reslen = unpack_from("I", buf, offset)[0]
         offset += 4
-        img = Image.frombytes(mode, (x, y), bytes(buf[offset:offset+reslen])).convert("RGB")
+        img = Image.frombytes(mode, (x, y), bytes(buf[offset:offset+reslen]))#.convert("RGB")
         res = np.asarray(img)
+        if img.mode == "L" or img.mode == "RGB" or img.mode == "RGBA" or img.mode == "CMYK" or img.mode == "YCbCr" or img.mode == "LAB" or img.mode == "HSV":
+            res = res.astype(np.float32) * (1.0 / 255.0)
+
+        #print(res.shape)
+        #res = np.reshape(res, (x, y, 1))
         offset += reslen
         return res, offset
 
