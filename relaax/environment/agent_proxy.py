@@ -47,10 +47,12 @@ class AgentProxy(object):
     def _update_metrics(self, method, name, y, x=None):
         return self._exchange({
             'command': 'update_metrics',
-            'method': method,
-            'name': name,
-            'y': y,
-            'x': x
+            'data': [{
+                'method': method,
+                'name': name,
+                'y': y,
+                'x': x
+            }]
         })
 
     def _exchange(self, data):

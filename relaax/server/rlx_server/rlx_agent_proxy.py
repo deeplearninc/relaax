@@ -42,7 +42,7 @@ class RLXAgentProxy(object):
             return self._error_message('can\'t reset agent')
 
     def update_metrics(self, data):
-        getattr(self.agent.metrics, data['method'])(name=data['name'], y=data['y'], x=data['x'])
+        self.agent.metrics.update(data['data'])
         return {'response': 'done'}
 
     def data_received(self, data):
