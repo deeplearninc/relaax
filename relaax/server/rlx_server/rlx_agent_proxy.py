@@ -3,8 +3,11 @@ from builtins import str
 from builtins import object
 import logging
 import traceback
+import numpy as np
 
-from relaax.server.common.bridge.bridge_connection import BridgeConnection
+from relaax.server.common.bridge import ps_bridge_connection
+from relaax.server.common.bridge import metrics_bridge_connection
+from relaax.server.common.metrics import x_metrics
 from .rlx_config import options
 
 log = logging.getLogger(__name__)
@@ -13,8 +16,10 @@ log = logging.getLogger(__name__)
 class RLXAgentProxy(object):
 
     def __init__(self):
-        connection = BridgeConnection(options.parameter_server)
-        self.agent = options.Agent(connection)
+        ps = ps_bridge_connection.PsBridgeConnection(options.parameter_server)
+        metrics_connection = metrics_bridge_connection.MetricsBridgeConnection(options.metrics_server)
+        metrics = x_metrics.XMetrics(ps.session.op_n_step, metrics_connection.metrics)
+        self.agent = options.Agent(ps, metrics)
 
     def init(self, data):
         exploit = data['exploit'] if 'exploit' in data else False
@@ -29,6 +34,8 @@ class RLXAgentProxy(object):
             state=data['state'],
             terminal=data['terminal']
         )
+        if isinstance(action, np.ndarray):
+            action = np.asarray(action).tolist()
         return {'response': 'action', 'data': action}
 
     def reset(self, ignore=None):

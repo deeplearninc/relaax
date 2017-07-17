@@ -1,5 +1,3 @@
-import logging as log
-
 from relaax.common.python.config.base_config import BaseConfig
 
 
@@ -14,6 +12,9 @@ class ParameterServerConfig(BaseConfig):
             help='RELAAX config yaml file')
         add('--bind', type=str, default=None,
             help='Address of the parameter server in the format host:port')
+        add('--metrics-server', type=str, default=None,
+            help=('Address of the metrics server '
+                  'address in the format host:port'))
         add('--log-level', type=str, default=None,
             choices=('DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'),
             help='Logging level')
@@ -29,6 +30,10 @@ class ParameterServerConfig(BaseConfig):
             self.bind = self.get(
                 'relaax_parameter_server/bind', 'localhost:7000')
 
+        if self.metrics_server is None:
+            self.metrics_server = self.get(
+                'relaax_metrics_server/bind', 'localhost:7002')
+
         self.algorithm_path = self.get('algorithm/path')
         self.algorithm_name = self.get('algorithm/name')
 
@@ -39,15 +44,8 @@ class ParameterServerConfig(BaseConfig):
         self.define_missing('checkpoint_dir', None)
 
         # Simple check of the bind address format
-
-        self.bind = [x.strip() for x in self.bind.split(':')]
-        if len(self.bind) != 2:
-            log.error(
-                ('Please specify parameter server'
-                 'bind address in host:port format'))
-            exit()
-        self.bind[1] = int(self.bind[1])
-        self.bind = tuple(self.bind)
+        self.bind = self.parse_address(self.bind, 'parameter server bind')
+        self.metrics_server = self.parse_address(self.metrics_server, 'metrics server')
 
     def define_missing(self, key, value):
         if not hasattr(self.relaax_parameter_server, key):
