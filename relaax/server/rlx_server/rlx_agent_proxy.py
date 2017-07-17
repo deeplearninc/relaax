@@ -3,6 +3,7 @@ from builtins import str
 from builtins import object
 import logging
 import traceback
+import numpy as np
 
 from relaax.server.common.bridge import ps_bridge_connection
 from relaax.server.common.bridge import metrics_bridge_connection
@@ -33,6 +34,8 @@ class RLXAgentProxy(object):
             state=data['state'],
             terminal=data['terminal']
         )
+        if isinstance(action, np.ndarray):
+            action = np.asarray(action).tolist()
         return {'response': 'action', 'data': action}
 
     def reset(self, ignore=None):
