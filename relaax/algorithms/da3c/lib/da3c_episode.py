@@ -150,8 +150,9 @@ class DA3CEpisode(object):
         if da3c_config.config.use_lstm:
             action, value, lstm_state = self.session.op_get_action_value_and_lstm_state(
                 state=[self.observation.queue], lstm_state=self.lstm_state, lstm_step=[1])
-            condition = len(self.episode.experience) == da3c_config.config.batch_size or self.terminal
-            if not (self.episode.experience is not None and condition):
+            condition = self.episode.experience is not None and \
+                        (len(self.episode.experience) == da3c_config.config.batch_size or self.terminal)
+            if not condition:
                 self.lstm_state = lstm_state
         else:
             action, value = self.session.op_get_action_and_value(state=[self.observation.queue])

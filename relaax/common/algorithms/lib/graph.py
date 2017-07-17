@@ -108,9 +108,9 @@ class Flatten(subgraph.Subgraph):
         return Reshape(x, (-1, )).node
 
 
-class Reshape(subgraph.Subgraph):
-    def build_graph(self, x, shape):
-        return tf.reshape(x.node, shape)
+class Expand(subgraph.Subgraph):
+    def build_graph(self, x, axis=0):
+        return tf.expand_dims(x.node, axis=axis)
 
 
 class Concat(subgraph.Subgraph):
