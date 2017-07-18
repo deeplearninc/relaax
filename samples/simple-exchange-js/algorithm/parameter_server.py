@@ -4,20 +4,11 @@ from relaax.server.common import session
 
 from . import model
 
+
 class ParameterServer(parameter_server_base.ParameterServerBase):
-    def __init__(self, saver_factory, metrics_factory):
+    def init_session(self):
         self.session = session.Session(model.SharedParameters())
         self.session.op_initialize()
-        super(ParameterServer, self).__init__(saver_factory, metrics_factory)
-
-    def close(self):
-        self.session.close()
-
-    def create_checkpoint(self):
-        return self.session.create_checkpoint()
-
-    def get_session(self):
-        return self.session
 
     def n_step(self):
         return self.session.op_n_step()

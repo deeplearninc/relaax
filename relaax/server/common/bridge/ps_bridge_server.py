@@ -7,10 +7,10 @@ from . import bridge_pb2
 from . import bridge_message
 
 
-class BridgeServer(object):
-    def __init__(self, bind, init_ps):
+class PsBridgeServer(object):
+    def __init__(self, bind, ps_factory):
         self.server = grpc.server(concurrent.futures.ThreadPoolExecutor(max_workers=1))
-        bridge_pb2.add_BridgeServicer_to_server(Servicer(init_ps), self.server)
+        bridge_pb2.add_BridgeServicer_to_server(Servicer(ps_factory), self.server)
         self.server.add_insecure_port('%s:%d' % bind)
 
     def start(self):
@@ -18,11 +18,11 @@ class BridgeServer(object):
 
 
 class Servicer(bridge_pb2.BridgeServicer):
-    def __init__(self, init_ps):
-        self.init_ps = init_ps
+    def __init__(self, ps_factory):
+        self.ps_factory = ps_factory
 
     def Init(self, request, context):
-        self.ps = self.init_ps()
+        self.ps = self.ps_factory()
         return bridge_pb2.NullMessage()
 
     def Run(self, request_iterator, context):
@@ -33,9 +33,7 @@ class Servicer(bridge_pb2.BridgeServicer):
         result = last(*args, **kwargs)
         return bridge_message.BridgeMessage.serialize(result)
 
-    def StoreScalarMetric(self, request, context):
-        x = None
-        if request.HasField('x'):
-            x = request.x.value
-        self.ps.metrics.scalar(name=request.name, y=request.y, x=x)
+    def StoreMetric(self, request_iterator, context):
+        data = bridge_message.BridgeMessage.deserialize(request_iterator)
+        getattr(self.ps.metrics, data['method'])(**data['kwargs'])
         return bridge_pb2.NullMessage()

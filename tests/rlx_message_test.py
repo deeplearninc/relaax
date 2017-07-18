@@ -6,6 +6,7 @@ from relaax.common.rlx_message import RLXMessage
 from relaax.common.rlx_message import RLXMessageImage
 from PIL import Image
 
+
 class TestRLXMessage(object):
 
     def test_to_wire_and_back(self):
@@ -33,6 +34,7 @@ class TestRLXMessage(object):
             elif isinstance(data[key], RLXMessageImage):
                 assert isinstance(back[key], np.ndarray)
                 ndimage = np.asarray(data[key].image)
+                ndimage = ndimage.astype(np.float32) * (1.0 / 255.0)
                 npt.assert_allclose(ndimage, back[key])
             elif isinstance(data[key], np.int32):
                 assert int == type(back[key])
@@ -43,3 +45,20 @@ class TestRLXMessage(object):
             else:
                 assert type(data[key]) == type(back[key])
                 assert data[key] == back[key]
+
+    def test_hash_to_wire_and_back(self):
+        data = {
+            'command': 'update_metrics',
+            'data': [
+                {'method': 'scalar', 'name': 'test1', 'y': 1.32, 'x': 0.56},
+                {'method': 'histogram', 'name': 'test2', 'y': 1000.32, 'x': 1}
+            ]
+        }
+
+        wire = RLXMessage.to_wire(data)
+        back = RLXMessage.from_wire(wire)
+        #print(back)
+        assert len(data) == len(back)
+        for key in data:
+            assert type(data[key]) == type(back[key])
+            assert data[key] == back[key]

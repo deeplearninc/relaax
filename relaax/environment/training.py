@@ -36,7 +36,7 @@ class TrainingBase(object):
                 try:
                     episode_reward = self.episode(number)
                     if episode_reward is not None:
-                        self.agent.metrics.scalar('game_score', episode_reward)
+                        self.agent.metrics.scalar('episode_reward', episode_reward)
                     number += 1
 
                 except AgentProxyException as e:

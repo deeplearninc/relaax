@@ -17,17 +17,10 @@ from gym.spaces import Box
 from gym.wrappers.frame_skipping import SkipWrapper
 
 from relaax.environment.config import options
+from relaax.common.rlx_message import RLXMessageImage
 
 gym.configuration.undo_logger_setup()
 log = logging.getLogger(__name__)
-
-
-class SetFunction(object):
-    def __init__(self, func):
-        self.func = func
-
-    def __call__(self, *args, **kwargs):
-        return self.func(*args, **kwargs)
 
 
 class GymEnv(object):
@@ -78,11 +71,11 @@ class GymEnv(object):
             self._channels = 0 if len(self.shape) == 2 else self.shape[-1]
 
         self._crop = options.get('environment/crop', True)
-        self._process_state = SetFunction(self._process_all)
+        self._process_state = self._process_all
 
         atari = [name + 'Deterministic' for name in GymEnv.AtariGameList] + GymEnv.AtariGameList
         if any(item.startswith(env.split('-')[0]) for item in atari):
-            self._process_state = SetFunction(self._process_img)
+            self._process_state = self._process_img
 
         self.action_size = self._get_action_size()
         if self.action_size != options.algorithm.output.action_size:
@@ -139,13 +132,10 @@ class GymEnv(object):
             screen = np.array(Image.fromarray(screen).resize(
                 (84, 84), resample=Image.BILINEAR), dtype=np.uint8)
 
-        screen = np.array(Image.fromarray(screen).resize(
-            self._shape, resample=Image.BILINEAR), dtype=np.uint8)
+        screen = RLXMessageImage(Image.fromarray(screen).resize(
+            self._shape, resample=Image.BILINEAR))
 
-        # return processed screen
-        if self._channels == 1:
-            screen = np.reshape(screen, self._shape + (1,))
-        return screen.astype(np.float32) * self._scale
+        return screen
 
     def _process_all(self, state):
         if self.shape == (84, 84):

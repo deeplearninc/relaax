@@ -6,11 +6,24 @@ environment:
   max_episodes: 1
   infinite_run: False
 
+metrics:
+  episode_reward: true
+  server_latency: true
+  action: true
+  mu: true
+  sigma2: true
+  critic: true
+
+relaax-metrics-server:
+  bind: localhost:7002
+  metrics_dir: logs/metrics
+  log_metrics: false
+  log_level: INFO
+
 relaax-parameter-server:
   --bind: localhost:7000
   --checkpoint-dir: logs/checkpoints
   --log-level: INFO
-  --metrics-dir: logs/metrics
 
 relaax-rlx-server:
   --bind: localhost:7001

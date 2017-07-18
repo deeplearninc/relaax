@@ -1,4 +1,5 @@
 from builtins import object
+import glob
 import os
 import sys
 import time
@@ -97,10 +98,11 @@ class CmdlRun(object):
         self.config_yaml = ConfigYaml()
         self.config_yaml.load_from_file(self.config)
 
-    def run_componenets(self):
+    def run_components(self):
 
         manager = RManager()
 
+        self.run_metrics_server(manager)
         self.run_parameter_server(manager)
         self.run_rlx_server(manager)
         self.run_wsproxy(manager)
@@ -123,6 +125,15 @@ class CmdlRun(object):
                                     % (self.nobuffer, self.config))
             else:
                 self.ctx.log(click.style("parameter-server is not configured", fg='red'))
+
+    def run_metrics_server(self, manager):
+        if self.intersection(['all', 'servers', 'metrics-server']):
+            if self.isconfigured('relaax_metrics_server'):
+                manager.add_process('metrics-server',
+                                    '%s relaax-metrics-server --config %s'
+                                    % (self.nobuffer, self.config))
+            else:
+                self.ctx.log(click.style("metrics-server is not configured", fg='red'))
 
     def run_rlx_server(self, manager):
         if self.intersection(['all', 'servers', 'rlx-server']):
@@ -147,9 +158,16 @@ class CmdlRun(object):
         if self.intersection(['all', 'environment']):
             self.client = self.config_yaml.get('environment/run')
             if self.client:
+                self.clean_old_prfiles()
                 self.run_all_clients(manager)
             else:
                 self.ctx.log(click.style("environment is not configured", fg='red'))
+
+    def clean_old_prfiles(self):
+        profile_dir = self.config_yaml.get('environment/profile_dir')
+        if profile_dir is not None:
+            for f in glob.glob(os.path.join(profile_dir, 'env_*.txt')):
+                os.remove(f)
 
     def run_all_clients(self, manager):
         count = 0
@@ -168,7 +186,7 @@ class CmdlRun(object):
 
 @click.command('run', short_help='Run RELAAX components.')
 @click.argument('components', nargs=-1, type=click.Choice(
-                ['all', 'environment', 'servers', 'rlx-server', 'parameter-server', 'wsproxy']))
+                ['all', 'environment', 'servers', 'rlx-server', 'parameter-server', 'metrics-server', 'wsproxy']))
 @click.option('--config', '-c', type=click.File(lazy=True), show_default=True, default='app.yaml',
               help='Relaax configuraion yaml file.')
 @click.option('--n-environments', '-n', default=1, show_default=True,
@@ -187,16 +205,17 @@ def cmdl(ctx, components, config, n_environments, exploit, show_ui):
     COMPONENTS:
     all              - run environments and servers (default)
     environment      - run environment
-    servers          - run rlx-server, parameter-server, and wsproxy (if specified in config yaml)
+    servers          - run rlx-server, parameter-server, metrics-server and wsproxy (if specified in config yaml)
     rlx-server       - run rlx-server
     parameter-server - run parameter-server
+    metrics-server   - run metrics-server
     wsproxy          - run websockets proxy
 
     \b
     For example:
-        - run environment, rlx-server, parameter-server, and wsproxy
+        - run environment, rlx-server, parameter-server, metrics-server, and wsproxy
         $relaax run all
-        - run rlx-server, parameter-server, and wsproxy
+        - run rlx-server, parameter-server, metrics-server, and wsproxy
         $relaax run servers
     """
     ctx.setup_logger(format='%(asctime)s %(name)s\t\t  | %(message)s')
@@ -221,6 +240,6 @@ def cmdl(ctx, components, config, n_environments, exploit, show_ui):
         else:
             _winapi.CloseHandle(mutex)    
             honcho.process.Popen = PopenPatched
-            CmdlRun(ctx, set(components), config.name, n_environments, exploit, show_ui).run_componenets()
+            CmdlRun(ctx, set(components), config.name, n_environments, exploit, show_ui).run_components()
     else:    
-        CmdlRun(ctx, set(components), config.name, n_environments, exploit, show_ui).run_componenets()
+        CmdlRun(ctx, set(components), config.name, n_environments, exploit, show_ui).run_components()

@@ -4,30 +4,28 @@ syntax = "proto3";
 message NullMessage {
 }
 
-message ScalarMetric {
-    string name = 1;
-    double y = 2;
-    message Arg {
-        double value = 1;
-    }
-    Arg x = 3;
+message X {
+    double x = 2;
 }
-
 
 message Item {
     enum ItemType {
-        LIST_OPEN = 0;
-        LIST_CLOSE = 1;
-        DICT_OPEN = 2;
-        DICT_CLOSE = 3;
-        NONE = 4;
-        BOOL = 5;
-        INT = 6;
-        FLOAT = 7;
-        STR = 8;
+        TUPLE_OPEN = 0;
+        TUPLE_CLOSE = 1;
+        LIST_OPEN = 2;
+        LIST_CLOSE = 3;
+        DICT_OPEN = 4;
+        DICT_CLOSE = 5;
+        NONE = 6;
+        BOOL = 7;
+        INT = 8;
         NUMPY_INT_32 = 9;
         NUMPY_INT_64 = 10;
-        NUMPY_ARRAY = 11;
+        FLOAT = 11;
+        FLOAT_32 = 12;
+        FLOAT_64 = 13;
+        STR = 14;
+        NUMPY_ARRAY = 15;
     }
 
     message NumpyArray {
@@ -49,5 +47,6 @@ message Item {
 service Bridge {
     rpc Init(NullMessage) returns (NullMessage) {}
     rpc Run(stream Item) returns (stream Item) {}
-    rpc StoreScalarMetric(ScalarMetric) returns (NullMessage) {}
+    rpc SetX(X) returns (NullMessage) {}
+    rpc StoreMetric(stream Item) returns (NullMessage) {}
 }

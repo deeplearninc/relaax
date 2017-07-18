@@ -43,6 +43,7 @@ class Network(subgraph.Subgraph):
         self.actor = actor
         self.critic = graph.Flatten(critic)
         self.weights = layer.Weights(*layers)
+        self.actor_weights = layer.Weights(actor)
 
 
 # Weights of the policy are shared across
@@ -51,7 +52,8 @@ class SharedParameters(subgraph.Subgraph):
     def build_graph(self):
         # Build graph
         sg_global_step = graph.GlobalStep()
-        sg_weights = Network().weights
+        sg_network = Network()
+        sg_weights = sg_network.weights
 
         if da3c_config.config.optimizer == 'Adam':
             sg_optimizer = graph.AdamOptimizer(da3c_config.config.initial_learning_rate)
@@ -78,9 +80,10 @@ class SharedParameters(subgraph.Subgraph):
 
         # Expose public API
         self.op_n_step = self.Op(sg_global_step.n)
+        self.op_check_weights = self.Op(sg_weights.check)
         self.op_get_weights = self.Op(sg_weights)
-        self.op_apply_gradients = self.Ops(sg_gradients.apply,
-                                           sg_global_step.increment, gradients=sg_gradients.ph_gradients,
+        self.op_apply_gradients = self.Ops(sg_gradients.apply, sg_global_step.increment,
+                                           gradients=sg_gradients.ph_gradients,
                                            increment=sg_global_step.ph_increment)
         self.op_initialize = self.Op(sg_initialize)
 

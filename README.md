@@ -236,9 +236,11 @@ TYPE_IMAGE|          6|       variable
 TYPE_NDARRAY|        7|       variable
 TYPE_LIST|           8|       variable
 TYPE_UINT4|          9|       4
+TYPE_INT64|         10|       8
+TYPE_DICT|          11|       variable
 
 #### Message format:
-| "[size in bytes]:"| key value0 | ... | key valueN | ","
+| "[size in bytes]:"|Version(TYPE_UINT4)| key value0 | ... | key valueN | ","
 
 #### Key/Typed Value format:
 | Key name(TYPE_STRING_UTF8)| Type(1 byte) | Value |
@@ -259,6 +261,18 @@ image type values: BMP, JPG etc
 
 #### TYPE_LIST value:
 | number of items(TYPE_UINT4) | item0 |...| itemN |
+
+#### TYPE_DICT value:
+| number of items(TYPE_UINT4) | key value0 | ... | key valueN |
+
+### Examples
+Update metrics message:
+```
+{
+    'command': 'update_metrics',
+    'data': [{ 'method': method, 'name': name, 'y': y, 'x': x }, { 'method': method1, 'name': name1, 'y': y1, 'x': x1 }]
+}
+```
 
 ## [RELAAX Servers](#contents)
 
@@ -290,4 +304,3 @@ def init(self):
 ```
 * `close(self)` - called before PS is stopped to close session.
 * `create_checkpoint(self)` - called by PS to create check point of the Model. 
-* `get_session(self)` - should return session.

@@ -22,9 +22,14 @@ class BridgeStub(object):
         request_serializer=bridge__pb2.Item.SerializeToString,
         response_deserializer=bridge__pb2.Item.FromString,
         )
-    self.StoreScalarMetric = channel.unary_unary(
-        '/Bridge/StoreScalarMetric',
-        request_serializer=bridge__pb2.ScalarMetric.SerializeToString,
+    self.SetX = channel.unary_unary(
+        '/Bridge/SetX',
+        request_serializer=bridge__pb2.X.SerializeToString,
+        response_deserializer=bridge__pb2.NullMessage.FromString,
+        )
+    self.StoreMetric = channel.stream_unary(
+        '/Bridge/StoreMetric',
+        request_serializer=bridge__pb2.Item.SerializeToString,
         response_deserializer=bridge__pb2.NullMessage.FromString,
         )
 
@@ -41,7 +46,12 @@ class BridgeServicer(object):
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
-  def StoreScalarMetric(self, request, context):
+  def SetX(self, request, context):
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
+  def StoreMetric(self, request_iterator, context):
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
@@ -59,9 +69,14 @@ def add_BridgeServicer_to_server(servicer, server):
           request_deserializer=bridge__pb2.Item.FromString,
           response_serializer=bridge__pb2.Item.SerializeToString,
       ),
-      'StoreScalarMetric': grpc.unary_unary_rpc_method_handler(
-          servicer.StoreScalarMetric,
-          request_deserializer=bridge__pb2.ScalarMetric.FromString,
+      'SetX': grpc.unary_unary_rpc_method_handler(
+          servicer.SetX,
+          request_deserializer=bridge__pb2.X.FromString,
+          response_serializer=bridge__pb2.NullMessage.SerializeToString,
+      ),
+      'StoreMetric': grpc.stream_unary_rpc_method_handler(
+          servicer.StoreMetric,
+          request_deserializer=bridge__pb2.Item.FromString,
           response_serializer=bridge__pb2.NullMessage.SerializeToString,
       ),
   }

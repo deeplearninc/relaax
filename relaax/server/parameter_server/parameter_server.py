@@ -12,8 +12,9 @@ import signal
 # do it as early as possible
 from .parameter_server_config import options
 from relaax.common import profiling
-from relaax.server.common.bridge import bridge_server
-from relaax.server.common.metrics import tensorflow_metrics
+from relaax.server.common.bridge import ps_bridge_server
+from relaax.server.common.bridge import metrics_bridge_connection
+from relaax.server.common.metrics import x_metrics
 from relaax.server.common.saver import fs_saver
 from relaax.server.common.saver import limited_saver
 from relaax.server.common.saver import multi_saver
@@ -24,8 +25,10 @@ try:
     from Queue import Queue, Empty  # noqa
 except ImportError:
     from queue import Queue, Empty  # noqa
+
     
 log = logging.getLogger(__name__)
+
 
 class ParameterServer(object):
 
@@ -48,20 +51,22 @@ class ParameterServer(object):
     @classmethod
     def start(cls):
         try:
-            if hasattr(options.relaax_parameter_server, 'profile_dir'):
+            profile_dir = options.get('relaax_parameter_server/profile_dir')
+            if profile_dir is not None:
                 profiling.set_handlers([profiling.FileHandler(os.path.join(
-                    options.relaax_parameter_server.profile_dir, 'ps.txt'))])
+                                        profile_dir, 'ps.txt'))])
                 profiling.enable(True)
 
             log.info("Starting parameter server on %s:%d" % options.bind)
+            log.info("Expecting metrics server on %s:%d" % options.metrics_server)
 
-            init_ps = CallOnce(cls.init)
+            ps_factory = CallOnce(cls.init)
 
             # keep the server or else GC will stop it
-            server = bridge_server.BridgeServer(options.bind, init_ps)
+            server = ps_bridge_server.PsBridgeServer(options.bind, ps_factory)
             server.start()
 
-            ps = init_ps()
+            ps = ps_factory()
             watch = cls.make_watch(ps)
 
             speedm = Speedometer(ps)
@@ -124,7 +129,8 @@ class ParameterServer(object):
 
     @staticmethod
     def metrics_factory(x):
-        return tensorflow_metrics.TensorflowMetrics(options.relaax_parameter_server.metrics_dir, x)
+        connection = metrics_bridge_connection.MetricsBridgeConnection(options.metrics_server)
+        return x_metrics.XMetrics(x, connection.metrics)
 
     @staticmethod
     def load_aws_keys():
@@ -180,8 +186,10 @@ class Speedometer(object):
     def stop_timer(self):
         self.timer.cancel()
 
+
 def main():
     ParameterServer.start()
+
 
 if __name__ == '__main__':
     main()
