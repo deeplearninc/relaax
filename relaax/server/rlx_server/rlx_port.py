@@ -5,6 +5,7 @@ import errno
 import socket
 import logging
 import multiprocessing as mp
+import sys
 
 from .rlx_worker import RLXWorker
 
