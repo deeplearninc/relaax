@@ -10,11 +10,24 @@ from .rlx_worker import RLXWorker
 
 log = logging.getLogger(__name__)
 
-
 class RLXPort(object):
 
     @classmethod
+    def handler_event(cls, dwCtrlType):
+        print(dwCtrlType)
+        if dwCtrlType == 0 or dwCtrlType == 1 or dwCtrlType == 2:  # CTRL_C_EVENT
+            cls.stopped_server = True
+            cls.listener.close()
+            return 1  # don't chain to the next handler
+        return 0
+
+    @classmethod
     def listen(cls, server_address):
+        if sys.platform == 'win32':
+            from relaax.server.common.win32_ctl_handler import set_console_ctrl_handler
+            cls.stopped_server = False
+            set_console_ctrl_handler(cls.handler_event)      
+            
         cls.listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
             cls.listener.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
@@ -30,6 +43,9 @@ class RLXPort(object):
                 except socket.error as e:
                     if cls.handle_accept_socket_exeption(e):
                         continue
+                    if cls.stopped_server:
+                        break
+                            
                     raise
                 except KeyboardInterrupt:
                     # Swallow KeyboardInterrupt
@@ -50,6 +66,8 @@ class RLXPort(object):
     def start_worker(cls, connection, address):
         try:
             RLXWorker.run(connection, address)
+        except KeyboardInterrupt:
+            pass    
         finally:
             log.debug('Closing connection %s:%d' % address)
             try:

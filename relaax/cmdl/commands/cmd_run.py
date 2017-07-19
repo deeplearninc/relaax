@@ -109,7 +109,11 @@ class CmdlRun(object):
         self.run_wsproxy(manager)
         self.run_client(manager)
 
-        manager.loop()
+        try:
+            manager.loop()
+        except InterruptedError:
+            pass
+                
         sys.exit(manager.returncode)
 
     def intersection(self, lst):
@@ -233,7 +237,7 @@ def cmdl(ctx, components, config, n_environments, exploit, show_ui):
         firstRun = False 
         mutex = ctypes.windll.kernel32.CreateMutexA(None, False, "RELAAX_WINDOWS_MUTEX")
         if _winapi.GetLastError() == 0:
-            firstRun = True
+            firstRun1 = True
             
         if firstRun:
             os.system("start powershell " + ' '.join(sys.argv))

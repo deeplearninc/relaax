@@ -49,10 +49,12 @@ class PsBridgeSessionMethod(object):
 
     @profiler.wrap
     def __call__(self, *args, **kwargs):
-        messages = bridge_message.BridgeMessage.serialize([self.names, list(args), kwargs])
-        result = self.connection.stub.Run(messages)
-        return bridge_message.BridgeMessage.deserialize(result)
-
+        try:
+            messages = bridge_message.BridgeMessage.serialize([self.names, list(args), kwargs])
+            result = self.connection.stub.Run(messages)
+            return bridge_message.BridgeMessage.deserialize(result)
+        except KeyboardInterrupt:
+            pass
 
 class PsBridgeMetrics(metrics.Metrics):
     def __init__(self, connection):
