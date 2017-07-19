@@ -78,8 +78,8 @@ class LSTM(subgraph.Subgraph):
         self.ph_step = graph.Placeholder(np.int32, [batch_size])
 
         self.phs = [graph.Placeholder(np.float32, [batch_size, size]) for _ in range(2)]
-        self.ph_state = graph.TfNode(tuple(ph.node for ph in phs))
-        self.ph_state.checked = tuple(ph.checked for ph in phs)
+        self.ph_state = graph.TfNode(tuple(ph.node for ph in self.phs))
+        self.ph_state.checked = tuple(ph.checked for ph in self.phs)
 
         self.zero_state = tuple(np.zeros([batch_size, size]) for _ in range(2))
 
@@ -89,7 +89,7 @@ class LSTM(subgraph.Subgraph):
 
         with tf.variable_scope('LSTM') as scope:
             outputs, self.state = tf.nn.dynamic_rnn(lstm, x.node,
-                                                    initial_state=state, sequence_length=self.ph_step.checked,
+                                                    initial_state=state, sequence_length=self.ph_step.node,
                                                     time_major=False, scope=scope)
             self.state = graph.TfNode(self.state)
             scope.reuse_variables()
