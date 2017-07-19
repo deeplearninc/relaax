@@ -8,30 +8,37 @@ import sys
 
 class ClassLoader(object):
 
-    @staticmethod
-    def load(path, cname):
+    @classmethod
+    def load(cls, path, cname):
+        module = cls.import_module(path, cname)
+        if path is None or os.path.isdir(path):
+            _, cname = cname.rsplit('.', 1)
+        return getattr(module, cname)
+
+    @classmethod
+    def import_module(cls, path, cname):
         if path is None:
-            pname, cname = cname.rsplit('.', 1)
+            pname, _ = cname.rsplit('.', 1)
         else:
             mpath, mname = os.path.split(path)
 
             if os.path.isdir(path):
-                pname, cname = cname.rsplit('.', 1)
+                pname, _ = cname.rsplit('.', 1)
             elif os.path.isfile(path):
-                mname, ext = os.path.splitext(mname)
+                mname, _ = os.path.splitext(mname)
                 pname = None
             else:
                 raise ImportError("No module named %s" % path)
 
-            module = ClassLoader.load_module(mname, mpath)
+            module = cls.load_module(mname, mpath)
 
         if pname:
             module = importlib.import_module(pname)
 
-        return getattr(module, cname)
+        return module
 
-    @staticmethod
-    def load_module(mname, mpath):
+    @classmethod
+    def load_module(cls, mname, mpath):
         if mname in sys.modules:
             return sys.modules[mname]
         file, pathname, description = imp.find_module(mname, [mpath])

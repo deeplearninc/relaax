@@ -76,8 +76,7 @@ class MetricsServer(object):
         metrics_dir = options.get('relaax_metrics_server/metrics_dir')
         if metrics_dir is not None:
             metrics.append(tensorflow_metrics.TensorflowMetrics(metrics_dir, x))
-        return enabled_metrics.EnabledMetrics(options.get('metrics'),
-                                              multi_metrics.MultiMetrics(metrics))
+        return enabled_metrics.EnabledMetrics(options, multi_metrics.MultiMetrics(metrics))
 
 
 class MetricsHandler(object):

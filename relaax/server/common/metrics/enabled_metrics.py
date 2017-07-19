@@ -5,7 +5,8 @@ from . import metrics
 
 class EnabledMetrics(metrics.Metrics):
     def __init__(self, options, metrics):
-        self._options = options
+        self._default = options.get('enable_unknown_metrics', False)
+        self._options = options.get('metrics', {})
         self._metrics = metrics
 
     def scalar(self, name, y, x=None):
@@ -17,4 +18,4 @@ class EnabledMetrics(metrics.Metrics):
             self._metrics.histogram(name, y, x)
 
     def _enabled(self, name):
-        return getattr(self._options, name, False)
+        return getattr(self._options, name, self._default)

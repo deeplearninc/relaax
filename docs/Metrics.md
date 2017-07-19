@@ -16,3 +16,10 @@ Each call to any method stores additional (argument, value) pair under given met
 
 ### [Available metrics](#available_metrics)
 
+  episode_reward
+  server_latency
+  client_latency
+  action (mu, sigma2) weights, gradients?
+  critic
+  log_prob (gaussian_nll)
+  entropy

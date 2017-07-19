@@ -9,9 +9,10 @@ environment:
 
 metrics:
   episode_reward: true
-  game_score: true
   server_latency: true
   action: true
+  mu: true
+  sigma2: true
   critic: true
 
 relaax-metrics-server:

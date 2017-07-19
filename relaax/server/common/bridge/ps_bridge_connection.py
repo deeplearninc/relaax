@@ -19,8 +19,7 @@ class PsBridgeConnection(object):
     def __init__(self, server):
         self._server = server
         self.session = PsBridgeSession(self)
-        self.metrics = enabled_metrics.EnabledMetrics(options.get('metrics'),
-                                                      PsBridgeMetrics(self))
+        self.metrics = enabled_metrics.EnabledMetrics(options, PsBridgeMetrics(self))
         self._stub = None
 
     @property

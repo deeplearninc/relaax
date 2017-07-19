@@ -45,3 +45,20 @@ class TestRLXMessage(object):
             else:
                 assert type(data[key]) == type(back[key])
                 assert data[key] == back[key]
+
+    def test_hash_to_wire_and_back(self):
+        data = {
+            'command': 'update_metrics',
+            'data': [
+                {'method': 'scalar', 'name': 'test1', 'y': 1.32, 'x': 0.56},
+                {'method': 'histogram', 'name': 'test2', 'y': 1000.32, 'x': 1}
+            ]
+        }
+
+        wire = RLXMessage.to_wire(data)
+        back = RLXMessage.from_wire(wire)
+        #print(back)
+        assert len(data) == len(back)
+        for key in data:
+            assert type(data[key]) == type(back[key])
+            assert data[key] == back[key]
