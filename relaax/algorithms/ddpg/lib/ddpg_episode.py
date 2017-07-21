@@ -117,10 +117,15 @@ class DDPGEpisode(object):
         critic_grads = self.session.op_compute_critic_gradients(state=experience['state'],
                                                                 action=experience['action'],
                                                                 predicted=np.vstack(y))
+        for i, g in enumerate(utils.Utils.flatten(critic_grads)):
+            self.metrics.histogram('critic_grads_%d' % i, g)
 
         _, scaled_out = self.session.op_get_action(state=experience['state'])
         action_grads = self.session.op_compute_critic_action_gradients(state=experience['state'],
                                                                        action=scaled_out)
+        for i, g in enumerate(utils.Utils.flatten(action_grads)):
+            self.metrics.histogram('action_grads_%d' % i, g)
+
         actor_grads = self.session.op_compute_actor_gradients(state=experience['state'],
                                                               grad_ys=action_grads)
         for i, g in enumerate(utils.Utils.flatten(actor_grads)):
