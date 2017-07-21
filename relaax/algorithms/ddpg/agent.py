@@ -14,9 +14,9 @@ profiler = profiling.get_profiler(__name__)
 # stop updating shared parameters and at the end of every episode load
 # new policy parameters from PS
 class Agent(object):
-    def __init__(self, parameter_server):
+    def __init__(self, parameter_server, metrics):
         self.ps = parameter_server
-        self.metrics = parameter_server.metrics
+        self.metrics = metrics
 
     # environment is ready and
     # waiting for agent to initialize
@@ -35,3 +35,13 @@ class Agent(object):
             self.episode.begin()
 
         return self.episode.last_action
+
+    @staticmethod
+    def check_state_shape(state):
+        if state is None:
+            return
+        expected_shape = list(ddpg_config.options.algorithm.input.shape)
+        actual_shape = list(np.asarray(state).shape)
+        if actual_shape != expected_shape:
+            logger.warning('State shape %s does not match to expected one %s.',
+                           repr(actual_shape), repr(expected_shape))
