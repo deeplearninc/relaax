@@ -22,9 +22,10 @@ profiler = profiling.get_profiler(__name__)
 
 
 class DDPGEpisode(object):
-    def __init__(self, parameter_server, exploit, hogwild_update):
+    def __init__(self, parameter_server, metrics, exploit, hogwild_update):
         self.exploit = exploit
         self.ps = parameter_server
+        self.metrics = metrics
         model = ddpg_model.AgentModel()
         self.session = session.Session(model)
 
@@ -122,6 +123,8 @@ class DDPGEpisode(object):
                                                                        action=scaled_out)
         actor_grads = self.session.op_compute_actor_gradients(state=experience['state'],
                                                               grad_ys=action_grads)
+        for i, g in enumerate(utils.Utils.flatten(actor_grads)):
+            self.metrics.histogram('actor_grads_%d' % i, g)
 
         self.ps.session.op_apply_actor_gradients(gradients=actor_grads, increment=self.cur_loop_cnt)
         self.ps.session.op_apply_critic_gradients(gradients=critic_grads)
