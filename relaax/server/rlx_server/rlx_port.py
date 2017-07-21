@@ -6,6 +6,7 @@ import socket
 import logging
 import multiprocessing as mp
 import sys
+import os
 
 from .rlx_worker import RLXWorker
 
@@ -15,7 +16,6 @@ class RLXPort(object):
 
     @classmethod
     def handler_event(cls, dwCtrlType):
-        print(dwCtrlType)
         if dwCtrlType == 0 or dwCtrlType == 1 or dwCtrlType == 2:  # CTRL_C_EVENT
             cls.stopped_server = True
             cls.listener.close()
@@ -68,19 +68,22 @@ class RLXPort(object):
         try:
             RLXWorker.run(connection, address)
         except KeyboardInterrupt:
-            pass    
+            pass
         finally:
             log.debug('Closing connection %s:%d' % address)
-            try:
-                connection.shutdown(socket.SHUT_RDWR)
-            except socket.error as e:
-                # we don't care if the socket is already closed;
-                # this will often be the case if client closed connection first
-                if e.errno != errno.ENOTCONN:
-                    raise
-            finally:
-                connection.close()
-
+            if sys.platform == 'win32':
+                os._exit(-1)             
+            else:            
+                try:
+                    connection.shutdown(socket.SHUT_RDWR)
+                except socket.error as e:
+                    # we don't care if the socket is already closed;
+                    # this will often be the case if client closed connection first
+                    if e.errno != errno.ENOTCONN:
+                        raise
+                finally:
+                    connection.close()
+         
     @classmethod
     def handle_accept_socket_exeption(cls, error):
         if error.errno in (errno.EWOULDBLOCK, errno.EAGAIN):
