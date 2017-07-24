@@ -14,7 +14,7 @@ from .. import pg_model
 logger = logging.getLogger(__name__)
 
 
-class PGEpisode(object):
+class PGBatch(object):
     def __init__(self, parameter_server, exploit):
         self.exploit = exploit
         self.ps = parameter_server
