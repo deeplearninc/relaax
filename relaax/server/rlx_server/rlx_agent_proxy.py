@@ -34,8 +34,8 @@ class RLXAgentProxy(object):
             state=data['state'],
             terminal=data['terminal']
         )
-        if isinstance(action, np.ndarray):
-            action = np.asarray(action).tolist()
+        #if isinstance(action, np.ndarray):
+        #    action = np.asarray(action).tolist()
         return {'response': 'action', 'data': action}
 
     def reset(self, ignore=None):
