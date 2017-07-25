@@ -19,6 +19,8 @@ from .. import da3c_model
 from . import da3c_observation
 
 
+M = False
+
 logger = logging.getLogger(__name__)
 profiler = profiling.get_profiler(__name__)
 
@@ -61,7 +63,7 @@ class DA3CEpisode(object):
     @profiler.wrap
     def step(self, reward, state, terminal):
         if reward is not None:
-            reward = np.tanh(reward)
+            reward = reward / 10
             if da3c_config.config.use_icm:
                 reward += self.get_intrinsic_reward(state)
             self.push_experience(reward)
@@ -71,8 +73,9 @@ class DA3CEpisode(object):
                 state = None
         else:
             assert state is not None
-        if state is not None:
-            self.metrics.histogram('state', state)
+        if M:
+            if state is not None:
+                self.metrics.histogram('state', state)
         self.observation.add_state(state)
 
         self.terminal = terminal
@@ -108,18 +111,21 @@ class DA3CEpisode(object):
 
     @profiler.wrap
     def send_experience(self, experience):
-        self.apply_gradients(self.compute_gradients(experience), len(experience))
+        actor_gradients, critic_gradients = self.compute_gradients(experience)
+        self.apply_gradients(actor_gradients, critic_gradients, len(experience))
         if da3c_config.config.use_icm:
             self.ps.session.op_icm_apply_gradients(
                 gradients=self.compute_icm_gradients(experience))
 
     @profiler.wrap
     def receive_experience(self):
-        self.ps.session.op_check_weights()
-        weights = self.ps.session.op_get_weights()
-        for i, w in enumerate(utils.Utils.flatten(weights)):
-            self.metrics.histogram('weight_%d' % i, w)
-        self.session.op_assign_weights(weights=weights)
+        if False:
+            self.ps.session.op_check_weights()
+        actor_weights, critic_weights = self.ps.session.op_get_weights()
+        if M:
+            for i, w in enumerate(utils.Utils.flatten((actor_weights, critic_weights))):
+                self.metrics.histogram('weight_%d' % i, w)
+        self.session.op_assign_weights(actor_weights=actor_weights, critic_weights=critic_weights)
         if da3c_config.config.use_icm:
             self.session.op_icm_assign_weights(weights=self.ps.session.op_icm_get_weights())
 
@@ -159,15 +165,21 @@ class DA3CEpisode(object):
 
         value, = value
         if len(action) == 1:
-            self.metrics.histogram('action', action)
+            if M:
+                self.metrics.histogram('action', action)
             probabilities, = action
             return utils.choose_action_descrete(probabilities), value
         mu, sigma2 = action
-        self.metrics.histogram('mu', mu)
-        self.metrics.histogram('sigma2', sigma2)
-        return utils.choose_action_continuous(mu, sigma2,
+        if M:
+            self.metrics.histogram('mu', mu)
+            self.metrics.histogram('sigma2', sigma2)
+        action = utils.choose_action_continuous(mu, sigma2,
                                               da3c_config.config.output.action_low,
-                                              da3c_config.config.output.action_high), value
+                                              da3c_config.config.output.action_high)
+        if M:
+            self.metrics.histogram('action', action)
+            self.metrics.histogram('value', value)
+        return action, value
 
     def get_intrinsic_reward(self, state):
         self.icm_observation.add_state(state)
@@ -201,7 +213,7 @@ class DA3CEpisode(object):
             advantage = self.discount(rewards, gae_gamma)
 
         feeds = dict(state=experience['state'], action=experience['action'],
-                     value=experience['value'], discounted_reward=self.discounted_reward)
+                     discounted_reward=self.discounted_reward)
 
         if da3c_config.config.use_lstm:
             feeds.update(dict(lstm_state=self.initial_lstm_state, lstm_step=[len(reward)]))
@@ -218,11 +230,14 @@ class DA3CEpisode(object):
             state=icm_states, action=experience['action'],
             discounted_reward=self.discounted_reward)
 
-    def apply_gradients(self, gradients, experience_size):
-        for i, g in enumerate(utils.Utils.flatten(gradients)):
-            self.metrics.histogram('gradients_%d' % i, g)
-        self.ps.session.op_apply_gradients(gradients=gradients, increment=experience_size)
-        self.ps.session.op_check_weights()
+    def apply_gradients(self, actor_gradients, critic_gradients, experience_size):
+        if M:
+            for i, g in enumerate(utils.Utils.flatten((actor_gradients, critic_gradients))):
+                self.metrics.histogram('gradients_%d' % i, g)
+        self.ps.session.op_apply_gradients(actor_gradients=actor_gradients,
+                                           critic_gradients=critic_gradients, increment=experience_size)
+        if False:
+            self.ps.session.op_check_weights()
 
     @staticmethod
     def discount(x, gamma):

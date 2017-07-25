@@ -43,7 +43,7 @@ def choose_action_continuous(mu, sigma2,
     if exploit:
         act, = mu
     else:
-        act, = (np.random.randn(*sigma2.shape).astype(np.float32) * sigma2 + mu)
+        act, = np.random.randn(*sigma2.shape).astype(np.float32) * sigma2 + mu
     return np.clip(act, min_clip, max_clip)
 
 

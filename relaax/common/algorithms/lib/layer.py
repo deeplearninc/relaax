@@ -18,6 +18,10 @@ class Activation(object):
         return tf.nn.relu(x)
 
     @staticmethod
+    def Relu6(x):
+        return tf.nn.relu6(x)
+
+    @staticmethod
     def Elu(x):
         return tf.nn.elu(x)
 
@@ -129,12 +133,12 @@ class DescreteActor(subgraph.Subgraph):
 class ContinuousActor(subgraph.Subgraph):
     def build_graph(self, head, output):
         action_size = output.action_size
-        self.mu = Dense(head, action_size)
+        self.mu = Dense(head, action_size, activation=Activation.Tanh)
         self.sigma2 = Dense(head, action_size, activation=Activation.Softplus)
         self.weight = graph.Variables(self.mu.weight, self.sigma2.weight)
         self.action_size = action_size
         self.continuous = True
-        return self.mu.node * graph.TfNode(output.scale).node, self.sigma2.node
+        return self.mu.node * output.scale, self.sigma2.node + 1e-4
 
 
 def Actor(head, output):

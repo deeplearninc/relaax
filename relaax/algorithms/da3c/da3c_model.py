@@ -18,32 +18,37 @@ class Network(subgraph.Subgraph):
         input = layer.Input(da3c_config.config.input, descs=[dict(conv_layer)] * 4)
 
         sizes = da3c_config.config.hidden_sizes
-        layers = [input]
+        actor_layers = [input]
+
+        flattened_input = layer.Flatten(input)
 
         if da3c_config.config.use_lstm:
-            lstm = layer.LSTM(graph.Expand(layer.Flatten(input), 0), size=sizes[-1])
+            lstm = layer.LSTM(graph.Expand(flattened_input, 0), size=sizes[-1])
             head = graph.Reshape(lstm, [-1, sizes[-1]])
-            layers.append(lstm)
+            actor_layers.append(lstm)
 
             self.ph_lstm_state = lstm.ph_state
             self.ph_lstm_step = lstm.ph_step
             self.lstm_zero_state = lstm.zero_state
             self.lstm_state = lstm.state
         else:
-            head = layer.GenericLayers(layer.Flatten(input),
+            head = layer.GenericLayers(flattened_input,
                                        [dict(type=layer.Dense, size=size,
-                                             activation=layer.Activation.Relu) for size in sizes])
-            layers.append(head)
+                                             activation=layer.Activation.Relu6) for size in sizes])
+            actor_layers.append(head)
 
         actor = layer.Actor(head, da3c_config.config.output)
-        critic = layer.Dense(head, 1)
-        layers.extend((actor, critic))
+        actor_layers.append(actor)
+
+        c1 = layer.Dense(flattened_input, 100, activation=layer.Activation.Relu6)
+        critic = layer.Dense(c1, 1)
+        critic_layers = (c1, critic)
 
         self.ph_state = input.ph_state
         self.actor = actor
         self.critic = graph.Flatten(critic)
-        self.weights = layer.Weights(*layers)
-        self.actor_weights = layer.Weights(actor)
+        self.actor_weights = layer.Weights(*actor_layers)
+        self.critic_weights = layer.Weights(*critic_layers)
 
 
 # Weights of the policy are shared across
@@ -53,23 +58,29 @@ class SharedParameters(subgraph.Subgraph):
         # Build graph
         sg_global_step = graph.GlobalStep()
         sg_network = Network()
-        sg_weights = sg_network.weights
+        sg_actor_weights = sg_network.actor_weights
+        sg_critic_weights = sg_network.critic_weights
 
         if da3c_config.config.optimizer == 'Adam':
-            sg_optimizer = graph.AdamOptimizer(da3c_config.config.initial_learning_rate)
+            sg_actor_optimizer = graph.AdamOptimizer(da3c_config.config.actor_initial_learning_rate)
+            sg_critic_optimizer = graph.AdamOptimizer(da3c_config.config.critic_initial_learning_rate)
             if da3c_config.config.use_icm:
-                sg_icm_optimizer = graph.AdamOptimizer(da3c_config.config.initial_learning_rate)
+                sg_icm_optimizer = graph.AdamOptimizer(da3c_config.config.actor_initial_learning_rate)
                 sg_icm_weights = icm_model.ICM().weights
                 sg_icm_gradients = layer.Gradients(sg_icm_weights, optimizer=sg_icm_optimizer)
         else:
-            sg_learning_rate = da3c_graph.LearningRate(sg_global_step)
-            sg_optimizer = graph.RMSPropOptimizer(
-                learning_rate=sg_learning_rate,
-                decay=da3c_config.config.RMSProp.decay,
-                momentum=0.0,
-                epsilon=da3c_config.config.RMSProp.epsilon
-            )
-        sg_gradients = layer.Gradients(sg_weights, optimizer=sg_optimizer)
+            sg_actor_learning_rate = da3c_graph.LearningRate(sg_global_step,
+                                                             da3c_config.config.actor_initial_learning_rate)
+            sg_critic_learning_rate = da3c_graph.LearningRate(sg_global_step,
+                                                              da3c_config.config.critic_initial_learning_rate)
+            sg_actor_optimizer = graph.RMSPropOptimizer(learning_rate=sg_actor_learning_rate,
+                decay=da3c_config.config.RMSProp.decay, momentum=0.0,
+                epsilon=da3c_config.config.RMSProp.epsilon)
+            sg_critic_optimizer = graph.RMSPropOptimizer(learning_rate=sg_critic_learning_rate,
+                decay=da3c_config.config.RMSProp.decay, momentum=0.0,
+                epsilon=da3c_config.config.RMSProp.epsilon)
+        sg_actor_gradients = layer.Gradients(sg_actor_weights, optimizer=sg_actor_optimizer)
+        sg_critic_gradients = layer.Gradients(sg_critic_weights, optimizer=sg_critic_optimizer)
         sg_initialize = graph.Initialize()
 
         if da3c_config.config.use_icm:
@@ -80,10 +91,12 @@ class SharedParameters(subgraph.Subgraph):
 
         # Expose public API
         self.op_n_step = self.Op(sg_global_step.n)
-        self.op_check_weights = self.Op(sg_weights.check)
-        self.op_get_weights = self.Op(sg_weights)
-        self.op_apply_gradients = self.Ops(sg_gradients.apply, sg_global_step.increment,
-                                           gradients=sg_gradients.ph_gradients,
+        self.op_check_weights = self.Ops(sg_actor_weights.check, sg_critic_weights.check)
+        self.op_get_weights = self.Ops(sg_actor_weights, sg_critic_weights)
+        self.op_apply_gradients = self.Ops(sg_actor_gradients.apply, sg_critic_gradients.apply,
+                                           sg_global_step.increment,
+                                           actor_gradients=sg_actor_gradients.ph_gradients,
+                                           critic_gradients=sg_critic_gradients.ph_gradients,
                                            increment=sg_global_step.ph_increment)
         self.op_initialize = self.Op(sg_initialize)
 
@@ -95,8 +108,12 @@ class AgentModel(subgraph.Subgraph):
         sg_network = Network()
 
         sg_loss = loss.DA3CLoss(sg_network.actor, sg_network.critic, da3c_config.config)
-        sg_gradients = layer.Gradients(sg_network.weights, loss=sg_loss,
-                                       norm=da3c_config.config.gradients_norm_clipping)
+        sg_actor_gradients = layer.Gradients(sg_network.actor_weights,
+                                             loss=graph.TfNode(sg_loss.policy_loss),
+                                             norm=da3c_config.config.gradients_norm_clipping)
+        sg_critic_gradients = layer.Gradients(sg_network.critic_weights,
+                                              loss=graph.TfNode(sg_loss.value_loss),
+                                              norm=da3c_config.config.gradients_norm_clipping)
 
         if da3c_config.config.use_icm:
             sg_icm_network = icm_model.ICM()
@@ -114,11 +131,12 @@ class AgentModel(subgraph.Subgraph):
                                             discounted_reward=sg_icm_loss.ph_discounted_reward)
 
         # Expose public API
-        self.op_assign_weights = self.Op(sg_network.weights.assign,
-                                         weights=sg_network.weights.ph_weights)
+        self.op_assign_weights = self.Ops(sg_network.actor_weights.assign, sg_network.critic_weights.assign,
+                                         actor_weights=sg_network.actor_weights.ph_weights,
+                                         critic_weights=sg_network.critic_weights.ph_weights)
 
         feeds = dict(state=sg_network.ph_state, action=sg_loss.ph_action,
-                     value=sg_loss.ph_value, discounted_reward=sg_loss.ph_discounted_reward)
+                     discounted_reward=sg_loss.ph_discounted_reward)
 
         if da3c_config.config.use_gae:
             feeds.update(dict(advantage=sg_loss.ph_advantage))
@@ -127,14 +145,16 @@ class AgentModel(subgraph.Subgraph):
             feeds.update(dict(lstm_state=sg_network.ph_lstm_state, lstm_step=sg_network.ph_lstm_step))
             self.lstm_zero_state = sg_network.lstm_zero_state
             self.op_get_action_value_and_lstm_state = self.Ops(sg_network.actor, sg_network.critic,
-                                                               sg_network.lstm_state, state=sg_network.ph_state,
+                                                               sg_network.lstm_state,
+                                                               state=sg_network.ph_state,
                                                                lstm_state=sg_network.ph_lstm_state,
                                                                lstm_step=sg_network.ph_lstm_step)
         else:
             self.op_get_action_and_value = self.Ops(sg_network.actor, sg_network.critic,
                                                     state=sg_network.ph_state)
 
-        self.op_compute_gradients = self.Op(sg_gradients.calculate, **feeds)
+        self.op_compute_gradients = self.Ops(sg_actor_gradients.calculate, sg_critic_gradients.calculate,
+                                             **feeds)
 
 
 if __name__ == '__main__':
