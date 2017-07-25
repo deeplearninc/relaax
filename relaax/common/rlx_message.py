@@ -21,7 +21,6 @@ class RLXMessage(object):
     TYPE_LIST = 8
     TYPE_UINT4 = 9
     TYPE_INT64 = 10
-    TYPE_DICT = 11
 
     pack_info = {
         type(None).__name__: {'id': TYPE_NULL, 'pack_func': lambda cls, *args:cls._pack_null(*args), 'unpack_func': lambda cls, *args:cls._unpack_null(*args)},
@@ -35,8 +34,6 @@ class RLXMessage(object):
         RLXMessageImage.__name__: {'id': TYPE_IMAGE, 'pack_func': lambda cls, *args:cls._pack_image(*args), 'unpack_func': lambda cls,*args:cls._unpack_image(*args)},
         np.ndarray.__name__: {'id': TYPE_NDARRAY, 'pack_func': lambda cls, *args:cls._pack_ndarray(*args), 'unpack_func': lambda cls,*args:cls._unpack_ndarray(*args)},
         list.__name__: {'id': TYPE_LIST, 'pack_func': lambda cls, *args:cls._pack_list(*args), 'unpack_func': lambda cls,*args:cls._unpack_list(*args)},
-        dict.__name__: {'id': TYPE_DICT, 'pack_func': lambda cls, *args:cls._pack_dict(*args), 'unpack_func': lambda cls,*args:cls._unpack_dict(*args)},
-
     }
 
     @classmethod
@@ -187,25 +184,6 @@ class RLXMessage(object):
         return res, offset
 
     @classmethod
-    def _pack_dict(cls, value, buf, pack_type=True):
-        cls._pack_type(cls.TYPE_DICT, buf, pack_type)
-        buf += pack("I", len(value))
-
-        for key in value:
-            cls._pack_string(key, buf, False)
-            cls._pack_value(value[key], buf)
-    @classmethod
-    def _unpack_dict(cls, buf, offset):
-        reslen = unpack_from("I", buf, offset)[0]
-        offset += 4
-        res = {}
-        for i in range(0, reslen):
-            (field_name, offset) = cls._unpack_string(buf, offset)
-            (item, offset) = cls._unpack_value(buf, offset)
-            res[field_name]=item
-        return res, offset
-
-    @classmethod
     def _pack_value(cls, value, buf):
         item = cls.pack_info.get(type(value).__name__, None)
         if item is None:
@@ -225,8 +203,6 @@ class RLXMessage(object):
     @classmethod
     def to_wire(cls, data):
         buf = bytearray()
-        buf += pack("I", 1)
-
         for key in data:
             #print((key, type(data[key]).__name__))
             cls._pack_string(key, buf, False)
@@ -238,9 +214,6 @@ class RLXMessage(object):
     def from_wire(cls, data):
         res = {}
         offset = 0
-        #read version
-        unpack_from("I", data, offset)[0]
-        offset += 4
 
         while offset < len(data):
             (field_name, offset) = cls._unpack_string(data, offset)
