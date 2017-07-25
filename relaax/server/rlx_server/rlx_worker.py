@@ -51,5 +51,5 @@ class RLXWorker(object):
             options.protocol.adoptConnection(socket, address)
 
         except Exception as e:
-            log.error("Error while running worker on connection %s:%d : %s" % (address, str(e)))
+            log.error("Error while running worker on connection %s : %s" % (address, str(e)))
             log.debug(traceback.format_exc())
