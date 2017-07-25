@@ -49,7 +49,8 @@ class DA3CNormContinuousLoss(subgraph.Subgraph):
         log_prob = normal_dist.log_prob(self.ph_action.node)
 
         entropy = normal_dist.entropy()
-        policy_loss = -tf.reduce_sum(log_prob * td + cfg.entropy_beta * entropy)
+        policy_loss = - (tf.reduce_sum(tf.reduce_sum(log_prob, axis=1) * td) +
+                      cfg.entropy_beta * tf.reduce_sum(entropy))
 
         # value loss (output)
         # (Learning rate for Critic is half of Actor's, it's l2 without dividing by 0.5)
