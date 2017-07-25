@@ -63,7 +63,7 @@ class DA3CEpisode(object):
     @profiler.wrap
     def step(self, reward, state, terminal):
         if reward is not None:
-            reward = reward / 10
+            reward = np.tanh(reward)
             if da3c_config.config.use_icm:
                 reward += self.get_intrinsic_reward(state)
             self.push_experience(reward)
