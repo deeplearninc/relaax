@@ -76,15 +76,13 @@ class ParameterServer(object):
             cls.stopped_server = False
 
             while not cls.stopped_server:
-                #time.sleep(1)
+                watch.check()
                 try:
                     msg = events.get(timeout=1)
                 except Empty:
                     pass
                 except:
                     break    
-                else:
-                    watch.check()
             
             ps.save_checkpoint()
             speedm.stop_timer()
