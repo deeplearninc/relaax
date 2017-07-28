@@ -13,6 +13,7 @@ from relaax.common import profiling
 from relaax.server.common import session
 from relaax.common.algorithms.lib import episode
 from relaax.common.algorithms.lib import utils
+from relaax.common.algorithms.lib.batch import Batch
 
 from .. import da3c_config
 from .. import da3c_model
@@ -23,20 +24,17 @@ logger = logging.getLogger(__name__)
 profiler = profiling.get_profiler(__name__)
 
 
-class DA3CEpisode(object):
+class DA3CBatch(Batch):
     def __init__(self, parameter_server, metrics, exploit, hogwild_update):
-        self.exploit = exploit
-        self.ps = parameter_server
+        super(DA3CBatch, self).__init__(self, parameter_server, exploit)
+
         self.metrics = metrics
         model = da3c_model.AgentModel()
         self.session = session.Session(model)
         if da3c_config.config.use_lstm:
             self.lstm_zero_state = model.lstm_zero_state
             self.lstm_state = self.initial_lstm_state = model.lstm_zero_state
-        self.reset()
         self.observation = da3c_observation.DA3CObservation()
-        self.last_action = None
-        self.last_value = None
         if hogwild_update:
             self.queue = queue.Queue(10)
             threading.Thread(target=self.execute_tasks).start()
@@ -46,17 +44,14 @@ class DA3CEpisode(object):
         if da3c_config.config.use_icm:
             self.icm_observation = da3c_observation.DA3CObservation()
 
-    @property
-    def experience(self):
-        return self.episode.experience
-
     @profiler.wrap
     def begin(self):
         self.do_task(self.receive_experience)
         if da3c_config.config.use_lstm:
             self.initial_lstm_state = self.lstm_state
         self.get_action_and_value()
-        self.episode.begin()
+
+        super(DA3CBatch, self).begin()
 
     @profiler.wrap
     def step(self, reward, state, terminal):
@@ -67,7 +62,7 @@ class DA3CEpisode(object):
             self.push_experience(reward)
         if terminal:
             if state is not None:
-                logger.warning('DA3CEpisode.step ignores state in case of terminal.')
+                logger.warning('DA3CBatch.step ignores state in case of terminal.')
                 state = None
         else:
             assert state is not None
@@ -80,12 +75,6 @@ class DA3CEpisode(object):
         assert self.last_value is None
 
         self.get_action_and_value()
-
-    @profiler.wrap
-    def end(self):
-        experience = self.episode.end()
-        if not self.exploit:
-            self.do_task(lambda: self.send_experience(experience))
 
     @profiler.wrap
     def reset(self):
@@ -108,7 +97,6 @@ class DA3CEpisode(object):
 
     @profiler.wrap
     def send_experience(self, experience):
-        self.apply_gradients(self.compute_gradients(experience), len(experience))
         if da3c_config.config.use_icm:
             self.ps.session.op_icm_apply_gradients(
                 gradients=self.compute_icm_gradients(experience))

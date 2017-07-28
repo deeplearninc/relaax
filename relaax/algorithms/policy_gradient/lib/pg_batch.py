@@ -6,6 +6,7 @@ import numpy as np
 from relaax.server.common import session
 from relaax.common.algorithms.lib import episode
 from relaax.common.algorithms.lib import utils
+from relaax.common.algorithms.lib.batch import Batch
 
 from .. import pg_config
 from .. import pg_model
@@ -14,28 +15,20 @@ from .. import pg_model
 logger = logging.getLogger(__name__)
 
 
-class PGEpisode(object):
+class PGBatch(Batch):
     def __init__(self, parameter_server, exploit):
-        self.exploit = exploit
-        self.ps = parameter_server
+        Batch.__init__(self, parameter_server, exploit)
         self.session = session.Session(pg_model.PolicyModel())
-        self.reset()
-        self.last_state = None
-        self.last_action = None
-
-    @property
-    def experience(self):
-        return self.episode.experience
 
     def begin(self):
         self.load_shared_parameters()
-        self.episode.begin()
+        super(PGBatch, self).begin()
 
     def step(self, reward, state, terminal):
         if reward is not None:
             self.push_experience(reward)
         if terminal and state is not None:
-            logger.warning('PGEpisode.step ignores state in case of terminal.')
+            logger.warning('PGBatch.step ignores state in case of terminal.')
             state = None
         else:
             assert state is not None
@@ -47,11 +40,6 @@ class PGEpisode(object):
         action = self.get_action(state)
         self.keep_state_and_action(state, action)
         return action
-
-    def end(self):
-        experience = self.episode.end()
-        if not self.exploit:
-            self.apply_gradients(self.compute_gradients(experience), len(experience))
 
     def reset(self):
         self.episode = episode.Episode('reward', 'state', 'action')

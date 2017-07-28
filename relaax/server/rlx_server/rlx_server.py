@@ -2,7 +2,6 @@ from __future__ import absolute_import
 import glob
 import logging
 import os
-import traceback
 
 # Load configuration options
 # do it as early as possible

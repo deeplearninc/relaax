@@ -5,7 +5,7 @@ import logging
 import numpy as np
 
 from . import pg_config
-from .lib import pg_episode
+from .lib import pg_batch
 
 
 logger = logging.getLogger(__name__)
@@ -23,8 +23,8 @@ class Agent(object):
     # environment is ready and
     # waiting for agent to initialize
     def init(self, exploit=False):
-        self.episode = pg_episode.PGEpisode(self.ps, exploit)
-        self.episode.begin()
+        self.batch = pg_batch.PGBatch(self.ps, exploit)
+        self.batch.begin()
         return True
 
     # environment generated new state and reward
@@ -32,17 +32,17 @@ class Agent(object):
     def update(self, reward, state, terminal):
         self.check_state_shape(state)
 
-        action = self.episode.step(reward, state, terminal)
+        action = self.batch.step(reward, state, terminal)
 
-        if (len(self.episode.experience) == pg_config.config.batch_size) or terminal:
-            self.episode.end()
-            self.episode.begin()
+        if (len(self.batch.experience) == pg_config.config.batch_size) or terminal:
+            self.batch.end()
+            self.batch.begin()
 
         return action
 
     # environment is asking to reset agent
     def reset(self):
-        self.episode.reset()
+        self.batch.reset()
         return True
 
     @staticmethod

@@ -7,8 +7,7 @@ import numpy as np
 from relaax.common import profiling
 
 from . import da3c_config
-from .lib import da3c_episode
-
+from .lib import da3c_batch
 
 
 logger = logging.getLogger(__name__)
@@ -27,8 +26,8 @@ class Agent(object):
     # environment is ready and
     # waiting for agent to initialize
     def init(self, exploit=False, hogwild_update=True):
-        self.episode = da3c_episode.DA3CEpisode(self.ps, self.metrics, exploit, hogwild_update)
-        self.episode.begin()
+        self.batch = da3c_batch.DA3CBatch(self.ps, self.metrics, exploit, hogwild_update)
+        self.batch.begin()
         return True
 
     # environment generated new state and reward
@@ -36,15 +35,15 @@ class Agent(object):
     @profiler.wrap
     def update(self, reward, state, terminal):
         self.check_state_shape(state)
-        self.episode.step(reward, state, terminal)
+        self.batch.step(reward, state, terminal)
 
-        if len(self.episode.experience) == da3c_config.config.batch_size or terminal:
-            self.episode.end()
+        if len(self.batch.experience) == da3c_config.config.batch_size or terminal:
+            self.batch.end()
             if terminal:
-                self.episode.reset()
-            self.episode.begin()
+                self.batch.reset()
+            self.batch.begin()
 
-        return self.episode.last_action
+        return self.batch.last_action
 
     @staticmethod
     def check_state_shape(state):

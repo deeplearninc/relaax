@@ -49,8 +49,8 @@ class TrainingBase(object):
                         raise Exception('Can\'t reconnect, exiting...')
 
         except Exception as e:
-            log.error(str(e))
-            traceback.print_exc()
+            log.error("Error while running agent: %s" % str(e))
+            log.debug(traceback.format_exc())
 
         finally:
             # disconnect from the server

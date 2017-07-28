@@ -56,7 +56,7 @@ class RLXAgentProxy(object):
                 return self._error_message('unknown command')
         except BaseException as e:
             log.error("Error while processing [%s] command by the agent" % data.get('command'))
-            log.error(traceback.format_exc())
+            log.debug(traceback.format_exc())
             return self._error_message(str(e))
 
     def _error_message(self, message):

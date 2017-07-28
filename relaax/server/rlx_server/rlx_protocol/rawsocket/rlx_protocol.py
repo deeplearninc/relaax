@@ -45,7 +45,7 @@ class RLXProtocol(NetString):
             reason = "Unknown error"
             log.error(('Error in the protocol '
                        'for connection %s:%d') % self.address)
-            log.error(traceback.format_exc())
+            log.debug(traceback.format_exc())
         finally:
             self.connection_lost(reason)
 
