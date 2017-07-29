@@ -5,16 +5,30 @@ import errno
 import socket
 import logging
 import multiprocessing as mp
+import sys
+import os
 
 from .rlx_worker import RLXWorker
 
 log = logging.getLogger(__name__)
 
-
 class RLXPort(object):
 
     @classmethod
+    def handler_event(cls, dwCtrlType):
+        if dwCtrlType == 0 or dwCtrlType == 1 or dwCtrlType == 2:  # CTRL_C_EVENT
+            cls.stopped_server = True
+            cls.listener.close()
+            return 1  # don't chain to the next handler
+        return 0
+
+    @classmethod
     def listen(cls, server_address):
+        if sys.platform == 'win32':
+            from relaax.server.common.win32_ctl_handler import set_console_ctrl_handler
+            cls.stopped_server = False
+            set_console_ctrl_handler(cls.handler_event)      
+            
         cls.listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
             cls.listener.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
@@ -30,6 +44,9 @@ class RLXPort(object):
                 except socket.error as e:
                     if cls.handle_accept_socket_exeption(e):
                         continue
+                    if cls.stopped_server:
+                        break
+                            
                     raise
                 except KeyboardInterrupt:
                     # Swallow KeyboardInterrupt
@@ -50,18 +67,23 @@ class RLXPort(object):
     def start_worker(cls, connection, address):
         try:
             RLXWorker.run(connection, address)
+        except KeyboardInterrupt:
+            pass
         finally:
             log.debug('Closing connection %s:%d' % address)
-            try:
-                connection.shutdown(socket.SHUT_RDWR)
-            except socket.error as e:
-                # we don't care if the socket is already closed;
-                # this will often be the case if client closed connection first
-                if e.errno != errno.ENOTCONN:
-                    raise
-            finally:
-                connection.close()
-
+            if sys.platform == 'win32':
+                os._exit(-1)             
+            else:            
+                try:
+                    connection.shutdown(socket.SHUT_RDWR)
+                except socket.error as e:
+                    # we don't care if the socket is already closed;
+                    # this will often be the case if client closed connection first
+                    if e.errno != errno.ENOTCONN:
+                        raise
+                finally:
+                    connection.close()
+         
     @classmethod
     def handle_accept_socket_exeption(cls, error):
         if error.errno in (errno.EWOULDBLOCK, errno.EAGAIN):
