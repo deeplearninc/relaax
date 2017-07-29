@@ -19,10 +19,13 @@ class Network(subgraph.Subgraph):
 
         sizes = da3c_config.config.hidden_sizes
         layers = [input]
+        last_size = input.node.shape.as_list()[-1]
+        if len(sizes) > 0:
+            last_size = sizes[-1]
 
         if da3c_config.config.use_lstm:
-            lstm = layer.LSTM(graph.Expand(layer.Flatten(input), 0), size=sizes[-1])
-            head = graph.Reshape(lstm, [-1, sizes[-1]])
+            lstm = layer.LSTM(graph.Expand(layer.Flatten(input), 0), size=last_size)
+            head = graph.Reshape(lstm, [-1, last_size])
             layers.append(lstm)
 
             self.ph_lstm_state = lstm.ph_state
