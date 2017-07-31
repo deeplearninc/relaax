@@ -25,8 +25,13 @@ class Network(subgraph.Subgraph):
         if len(sizes) > 0:
             last_size = sizes[-1]
 
+        head = layer.GenericLayers(flattened_input,
+                                   [dict(type=layer.Dense, size=size,
+                                         activation=layer.Activation.Relu6) for size in sizes])
+        actor_layers.append(head)
+
         if da3c_config.config.use_lstm:
-            lstm = layer.LSTM(graph.Expand(flattened_input, 0), size=last_size)
+            lstm = layer.LSTM(graph.Expand(head, 0), size=last_size)
             head = graph.Reshape(lstm, [-1, last_size])
             actor_layers.append(lstm)
 
@@ -34,11 +39,6 @@ class Network(subgraph.Subgraph):
             self.ph_lstm_step = lstm.ph_step
             self.lstm_zero_state = lstm.zero_state
             self.lstm_state = lstm.state
-        else:
-            head = layer.GenericLayers(flattened_input,
-                                       [dict(type=layer.Dense, size=size,
-                                             activation=layer.Activation.Relu6) for size in sizes])
-            actor_layers.append(head)
 
         actor = layer.Actor(head, da3c_config.config.output)
         actor_layers.append(actor)
