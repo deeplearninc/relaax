@@ -138,24 +138,25 @@ class DDPGEpisode(object):
                                                               grad_ys=action_grads)
 
         if self.terminal and cfg.config.debug:
-            self.metrics.histogram('states', experience['state'])
-            self.metrics.histogram('action_target_scaled', action_target_scaled)
+            x = self.episode_cnt
+            self.metrics.histogram('states', experience['state'], x)
+            self.metrics.histogram('action_target_scaled', action_target_scaled, x)
 
             critic_sq_loss = self.session.op_critic_loss(state=experience['state'],
                                                          action=experience['action'],
                                                          predicted=np.vstack(y))
-            self.metrics.histogram('y', y)
-            self.metrics.scalar('critic_sq_loss', critic_sq_loss)
+            self.metrics.histogram('y', y, x)
+            self.metrics.scalar('critic_sq_loss', critic_sq_loss, x)
 
-            self.metrics.histogram('target_q', target_q)
-            self.metrics.histogram('predicted_q', predicted_q)
+            self.metrics.histogram('target_q', target_q, x)
+            self.metrics.histogram('predicted_q', predicted_q, x)
 
             for i, g in enumerate(utils.Utils.flatten(critic_grads)):
-                self.metrics.histogram('critic_grads_%d' % i, g)
+                self.metrics.histogram('critic_grads_%d' % i, g, x)
             for i, g in enumerate(utils.Utils.flatten(action_grads)):
-                self.metrics.histogram('action_grads_%d' % i, g)
+                self.metrics.histogram('action_grads_%d' % i, g, x)
             for i, g in enumerate(utils.Utils.flatten(actor_grads)):
-                self.metrics.histogram('actor_grads_%d' % i, g)
+                self.metrics.histogram('actor_grads_%d' % i, g, x)
 
         self.ps.session.op_apply_actor_gradients(gradients=actor_grads, increment=self.cur_loop_cnt)
         self.ps.session.op_apply_critic_gradients(gradients=critic_grads)
@@ -171,13 +172,15 @@ class DDPGEpisode(object):
         self.session.op_assign_critic_target_weights(weights=self.ps.session.op_get_critic_target_weights())
 
         if self.terminal and cfg.config.debug:
+            x = self.episode_cnt
+
             critic_weights = self.ps.session.op_get_critic_weights()
             for i, g in enumerate(utils.Utils.flatten(critic_weights)):
-                self.metrics.histogram('critic_weights_%d' % i, g)
+                self.metrics.histogram('critic_weights_%d' % i, g, x)
 
             critic_target_weights = self.ps.session.op_get_critic_target_weights()
             for i, g in enumerate(utils.Utils.flatten(critic_target_weights)):
-                self.metrics.histogram('critic_target_weights_%d' % i, g)
+                self.metrics.histogram('critic_target_weights_%d' % i, g, x)
 
     def push_experience(self, reward, state, terminal):
         assert self.observation.queue is not None
