@@ -43,7 +43,7 @@ class Network(subgraph.Subgraph):
         actor = layer.Actor(head, da3c_config.config.output)
         actor_layers.append(actor)
 
-        c1 = layer.Dense(flattened_input, 200, activation=layer.Activation.Relu6)
+        c1 = layer.Dense(flattened_input, 100, activation=layer.Activation.Relu6)
         critic = layer.Dense(c1, 1)
         critic_layers = (c1, critic)
 

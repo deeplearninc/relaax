@@ -63,7 +63,7 @@ class DA3CBatch(object):
     @profiler.wrap
     def step(self, reward, state, terminal):
         if reward is not None:
-            reward = reward / 100
+            # reward = reward / 10
             # reward = np.tanh(reward / 100)
             if da3c_config.config.use_icm:
                 reward += self.get_intrinsic_reward(state)
