@@ -34,15 +34,16 @@ class DDPGEpisode(object):
                                             'state', 'action', 'reward', 'terminal', 'next_state')
         self.episode.begin()
         self.observation = ddpg_observation.DDPGObservation()
-        self.last_action = None
-        self.episode_cnt = 0
-        self.cur_loop_cnt = 0
-        self.noise_epsilon = None
+        self.last_action = self.noise_epsilon = None
+        self.episode_cnt = self.cur_loop_cnt = 0
         self.exploration_noise = utils.OUNoise(cfg.config.output.action_size,
                                                cfg.config.exploration.ou_mu,
                                                cfg.config.exploration.ou_theta,
                                                cfg.config.exploration.ou_sigma,
                                                cfg.config.exploration.rnd_seed)
+        self.max_q = self.step_cnt = 0
+        self.terminal = False
+
         if hogwild_update:
             self.queue = queue.Queue(10)
             threading.Thread(target=self.execute_tasks).start()
@@ -57,6 +58,7 @@ class DDPGEpisode(object):
     @profiler.wrap
     def begin(self):
         self.do_task(self.receive_experience)
+        self.terminal = False
         self.episode_cnt = self.ps.session.op_get_episode_cnt()
         self.exploration_noise.reset(self.episode_cnt + cfg.config.exploration.rnd_seed)
         self.noise_epsilon = np.exp(-self.episode_cnt / cfg.config.exploration.tau)
@@ -64,6 +66,7 @@ class DDPGEpisode(object):
 
     @profiler.wrap
     def step(self, reward, state, terminal):
+        self.step_cnt += 1
         if self.cur_loop_cnt == cfg.config.loop_size:
             self.update()
             self.do_task(self.receive_experience)
@@ -75,12 +78,15 @@ class DDPGEpisode(object):
             self.observation.add_state(state)
 
         self.cur_loop_cnt += 1
+        self.terminal = terminal
 
         if terminal:
             self.update()
             self.cur_loop_cnt = 0
             self.ps.session.op_inc_episode_cnt(increment=1)
             self.observation.add_state(None)
+            print('Qmax: %.4f' % (self.max_q / float(self.step_cnt)))
+            self.max_q = self.step_cnt = 0
 
         assert self.last_action is None
         self.get_action()
@@ -113,23 +119,43 @@ class DDPGEpisode(object):
                                                      action=action_target_scaled.astype(np.float32))
 
         y = np.squeeze(np.asarray(experience['reward'])) + \
-            cfg.config.rewards_gamma * target_q * np.transpose(~np.asarray(experience['terminal']))
+            cfg.config.rewards_gamma * target_q * (~np.asarray(experience['terminal']))
+
         critic_grads = self.session.op_compute_critic_gradients(state=experience['state'],
                                                                 action=experience['action'],
                                                                 predicted=np.vstack(y))
-        for i, g in enumerate(utils.Utils.flatten(critic_grads)):
-            self.metrics.histogram('critic_grads_%d' % i, g)
+
+        predicted_q = self.session.op_get_critic_q(state=experience['state'],
+                                                   action=experience['action'],
+                                                   predicted=np.vstack(y))
+        self.max_q += np.amax(predicted_q)
 
         _, scaled_out = self.session.op_get_action(state=experience['state'])
         action_grads = self.session.op_compute_critic_action_gradients(state=experience['state'],
                                                                        action=scaled_out)
-        for i, g in enumerate(utils.Utils.flatten(action_grads)):
-            self.metrics.histogram('action_grads_%d' % i, g)
 
         actor_grads = self.session.op_compute_actor_gradients(state=experience['state'],
                                                               grad_ys=action_grads)
-        for i, g in enumerate(utils.Utils.flatten(actor_grads)):
-            self.metrics.histogram('actor_grads_%d' % i, g)
+
+        if self.terminal and cfg.config.debug:
+            self.metrics.histogram('states', experience['state'])
+            self.metrics.histogram('action_target_scaled', action_target_scaled)
+
+            critic_sq_loss = self.session.op_critic_loss(state=experience['state'],
+                                                         action=experience['action'],
+                                                         predicted=np.vstack(y))
+            self.metrics.histogram('y', y)
+            self.metrics.scalar('critic_sq_loss', critic_sq_loss)
+
+            self.metrics.histogram('target_q', target_q)
+            self.metrics.histogram('predicted_q', predicted_q)
+
+            for i, g in enumerate(utils.Utils.flatten(critic_grads)):
+                self.metrics.histogram('critic_grads_%d' % i, g)
+            for i, g in enumerate(utils.Utils.flatten(action_grads)):
+                self.metrics.histogram('action_grads_%d' % i, g)
+            for i, g in enumerate(utils.Utils.flatten(actor_grads)):
+                self.metrics.histogram('actor_grads_%d' % i, g)
 
         self.ps.session.op_apply_actor_gradients(gradients=actor_grads, increment=self.cur_loop_cnt)
         self.ps.session.op_apply_critic_gradients(gradients=critic_grads)
@@ -143,6 +169,15 @@ class DDPGEpisode(object):
         self.session.op_assign_critic_weights(weights=self.ps.session.op_get_critic_weights())
         self.session.op_assign_actor_target_weights(weights=self.ps.session.op_get_actor_target_weights())
         self.session.op_assign_critic_target_weights(weights=self.ps.session.op_get_critic_target_weights())
+
+        if self.terminal and cfg.config.debug:
+            critic_weights = self.ps.session.op_get_critic_weights()
+            for i, g in enumerate(utils.Utils.flatten(critic_weights)):
+                self.metrics.histogram('critic_weights_%d' % i, g)
+
+            critic_target_weights = self.ps.session.op_get_critic_target_weights()
+            for i, g in enumerate(utils.Utils.flatten(critic_target_weights)):
+                self.metrics.histogram('critic_target_weights_%d' % i, g)
 
     def push_experience(self, reward, state, terminal):
         assert self.observation.queue is not None
@@ -166,7 +201,10 @@ class DDPGEpisode(object):
             self.last_action = None
         else:
             self.last_action = self.get_action_from_network()
-            self.last_action += self.noise_epsilon * self.exploration_noise.noise()
+            if cfg.config.ou_noise:
+                self.last_action += self.noise_epsilon * self.exploration_noise.noise()
+            else:
+                self.last_action += 1. / (1. + float(self.episode_cnt))
             assert self.last_action is not None
 
     def get_action_from_network(self):

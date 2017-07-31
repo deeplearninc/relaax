@@ -134,7 +134,7 @@ def DA3CLoss(actor, critic, cfg):
     return Loss(actor, critic, cfg)
 
 
-class SquaredDiffLoss(subgraph.Subgraph):
+class MeanSquaredLoss(subgraph.Subgraph):
     def build_graph(self, y, size=1):
         self.ph_predicted = tf.placeholder(tf.float32, [None, size])
         return tf.reduce_mean(tf.square(self.ph_predicted - y))
@@ -143,8 +143,8 @@ class SquaredDiffLoss(subgraph.Subgraph):
 class L2Loss(subgraph.Subgraph):
     def build_graph(self, weights, l2_decay=0.01):
         flattened_weights = list(utils.Utils.flatten(weights.node))
-        l2_loss = tf.add_n([l2_decay * tf.nn.l2_loss(w) for w in flattened_weights])
-        return l2_loss
+        l2_loss = tf.add_n([tf.nn.l2_loss(w) for w in flattened_weights])
+        return l2_decay * l2_loss
 
 
 class PGLoss(subgraph.Subgraph):
