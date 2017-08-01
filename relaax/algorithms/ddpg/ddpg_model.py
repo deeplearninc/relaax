@@ -41,9 +41,9 @@ class CriticNetwork(subgraph.Subgraph):
 
         self.ph_state = input.ph_state
         self.ph_action = ph_action.node
-        self.weights = layer.Weights(input, dense_1st, dense_2nd, critic)
+        self.critic = graph.Flatten(critic)
 
-        return graph.Flatten(critic).node
+        self.weights = layer.Weights(input, dense_1st, dense_2nd, critic)
 
 
 # Weights of the policy are shared across
@@ -127,7 +127,7 @@ class AgentModel(subgraph.Subgraph):
                                              loss=graph.TfNode(sg_actor_network.actor.scaled_out),
                                              grad_ys=-ph_action_gradient.node)
 
-        sg_critic_loss = loss.MeanSquaredLoss(sg_critic_network.node)
+        sg_critic_loss = loss.MeanSquaredLoss(sg_critic_network.critic)
         if cfg.config.l2:
             sg_critic_l2loss = loss.L2Loss(sg_critic_network.weights, cfg.config.l2_decay)
             sg_critic_loss = graph.TfNode(sg_critic_loss.node + sg_critic_l2loss.node)
@@ -135,7 +135,7 @@ class AgentModel(subgraph.Subgraph):
         sg_critic_gradients = layer.Gradients(sg_critic_network.weights,
                                               loss=sg_critic_loss)
         sg_critic_action_gradients = layer.Gradients(graph.TfNode(sg_critic_network.ph_action),
-                                                     loss=sg_critic_network)
+                                                     loss=sg_critic_network.critic)
 
         # Expose public API
         self.op_assign_actor_weights = self.Op(sg_actor_network.weights.assign,
@@ -153,9 +153,6 @@ class AgentModel(subgraph.Subgraph):
                                                   state=sg_actor_network.ph_state,
                                                   grad_ys=ph_action_gradient)
 
-        self.op_get_value = self.Op(sg_critic_network,  # not used, cuz below try
-                                    state=sg_critic_network.ph_state,
-                                    action=sg_critic_network.ph_action)
         self.op_critic_loss = self.Op(sg_critic_loss,
                                       state=sg_critic_network.ph_state,
                                       action=sg_critic_network.ph_action,
@@ -171,11 +168,11 @@ class AgentModel(subgraph.Subgraph):
 
         self.op_get_actor_target = self.Op(sg_actor_target_network.actor,  # needs scaled_out (2nd)
                                            state=sg_actor_target_network.ph_state)
-        self.op_get_critic_target = self.Op(sg_critic_target_network,
+        self.op_get_critic_target = self.Op(sg_critic_target_network.critic,
                                             state=sg_critic_target_network.ph_state,
                                             action=sg_critic_target_network.ph_action)
 
-        self.op_get_critic_q = self.Op(sg_critic_network,
+        self.op_get_critic_q = self.Op(sg_critic_network.critic,
                                        state=sg_critic_network.ph_state,
                                        action=sg_critic_network.ph_action)
 
