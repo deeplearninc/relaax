@@ -1,6 +1,6 @@
 environment:
   run: python training.py
-  steps: 3000
+  steps: 10000
   max_episodes: 1
   infinite_run: false
 
@@ -38,7 +38,7 @@ algorithm:
   output:
     continuous: true             # set to true to switch to continuous action space
     loss_type: Normal             # choose loss_type by name for continuous action space
-    action_size: 1                # action size for the given environment
+    action_size: 2                # action size for the given environment
     action_low: [0]
     action_high: [1]
     scale: 1.0                    # multiplier to scale continuous output

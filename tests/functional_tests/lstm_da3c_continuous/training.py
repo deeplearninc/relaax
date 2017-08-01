@@ -15,7 +15,7 @@ class Training(TrainingBase):
     def __init__(self):
         super(Training, self).__init__()
         self.steps = options.get('environment/steps', 1000)
-        self.history_len = 1
+        self.history_len = 2
         self.ring_buffer = RingBuffer(self.history_len)
         for _ in range(self.ring_buffer.size - 1):
             self.ring_buffer.append(0)
