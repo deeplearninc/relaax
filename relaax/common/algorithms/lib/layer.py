@@ -97,6 +97,7 @@ class DoubleDense(BaseLayer):
         initializer = graph.RandomUniformInitializer(minval=-d, maxval=d)
         W2 = graph.Variable(initializer(np.float32, shape2)).node
 
+        initializer = graph.RandomUniformInitializer()
         b = graph.Variable(initializer(np.float32, shape2[-1:])).node
         self.weight = graph.TfNode((W1, W2, b))
 

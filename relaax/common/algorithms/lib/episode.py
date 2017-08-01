@@ -42,6 +42,5 @@ class ReplayBuffer(Episode):
         idx = np.random.choice(self.experience._len, batch_size, replace=False)
         sample = {k: [] for k in self.experience._lists}
         for k, v in sample.items():
-            for i in idx:
-                v.append(self.experience[k][i])
+            v.extend(np.asarray(self.experience[k])[idx])
         return sample
