@@ -38,6 +38,31 @@ class DA3CDiscreteLoss(subgraph.Subgraph):
         return self.policy_loss + self.value_loss
 
 
+class DQNLoss(subgraph.Subgraph):
+    def build_graph(self, q_network,
+                    output, double_dqn, gamma):  # TODO: refactor into single variable
+        self.ph_reward = tf.placeholder(tf.float32, [None])
+        self.ph_action = tf.placeholder(tf.int32, [None])
+        self.ph_terminal = tf.placeholder(tf.int32, [None])
+        self.ph_q_next_target = tf.placeholder(tf.float32, [None, output.action_size])
+
+        # q_action = tf.gather_nd(self._q_network(state), tf.stack([tf.range(0, None), action], axis=1))
+        q_action = tf.gather_nd(q_network.node, tf.stack([tf.range(0, None), self.ph_action], axis=1))
+        if double_dqn:
+            # q_next = self._q_network(self.ph_next_state, True)
+            self.ph_q_next = tf.placeholder(tf.float32, [None, output.action_size])
+
+            # q_max = tf.gather_nd(self._q_network_target(self.ph_next_state), tf.stack([tf.range(0, None), tf.cast(tf.argmax(q_next, axis=1), tf.int32)], axis=1))
+            q_max = tf.gather_nd(self.ph_q_next_target, tf.stack([tf.range(0, None), tf.cast(tf.argmax(self.ph_q_next, axis=1), tf.int32)], axis=1))
+        else:
+            # q_max = tf.reduce_max(self._q_network_target(self.ph_next_state), axis=1)
+            q_max = tf.reduce_max(self.ph_q_next_target, axis=1)
+
+        y = tf.add(self.ph_reward, tf.multiply(tf.cast(tf.subtract(1, self.ph_terminal), tf.float32), tf.scalar_mul(gamma, q_max)))
+
+        return tf.losses.absolute_difference(q_action, y)
+
+
 class DA3CNormContinuousLoss(subgraph.Subgraph):
     def build_graph(self, actor, critic, cfg):
         self.ph_action = graph.Placeholder(np.float32, shape=(None, actor.action_size))
