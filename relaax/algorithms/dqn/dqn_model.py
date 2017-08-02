@@ -68,7 +68,7 @@ class AgentModel(subgraph.Subgraph):
 
         sg_get_action = GetAction()
 
-        sg_loss = loss.DQNLoss(sg_network, cfg.config.output, cfg.config.double_dqn, cfg.config.rewards_gamma)
+        sg_loss = loss.DQNLoss(sg_network.output, cfg.config.output, cfg.config.double_dqn, cfg.config.rewards_gamma)
         sg_gradients = layer.Gradients(sg_network.weights, loss=sg_loss)
 
         # Expose public API
