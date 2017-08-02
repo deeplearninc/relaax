@@ -19,6 +19,9 @@ from .. import da3c_model
 from . import da3c_observation
 
 
+M = False
+
+
 logger = logging.getLogger(__name__)
 profiler = profiling.get_profiler(__name__)
 
@@ -71,8 +74,9 @@ class DA3CBatch(object):
                 state = None
         else:
             assert state is not None
-        if state is not None:
-            self.metrics.histogram('state', state)
+        if M:
+            if state is not None:
+                self.metrics.histogram('state', state)
         self.observation.add_state(state)
 
         self.terminal = terminal
@@ -117,8 +121,9 @@ class DA3CBatch(object):
     def receive_experience(self):
         self.ps.session.op_check_weights()
         weights = self.ps.session.op_get_weights()
-        for i, w in enumerate(utils.Utils.flatten(weights)):
-            self.metrics.histogram('weight_%d' % i, w)
+        if M:
+            for i, w in enumerate(utils.Utils.flatten(weights)):
+                self.metrics.histogram('weight_%d' % i, w)
         self.session.op_assign_weights(weights=weights)
         if da3c_config.config.use_icm:
             self.session.op_icm_assign_weights(weights=self.ps.session.op_icm_get_weights())
@@ -159,12 +164,14 @@ class DA3CBatch(object):
 
         value, = value
         if len(action) == 1:
-            self.metrics.histogram('action', action)
+            if M:
+                self.metrics.histogram('action', action)
             probabilities, = action
             return utils.choose_action_descrete(probabilities), value
         mu, sigma2 = action
-        self.metrics.histogram('mu', mu)
-        self.metrics.histogram('sigma2', sigma2)
+        if M:
+            self.metrics.histogram('mu', mu)
+            self.metrics.histogram('sigma2', sigma2)
         return utils.choose_action_continuous(mu, sigma2,
                                               da3c_config.config.output.action_low,
                                               da3c_config.config.output.action_high), value
@@ -208,7 +215,9 @@ class DA3CBatch(object):
         if da3c_config.config.use_gae:
             feeds.update(dict(advantage=advantage))
 
-        return self.session.op_compute_gradients(**feeds)
+        gradients, summaries = self.session.op_compute_gradients_and_summaries(**feeds)
+        self.metrics.summary(summaries)
+        return gradients
 
     def compute_icm_gradients(self, experience):
         states, icm_states = experience['state'], []
@@ -219,8 +228,9 @@ class DA3CBatch(object):
             discounted_reward=self.discounted_reward)
 
     def apply_gradients(self, gradients, experience_size):
-        for i, g in enumerate(utils.Utils.flatten(gradients)):
-            self.metrics.histogram('gradients_%d' % i, g)
+        if M:
+            for i, g in enumerate(utils.Utils.flatten(gradients)):
+                self.metrics.histogram('gradients_%d' % i, g)
         self.ps.session.op_apply_gradients(gradients=gradients, increment=experience_size)
         self.ps.session.op_check_weights()
 

@@ -189,17 +189,23 @@ class Weights(subgraph.Subgraph):
                                     utils.Utils.izip(weights, self.ph_weights.checked)])
         self.check = graph.TfNode(tf.group(*[tf.check_numerics(w, 'weight_%d' % i) for i, w in
                                              enumerate(utils.Utils.flatten(weights))]))
+        self.global_norm = tf.global_norm(list(utils.Utils.flatten(weights)))
         return weights
 
 
 class Gradients(subgraph.Subgraph):
     def build_graph(self, weights, loss=None, optimizer=None, norm=False):
         if loss is not None:
-            grads = tf.gradients(loss.node, list(utils.Utils.flatten(weights.node)))
+            gradients = tf.gradients(loss.node, list(utils.Utils.flatten(weights.node)))
+            gradients = [tf.check_numerics(g, 'gradient_%d' % i) for i, g in enumerate(gradients)]
+
+            # store gradients global norm before clipping
+            self.global_norm = tf.global_norm(gradients)
+
+            # clip gradients after global norm has been stored
             if norm:
-                grads, _ = tf.clip_by_global_norm(grads, norm)
-            grads = (tf.check_numerics(g, 'gradient_%d' % i) for i, g in enumerate(grads))
-            self.calculate = graph.TfNode(utils.Utils.reconstruct(grads, weights.node))
+                gradients, _ = tf.clip_by_global_norm(gradients, norm)
+            self.calculate = graph.TfNode(utils.Utils.reconstruct(gradients, weights.node))
         if optimizer is not None:
             self.ph_gradients = graph.Placeholders(weights)
             self.apply = graph.TfNode(optimizer.node.apply_gradients(

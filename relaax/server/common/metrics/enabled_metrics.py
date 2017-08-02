@@ -9,6 +9,9 @@ class EnabledMetrics(metrics.Metrics):
         self._options = options.get('metrics', {})
         self._metrics = metrics
 
+    def summary(self, summary, x=None):
+        self._metrics.summary(summary, x)
+
     def scalar(self, name, y, x=None):
         if self._enabled(name):
             self._metrics.scalar(name, y, x)

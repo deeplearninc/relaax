@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import tensorflow as tf
+
 from relaax.common.algorithms import subgraph
 from relaax.common.algorithms.lib import graph
 from relaax.common.algorithms.lib import layer
@@ -117,6 +119,17 @@ class AgentModel(subgraph.Subgraph):
                                             state=sg_icm_network.ph_state, action=sg_icm_loss.ph_action,
                                             discounted_reward=sg_icm_loss.ph_discounted_reward)
 
+        batch_size = tf.to_float(tf.shape(sg_network.ph_state.node)[0])
+
+        summaries = tf.summary.merge([
+            tf.summary.scalar('batch_size', batch_size),
+            tf.summary.scalar('policy_loss', sg_loss.policy_loss / batch_size),
+            tf.summary.scalar('value_loss', sg_loss.value_loss / batch_size),
+            tf.summary.scalar('entropy', sg_loss.entropy / batch_size),
+            # tf.summary.image('state', sg_network.ph_state.node),
+            tf.summary.scalar('gradients_global_norm', sg_gradients.global_norm),
+            tf.summary.scalar('weights_global_norm', sg_network.weights.global_norm)])
+
         # Expose public API
         self.op_assign_weights = self.Op(sg_network.weights.assign,
                                          weights=sg_network.weights.ph_weights)
@@ -131,14 +144,15 @@ class AgentModel(subgraph.Subgraph):
             feeds.update(dict(lstm_state=sg_network.ph_lstm_state, lstm_step=sg_network.ph_lstm_step))
             self.lstm_zero_state = sg_network.lstm_zero_state
             self.op_get_action_value_and_lstm_state = self.Ops(sg_network.actor, sg_network.critic,
-                                                               sg_network.lstm_state, state=sg_network.ph_state,
+                                                               sg_network.lstm_state,
+                                                               state=sg_network.ph_state,
                                                                lstm_state=sg_network.ph_lstm_state,
                                                                lstm_step=sg_network.ph_lstm_step)
         else:
             self.op_get_action_and_value = self.Ops(sg_network.actor, sg_network.critic,
                                                     state=sg_network.ph_state)
 
-        self.op_compute_gradients = self.Op(sg_gradients.calculate, **feeds)
+        self.op_compute_gradients_and_summaries = self.Ops(sg_gradients.calculate, summaries, **feeds)
 
 
 if __name__ == '__main__':

@@ -60,14 +60,17 @@ class PsBridgeMetrics(metrics.Metrics):
         self.connection = connection
 
     @profiler.wrap
+    def summary(self, summary, x=None):
+        self.send('summary', summary=summary, x=x)
+
+    @profiler.wrap
     def scalar(self, name, y, x=None):
-        self.send('scalar', name, y, x)
+        self.send('scalar', name=name, y=y, x=x)
 
     @profiler.wrap
     def histogram(self, name, y, x=None):
-        self.send('histogram', name, y, x)
+        self.send('histogram', name=name, y=y, x=x)
 
-    def send(self, method, name, y, x):
-        messages = bridge_message.BridgeMessage.serialize(
-                dict(method=method, kwargs=dict(name=name, y=y, x=x)))
+    def send(self, method, **kwargs):
+        messages = bridge_message.BridgeMessage.serialize(dict(method=method, kwargs=kwargs))
         self.connection.stub.StoreMetric(messages)
