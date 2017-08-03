@@ -158,6 +158,23 @@ class DDPGEpisode(object):
             for i, g in enumerate(utils.Utils.flatten(actor_grads)):
                 self.metrics.histogram('actor_grads_%d' % i, g, x)
 
+        if cfg.config.log:
+            norm_critic_grads = self.session.op_compute_norm_critic_gradients(state=experience['state'],
+                                                                              action=experience['action'],
+                                                                              predicted=np.vstack(y))
+            norm_action_grads = self.session.op_compute_norm_critic_action_gradients(state=experience['state'],
+                                                                                     action=scaled_out)
+            norm_actor_grads = self.session.op_compute_norm_actor_gradients(state=experience['state'],
+                                                                            grad_ys=action_grads)
+            print('critic_grads_norm', norm_critic_grads)
+            print('action_grads_norm', norm_action_grads)
+            print('actor_grads_norm', norm_actor_grads)
+
+            print('batch_states', experience['state'])
+            print('batch_actions', experience['action'])
+            print('batch_rewards', experience['reward'])
+            print('batch_next_states', experience['next_state'])
+
         self.ps.session.op_apply_actor_gradients(gradients=actor_grads, increment=self.cur_loop_cnt)
         self.ps.session.op_apply_critic_gradients(gradients=critic_grads)
 
@@ -197,6 +214,11 @@ class DDPGEpisode(object):
             terminal=terminal,
             next_state=self.observation.queue
         )
+        if cfg.config.log:
+            print('step_state', old_state)
+            print('step_action', self.last_action)
+            print('step_reward', reward)
+
         self.last_action = None
 
     def get_action(self):

@@ -2,6 +2,7 @@ from relaax.common.python.config.loaded_config import options
 
 config = options.get('algorithm')
 config.debug = options.get('algorithm/debug', True)
+config.log = options.get('algorithm/log', True)
 
 config.buffer_size = options.get('algorithm/buffer_size', 4*10**5)
 config.batch_size = options.get('algorithm/batch_size', 64)

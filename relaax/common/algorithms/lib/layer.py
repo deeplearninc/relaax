@@ -236,11 +236,14 @@ class Weights(subgraph.Subgraph):
 
 
 class Gradients(subgraph.Subgraph):
-    def build_graph(self, weights, loss=None, optimizer=None, norm=False, batch_size=None, grad_ys=None):
+    def build_graph(self, weights, loss=None, optimizer=None,
+                    norm=False, batch_size=None, grad_ys=None, log=False):
         if loss is not None:
             grads = tf.gradients(loss.node, list(utils.Utils.flatten(weights.node)), grad_ys)
+            if log:
+                self.global_norm = graph.TfNode(tf.global_norm(grads))
             if batch_size is not None:
-                grads = [g / float(batch_size) if g is not None else g for g in grads]
+                grads = [g / float(batch_size) for g in grads]
             if norm:
                 grads, _ = tf.clip_by_global_norm(grads, norm)
             grads = (tf.check_numerics(g, 'gradient_%d' % i) for i, g in enumerate(grads))
@@ -249,4 +252,3 @@ class Gradients(subgraph.Subgraph):
             self.ph_gradients = graph.Placeholders(weights)
             self.apply = graph.TfNode(optimizer.node.apply_gradients(
                 utils.Utils.izip(self.ph_gradients.checked, weights.node)))
-
