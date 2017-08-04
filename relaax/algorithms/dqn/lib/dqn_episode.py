@@ -11,7 +11,6 @@ import threading
 
 from relaax.common import profiling
 from relaax.server.common import session
-from relaax.common.algorithms.lib import episode
 from relaax.common.algorithms.lib import utils
 
 from .. import dqn_config
@@ -30,11 +29,11 @@ class DQNEpisode(object):
         self.metrics = metrics
         model = dqn_model.AgentModel()
         self.session = session.Session(model)
-        self.reset()
+        self.session.op_initialize()
         self.replay_buffer = dqn_utils.ReplayBuffer(dqn_config.config.replay_buffer_size)
         self.observation = dqn_utils.DQNObservation()
         self.last_action = None
-        self.global_step = 0
+        self.local_step = 0
         if hogwild_update:
             self.queue = queue.Queue(10)
             threading.Thread(target=self.execute_tasks).start()
@@ -42,20 +41,15 @@ class DQNEpisode(object):
         else:
             self.queue = None
 
-    @property
-    def experience(self):
-        return self.episode.experience
-
     @profiler.wrap
     def begin(self):
         self.do_task(self.receive_experience)
         self.get_action()
-        self.episode.begin()
 
     @profiler.wrap
     def step(self, reward, state, terminal):
-        self.global_step = self.ps.session.op_global_step()
-        if self.global_step % 2000:
+        self.local_step += 1
+        if self.local_step % 2000:
             self.ps.session.op_update_target_weights()
 
         self.update()
@@ -74,14 +68,10 @@ class DQNEpisode(object):
 
     @profiler.wrap
     def update(self):
-        if self.global_step > dqn_config.config.start_sample_step:
+        if self.local_step > dqn_config.config.start_sample_step:
             experience = self.replay_buffer.sample(dqn_config.config.batch_size)
             if not self.exploit:
                 self.do_task(lambda: self.send_experience(experience))
-
-    @profiler.wrap
-    def reset(self):
-        self.episode = episode.Episode('reward', 'state', 'action', 'value')
 
     # Helper methods
 
@@ -119,8 +109,8 @@ class DQNEpisode(object):
         weights = self.ps.session.op_get_weights()
         self.session.op_assign_weights(weights=weights)
 
-        target_weights = self.ps.session.op_get_target_weights()
-        self.session.op_assign_target_weights(target_weights=target_weights)
+        # target_weights = self.ps.session.op_get_target_weights()
+        # self.session.op_assign_target_weights(target_weights=target_weights)
 
     def push_experience(self, reward, state, terminal):
         assert self.observation.queue is not None
@@ -148,5 +138,5 @@ class DQNEpisode(object):
     def get_action_from_network(self):
         q_value = self.session.get_q_value(state=[self.observation.queue])
 
-        return self.session.get_action(global_step=self.global_step,
+        return self.session.get_action(global_step=self.local_step,
                                        q_value=q_value)

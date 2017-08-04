@@ -49,7 +49,7 @@ class GlobalServer(subgraph.Subgraph):
         sg_initialize = graph.Initialize()
 
         # Expose public API
-        self.op_global_step = self.Op(sg_global_step.n)
+        self.op_n_step = self.Op(sg_global_step.n)
         self.op_get_weights = self.Op(sg_weights)
         self.op_update_target_weights = self.Op(sg_update_target_weights)
         self.op_get_target_weights = self.Op(sg_target_weights)
@@ -81,6 +81,8 @@ class AgentModel(subgraph.Subgraph):
                                   global_step=sg_get_action.ph_global_step,
                                   q_value=sg_get_action.ph_q_value)
 
+        sg_initialize = graph.Initialize()
+
         feeds = dict(state=sg_network.ph_state,
                      reward=sg_loss.ph_reward,
                      action=sg_loss.ph_action,
@@ -91,6 +93,8 @@ class AgentModel(subgraph.Subgraph):
             feeds["q_next"] = sg_loss.ph_q_next
 
         self.op_compute_gradients = self.Op(sg_gradients.calculate, **feeds)
+
+        self.op_initialize = self.Op(sg_initialize)
 
 
 if __name__ == '__main__':
