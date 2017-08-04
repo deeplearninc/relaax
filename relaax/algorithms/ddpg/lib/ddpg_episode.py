@@ -166,14 +166,14 @@ class DDPGEpisode(object):
                                                                                      action=scaled_out)
             norm_actor_grads = self.session.op_compute_norm_actor_gradients(state=experience['state'],
                                                                             grad_ys=action_grads)
-            print('critic_grads_norm', norm_critic_grads)
-            print('action_grads_norm', norm_action_grads)
-            print('actor_grads_norm', norm_actor_grads)
+            self.metrics.scalar('critic_grads_norm', norm_critic_grads)
+            self.metrics.scalar('action_grads_norm', norm_action_grads)
+            self.metrics.scalar('actor_grads_norm', norm_actor_grads)
 
-            print('batch_states', experience['state'])
-            print('batch_actions', experience['action'])
-            print('batch_rewards', experience['reward'])
-            print('batch_next_states', experience['next_state'])
+            self.metrics.histogram('batch_states', experience['state'])
+            self.metrics.histogram('batch_actions', experience['action'])
+            self.metrics.histogram('batch_rewards', experience['reward'])
+            self.metrics.histogram('batch_next_states', experience['next_state'])
 
         self.ps.session.op_apply_actor_gradients(gradients=actor_grads, increment=self.cur_loop_cnt)
         self.ps.session.op_apply_critic_gradients(gradients=critic_grads)
@@ -215,9 +215,9 @@ class DDPGEpisode(object):
             next_state=self.observation.queue
         )
         if cfg.config.log:
-            print('step_state', old_state)
-            print('step_action', self.last_action)
-            print('step_reward', reward)
+            self.metrics.histogram('step_state', old_state)
+            self.metrics.histogram('step_action', self.last_action)
+            self.metrics.scalar('step_reward', reward)
 
         self.last_action = None
 
