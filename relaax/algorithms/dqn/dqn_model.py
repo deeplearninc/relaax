@@ -73,7 +73,7 @@ class AgentModel(subgraph.Subgraph):
 
         # Expose public API
         self.op_assign_weights = self.Op(sg_network.weights.assign, weights=sg_network.weights.ph_weights)
-        self.op_assign_target_weights = self.Op(sg_target_network.weights.assign, weights=sg_target_network.weights.ph_weights)
+        self.op_assign_target_weights = self.Op(sg_target_network.weights.assign, target_weights=sg_target_network.weights.ph_weights)
 
         self.get_q_value = self.Op(sg_network.output.node, state=sg_network.ph_state)
         self.get_q_target_value = self.Op(sg_target_network.output.node, next_state=sg_target_network.ph_state)

@@ -109,8 +109,8 @@ class DQNEpisode(object):
         weights = self.ps.session.op_get_weights()
         self.session.op_assign_weights(weights=weights)
 
-        # target_weights = self.ps.session.op_get_target_weights()
-        # self.session.op_assign_target_weights(target_weights=target_weights)
+        target_weights = self.ps.session.op_get_target_weights()
+        self.session.op_assign_target_weights(target_weights=target_weights)
 
     def push_experience(self, reward, state, terminal):
         assert self.observation.queue is not None
