@@ -182,19 +182,26 @@ class DDPGEpisode(object):
 
     @profiler.wrap
     def receive_experience(self):
-        self.session.op_assign_actor_weights(weights=self.ps.session.op_get_actor_weights())
-        self.session.op_assign_critic_weights(weights=self.ps.session.op_get_critic_weights())
-        self.session.op_assign_actor_target_weights(weights=self.ps.session.op_get_actor_target_weights())
-        self.session.op_assign_critic_target_weights(weights=self.ps.session.op_get_critic_target_weights())
+        actor_weights = self.ps.session.op_get_actor_weights()
+        self.session.op_assign_actor_weights(weights=actor_weights)
+        critic_weights = self.ps.session.op_get_critic_weights()
+        self.session.op_assign_critic_weights(weights=critic_weights)
+
+        actor_target_weights = self.ps.session.op_get_actor_target_weights()
+        self.session.op_assign_actor_target_weights(weights=actor_target_weights)
+        critic_target_weights = self.ps.session.op_get_critic_target_weights()
+        self.session.op_assign_critic_target_weights(weights=critic_target_weights)
 
         if self.terminal and cfg.config.debug:
             x = self.episode_cnt
 
-            critic_weights = self.ps.session.op_get_critic_weights()
+            for i, g in enumerate(utils.Utils.flatten(actor_weights)):
+                self.metrics.histogram('actor_weights_%d' % i, g, x)
             for i, g in enumerate(utils.Utils.flatten(critic_weights)):
                 self.metrics.histogram('critic_weights_%d' % i, g, x)
 
-            critic_target_weights = self.ps.session.op_get_critic_target_weights()
+            for i, g in enumerate(utils.Utils.flatten(actor_target_weights)):
+                self.metrics.histogram('actor_target_weights_%d' % i, g, x)
             for i, g in enumerate(utils.Utils.flatten(critic_target_weights)):
                 self.metrics.histogram('critic_target_weights_%d' % i, g, x)
 

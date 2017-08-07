@@ -20,7 +20,7 @@ class Agent(object):
 
     # environment is ready and
     # waiting for agent to initialize
-    def init(self, exploit=False, hogwild_update=True):
+    def init(self, exploit=False, hogwild_update=False):
         self.episode = ddpg_episode.DDPGEpisode(self.ps, self.metrics, exploit, hogwild_update)
         self.episode.begin()
         return True
