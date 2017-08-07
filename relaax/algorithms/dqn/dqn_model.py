@@ -46,13 +46,16 @@ class GlobalServer(subgraph.Subgraph):
             raise NotImplementedError
 
         sg_gradients = layer.Gradients(sg_weights, optimizer=sg_optimizer)
+
         sg_initialize = graph.Initialize()
 
         # Expose public API
         self.op_n_step = self.Op(sg_global_step.n)
+
         self.op_get_weights = self.Op(sg_weights)
-        self.op_update_target_weights = self.Op(sg_update_target_weights)
         self.op_get_target_weights = self.Op(sg_target_weights)
+
+        self.op_update_target_weights = self.Op(sg_update_target_weights)
         self.op_apply_gradients = self.Ops(sg_gradients.apply, sg_global_step.increment,
                                            gradients=sg_gradients.ph_gradients,
                                            increment=sg_global_step.ph_increment)
@@ -75,11 +78,11 @@ class AgentModel(subgraph.Subgraph):
         self.op_assign_weights = self.Op(sg_network.weights.assign, weights=sg_network.weights.ph_weights)
         self.op_assign_target_weights = self.Op(sg_target_network.weights.assign, target_weights=sg_target_network.weights.ph_weights)
 
-        self.get_q_value = self.Op(sg_network.output.node, state=sg_network.ph_state)
-        self.get_q_target_value = self.Op(sg_target_network.output.node, next_state=sg_target_network.ph_state)
-        self.get_action = self.Op(sg_get_action,
-                                  global_step=sg_get_action.ph_global_step,
-                                  q_value=sg_get_action.ph_q_value)
+        self.op_get_q_value = self.Op(sg_network.output.node, state=sg_network.ph_state)
+        self.op_get_q_target_value = self.Op(sg_target_network.output.node, next_state=sg_target_network.ph_state)
+        self.op_get_action = self.Op(sg_get_action,
+                                     global_step=sg_get_action.ph_global_step,
+                                     q_value=sg_get_action.ph_q_value)
 
         sg_initialize = graph.Initialize()
 

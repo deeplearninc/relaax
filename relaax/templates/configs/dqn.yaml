@@ -20,6 +20,7 @@ algorithm:
 
   max_global_step: 150000         # amount of maximum global steps to pass through the training
   start_sample_step: 2000
+  update_target_interval: 2000
 
   rewards_gamma: 1.0              # rewards discount factor
 
