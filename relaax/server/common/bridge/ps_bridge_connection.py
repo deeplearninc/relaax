@@ -26,8 +26,17 @@ class PsBridgeConnection(object):
     def stub(self):
         if self._stub is None:
             self._stub = bridge_pb2.BridgeStub(grpc.insecure_channel('%s:%d' % self._server))
-            self._stub.Init(bridge_pb2.NullMessage())
+            self._init_ten_times()
         return self._stub
+
+    def _init_ten_times(self):
+        message = bridge_pb2.NullMessage()
+        for _ in range(9):
+            try:
+                return self._stub.Init(message)
+            except grpc.RpcError as e:
+                pass
+        return self._stub.Init(message)
 
 
 class PsBridgeSession(object):

@@ -22,14 +22,20 @@ class MetricsBridgeConnection(object):
         self._stub = None
 
     def set_x(self, x):
-        self.stub.SetX(bridge_pb2.X(x=x))
+        message = bridge_pb2.X(x=x)
+        self.send('SetX', lambda: message)
 
-
-    @property
-    def stub(self):
+    def send(self, method_name, message_factory):
         if self._stub is None:
             self._stub = bridge_pb2.BridgeStub(grpc.insecure_channel('%s:%d' % self._server))
-        return self._stub
+            for _ in range(9):
+                method = getattr(self._stub, method_name)
+                message = message_factory()
+                try:
+                    return method(message)
+                except grpc.RpcError as e:
+                    pass
+        return getattr(self._stub, method_name)(message_factory())
 
 
 class BridgeMetrics(metrics.Metrics):
@@ -38,13 +44,12 @@ class BridgeMetrics(metrics.Metrics):
 
     @profiler.wrap
     def scalar(self, name, y, x=None):
-        self.send('scalar', name, y, x)
+        self.send('scalar', name=name, y=y, x=x)
 
     @profiler.wrap
     def histogram(self, name, y, x=None):
-        self.send('histogram', name, y, x)
+        self.send('histogram', name=name, y=y, x=x)
 
-    def send(self, method, name, y, x):
-        messages = bridge_message.BridgeMessage.serialize(
-                dict(method=method, kwargs=dict(name=name, y=y, x=x)))
-        self.connection.stub.StoreMetric(messages)
+    def send(self, method, **kwargs):
+        data = dict(method=method, kwargs=kwargs)
+        self.connection.send('StoreMetric', lambda: bridge_message.BridgeMessage.serialize(data))
