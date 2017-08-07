@@ -126,8 +126,7 @@ class DDPGEpisode(object):
                                                                 predicted=np.vstack(y))
 
         predicted_q = self.session.op_get_critic_q(state=experience['state'],
-                                                   action=experience['action'],
-                                                   predicted=np.vstack(y))
+                                                   action=experience['action'])
         self.max_q += np.amax(predicted_q)
 
         _, scaled_out = self.session.op_get_action(state=experience['state'])
