@@ -32,7 +32,6 @@ class Network(subgraph.Subgraph):
             layers.append(lstm)
 
             self.ph_lstm_state = lstm.ph_state
-            self.ph_lstm_step = lstm.ph_step
             self.lstm_zero_state = lstm.zero_state
             self.lstm_state = lstm.state
         else:
@@ -122,17 +121,14 @@ class AgentModel(subgraph.Subgraph):
         batch_size = tf.to_float(tf.shape(sg_network.ph_state.node)[0])
 
         summaries = tf.summary.merge([
-            tf.summary.scalar('batch_size', batch_size),
             tf.summary.scalar('policy_loss', sg_loss.policy_loss / batch_size),
             tf.summary.scalar('value_loss', sg_loss.value_loss / batch_size),
             tf.summary.scalar('entropy', sg_loss.entropy / batch_size),
-            # tf.summary.image('state', sg_network.ph_state.node),
             tf.summary.scalar('gradients_global_norm', sg_gradients.global_norm),
             tf.summary.scalar('weights_global_norm', sg_network.weights.global_norm)])
 
         # Expose public API
-        self.op_assign_weights = self.Op(sg_network.weights.assign,
-                                         weights=sg_network.weights.ph_weights)
+        self.op_assign_weights = self.Op(sg_network.weights.assign, weights=sg_network.weights.ph_weights)
 
         feeds = dict(state=sg_network.ph_state, action=sg_loss.ph_action,
                      value=sg_loss.ph_value, discounted_reward=sg_loss.ph_discounted_reward)
@@ -141,13 +137,12 @@ class AgentModel(subgraph.Subgraph):
             feeds.update(dict(advantage=sg_loss.ph_advantage))
 
         if da3c_config.config.use_lstm:
-            feeds.update(dict(lstm_state=sg_network.ph_lstm_state, lstm_step=sg_network.ph_lstm_step))
+            feeds.update(dict(lstm_state=sg_network.ph_lstm_state))
             self.lstm_zero_state = sg_network.lstm_zero_state
             self.op_get_action_value_and_lstm_state = self.Ops(sg_network.actor, sg_network.critic,
                                                                sg_network.lstm_state,
                                                                state=sg_network.ph_state,
-                                                               lstm_state=sg_network.ph_lstm_state,
-                                                               lstm_step=sg_network.ph_lstm_step)
+                                                               lstm_state=sg_network.ph_lstm_state)
         else:
             self.op_get_action_and_value = self.Ops(sg_network.actor, sg_network.critic,
                                                     state=sg_network.ph_state)

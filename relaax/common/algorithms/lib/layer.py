@@ -75,8 +75,6 @@ class Dense(BaseLayer):
 
 class LSTM(subgraph.Subgraph):
     def build_graph(self, x, batch_size=1, size=256):
-        self.ph_step = graph.Placeholder(np.int32, [batch_size])
-
         self.phs = [graph.Placeholder(np.float32, [batch_size, size]) for _ in range(2)]
         self.ph_state = graph.TfNode(tuple(ph.node for ph in self.phs))
         self.ph_state.checked = tuple(ph.checked for ph in self.phs)
@@ -87,14 +85,12 @@ class LSTM(subgraph.Subgraph):
 
         lstm = tf.contrib.rnn.BasicLSTMCell(size, state_is_tuple=True)
 
-        with tf.variable_scope('LSTM') as scope:
-            outputs, self.state = tf.nn.dynamic_rnn(lstm, x.node,
-                                                    initial_state=state, sequence_length=self.ph_step.node,
-                                                    time_major=False, scope=scope)
-            self.state = graph.TfNode(self.state)
-            scope.reuse_variables()
-            self.weight = graph.TfNode((tf.get_variable('basic_lstm_cell/kernel'),
-                                        tf.get_variable('basic_lstm_cell/bias')))
+        outputs, self.state = tf.nn.dynamic_rnn(lstm, x.node, initial_state=state,
+                                                sequence_length=tf.shape(x.node)[:1], time_major=False)
+
+        self.state = graph.TfNode(self.state)
+        self.weight = graph.TfNode(tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,
+                                                     tf.get_variable_scope().name))
         return outputs
 
 

@@ -64,7 +64,6 @@ class DA3CBatch(object):
     @profiler.wrap
     def step(self, reward, state, terminal):
         if reward is not None:
-            reward = np.tanh(reward)
             if da3c_config.config.use_icm:
                 reward += self.get_intrinsic_reward(state)
             self.push_experience(reward)
@@ -125,6 +124,7 @@ class DA3CBatch(object):
             for i, w in enumerate(utils.Utils.flatten(weights)):
                 self.metrics.histogram('weight_%d' % i, w)
         self.session.op_assign_weights(weights=weights)
+
         if da3c_config.config.use_icm:
             self.session.op_icm_assign_weights(weights=self.ps.session.op_icm_get_weights())
 
@@ -153,8 +153,9 @@ class DA3CBatch(object):
 
     def get_action_and_value_from_network(self):
         if da3c_config.config.use_lstm:
-            action, value, lstm_state = self.session.op_get_action_value_and_lstm_state(
-                state=[self.observation.queue], lstm_state=self.lstm_state, lstm_step=[1])
+            action, value, lstm_state = \
+                self.session.op_get_action_value_and_lstm_state(state=[self.observation.queue],
+                                                                lstm_state=self.lstm_state)
             condition = self.episode.experience is not None and \
                         (len(self.episode.experience) == da3c_config.config.batch_size or self.terminal)
             if not condition:
@@ -211,7 +212,7 @@ class DA3CBatch(object):
                      value=experience['value'], discounted_reward=self.discounted_reward)
 
         if da3c_config.config.use_lstm:
-            feeds.update(dict(lstm_state=self.initial_lstm_state, lstm_step=[len(reward)]))
+            feeds.update(dict(lstm_state=self.initial_lstm_state))
         if da3c_config.config.use_gae:
             feeds.update(dict(advantage=advantage))
 
