@@ -14,7 +14,7 @@ from .. import pg_model
 logger = logging.getLogger(__name__)
 
 
-class PGEpisode(object):
+class PGBatch(object):
     def __init__(self, parameter_server, exploit):
         self.exploit = exploit
         self.ps = parameter_server
@@ -35,7 +35,7 @@ class PGEpisode(object):
         if reward is not None:
             self.push_experience(reward)
         if terminal and state is not None:
-            logger.warning('PGEpisode.step ignores state in case of terminal.')
+            logger.warning('PGBatch.step ignores state in case of terminal.')
             state = None
         else:
             assert state is not None

@@ -22,19 +22,19 @@ class DA3CDiscreteLoss(subgraph.Subgraph):
         log_pi = tf.log(tf.maximum(actor.node, 1e-20))
 
         # policy entropy
-        entropy = -tf.reduce_sum(actor.node * log_pi, axis=1)
+        self.entropy = -tf.reduce_sum(actor.node * log_pi)
 
         # policy loss (output)  (Adding minus, because the original paper's
         # objective function is for gradient ascent, but we use gradient descent optimizer)
-        policy_loss = -tf.reduce_sum(tf.reduce_sum(log_pi * action_one_hot, axis=1) * td +
-                                     entropy * cfg.entropy_beta)
+        self.policy_loss = (-tf.reduce_sum(tf.reduce_sum(log_pi * action_one_hot, axis=1) * td) +
+                           self.entropy * cfg.entropy_beta)
 
         # value loss (output)
         # (Learning rate for Critic is half of Actor's, it's l2 without dividing by 0.5)
-        value_loss = tf.reduce_sum(tf.square(self.ph_discounted_reward.node - critic.node))
+        self.value_loss = tf.reduce_sum(tf.square(self.ph_discounted_reward.node - critic.node))
 
         # gradient of policy and value are summed up
-        return policy_loss + value_loss
+        return self.policy_loss + self.value_loss
 
 
 class DA3CNormContinuousLoss(subgraph.Subgraph):

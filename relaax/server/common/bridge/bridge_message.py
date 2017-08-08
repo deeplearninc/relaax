@@ -196,6 +196,7 @@ class BridgeMessage(object):
             ScalarMarshaller(bridge_pb2.Item.FLOAT_32, np.float32, 'float_value'),
             ScalarMarshaller(bridge_pb2.Item.FLOAT_64, np.float64, 'float_value'),
             ScalarMarshaller(bridge_pb2.Item.STR, type(''), 'str_value'),
+            ScalarMarshaller(bridge_pb2.Item.BYTES, type(b''), 'bytes_value'),
             NdarrayMarshaller(bridge_pb2.Item.NUMPY_ARRAY, np.ndarray),
             ListMarshaller(bridge_pb2.Item.LIST_OPEN, list, bridge_pb2.Item.LIST_CLOSE),
             TupleMarshaller(bridge_pb2.Item.TUPLE_OPEN, tuple, bridge_pb2.Item.TUPLE_CLOSE),

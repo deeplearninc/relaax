@@ -19,13 +19,13 @@ from .. import da3c_model
 from . import da3c_observation
 
 
-M = True
+M = False
 
 logger = logging.getLogger(__name__)
 profiler = profiling.get_profiler(__name__)
 
 
-class DA3CEpisode(object):
+class DA3CBatch(object):
     def __init__(self, parameter_server, metrics, exploit, hogwild_update):
         self.exploit = exploit
         self.ps = parameter_server
@@ -64,13 +64,12 @@ class DA3CEpisode(object):
     def step(self, reward, state, terminal):
         if reward is not None:
             reward = reward / 100
-            # reward = np.tanh(reward / 100)
             if da3c_config.config.use_icm:
                 reward += self.get_intrinsic_reward(state)
             self.push_experience(reward)
         if terminal:
             if state is not None:
-                logger.warning('DA3CEpisode.step ignores state in case of terminal.')
+                logger.warning('DA3CBatch.step ignores state in case of terminal.')
                 state = None
         else:
             assert state is not None
@@ -155,8 +154,9 @@ class DA3CEpisode(object):
 
     def get_action_and_value_from_network(self):
         if da3c_config.config.use_lstm:
-            action, value, lstm_state = self.session.op_get_action_value_and_lstm_state(
-                state=[self.observation.queue], lstm_state=self.lstm_state, lstm_step=[1])
+            action, value, lstm_state = \
+                self.session.op_get_action_value_and_lstm_state(state=[self.observation.queue],
+                                                                lstm_state=self.lstm_state)
             condition = self.episode.experience is not None and \
                         (len(self.episode.experience) == da3c_config.config.batch_size or self.terminal)
             if not condition:
@@ -217,11 +217,13 @@ class DA3CEpisode(object):
                      discounted_reward=self.discounted_reward)
 
         if da3c_config.config.use_lstm:
-            feeds.update(dict(lstm_state=self.initial_lstm_state, lstm_step=[len(reward)]))
+            feeds.update(dict(lstm_state=self.initial_lstm_state))
         if da3c_config.config.use_gae:
             feeds.update(dict(advantage=advantage))
 
-        return self.session.op_compute_gradients(**feeds)
+        gradients, summaries = self.session.op_compute_gradients_and_summaries(**feeds)
+        self.metrics.summary(summaries)
+        return gradients
 
     def compute_icm_gradients(self, experience):
         states, icm_states = experience['state'], []

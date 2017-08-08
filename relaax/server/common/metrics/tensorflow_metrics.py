@@ -14,13 +14,14 @@ class TensorflowMetrics(metrics.Metrics):
         self._session = tf.Session(graph=self._graph)
         self._x = x
 
+    def summary(self, summary, x=None):
+        self._writer.add_summary(summary, global_step=x if x is not None else self._x())
+
     def scalar(self, name, y, x=None):
-        self.add_summary(name, np.asarray(y), x, self._scalar_summaries,
-                         tf.summary.scalar)
+        self.add_summary(name, np.asarray(y), x, self._scalar_summaries, tf.summary.scalar)
 
     def histogram(self, name, y, x=None):
-        self.add_summary(name, np.asarray(y), x, self._histogram_summaries,
-                         tf.summary.histogram)
+        self.add_summary(name, np.asarray(y), x, self._histogram_summaries, tf.summary.histogram)
 
     def add_summary(self, name, y, x, summaries, new_summary):
         y = np.asarray(y)
@@ -29,7 +30,4 @@ class TensorflowMetrics(metrics.Metrics):
                 placeholder = tf.placeholder(y.dtype)
                 summaries[name] = (placeholder, new_summary(name, placeholder))
             placeholder, summary = summaries[name]
-            self._writer.add_summary(
-                self._session.run(summary, feed_dict={placeholder: y}),
-                global_step=x if x is not None else self._x()
-            )
+            self.summary(self._session.run(summary, feed_dict={placeholder: y}), x)

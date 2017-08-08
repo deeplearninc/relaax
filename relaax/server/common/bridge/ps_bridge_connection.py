@@ -48,24 +48,29 @@ class PsBridgeSessionMethod(object):
 
     @profiler.wrap
     def __call__(self, *args, **kwargs):
-        messages = bridge_message.BridgeMessage.serialize([self.names, list(args), kwargs])
-        result = self.connection.stub.Run(messages)
-        return bridge_message.BridgeMessage.deserialize(result)
-
+        try:
+            messages = bridge_message.BridgeMessage.serialize([self.names, list(args), kwargs])
+            result = self.connection.stub.Run(messages)
+            return bridge_message.BridgeMessage.deserialize(result)
+        except KeyboardInterrupt:
+            pass
 
 class PsBridgeMetrics(metrics.Metrics):
     def __init__(self, connection):
         self.connection = connection
 
     @profiler.wrap
+    def summary(self, summary, x=None):
+        self.send('summary', summary=summary, x=x)
+
+    @profiler.wrap
     def scalar(self, name, y, x=None):
-        self.send('scalar', name, y, x)
+        self.send('scalar', name=name, y=y, x=x)
 
     @profiler.wrap
     def histogram(self, name, y, x=None):
-        self.send('histogram', name, y, x)
+        self.send('histogram', name=name, y=y, x=x)
 
-    def send(self, method, name, y, x):
-        messages = bridge_message.BridgeMessage.serialize(
-                dict(method=method, kwargs=dict(name=name, y=y, x=x)))
+    def send(self, method, **kwargs):
+        messages = bridge_message.BridgeMessage.serialize(dict(method=method, kwargs=kwargs))
         self.connection.stub.StoreMetric(messages)

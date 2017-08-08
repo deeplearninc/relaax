@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import tensorflow as tf
+
 from relaax.common.algorithms import subgraph
 from relaax.common.algorithms.lib import graph
 from relaax.common.algorithms.lib import layer
@@ -19,16 +21,17 @@ class Network(subgraph.Subgraph):
 
         sizes = da3c_config.config.hidden_sizes
         actor_layers = [input]
-
         flattened_input = layer.Flatten(input)
+        last_size = flattened_input.node.shape.as_list()[-1]
+        if len(sizes) > 0:
+            last_size = sizes[-1]
 
         if da3c_config.config.use_lstm:
-            lstm = layer.LSTM(graph.Expand(flattened_input, 0), size=sizes[-1])
-            head = graph.Reshape(lstm, [-1, sizes[-1]])
+            lstm = layer.LSTM(graph.Expand(flattened_input, 0), size=last_size)
+            head = graph.Reshape(lstm, [-1, last_size])
             actor_layers.append(lstm)
 
             self.ph_lstm_state = lstm.ph_state
-            self.ph_lstm_step = lstm.ph_step
             self.lstm_zero_state = lstm.zero_state
             self.lstm_state = lstm.state
         else:
@@ -130,6 +133,15 @@ class AgentModel(subgraph.Subgraph):
                                             state=sg_icm_network.ph_state, action=sg_icm_loss.ph_action,
                                             discounted_reward=sg_icm_loss.ph_discounted_reward)
 
+        batch_size = tf.to_float(tf.shape(sg_network.ph_state.node)[0])
+
+        summaries = tf.summary.merge([
+            tf.summary.scalar('policy_loss', sg_loss.policy_loss / batch_size),
+            tf.summary.scalar('value_loss', sg_loss.value_loss / batch_size),
+            tf.summary.scalar('entropy', sg_loss.entropy / batch_size),
+            tf.summary.scalar('gradients_global_norm', sg_gradients.global_norm),
+            tf.summary.scalar('weights_global_norm', sg_network.weights.global_norm)])
+
         # Expose public API
         self.op_assign_weights = self.Ops(sg_network.actor_weights.assign, sg_network.critic_weights.assign,
                                          actor_weights=sg_network.actor_weights.ph_weights,
@@ -142,13 +154,12 @@ class AgentModel(subgraph.Subgraph):
             feeds.update(dict(advantage=sg_loss.ph_advantage))
 
         if da3c_config.config.use_lstm:
-            feeds.update(dict(lstm_state=sg_network.ph_lstm_state, lstm_step=sg_network.ph_lstm_step))
+            feeds.update(dict(lstm_state=sg_network.ph_lstm_state))
             self.lstm_zero_state = sg_network.lstm_zero_state
             self.op_get_action_value_and_lstm_state = self.Ops(sg_network.actor, sg_network.critic,
                                                                sg_network.lstm_state,
                                                                state=sg_network.ph_state,
-                                                               lstm_state=sg_network.ph_lstm_state,
-                                                               lstm_step=sg_network.ph_lstm_step)
+                                                               lstm_state=sg_network.ph_lstm_state)
         else:
             self.op_get_action_and_value = self.Ops(sg_network.actor, sg_network.critic,
                                                     state=sg_network.ph_state)
