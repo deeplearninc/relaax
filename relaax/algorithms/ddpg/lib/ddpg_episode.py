@@ -51,6 +51,11 @@ class DDPGEpisode(object):
         else:
             self.queue = None
 
+        if cfg.config.no_ps:
+            self.session.op_initialize()
+            self.session.op_init_actor_target_weights()
+            self.session.op_init_critic_target_weights()
+
     @property
     def experience(self):
         return self.episode.experience
@@ -174,22 +179,37 @@ class DDPGEpisode(object):
             self.metrics.histogram('batch_rewards', experience['reward'])
             self.metrics.histogram('batch_next_states', experience['next_state'])
 
-        self.ps.session.op_apply_actor_gradients(gradients=actor_grads, increment=self.cur_loop_cnt)
-        self.ps.session.op_apply_critic_gradients(gradients=critic_grads)
+        if not cfg.config.no_ps:
+            self.ps.session.op_apply_actor_gradients(gradients=actor_grads, increment=self.cur_loop_cnt)
+            self.ps.session.op_apply_critic_gradients(gradients=critic_grads)
 
-        self.ps.session.op_update_actor_target_weights()
-        self.ps.session.op_update_critic_target_weights()
+            self.ps.session.op_update_actor_target_weights()
+            self.ps.session.op_update_critic_target_weights()
+        else:
+            self.ps.session.op_inc_step(increment=self.cur_loop_cnt)
+
+            self.session.op_apply_actor_gradients(gradients=actor_grads)
+            self.session.op_apply_critic_gradients(gradients=critic_grads)
+
+            self.session.op_update_actor_target_weights()
+            self.session.op_update_critic_target_weights()
 
     @profiler.wrap
     def receive_experience(self):
-        actor_weights = self.ps.session.op_get_actor_weights()
-        self.session.op_assign_actor_weights(weights=actor_weights)
-        critic_weights = self.ps.session.op_get_critic_weights()
-        self.session.op_assign_critic_weights(weights=critic_weights)
+        if not cfg.config.no_ps:
+            actor_weights = self.ps.session.op_get_actor_weights()
+            critic_weights = self.ps.session.op_get_critic_weights()
+            actor_target_weights = self.ps.session.op_get_actor_target_weights()
+            critic_target_weights = self.ps.session.op_get_critic_target_weights()
+        else:
+            actor_weights = self.session.op_get_actor_weights()
+            critic_weights = self.session.op_get_critic_weights()
+            actor_target_weights = self.session.op_get_actor_target_weights()
+            critic_target_weights = self.session.op_get_critic_target_weights()
 
-        actor_target_weights = self.ps.session.op_get_actor_target_weights()
+        self.session.op_assign_actor_weights(weights=actor_weights)
+        self.session.op_assign_critic_weights(weights=critic_weights)
         self.session.op_assign_actor_target_weights(weights=actor_target_weights)
-        critic_target_weights = self.ps.session.op_get_critic_target_weights()
         self.session.op_assign_critic_target_weights(weights=critic_target_weights)
 
         if self.terminal and cfg.config.debug:

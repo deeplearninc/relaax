@@ -1,11 +1,13 @@
 from __future__ import absolute_import
 from builtins import object
-from . import ddpg_config
-from .lib import ddpg_episode
+import logging
+import numpy as np
 
 from relaax.common import profiling
+from . import ddpg_config as cfg
+from .lib import ddpg_episode
 
-
+logger = logging.getLogger(__name__)
 profiler = profiling.get_profiler(__name__)
 
 
@@ -40,7 +42,7 @@ class Agent(object):
     def check_state_shape(state):
         if state is None:
             return
-        expected_shape = list(ddpg_config.options.algorithm.input.shape)
+        expected_shape = list(cfg.options.algorithm.input.shape)
         actual_shape = list(np.asarray(state).shape)
         if actual_shape != expected_shape:
             logger.warning('State shape %s does not match to expected one %s.',

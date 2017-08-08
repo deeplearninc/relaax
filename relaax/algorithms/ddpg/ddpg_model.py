@@ -88,6 +88,8 @@ class SharedParameters(subgraph.Subgraph):
 
         # Expose public API
         self.op_n_step = self.Op(sg_global_step.n)
+        self.op_inc_step = self.Op(sg_global_step.increment,
+                                   increment=sg_global_step.ph_increment)
 
         self.op_get_actor_weights = self.Op(sg_actor_weights)
         self.op_get_critic_weights = self.Op(sg_critic_weights)
@@ -104,8 +106,8 @@ class SharedParameters(subgraph.Subgraph):
                                                  sg_global_step.increment,
                                                  gradients=sg_actor_gradients.ph_gradients,
                                                  increment=sg_global_step.ph_increment)
-        self.op_apply_critic_gradients = self.Ops(sg_critic_gradients.apply,
-                                                  gradients=sg_critic_gradients.ph_gradients)
+        self.op_apply_critic_gradients = self.Op(sg_critic_gradients.apply,
+                                                 gradients=sg_critic_gradients.ph_gradients)
 
         self.op_get_episode_cnt = self.Op(sg_episode_step.n)
         self.op_inc_episode_cnt = self.Op(sg_episode_step.increment,
@@ -123,19 +125,34 @@ class AgentModel(subgraph.Subgraph):
         sg_critic_target_network = CriticNetwork()
 
         ph_action_gradient = graph.Placeholder(np.float32, (None, cfg.config.output.action_size))
-        sg_actor_gradients = layer.Gradients(sg_actor_network.weights,
-                                             loss=graph.TfNode(sg_actor_network.actor.scaled_out),
-                                             grad_ys=-ph_action_gradient.node,
-                                             log=cfg.config.log)
+        if cfg.config.no_ps:
+            sg_actor_optimizer = graph.AdamOptimizer(cfg.config.actor_learning_rate)
+            sg_actor_gradients = layer.Gradients(sg_actor_network.weights,
+                                                 loss=graph.TfNode(sg_actor_network.actor.scaled_out),
+                                                 grad_ys=-ph_action_gradient.node,
+                                                 log=cfg.config.log,
+                                                 optimizer=sg_actor_optimizer)
+        else:
+            sg_actor_gradients = layer.Gradients(sg_actor_network.weights,
+                                                 loss=graph.TfNode(sg_actor_network.actor.scaled_out),
+                                                 grad_ys=-ph_action_gradient.node,
+                                                 log=cfg.config.log)
 
         sg_critic_loss = loss.MeanSquaredLoss(sg_critic_network.critic)
         if cfg.config.l2:
             sg_critic_l2loss = loss.L2Loss(sg_critic_network.weights, cfg.config.l2_decay)
             sg_critic_loss = graph.TfNode(sg_critic_loss.node + sg_critic_l2loss.node)
 
-        sg_critic_gradients = layer.Gradients(sg_critic_network.weights,
-                                              loss=sg_critic_loss,
-                                              log=cfg.config.log)
+        if cfg.config.no_ps:
+            sg_critic_optimizer = graph.AdamOptimizer(cfg.config.critic_learning_rate)
+            sg_critic_gradients = layer.Gradients(sg_critic_network.weights,
+                                                  loss=sg_critic_loss,
+                                                  log=cfg.config.log,
+                                                  optimizer=sg_critic_optimizer)
+        else:
+            sg_critic_gradients = layer.Gradients(sg_critic_network.weights,
+                                                  loss=sg_critic_loss,
+                                                  log=cfg.config.log)
         sg_critic_action_gradients = layer.Gradients(graph.TfNode(sg_critic_network.ph_action),
                                                      loss=sg_critic_network.critic,
                                                      log=cfg.config.log)
@@ -190,6 +207,48 @@ class AgentModel(subgraph.Subgraph):
             self.op_compute_norm_critic_action_gradients = self.Op(sg_critic_action_gradients.global_norm,
                                                                    state=sg_critic_network.ph_state,
                                                                    action=sg_critic_network.ph_action)
+
+        if cfg.config.no_ps:
+            sg_actor_weights = sg_actor_network.weights
+            sg_critic_weights = sg_critic_network.weights
+
+            sg_actor_target_weights = sg_actor_target_network.weights
+            sg_critic_target_weights = sg_critic_target_network.weights
+
+            # needs reassign weights from actor & critic to target networks
+            sg_init_actor_target_weights = \
+                graph.TfNode([tf.assign(variable, value) for variable, value
+                              in utils.Utils.izip(sg_actor_target_weights.node, sg_actor_weights.node)])
+            sg_init_critic_target_weights = \
+                graph.TfNode([tf.assign(variable, value) for variable, value
+                              in utils.Utils.izip(sg_critic_target_weights.node, sg_critic_weights.node)])
+
+            tau_res = graph.TfNode(1. - cfg.config.tau).node
+            sg_update_actor_target_weights = \
+                graph.TfNode([tf.assign(variable, tau_res * variable + cfg.config.tau * value) for variable, value
+                              in utils.Utils.izip(sg_actor_target_weights.node, sg_actor_weights.node)])
+            sg_update_critic_target_weights = \
+                graph.TfNode([tf.assign(variable, tau_res * variable + cfg.config.tau * value) for variable, value
+                              in utils.Utils.izip(sg_critic_target_weights.node, sg_critic_weights.node)])
+
+            self.op_get_actor_weights = self.Op(sg_actor_weights)
+            self.op_get_critic_weights = self.Op(sg_critic_weights)
+            self.op_get_actor_target_weights = self.Op(sg_actor_target_weights)
+            self.op_get_critic_target_weights = self.Op(sg_critic_target_weights)
+
+            self.op_init_actor_target_weights = self.Op(sg_init_actor_target_weights)
+            self.op_init_critic_target_weights = self.Op(sg_init_critic_target_weights)
+
+            self.op_update_actor_target_weights = self.Op(sg_update_actor_target_weights)
+            self.op_update_critic_target_weights = self.Op(sg_update_critic_target_weights)
+
+            self.op_apply_actor_gradients = self.Ops(sg_actor_gradients.apply,
+                                                     gradients=sg_actor_gradients.ph_gradients)
+            self.op_apply_critic_gradients = self.Op(sg_critic_gradients.apply,
+                                                     gradients=sg_critic_gradients.ph_gradients)
+            sg_initialize = graph.Initialize()
+            self.op_initialize = self.Op(sg_initialize)
+
 
 if __name__ == '__main__':
     utils.assemble_and_show_graphs(SharedParameters, AgentModel)
