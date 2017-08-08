@@ -221,9 +221,10 @@ class DA3CBatch(object):
         if da3c_config.config.use_gae:
             feeds.update(dict(advantage=advantage))
 
-        gradients, summaries = self.session.op_compute_gradients_and_summaries(**feeds)
+        actor_gradients, critic_gradients, summaries = \
+                self.session.op_compute_gradients_and_summaries(**feeds)
         self.metrics.summary(summaries)
-        return gradients
+        return actor_gradients, critic_gradients
 
     def compute_icm_gradients(self, experience):
         states, icm_states = experience['state'], []

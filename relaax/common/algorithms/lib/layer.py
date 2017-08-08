@@ -57,14 +57,14 @@ class BaseLayer(subgraph.Subgraph):
         W = graph.Variable(initializer(np.float32, shape)).node
         b = graph.Variable(initializer(np.float32, shape[-1:])).node
         self.weight = graph.TfNode((W, b))
-        return activation(transformation(x.node, W) + b)
+        return activation(transformation(x, W) + b)
 
 
 class Convolution(BaseLayer):
     def build_graph(self, x, n_filters, filter_size, stride,
                     border=Border.Valid, activation=Activation.Null):
         shape = filter_size + [x.node.shape.as_list()[-1], n_filters]
-        tr = lambda x, W: tf.nn.conv2d(x, W, strides=[1] + stride + [1],
+        tr = lambda x, W: tf.nn.conv2d(x.node, W, strides=[1] + stride + [1],
                                        padding=border)
         return super(Convolution, self).build_graph(x, shape, tr, activation)
 
@@ -73,7 +73,7 @@ class Dense(BaseLayer):
     def build_graph(self, x, size=1, activation=Activation.Null):
         assert len(x.node.shape) == 2
         shape = (x.node.shape.as_list()[1], size)
-        tr = lambda x, W: tf.matmul(x, W)
+        tr = lambda x, W: tf.matmul(x.node, W)
         return super(Dense, self).build_graph(x, shape, tr, activation)
 
 
@@ -142,8 +142,8 @@ def Actor(head, output):
     return Actor(head, output)
 
 
-class Input(subgraph.Subgraph):
-    def build_graph(self, input, descs=None):
+class InputPlaceholder(subgraph.Subgraph):
+    def build_graph(self, input):
         if hasattr(input, 'shape'):
             input_shape = input.shape
         else:
@@ -155,7 +155,7 @@ class Input(subgraph.Subgraph):
         self.ph_state = graph.Placeholder(np.float32, shape=shape)
 
         if not input.use_convolutions or len(shape) <= 4:
-            state_input = graph.TfNode(self.ph_state.checked)
+            state_input = self.ph_state.checked
         else:
             # move channels after history
             perm = list(range(len(shape)))
@@ -163,19 +163,26 @@ class Input(subgraph.Subgraph):
             transpose = tf.transpose(self.ph_state.checked, perm=perm)
 
             # mix history and channels in one dimension
-            state_input = graph.TfNode(tf.reshape(transpose,
-                [-1] + shape[1:3] + [np.prod(shape[3:])]))
+            state_input = tf.reshape(transpose, [-1] + shape[1:3] + [np.prod(shape[3:])])
+
+        return state_input
+
+
+class Input(subgraph.Subgraph):
+    def build_graph(self, input, descs=None, input_placeholder=None):
+        if input_placeholder is None:
+            input_placeholder = InputPlaceholder(input)
+        self.ph_state = input_placeholder.ph_state
 
         if input.use_convolutions and descs is None:
             # applying vanilla A3C convolution layers
-            descs = [
-                dict(type=Convolution, n_filters=16, filter_size=[8, 8],
-                     stride=[4, 4], activation=Activation.Relu),
-                dict(type=Convolution, n_filters=32, filter_size=[4, 4],
-                     stride=[2, 2], activation=Activation.Relu)]
+            descs = [dict(type=Convolution, n_filters=16, filter_size=[8, 8], stride=[4, 4],
+                          activation=Activation.Relu),
+                     dict(type=Convolution, n_filters=32, filter_size=[4, 4], stride=[2, 2],
+                          activation=Activation.Relu)]
 
         descs = [] if not input.use_convolutions else descs
-        layers = GenericLayers(state_input, descs)
+        layers = GenericLayers(input_placeholder, descs)
 
         self.weight = layers.weight
         return layers.node

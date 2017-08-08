@@ -12,15 +12,16 @@ from . import da3c_config
 from . import icm_model
 
 
-class Network(subgraph.Subgraph):
-    def build_graph(self):
+class Head(subgraph.Subgraph):
+    def build_graph(self, input_placeholder):
         conv_layer = dict(type=layer.Convolution, activation=layer.Activation.Elu,
                           n_filters=32, filter_size=[3, 3], stride=[2, 2],
                           border=layer.Border.Same)
-        input = layer.Input(da3c_config.config.input, descs=[dict(conv_layer)] * 4)
+        input = layer.Input(da3c_config.config.input, descs=[dict(conv_layer)] * 4,
+                            input_placeholder=input_placeholder)
 
         sizes = da3c_config.config.hidden_sizes
-        actor_layers = [input]
+        layers = [input]
         flattened_input = layer.Flatten(input)
         last_size = flattened_input.node.shape.as_list()[-1]
         if len(sizes) > 0:
@@ -29,7 +30,7 @@ class Network(subgraph.Subgraph):
         if da3c_config.config.use_lstm:
             lstm = layer.LSTM(graph.Expand(flattened_input, 0), size=last_size)
             head = graph.Reshape(lstm, [-1, last_size])
-            actor_layers.append(lstm)
+            layers.append(lstm)
 
             self.ph_lstm_state = lstm.ph_state
             self.lstm_zero_state = lstm.zero_state
@@ -38,20 +39,29 @@ class Network(subgraph.Subgraph):
             head = layer.GenericLayers(flattened_input,
                                        [dict(type=layer.Dense, size=size,
                                              activation=layer.Activation.Relu6) for size in sizes])
-            actor_layers.append(head)
-
-        actor = layer.Actor(head, da3c_config.config.output)
-        actor_layers.append(actor)
-
-        c1 = layer.Dense(flattened_input, 200, activation=layer.Activation.Relu6)
-        critic = layer.Dense(c1, 1)
-        critic_layers = (c1, critic)
+            layers.append(head)
 
         self.ph_state = input.ph_state
+        self.weight = layer.Weights(*layers)
+        return head.node
+
+
+class Network(subgraph.Subgraph):
+    def build_graph(self):
+        input_placeholder = layer.InputPlaceholder(da3c_config.config.input)
+
+        actor_head = Head(input_placeholder)
+        actor = layer.Actor(actor_head, da3c_config.config.output)
+
+        critic_head = Head(input_placeholder)
+        c1 = layer.Dense(critic_head, 200, activation=layer.Activation.Relu6)
+        critic = layer.Dense(c1, 1)
+
+        self.ph_state = input_placeholder.ph_state
         self.actor = actor
         self.critic = graph.Flatten(critic)
-        self.actor_weights = layer.Weights(*actor_layers)
-        self.critic_weights = layer.Weights(*critic_layers)
+        self.actor_weights = layer.Weights(actor_head, actor)
+        self.critic_weights = layer.Weights(critic_head, c1, critic)
 
 
 # Weights of the policy are shared across
@@ -139,8 +149,10 @@ class AgentModel(subgraph.Subgraph):
             tf.summary.scalar('policy_loss', sg_loss.policy_loss / batch_size),
             tf.summary.scalar('value_loss', sg_loss.value_loss / batch_size),
             tf.summary.scalar('entropy', sg_loss.entropy / batch_size),
-            tf.summary.scalar('gradients_global_norm', sg_gradients.global_norm),
-            tf.summary.scalar('weights_global_norm', sg_network.weights.global_norm)])
+            tf.summary.scalar('actor_gradients_global_norm', sg_actor_gradients.global_norm),
+            tf.summary.scalar('critic_gradients_global_norm', sg_critic_gradients.global_norm),
+            tf.summary.scalar('actor_weights_global_norm', sg_network.actor_weights.global_norm),
+            tf.summary.scalar('critic_weights_global_norm', sg_network.critic_weights.global_norm)])
 
         # Expose public API
         self.op_assign_weights = self.Ops(sg_network.actor_weights.assign, sg_network.critic_weights.assign,
@@ -164,8 +176,8 @@ class AgentModel(subgraph.Subgraph):
             self.op_get_action_and_value = self.Ops(sg_network.actor, sg_network.critic,
                                                     state=sg_network.ph_state)
 
-        self.op_compute_gradients = self.Ops(sg_actor_gradients.calculate, sg_critic_gradients.calculate,
-                                             **feeds)
+        self.op_compute_gradients_and_summaries = self.Ops(sg_actor_gradients.calculate,
+                                                           sg_critic_gradients.calculate, summaries, **feeds)
 
 
 if __name__ == '__main__':
