@@ -2,7 +2,6 @@ from __future__ import absolute_import
 from builtins import object
 import grpc
 
-from relaax.server.metrics_server.metrics_server_config import options
 from relaax.server.common.metrics import metrics
 from relaax.server.common.metrics import enabled_metrics
 
@@ -16,8 +15,8 @@ profiler = profiling.get_profiler(__name__)
 
 
 class MetricsBridgeConnection(object):
-    def __init__(self, server):
-        self._server = server
+    def __init__(self, options):
+        self._server = options.metrics_server
         self.metrics = enabled_metrics.EnabledMetrics(options, BridgeMetrics(self))
         self._stub = None
 
