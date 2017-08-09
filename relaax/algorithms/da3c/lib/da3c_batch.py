@@ -33,8 +33,10 @@ class DA3CBatch(object):
         model = da3c_model.AgentModel()
         self.session = session.Session(model)
         if da3c_config.config.use_lstm:
-            self.lstm_zero_state = model.lstm_zero_state
-            self.lstm_state = self.initial_lstm_state = model.lstm_zero_state
+            self.actor_lstm_zero_state = model.actor.lstm_zero_state
+            self.critic_lstm_zero_state = model.critic.lstm_zero_state
+            self.actor_lstm_state = self.actor_initial_lstm_state = self.actor_lstm_zero_state
+            self.critic_lstm_state = self.critic_initial_lstm_state = self.critic_lstm_zero_state
         self.reset()
         self.observation = da3c_observation.DA3CObservation()
         self.last_action = None
@@ -56,7 +58,8 @@ class DA3CBatch(object):
     def begin(self):
         self.do_task(self.receive_experience)
         if da3c_config.config.use_lstm:
-            self.initial_lstm_state = self.lstm_state
+            self.actor_initial_lstm_state = self.actor_lstm_state
+            self.critic_initial_lstm_state = self.critic_lstm_state
         self.get_action_and_value()
         self.episode.begin()
 
@@ -94,7 +97,8 @@ class DA3CBatch(object):
     def reset(self):
         self.episode = episode.Episode('reward', 'state', 'action', 'value')
         if da3c_config.config.use_lstm:
-            self.initial_lstm_state = self.lstm_state = self.lstm_zero_state
+            self.actor_lstm_state = self.actor_initial_lstm_state = self.actor_lstm_zero_state
+            self.critic_lstm_state = self.critic_initial_lstm_state = self.critic_lstm_zero_state
 
     # Helper methods
 
@@ -154,13 +158,15 @@ class DA3CBatch(object):
 
     def get_action_and_value_from_network(self):
         if da3c_config.config.use_lstm:
-            action, value, lstm_state = \
+            action, value, actor_lstm_state, critic_lstm_state = \
                 self.session.op_get_action_value_and_lstm_state(state=[self.observation.queue],
-                                                                lstm_state=self.lstm_state)
+                                                                actor_lstm_state=self.actor_lstm_state,
+                                                                critic_lstm_state=self.critic_lstm_state)
             condition = self.episode.experience is not None and \
                         (len(self.episode.experience) == da3c_config.config.batch_size or self.terminal)
             if not condition:
-                self.lstm_state = lstm_state
+                self.actor_lstm_state = actor_lstm_state
+                self.critic_lstm_state = critic_lstm_state
         else:
             action, value = self.session.op_get_action_and_value(state=[self.observation.queue])
 
@@ -217,7 +223,8 @@ class DA3CBatch(object):
                      discounted_reward=self.discounted_reward)
 
         if da3c_config.config.use_lstm:
-            feeds.update(dict(lstm_state=self.initial_lstm_state))
+            feeds.update(dict(actor_lstm_state=self.actor_initial_lstm_state,
+                              critic_lstm_state=self.critic_initial_lstm_state))
         if da3c_config.config.use_gae:
             feeds.update(dict(advantage=advantage))
 
