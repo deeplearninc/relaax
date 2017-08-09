@@ -62,21 +62,6 @@ class XavierInitializer(object):
         )
 
 
-class AdamOptimizer(subgraph.Subgraph):
-    def build_graph(self, learning_rate=0.001):
-        return tf.train.AdamOptimizer(learning_rate=learning_rate)
-
-
-class RMSPropOptimizer(subgraph.Subgraph):
-    def build_graph(self, learning_rate, decay, momentum, epsilon):
-        return tf.train.RMSPropOptimizer(
-            learning_rate=learning_rate.node,
-            decay=decay,
-            momentum=momentum,
-            epsilon=epsilon
-        )
-
-
 class L2loss(subgraph.Subgraph):
     """Computes half the L2 norm of a tensor without the sqrt."""
 

@@ -191,17 +191,3 @@ class Weights(subgraph.Subgraph):
                                              enumerate(utils.Utils.flatten(weights))]))
         return weights
 
-
-class Gradients(subgraph.Subgraph):
-    def build_graph(self, weights, loss=None, optimizer=None, norm=False):
-        if loss is not None:
-            grads = tf.gradients(loss.node, list(utils.Utils.flatten(weights.node)))
-            if norm:
-                grads, _ = tf.clip_by_global_norm(grads, norm)
-            grads = (tf.check_numerics(g, 'gradient_%d' % i) for i, g in enumerate(grads))
-            self.calculate = graph.TfNode(utils.Utils.reconstruct(grads, weights.node))
-        if optimizer is not None:
-            self.ph_gradients = graph.Placeholders(weights)
-            self.apply = graph.TfNode(optimizer.node.apply_gradients(
-                utils.Utils.izip(self.ph_gradients.checked, weights.node)))
-

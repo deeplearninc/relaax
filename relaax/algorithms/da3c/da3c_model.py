@@ -3,6 +3,7 @@ from __future__ import absolute_import
 from relaax.common.algorithms import subgraph
 from relaax.common.algorithms.lib import graph
 from relaax.common.algorithms.lib import layer
+from relaax.common.algorithms.lib import optimizer
 from relaax.common.algorithms.lib import loss
 from relaax.common.algorithms.lib import utils
 from .lib import da3c_graph
@@ -60,20 +61,20 @@ class SharedParameters(subgraph.Subgraph):
         sg_weights = sg_network.weights
 
         if da3c_config.config.optimizer == 'Adam':
-            sg_optimizer = graph.AdamOptimizer(da3c_config.config.initial_learning_rate)
+            sg_optimizer = optimizer.AdamOptimizer(da3c_config.config.initial_learning_rate)
             if da3c_config.config.use_icm:
-                sg_icm_optimizer = graph.AdamOptimizer(da3c_config.config.initial_learning_rate)
+                sg_icm_optimizer = optimizer.AdamOptimizer(da3c_config.config.initial_learning_rate)
                 sg_icm_weights = icm_model.ICM().weights
-                sg_icm_gradients = layer.Gradients(sg_icm_weights, optimizer=sg_icm_optimizer)
+                sg_icm_gradients = optimizer.Gradients(sg_icm_weights, optimizer=sg_icm_optimizer)
         else:
             sg_learning_rate = da3c_graph.LearningRate(sg_global_step)
-            sg_optimizer = graph.RMSPropOptimizer(
+            sg_optimizer = optimizer.RMSPropOptimizer(
                 learning_rate=sg_learning_rate,
                 decay=da3c_config.config.RMSProp.decay,
                 momentum=0.0,
                 epsilon=da3c_config.config.RMSProp.epsilon
             )
-        sg_gradients = layer.Gradients(sg_weights, optimizer=sg_optimizer)
+        sg_gradients = optimizer.Gradients(sg_weights, optimizer=sg_optimizer)
         sg_initialize = graph.Initialize()
 
         if da3c_config.config.use_icm:
@@ -99,14 +100,14 @@ class AgentModel(subgraph.Subgraph):
         sg_network = Network()
 
         sg_loss = loss.DA3CLoss(sg_network.actor, sg_network.critic, da3c_config.config)
-        sg_gradients = layer.Gradients(sg_network.weights, loss=sg_loss,
+        sg_gradients = optimizer.Gradients(sg_network.weights, loss=sg_loss,
                                        norm=da3c_config.config.gradients_norm_clipping)
 
         if da3c_config.config.use_icm:
             sg_icm_network = icm_model.ICM()
             sg_icm_loss = loss.ICMLoss(sg_network.actor, sg_icm_network,
                                        da3c_config.config.ICM.alpha, da3c_config.config.ICM.beta)
-            sg_icm_gradients = layer.Gradients(sg_icm_network.weights, loss=sg_icm_loss)
+            sg_icm_gradients = optimizer.Gradients(sg_icm_network.weights, loss=sg_icm_loss)
 
             # Expose ICM public API
             self.op_icm_assign_weights = self.Op(sg_icm_network.weights.assign,
