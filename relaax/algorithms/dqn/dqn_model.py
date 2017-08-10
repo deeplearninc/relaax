@@ -9,7 +9,8 @@ from relaax.common.algorithms.lib import loss
 from relaax.common.algorithms.lib import utils
 from . import dqn_config as cfg
 
-from .lib.dqn_utils import GetAction
+from .lib.dqn_utils import Action
+
 
 class Network(subgraph.Subgraph):
     def build_graph(self):
@@ -69,10 +70,13 @@ class AgentModel(subgraph.Subgraph):
         sg_network = Network()
         sg_target_network = Network()
 
-        sg_get_action = GetAction()
+        sg_get_action = Action()
 
         sg_loss = loss.DQNLoss(sg_network.output, cfg.config.output, cfg.config.double_dqn, cfg.config.rewards_gamma)
-        sg_gradients = layer.Gradients(sg_network.weights, loss=sg_loss)
+        sg_gradients_calc = layer.Gradients(sg_network.weights, loss=sg_loss)
+        sg_gradients_apply = layer.Gradients(sg_network.weights, optimizer=graph.AdamOptimizer(cfg.config.initial_learning_rate))
+
+        sg_update_target_weights = graph.TfNode([tf.assign(variable, value) for variable, value in utils.Utils.izip(sg_target_network.weights.node, sg_network.weights.node)])
 
         # Expose public API
         self.op_assign_weights = self.Op(sg_network.weights.assign, weights=sg_network.weights.ph_weights)
@@ -80,8 +84,9 @@ class AgentModel(subgraph.Subgraph):
 
         self.op_get_q_value = self.Op(sg_network.output.node, state=sg_network.ph_state)
         self.op_get_q_target_value = self.Op(sg_target_network.output.node, next_state=sg_target_network.ph_state)
+
         self.op_get_action = self.Op(sg_get_action,
-                                     global_step=sg_get_action.ph_global_step,
+                                     local_step=sg_get_action.ph_local_step,
                                      q_value=sg_get_action.ph_q_value)
 
         sg_initialize = graph.Initialize()
@@ -90,12 +95,16 @@ class AgentModel(subgraph.Subgraph):
                      reward=sg_loss.ph_reward,
                      action=sg_loss.ph_action,
                      terminal=sg_loss.ph_terminal,
-                     q_next_target=sg_loss.ph_q_next_target)
+                     q_next_target=sg_loss.ph_q_next_target,
+                     q_next=sg_loss.ph_q_next)
 
-        if cfg.config.double_dqn:
-            feeds["q_next"] = sg_loss.ph_q_next
+        # if cfg.config.double_dqn:
+        #     feeds["q_next"] = sg_loss.ph_q_next
 
-        self.op_compute_gradients = self.Op(sg_gradients.calculate, **feeds)
+        self.op_compute_gradients = self.Op(sg_gradients_calc.calculate, **feeds)
+        self.op_apply_gradients = self.Op(sg_gradients_apply.apply, gradients=sg_gradients_apply.ph_gradients)
+
+        self.op_update_target_weights = self.Op(sg_update_target_weights)
 
         self.op_initialize = self.Op(sg_initialize)
 

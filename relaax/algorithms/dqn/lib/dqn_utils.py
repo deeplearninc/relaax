@@ -21,12 +21,12 @@ class ReplayBuffer(object):
         self._replay_memory.append(value)
 
 
-class GetAction(subgraph.Subgraph):
+class Action(subgraph.Subgraph):
     def build_graph(self):
-        self.ph_global_step = tf.placeholder(tf.int64, [])
+        self.ph_local_step = tf.placeholder(tf.int64, [])
         self.ph_q_value = tf.placeholder(tf.float32, [None, dqn_config.config.output.action_size])
 
-        eps = tf.train.polynomial_decay(dqn_config.config.initial_eps, self.ph_global_step, dqn_config.config.decay_steps, dqn_config.config.end_eps)
+        eps = tf.train.polynomial_decay(dqn_config.config.initial_eps, self.ph_local_step, dqn_config.config.decay_steps, dqn_config.config.end_eps)
         return tf.cond(tf.less(tf.random_uniform([]), eps),
                        lambda: tf.random_uniform([], 0, dqn_config.config.output.action_size, dtype=tf.int32),
                        lambda: tf.cast(tf.squeeze(tf.argmax(self.ph_q_value, axis=1)), tf.int32))
@@ -40,6 +40,9 @@ class DQNObservation(object):
         if state is None:
             self.queue = None
         else:
+            self.queue = np.array(state)
+            return
+
             state = np.array(state)
             axis = len(state.shape)  # extra dimension for observation
 

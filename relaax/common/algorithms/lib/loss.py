@@ -45,25 +45,19 @@ class DQNLoss(subgraph.Subgraph):
         self.ph_action = tf.placeholder(tf.int32, [None])
         self.ph_terminal = tf.placeholder(tf.int32, [None])
         self.ph_q_next_target = tf.placeholder(tf.float32, [None, output.action_size])
+        self.ph_q_next = tf.placeholder(tf.float32, [None, output.action_size])
 
         action_one_hot = tf.one_hot(self.ph_action, output.action_size)
+        q_action = tf.reduce_sum(tf.multiply(q_network.node, action_one_hot), axis=1)
 
-        # q_action = tf.gather_nd(self._q_network(state), tf.stack([tf.range(0, None), action], axis=1))
-        # q_action = tf.gather_nd(q_network.node, tf.stack([tf.range(0, None), self.ph_action], axis=1))
         if double_dqn:
-            # q_next = self._q_network(self.ph_next_state, True)
-            self.ph_q_next = tf.placeholder(tf.float32, [None, output.action_size])
-
-            # q_max = tf.gather_nd(self._q_network_target(self.ph_next_state), tf.stack([tf.range(0, None), tf.cast(tf.argmax(q_next, axis=1), tf.int32)], axis=1))
-            # q_max = tf.gather_nd(self.ph_q_next_target, tf.stack([tf.range(0, None), tf.cast(tf.argmax(self.ph_q_next, axis=1), tf.int32)], axis=1))
-            q_max = tf.reduce_sum(self.ph_q_next_target * tf.one_hot(tf.argmax(self.ph_q_next, axis=1), output.action_size), axis=1)
+            q_max = tf.reduce_sum(tf.multiply(self.ph_q_next_target, tf.one_hot(tf.argmax(self.ph_q_next, axis=1), output.action_size)), axis=1)
         else:
-            # q_max = tf.reduce_max(self._q_network_target(self.ph_next_state), axis=1)
             q_max = tf.reduce_max(self.ph_q_next_target, axis=1)
 
         y = tf.add(self.ph_reward, tf.multiply(tf.cast(tf.subtract(1, self.ph_terminal), tf.float32), tf.scalar_mul(gamma, q_max)))
 
-        return tf.losses.absolute_difference(tf.reduce_sum(tf.multiply(q_network.node, action_one_hot), axis=1), y)
+        return tf.losses.absolute_difference(q_action, y)
 
 
 class DA3CNormContinuousLoss(subgraph.Subgraph):

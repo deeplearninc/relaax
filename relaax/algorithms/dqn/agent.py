@@ -26,7 +26,7 @@ class Agent(object):
     def update(self, reward, state, terminal):
         self.episode.step(reward, state, terminal)
 
-        if terminal:
-            self.episode.begin()
+        # if terminal:
+        #     self.episode.begin()
 
         return self.episode.last_action

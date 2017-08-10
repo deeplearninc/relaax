@@ -24,7 +24,7 @@ class DQNEpisode(object):
         self.metrics = metrics
         self.session = session.Session(dqn_model.AgentModel())
 
-        self.session.op_initialize()
+        # self.session.op_initialize()
         self.replay_buffer = dqn_utils.ReplayBuffer(dqn_config.config.replay_buffer_size)
         self.observation = dqn_utils.DQNObservation()
 
@@ -35,19 +35,22 @@ class DQNEpisode(object):
 
     @profiler.wrap
     def begin(self):
-        self.do_task(self.receive_experience)
+        # self.do_task(self.receive_experience)
+        self.session.op_initialize()
         self.get_action()
 
     @profiler.wrap
     def step(self, reward, state, terminal):
         self.local_step += 1
 
-        if self.local_step % dqn_config.config.update_target_interval:
-            self.ps.session.op_update_target_weights()
+        if self.local_step % dqn_config.config.update_target_interval == 0:
+            # self.ps.session.op_update_target_weights()
+            self.session.op_update_target_weights()
+            # print("STEP: %i" % self.local_step)
 
         if self.local_step > dqn_config.config.start_sample_step:
             self.update()
-            self.do_task(self.receive_experience)
+            # self.do_task(self.receive_experience)
 
         # metrics
         if state is not None:
@@ -86,22 +89,36 @@ class DQNEpisode(object):
     def send_experience(self, experience):
         batch = dict(zip(experience[0], zip(*[d.values() for d in experience])))  # list of dicts to dict of lists
         q_next_target = self.session.op_get_q_target_value(next_state=batch["next_state"])
+        q_next = self.session.op_get_q_value(state=batch["next_state"])
 
         feeds = dict(state=batch["state"],
                      reward=batch["reward"],
                      action=batch["action"],
                      terminal=batch["terminal"],
-                     q_next_target=q_next_target)
+                     q_next_target=q_next_target,
+                     q_next=q_next)
 
-        if dqn_config.config.double_dqn:
-            feeds["q_next"] = self.session.op_get_q_value(state=batch["next_state"])
+        # print("\n")
+        # print("state: %s" % str(batch["state"]))
+        # print("reward: %s" % str(batch["reward"]))
+        # if self.local_step > 5000 and self.local_step % 100 == 0:
+        #     print("action: %i" % sum(batch["action"]))
+        # print("terminal: %s" % str(batch["terminal"]))
+        # print("next_state: %s" % str(batch["next_state"]))
+        # print("q_next_target: %s" % str(q_next_target))
+        # print("q_next: %s" % str(q_next))
+        # print("\n")
+
+        # if dqn_config.config.double_dqn:
+        #     feeds["q_next"] = self.session.op_get_q_value(state=batch["next_state"])
 
         gradients = self.session.op_compute_gradients(**feeds)
 
         for i, g in enumerate(utils.Utils.flatten(gradients)):
             self.metrics.histogram('gradients_%d' % i, g)
 
-        self.ps.session.op_apply_gradients(gradients=gradients, increment=1)
+        # self.ps.session.op_apply_gradients(gradients=gradients, increment=1)
+        self.session.op_apply_gradients(gradients=gradients)
 
     @profiler.wrap
     def receive_experience(self):
@@ -146,5 +163,5 @@ class DQNEpisode(object):
     def get_action_from_network(self):
         q_value = self.session.op_get_q_value(state=[self.observation.queue])
 
-        return self.session.op_get_action(global_step=self.local_step,
+        return self.session.op_get_action(local_step=self.local_step,
                                           q_value=q_value)
