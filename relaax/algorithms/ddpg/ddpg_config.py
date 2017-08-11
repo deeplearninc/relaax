@@ -2,9 +2,9 @@ from relaax.common.python.config.loaded_config import options
 
 config = options.get('algorithm')
 
-config.debug = options.get('algorithm/debug', True)
-config.log = options.get('algorithm/log', True)
-config.no_ps = options.get('algorithm/no_ps', True)
+config.debug = options.get('algorithm/debug', False)
+config.log = options.get('algorithm/log', False)
+config.no_ps = options.get('algorithm/no_ps', False)
 
 config.buffer_size = options.get('algorithm/buffer_size', 4*10**5)
 config.batch_size = options.get('algorithm/batch_size', 64)
