@@ -19,12 +19,12 @@ profiler = profiling.get_profiler(__name__)
 
 class DQNEpisode(object):
     def __init__(self, parameter_server, metrics, exploit, hogwild_update):
-        self.exploit = exploit  # False
         self.ps = parameter_server
         self.metrics = metrics
-        self.session = session.Session(dqn_model.AgentModel())
 
-        # self.session.op_initialize()
+        self.session = session.Session(dqn_model.AgentModel())
+        self.session.op_initialize()
+
         self.replay_buffer = dqn_utils.ReplayBuffer(dqn_config.config.replay_buffer_size)
         self.observation = dqn_utils.DQNObservation()
 
@@ -36,7 +36,6 @@ class DQNEpisode(object):
     @profiler.wrap
     def begin(self):
         # self.do_task(self.receive_experience)
-        self.session.op_initialize()
         self.get_action()
 
     @profiler.wrap
@@ -45,8 +44,14 @@ class DQNEpisode(object):
 
         if self.local_step % dqn_config.config.update_target_interval == 0:
             # self.ps.session.op_update_target_weights()
-            self.session.op_update_target_weights()
-            # print("STEP: %i" % self.local_step)
+            print("EXPERIENCE SENT")
+            weights = self.session.op_get_weights()
+            self.ps.session.op_assign_target_weights(target_weights=weights)
+            # self.session.op_update_target_weights()
+
+        if self.local_step % 501 == 0:
+            print("EXPERIENCE RECEIVED")
+            self.do_task(self.receive_experience)
 
         if self.local_step > dqn_config.config.start_sample_step:
             self.update()
@@ -70,8 +75,7 @@ class DQNEpisode(object):
     @profiler.wrap
     def update(self):
         experience = self.replay_buffer.sample(dqn_config.config.batch_size)
-        if not self.exploit:
-            self.do_task(lambda: self.send_experience(experience))
+        self.do_task(lambda: self.send_experience(experience))
 
     # Helper methods
     def execute_tasks(self):
@@ -91,26 +95,16 @@ class DQNEpisode(object):
         q_next_target = self.session.op_get_q_target_value(next_state=batch["next_state"])
         q_next = self.session.op_get_q_value(state=batch["next_state"])
 
+        # metrics
+        if self.local_step % 50 == 0:
+            print("Average action %f" % float(sum(batch["action"]) / len(batch["action"])))
+
         feeds = dict(state=batch["state"],
                      reward=batch["reward"],
                      action=batch["action"],
                      terminal=batch["terminal"],
                      q_next_target=q_next_target,
                      q_next=q_next)
-
-        # print("\n")
-        # print("state: %s" % str(batch["state"]))
-        # print("reward: %s" % str(batch["reward"]))
-        # if self.local_step > 5000 and self.local_step % 100 == 0:
-        #     print("action: %i" % sum(batch["action"]))
-        # print("terminal: %s" % str(batch["terminal"]))
-        # print("next_state: %s" % str(batch["next_state"]))
-        # print("q_next_target: %s" % str(q_next_target))
-        # print("q_next: %s" % str(q_next))
-        # print("\n")
-
-        # if dqn_config.config.double_dqn:
-        #     feeds["q_next"] = self.session.op_get_q_value(state=batch["next_state"])
 
         gradients = self.session.op_compute_gradients(**feeds)
 
@@ -122,16 +116,17 @@ class DQNEpisode(object):
 
     @profiler.wrap
     def receive_experience(self):
-        weights = self.ps.session.op_get_weights()
-
-        # metrics
-        for i, w in enumerate(utils.Utils.flatten(weights)):
-            self.metrics.histogram('weight_%d' % i, w)
-
-        self.session.op_assign_weights(weights=weights)
+        # weights = self.ps.session.op_get_weights()
+        # self.session.op_assign_weights(weights=weights)
 
         target_weights = self.ps.session.op_get_target_weights()
         self.session.op_assign_target_weights(target_weights=target_weights)
+
+        # metrics
+        # for i, w in enumerate(utils.Utils.flatten(weights)):
+        #     self.metrics.histogram('weight_%d' % i, w)
+        # for i, w in enumerate(utils.Utils.flatten(target_weights)):
+        #     self.metrics.histogram('target_weights_%d' % i, w)
 
     def push_experience(self, reward, state, terminal):
         assert self.observation.queue is not None

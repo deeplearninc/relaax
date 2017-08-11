@@ -34,39 +34,39 @@ class Network(subgraph.Subgraph):
 class GlobalServer(subgraph.Subgraph):
     def build_graph(self):
         sg_global_step = graph.GlobalStep()
-        sg_network = Network()
+        # sg_network = Network()
         sg_target_network = Network()
-        sg_weights = sg_network.weights
-        sg_target_weights = sg_target_network.weights
+        # sg_weights = sg_network.weights
+        # sg_target_weights = sg_target_network.weights
 
-        sg_update_target_weights = graph.TfNode([tf.assign(variable, value) for variable, value in utils.Utils.izip(sg_target_weights.node, sg_weights.node)])
+        # sg_update_target_weights = graph.TfNode([tf.assign(variable, value) for variable, value in utils.Utils.izip(sg_target_weights.node, sg_weights.node)])
 
-        if cfg.config.optimizer == 'Adam':
-            sg_optimizer = graph.AdamOptimizer(cfg.config.initial_learning_rate)
-        else:
-            raise NotImplementedError
-
-        sg_gradients = layer.Gradients(sg_weights, optimizer=sg_optimizer)
+        # if cfg.config.optimizer == 'Adam':
+        #     sg_optimizer = graph.AdamOptimizer(cfg.config.initial_learning_rate)
+        # else:
+        #     raise NotImplementedError
+        #
+        # sg_gradients = layer.Gradients(sg_weights, optimizer=sg_optimizer)
 
         sg_initialize = graph.Initialize()
 
         # Expose public API
         self.op_n_step = self.Op(sg_global_step.n)
 
-        self.op_get_weights = self.Op(sg_weights)
-        self.op_get_target_weights = self.Op(sg_target_weights)
+        # self.op_get_weights = self.Op(sg_weights)
+        self.op_get_target_weights = self.Op(sg_target_network.weights)
 
-        self.op_update_target_weights = self.Op(sg_update_target_weights)
-        self.op_apply_gradients = self.Ops(sg_gradients.apply, sg_global_step.increment,
-                                           gradients=sg_gradients.ph_gradients,
-                                           increment=sg_global_step.ph_increment)
+        self.op_assign_target_weights = self.Op(sg_target_network.weights.assign, target_weights=sg_target_network.weights.ph_weights)
+
+        # self.op_update_target_weights = self.Op(sg_update_target_weights)
+        # self.op_apply_gradients = self.Ops(sg_gradients.apply, sg_global_step.increment,
+        #                                    gradients=sg_gradients.ph_gradients,
+        #                                    increment=sg_global_step.ph_increment)
         self.op_initialize = self.Op(sg_initialize)
 
 
-# Policy run by Agent(s)
 class AgentModel(subgraph.Subgraph):
     def build_graph(self):
-        # Build graph
         sg_network = Network()
         sg_target_network = Network()
 
@@ -81,6 +81,8 @@ class AgentModel(subgraph.Subgraph):
         # Expose public API
         self.op_assign_weights = self.Op(sg_network.weights.assign, weights=sg_network.weights.ph_weights)
         self.op_assign_target_weights = self.Op(sg_target_network.weights.assign, target_weights=sg_target_network.weights.ph_weights)
+
+        self.op_get_weights = self.Op(sg_network.weights)
 
         self.op_get_q_value = self.Op(sg_network.output.node, state=sg_network.ph_state)
         self.op_get_q_target_value = self.Op(sg_target_network.output.node, next_state=sg_target_network.ph_state)
@@ -97,9 +99,6 @@ class AgentModel(subgraph.Subgraph):
                      terminal=sg_loss.ph_terminal,
                      q_next_target=sg_loss.ph_q_next_target,
                      q_next=sg_loss.ph_q_next)
-
-        # if cfg.config.double_dqn:
-        #     feeds["q_next"] = sg_loss.ph_q_next
 
         self.op_compute_gradients = self.Op(sg_gradients_calc.calculate, **feeds)
         self.op_apply_gradients = self.Op(sg_gradients_apply.apply, gradients=sg_gradients_apply.ph_gradients)
