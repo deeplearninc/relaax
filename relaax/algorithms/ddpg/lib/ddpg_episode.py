@@ -119,7 +119,7 @@ class DDPGEpisode(object):
     @profiler.wrap
     def send_experience(self, experience):
         # Calculate targets
-        _, action_target_scaled = self.session.op_get_actor_target(state=experience['next_state'])
+        action_target_scaled = self.session.op_get_actor_target(state=experience['next_state'])
         target_q = self.session.op_get_critic_target(state=experience['next_state'],
                                                      action=action_target_scaled.astype(np.float32))
 
@@ -134,14 +134,14 @@ class DDPGEpisode(object):
                                                    action=experience['action'])
         self.max_q += np.amax(predicted_q)
 
-        _, scaled_out = self.session.op_get_action(state=experience['state'])
+        scaled_out = self.session.op_get_action(state=experience['state'])
         action_grads = self.session.op_compute_critic_action_gradients(state=experience['state'],
                                                                        action=scaled_out)
 
         actor_grads = self.session.op_compute_actor_gradients(state=experience['state'],
                                                               grad_ys=action_grads)
 
-        if self.terminal and cfg.config.debug:
+        if self.terminal and cfg.config.log_lvl == 'DEBUG':
             x = self.episode_cnt
             self.metrics.histogram('states', experience['state'], x)
             self.metrics.histogram('action_target_scaled', action_target_scaled, x)
@@ -162,7 +162,7 @@ class DDPGEpisode(object):
             for i, g in enumerate(utils.Utils.flatten(actor_grads)):
                 self.metrics.histogram('actor_grads_%d' % i, g, x)
 
-        if cfg.config.log:
+        if cfg.config.log_lvl == 'VERBOSE':
             norm_critic_grads = self.session.op_compute_norm_critic_gradients(state=experience['state'],
                                                                               action=experience['action'],
                                                                               predicted=np.vstack(y))
@@ -212,7 +212,7 @@ class DDPGEpisode(object):
         self.session.op_assign_actor_target_weights(weights=actor_target_weights)
         self.session.op_assign_critic_target_weights(weights=critic_target_weights)
 
-        if self.terminal and cfg.config.debug:
+        if self.terminal and cfg.config.log_lvl == 'DEBUG':
             x = self.episode_cnt
 
             for i, g in enumerate(utils.Utils.flatten(actor_weights)):
@@ -240,7 +240,7 @@ class DDPGEpisode(object):
             terminal=terminal,
             next_state=self.observation.queue
         )
-        if cfg.config.log:
+        if cfg.config.log_lvl == 'VERBOSE':
             self.metrics.histogram('step_state', old_state)
             self.metrics.histogram('step_action', self.last_action)
             self.metrics.scalar('step_reward', reward)
@@ -259,6 +259,4 @@ class DDPGEpisode(object):
             assert self.last_action is not None
 
     def get_action_from_network(self):
-        out, scaled_out = self.session.op_get_action(state=[self.observation.queue])
-        scaled_out, = scaled_out
-        return scaled_out
+        return self.session.op_get_action(state=[self.observation.queue])[0]

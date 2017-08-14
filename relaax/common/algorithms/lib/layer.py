@@ -175,14 +175,12 @@ def Actor(head, output):
 
 class DDPGActor(subgraph.Subgraph):
     def build_graph(self, head, output):
-        action_size = output.action_size
-        self.out = Dense(head, action_size, activation=Activation.Tanh, init_var=3e-3)
-        self.scaled_out = self.out.node * graph.TfNode(output.scale).node
-
-        self.weight = self.out.weight
-        self.action_size = action_size
+        self.action_size = output.action_size
         self.continuous = True
-        return self.out.node, self.scaled_out
+
+        self.out = Dense(head, self.action_size, activation=Activation.Tanh, init_var=3e-3)
+        self.weight = self.out.weight
+        self.scaled_out = graph.TfNode(self.out.node * output.scale)
 
 
 class Input(subgraph.Subgraph):
@@ -237,13 +235,12 @@ class Weights(subgraph.Subgraph):
 
 class Gradients(subgraph.Subgraph):
     def build_graph(self, weights, loss=None, optimizer=None,
-                    norm=False, batch_size=None, grad_ys=None, log=False):
+                    norm=False, batch_size=None, grad_ys=None):
         if loss is not None:
             grads = tf.gradients(loss.node, list(utils.Utils.flatten(weights.node)), grad_ys)
-            if log:
-                self.global_norm = graph.TfNode(tf.global_norm(grads))
             if batch_size is not None:
                 grads = [g / float(batch_size) for g in grads]
+            self.global_norm = graph.TfNode(tf.global_norm(grads))
             if norm:
                 grads, _ = tf.clip_by_global_norm(grads, norm)
             grads = (tf.check_numerics(g, 'gradient_%d' % i) for i, g in enumerate(grads))

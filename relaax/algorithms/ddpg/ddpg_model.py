@@ -22,25 +22,23 @@ class ActorNetwork(subgraph.Subgraph):
         actor = layer.DDPGActor(dense, cfg.config.output)
 
         self.ph_state = input.ph_state
-        self.actor = actor
+        self.actor = actor.scaled_out
         self.weights = layer.Weights(input, dense, actor)
 
 
 class CriticNetwork(subgraph.Subgraph):
     def build_graph(self):
         input = layer.Input(cfg.config.input)
-        ph_action = graph.Placeholder(np.float32, (None, cfg.config.output.action_size))
+        self.ph_action = graph.Placeholder(np.float32, (None, cfg.config.output.action_size))
 
         sizes = cfg.config.hidden_sizes
         assert len(sizes) > 1, 'You need to provide sizes at least for 2 layers'
 
         dense_1st = layer.Dense(layer.Flatten(input), sizes[0], layer.Activation.Relu)
-        dense_2nd = layer.DoubleDense(dense_1st, ph_action, sizes[1], layer.Activation.Relu)
+        dense_2nd = layer.DoubleDense(dense_1st, self.ph_action, sizes[1], layer.Activation.Relu)
 
         self.critic = layer.Dense(dense_2nd, 1, init_var=3e-3)
-
         self.ph_state = input.ph_state
-        self.ph_action = ph_action.node
         self.weights = layer.Weights(input, dense_1st, dense_2nd, self.critic)
 
 
@@ -126,15 +124,13 @@ class AgentModel(subgraph.Subgraph):
         if cfg.config.no_ps:
             sg_actor_optimizer = graph.AdamOptimizer(cfg.config.actor_learning_rate)
             sg_actor_gradients = layer.Gradients(sg_actor_network.weights,
-                                                 loss=graph.TfNode(sg_actor_network.actor.scaled_out),
+                                                 loss=sg_actor_network.actor,
                                                  grad_ys=-ph_action_gradient.node,
-                                                 log=cfg.config.log,
                                                  optimizer=sg_actor_optimizer)
         else:
             sg_actor_gradients = layer.Gradients(sg_actor_network.weights,
-                                                 loss=graph.TfNode(sg_actor_network.actor.scaled_out),
-                                                 grad_ys=-ph_action_gradient.node,
-                                                 log=cfg.config.log)
+                                                 loss=sg_actor_network.actor,
+                                                 grad_ys=-ph_action_gradient.node)
 
         sg_critic_loss = loss.MeanSquaredLoss(sg_critic_network.critic)
         if cfg.config.l2:
@@ -145,15 +141,12 @@ class AgentModel(subgraph.Subgraph):
             sg_critic_optimizer = graph.AdamOptimizer(cfg.config.critic_learning_rate)
             sg_critic_gradients = layer.Gradients(sg_critic_network.weights,
                                                   loss=sg_critic_loss,
-                                                  log=cfg.config.log,
                                                   optimizer=sg_critic_optimizer)
         else:
             sg_critic_gradients = layer.Gradients(sg_critic_network.weights,
-                                                  loss=sg_critic_loss,
-                                                  log=cfg.config.log)
-        sg_critic_action_gradients = layer.Gradients(graph.TfNode(sg_critic_network.ph_action),
-                                                     loss=sg_critic_network.critic,
-                                                     log=cfg.config.log)
+                                                  loss=sg_critic_loss)
+        sg_critic_action_gradients = layer.Gradients(sg_critic_network.ph_action,
+                                                     loss=sg_critic_network.critic)
 
         # Expose public API
         self.op_assign_actor_weights = self.Op(sg_actor_network.weights.assign,
@@ -165,7 +158,7 @@ class AgentModel(subgraph.Subgraph):
         self.op_assign_critic_target_weights = self.Op(sg_critic_target_network.weights.assign,
                                                        weights=sg_critic_target_network.weights.ph_weights)
 
-        self.op_get_action = self.Op(sg_actor_network.actor,  # needs scaled_out (2nd)
+        self.op_get_action = self.Op(sg_actor_network.actor,
                                      state=sg_actor_network.ph_state)
         self.op_compute_actor_gradients = self.Op(sg_actor_gradients.calculate,
                                                   state=sg_actor_network.ph_state,
@@ -184,7 +177,7 @@ class AgentModel(subgraph.Subgraph):
                                                           state=sg_critic_network.ph_state,
                                                           action=sg_critic_network.ph_action)
 
-        self.op_get_actor_target = self.Op(sg_actor_target_network.actor,  # needs scaled_out (2nd)
+        self.op_get_actor_target = self.Op(sg_actor_target_network.actor,
                                            state=sg_actor_target_network.ph_state)
         self.op_get_critic_target = self.Op(sg_critic_target_network.critic,
                                             state=sg_critic_target_network.ph_state,
@@ -194,17 +187,17 @@ class AgentModel(subgraph.Subgraph):
                                        state=sg_critic_network.ph_state,
                                        action=sg_critic_network.ph_action)
 
-        if cfg.config.log:
-            self.op_compute_norm_actor_gradients = self.Op(sg_actor_gradients.global_norm,
-                                                           state=sg_actor_network.ph_state,
-                                                           grad_ys=ph_action_gradient)
-            self.op_compute_norm_critic_gradients = self.Op(sg_critic_gradients.global_norm,
-                                                            state=sg_critic_network.ph_state,
-                                                            action=sg_critic_network.ph_action,
-                                                            predicted=sg_critic_loss.ph_predicted)
-            self.op_compute_norm_critic_action_gradients = self.Op(sg_critic_action_gradients.global_norm,
-                                                                   state=sg_critic_network.ph_state,
-                                                                   action=sg_critic_network.ph_action)
+        # Integrate with grad computation by log_lvl
+        self.op_compute_norm_actor_gradients = self.Op(sg_actor_gradients.global_norm,
+                                                       state=sg_actor_network.ph_state,
+                                                       grad_ys=ph_action_gradient)
+        self.op_compute_norm_critic_gradients = self.Op(sg_critic_gradients.global_norm,
+                                                        state=sg_critic_network.ph_state,
+                                                        action=sg_critic_network.ph_action,
+                                                        predicted=sg_critic_loss.ph_predicted)
+        self.op_compute_norm_critic_action_gradients = self.Op(sg_critic_action_gradients.global_norm,
+                                                               state=sg_critic_network.ph_state,
+                                                               action=sg_critic_network.ph_action)
 
         if cfg.config.no_ps:
             sg_actor_weights = sg_actor_network.weights
