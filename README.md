@@ -254,7 +254,7 @@ TYPE_DICT|          11|       variable
 #### TYPE_IMAGE value:
 | image type(TYPE_STRING_UTF8) | xdim(TYPE_UINT4) | ydim(TYPE_UINT4) | Length in bytes(TYPE_UINT4) | bytes |
 
-image type values: BMP, JPG etc
+image type values: [see PIL image doc](http://pillow.readthedocs.io/en/3.4.x/handbook/concepts.html#concept-modes)
 
 #### TYPE_NDARRAY value:
 | shapes count(TYPE_UINT4) | shape0 |...| shapeN | Length in bytes(TYPE_UINT4) | bytes |
