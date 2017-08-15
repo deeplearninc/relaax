@@ -57,7 +57,7 @@ class SharedParameters(subgraph.Subgraph):
     def build_graph(self):
         # Build graph
         sg_global_step = graph.GlobalStep()
-        sg_episode_step = graph.GlobalStep()
+        sg_episode_cnt = graph.GlobalStep()
 
         sg_actor_weights = ActorNetwork().weights
         sg_critic_weights = CriticNetwork().weights
@@ -85,31 +85,27 @@ class SharedParameters(subgraph.Subgraph):
         sg_initialize = graph.Initialize()
 
         # Expose public API
-        self.op_n_step = self.Op(sg_global_step.n)
-        self.op_inc_step = self.Op(sg_global_step.increment,
-                                   increment=sg_global_step.ph_increment)
+        self.op_get_weights = self.Ops(sg_actor_weights, sg_actor_target_weights,
+                                       sg_critic_weights, sg_critic_target_weights)
 
-        self.op_get_actor_weights = self.Op(sg_actor_weights)
-        self.op_get_critic_weights = self.Op(sg_critic_weights)
-        self.op_get_actor_target_weights = self.Op(sg_actor_target_weights)
-        self.op_get_critic_target_weights = self.Op(sg_critic_target_weights)
+        self.op_init_target_weights = self.Ops(sg_init_actor_target_weights,
+                                               sg_init_critic_target_weights)
 
-        self.op_init_actor_target_weights = self.Op(sg_init_actor_target_weights)
-        self.op_init_critic_target_weights = self.Op(sg_init_critic_target_weights)
+        self.op_update_target_weights = self.Ops(sg_update_actor_target_weights,
+                                                 sg_update_critic_target_weights)
 
-        self.op_update_actor_target_weights = self.Op(sg_update_actor_target_weights)
-        self.op_update_critic_target_weights = self.Op(sg_update_critic_target_weights)
-
-        self.op_apply_actor_gradients = self.Ops(sg_actor_gradients.apply,
-                                                 sg_global_step.increment,
+        self.op_apply_actor_gradients = self.Ops(sg_actor_gradients.apply, sg_global_step.increment,
                                                  gradients=sg_actor_gradients.ph_gradients,
                                                  increment=sg_global_step.ph_increment)
         self.op_apply_critic_gradients = self.Op(sg_critic_gradients.apply,
                                                  gradients=sg_critic_gradients.ph_gradients)
 
-        self.op_get_episode_cnt = self.Op(sg_episode_step.n)
-        self.op_inc_episode_cnt = self.Op(sg_episode_step.increment,
-                                          increment=sg_episode_step.ph_increment)
+        self.op_n_step = self.Op(sg_global_step.n)
+        self.op_inc_step = self.Op(sg_global_step.increment, increment=sg_global_step.ph_increment)
+
+        self.op_get_episode_cnt = self.Op(sg_episode_cnt.n)
+        self.op_inc_episode_cnt = self.Op(sg_episode_cnt.increment, increment=sg_episode_cnt.ph_increment)
+
         self.op_initialize = self.Op(sg_initialize)
 
 
@@ -207,30 +203,23 @@ class AgentModel(subgraph.Subgraph):
 
             # needs reassign weights from actor & critic to target networks
             sg_init_actor_target_weights = \
-                graph.TfNode([tf.assign(variable, value) for variable, value
-                              in utils.Utils.izip(sg_actor_target_weights.node, sg_actor_weights.node)])
+                graph.AssignWeights(sg_actor_target_weights, sg_actor_weights).op
             sg_init_critic_target_weights = \
-                graph.TfNode([tf.assign(variable, value) for variable, value
-                              in utils.Utils.izip(sg_critic_target_weights.node, sg_critic_weights.node)])
+                graph.AssignWeights(sg_critic_target_weights, sg_critic_weights).op
 
-            tau_res = graph.TfNode(1. - cfg.config.tau).node
             sg_update_actor_target_weights = \
-                graph.TfNode([tf.assign(variable, tau_res * variable + cfg.config.tau * value) for variable, value
-                              in utils.Utils.izip(sg_actor_target_weights.node, sg_actor_weights.node)])
+                graph.AssignWeights(sg_actor_target_weights, sg_actor_weights, cfg.config.tau).op
             sg_update_critic_target_weights = \
-                graph.TfNode([tf.assign(variable, tau_res * variable + cfg.config.tau * value) for variable, value
-                              in utils.Utils.izip(sg_critic_target_weights.node, sg_critic_weights.node)])
+                graph.AssignWeights(sg_critic_target_weights, sg_critic_weights, cfg.config.tau).op
 
-            self.op_get_actor_weights = self.Op(sg_actor_weights)
-            self.op_get_critic_weights = self.Op(sg_critic_weights)
-            self.op_get_actor_target_weights = self.Op(sg_actor_target_weights)
-            self.op_get_critic_target_weights = self.Op(sg_critic_target_weights)
+            self.op_get_weights = self.Ops(sg_actor_weights, sg_actor_target_weights,
+                                           sg_critic_weights, sg_critic_target_weights)
 
-            self.op_init_actor_target_weights = self.Op(sg_init_actor_target_weights)
-            self.op_init_critic_target_weights = self.Op(sg_init_critic_target_weights)
+            self.op_init_target_weights = self.Ops(sg_init_actor_target_weights,
+                                                   sg_init_critic_target_weights)
 
-            self.op_update_actor_target_weights = self.Op(sg_update_actor_target_weights)
-            self.op_update_critic_target_weights = self.Op(sg_update_critic_target_weights)
+            self.op_update_target_weights = self.Ops(sg_update_actor_target_weights,
+                                                     sg_update_critic_target_weights)
 
             self.op_apply_actor_gradients = self.Ops(sg_actor_gradients.apply,
                                                      gradients=sg_actor_gradients.ph_gradients)

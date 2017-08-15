@@ -52,8 +52,7 @@ class DDPGEpisode(object):
 
         if cfg.config.no_ps:
             self.session.op_initialize()
-            self.session.op_init_actor_target_weights()
-            self.session.op_init_critic_target_weights()
+            self.session.op_init_target_weights()
 
     @property
     def experience(self):
@@ -182,29 +181,22 @@ class DDPGEpisode(object):
             self.ps.session.op_apply_actor_gradients(gradients=actor_grads, increment=self.cur_loop_cnt)
             self.ps.session.op_apply_critic_gradients(gradients=critic_grads)
 
-            self.ps.session.op_update_actor_target_weights()
-            self.ps.session.op_update_critic_target_weights()
+            self.ps.session.op_update_target_weights()
         else:
-            self.ps.session.op_inc_step(increment=self.cur_loop_cnt)
-
             self.session.op_apply_actor_gradients(gradients=actor_grads)
             self.session.op_apply_critic_gradients(gradients=critic_grads)
 
-            self.session.op_update_actor_target_weights()
-            self.session.op_update_critic_target_weights()
+            self.ps.session.op_inc_step(increment=self.cur_loop_cnt)
+            self.session.op_update_target_weights()
 
     @profiler.wrap
     def receive_experience(self):
         if not cfg.config.no_ps:
-            actor_weights = self.ps.session.op_get_actor_weights()
-            critic_weights = self.ps.session.op_get_critic_weights()
-            actor_target_weights = self.ps.session.op_get_actor_target_weights()
-            critic_target_weights = self.ps.session.op_get_critic_target_weights()
+            actor_weights, actor_target_weights, critic_weights, critic_target_weights = \
+                self.ps.session.op_get_weights()
         else:
-            actor_weights = self.session.op_get_actor_weights()
-            critic_weights = self.session.op_get_critic_weights()
-            actor_target_weights = self.session.op_get_actor_target_weights()
-            critic_target_weights = self.session.op_get_critic_target_weights()
+            actor_weights, actor_target_weights, critic_weights, critic_target_weights = \
+                self.session.op_get_weights()
 
         self.session.op_assign_actor_weights(weights=actor_weights)
         self.session.op_assign_critic_weights(weights=critic_weights)

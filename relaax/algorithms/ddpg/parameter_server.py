@@ -17,8 +17,7 @@ class ParameterServer(parameter_server_base.ParameterServerBase):
     def init_session(self):
         self.session = session.Session(ddpg_model.SharedParameters())
         self.session.op_initialize()
-        self.session.op_init_actor_target_weights()
-        self.session.op_init_critic_target_weights()
+        self.session.op_init_target_weights()
 
     def close(self):
         self.session.close()
