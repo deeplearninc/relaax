@@ -20,7 +20,9 @@ algorithm:
 
   max_global_step: 150000         # amount of maximum global steps to pass through the training
   start_sample_step: 2000
-  update_target_interval: 2000
+  update_weights_interval: 100
+  update_target_weights_interval: 2000
+  update_target_weights_min_steps: 500
 
   rewards_gamma: 1.0              # rewards discount factor
 
@@ -31,6 +33,9 @@ algorithm:
   replay_buffer_size: 50000
 
   # greedy eps parameters
-  initial_eps: 1.0
-  end_eps: 0.02
-  decay_steps: 10000
+  eps:
+    initial: 1.0
+    end: 0.02
+    stochastic: False
+    decay_steps: 10000
+

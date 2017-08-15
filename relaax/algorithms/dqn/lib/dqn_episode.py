@@ -12,6 +12,8 @@ from .. import dqn_config
 from .. import dqn_model
 from . import dqn_utils
 
+import random
+
 
 logger = logging.getLogger(__name__)
 profiler = profiling.get_profiler(__name__)
@@ -30,32 +32,31 @@ class DQNEpisode(object):
 
         self.last_action = None
         self.local_step = 0
+        self.last_target_weights_update = 0
 
         self.queue = None
 
     @profiler.wrap
     def begin(self):
-        # self.do_task(self.receive_experience)
         self.get_action()
 
     @profiler.wrap
     def step(self, reward, state, terminal):
         self.local_step += 1
+        self.last_target_weights_update += 1
 
-        if self.local_step % dqn_config.config.update_target_interval == 0:
-            # self.ps.session.op_update_target_weights()
-            print("EXPERIENCE SENT")
+        if self.last_target_weights_update > dqn_config.config.update_target_weights_min_steps and \
+                        random.random() < 1.0 / dqn_config.config.update_target_weights_interval:
             weights = self.session.op_get_weights()
             self.ps.session.op_assign_target_weights(target_weights=weights)
-            # self.session.op_update_target_weights()
 
-        if self.local_step % 501 == 0:
-            print("EXPERIENCE RECEIVED")
+            self.last_target_weights_update = 0
+
+        if self.local_step % dqn_config.config.update_weights_interval == 0:
             self.do_task(self.receive_experience)
 
         if self.local_step > dqn_config.config.start_sample_step:
             self.update()
-            # self.do_task(self.receive_experience)
 
         # metrics
         if state is not None:
@@ -95,10 +96,6 @@ class DQNEpisode(object):
         q_next_target = self.session.op_get_q_target_value(next_state=batch["next_state"])
         q_next = self.session.op_get_q_value(state=batch["next_state"])
 
-        # metrics
-        if self.local_step % 50 == 0:
-            print("Average action %f" % float(sum(batch["action"]) / len(batch["action"])))
-
         feeds = dict(state=batch["state"],
                      reward=batch["reward"],
                      action=batch["action"],
@@ -111,28 +108,18 @@ class DQNEpisode(object):
         for i, g in enumerate(utils.Utils.flatten(gradients)):
             self.metrics.histogram('gradients_%d' % i, g)
 
-        # self.ps.session.op_apply_gradients(gradients=gradients, increment=1)
         self.session.op_apply_gradients(gradients=gradients)
 
     @profiler.wrap
     def receive_experience(self):
-        # weights = self.ps.session.op_get_weights()
-        # self.session.op_assign_weights(weights=weights)
-
         target_weights = self.ps.session.op_get_target_weights()
         self.session.op_assign_target_weights(target_weights=target_weights)
 
-        # metrics
-        # for i, w in enumerate(utils.Utils.flatten(weights)):
-        #     self.metrics.histogram('weight_%d' % i, w)
-        # for i, w in enumerate(utils.Utils.flatten(target_weights)):
-        #     self.metrics.histogram('target_weights_%d' % i, w)
-
     def push_experience(self, reward, state, terminal):
-        assert self.observation.queue is not None
+        assert not self.observation.is_none()
         assert self.last_action is not None
 
-        old_state = self.observation.queue
+        old_state = self.observation.get_state()
         if state is not None:
             self.observation.add_state(state)
 
@@ -140,23 +127,18 @@ class DQNEpisode(object):
                                        action=self.last_action,
                                        reward=reward,
                                        terminal=terminal,
-                                       next_state=self.observation.queue))
+                                       next_state=self.observation.get_state()))
 
         self.last_action = None
 
     def get_action(self):
-        if self.observation.queue is None:
+        if self.observation.is_none():
             self.last_action = None
         else:
-            self.last_action = self.get_action_from_network()
-
-            # metrics
-            self.metrics.histogram('action', self.last_action)
+            q_value = self.session.op_get_q_value(state=[self.observation.get_state()])
+            self.last_action = self.session.op_get_action(local_step=self.local_step, q_value=q_value)
 
             assert self.last_action is not None
 
-    def get_action_from_network(self):
-        q_value = self.session.op_get_q_value(state=[self.observation.queue])
-
-        return self.session.op_get_action(local_step=self.local_step,
-                                          q_value=q_value)
+            # metrics
+            self.metrics.histogram('action', self.last_action)

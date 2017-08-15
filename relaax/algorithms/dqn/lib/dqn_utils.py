@@ -26,7 +26,12 @@ class Action(subgraph.Subgraph):
         self.ph_local_step = tf.placeholder(tf.int64, [])
         self.ph_q_value = tf.placeholder(tf.float32, [None, dqn_config.config.output.action_size])
 
-        eps = tf.train.polynomial_decay(dqn_config.config.initial_eps, self.ph_local_step, dqn_config.config.decay_steps, dqn_config.config.end_eps)
+        if dqn_config.config.eps.stochastic:
+            decay_steps = int(random.uniform(*dqn_config.config.eps.decay_steps))
+        else:
+            decay_steps = dqn_config.config.eps.decay_steps
+
+        eps = tf.train.polynomial_decay(dqn_config.config.eps.initial, self.ph_local_step, decay_steps, dqn_config.config.eps.end)
         return tf.cond(tf.less(tf.random_uniform([]), eps),
                        lambda: tf.random_uniform([], 0, dqn_config.config.output.action_size, dtype=tf.int32),
                        lambda: tf.cast(tf.squeeze(tf.argmax(self.ph_q_value, axis=1)), tf.int32))
@@ -34,26 +39,19 @@ class Action(subgraph.Subgraph):
 
 class DQNObservation(object):
     def __init__(self):
-        self.queue = None
+        self.queue = deque(maxlen=dqn_config.config.input.history)
 
     def add_state(self, state):
         if state is None:
-            self.queue = None
+            self.queue.clear()
+        elif self.is_none():
+                while len(self.queue) < self.queue.maxlen:
+                    self.queue.append(np.array(state))
         else:
-            self.queue = np.array(state)
-            return
+            self.queue.append(np.array(state))
 
-            state = np.array(state)
-            axis = len(state.shape)  # extra dimension for observation
+    def get_state(self):
+        return np.array(self.queue).T
 
-            # observation = np.reshape(state, state.shape + (1,))
-            observation = np.expand_dims(state, axis)
-
-            if self.queue is None:
-                self.queue = np.repeat(observation, dqn_config.config.input.history, axis=axis)
-            else:
-                # remove oldest observation from the beginning of the observation queue
-                self.queue = np.delete(self.queue, 0, axis=axis)
-
-                # append latest observation to the end of the observation queue
-                self.queue = np.append(self.queue, observation, axis=axis)
+    def is_none(self):
+        return len(self.queue) == 0

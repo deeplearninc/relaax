@@ -7,8 +7,8 @@ from relaax.common.algorithms.lib import graph
 from relaax.common.algorithms.lib import layer
 from relaax.common.algorithms.lib import loss
 from relaax.common.algorithms.lib import utils
-from . import dqn_config as cfg
 
+from . import dqn_config as cfg
 from .lib.dqn_utils import Action
 
 
@@ -16,11 +16,8 @@ class Network(subgraph.Subgraph):
     def build_graph(self):
         input = layer.Input(cfg.config.input)
 
-        sizes = cfg.config.hidden_sizes
-
         hidden = layer.GenericLayers(layer.Flatten(input),
-                                     [dict(type=layer.Dense, size=size,
-                                           activation=layer.Activation.Tanh) for size in sizes])
+                                     [dict(type=layer.Dense, size=size, activation=layer.Activation.Tanh) for size in cfg.config.hidden_sizes])
 
         output = layer.Dense(hidden, cfg.config.output.action_size)
 
@@ -34,34 +31,16 @@ class Network(subgraph.Subgraph):
 class GlobalServer(subgraph.Subgraph):
     def build_graph(self):
         sg_global_step = graph.GlobalStep()
-        # sg_network = Network()
         sg_target_network = Network()
-        # sg_weights = sg_network.weights
-        # sg_target_weights = sg_target_network.weights
-
-        # sg_update_target_weights = graph.TfNode([tf.assign(variable, value) for variable, value in utils.Utils.izip(sg_target_weights.node, sg_weights.node)])
-
-        # if cfg.config.optimizer == 'Adam':
-        #     sg_optimizer = graph.AdamOptimizer(cfg.config.initial_learning_rate)
-        # else:
-        #     raise NotImplementedError
-        #
-        # sg_gradients = layer.Gradients(sg_weights, optimizer=sg_optimizer)
 
         sg_initialize = graph.Initialize()
 
         # Expose public API
         self.op_n_step = self.Op(sg_global_step.n)
 
-        # self.op_get_weights = self.Op(sg_weights)
         self.op_get_target_weights = self.Op(sg_target_network.weights)
-
         self.op_assign_target_weights = self.Op(sg_target_network.weights.assign, target_weights=sg_target_network.weights.ph_weights)
 
-        # self.op_update_target_weights = self.Op(sg_update_target_weights)
-        # self.op_apply_gradients = self.Ops(sg_gradients.apply, sg_global_step.increment,
-        #                                    gradients=sg_gradients.ph_gradients,
-        #                                    increment=sg_global_step.ph_increment)
         self.op_initialize = self.Op(sg_initialize)
 
 
@@ -72,9 +51,14 @@ class AgentModel(subgraph.Subgraph):
 
         sg_get_action = Action()
 
+        if cfg.config.optimizer == 'Adam':
+            sg_optimizer = graph.AdamOptimizer(cfg.config.initial_learning_rate)
+        else:
+            raise NotImplementedError
+
         sg_loss = loss.DQNLoss(sg_network.output, cfg.config.output, cfg.config.double_dqn, cfg.config.rewards_gamma)
         sg_gradients_calc = layer.Gradients(sg_network.weights, loss=sg_loss)
-        sg_gradients_apply = layer.Gradients(sg_network.weights, optimizer=graph.AdamOptimizer(cfg.config.initial_learning_rate))
+        sg_gradients_apply = layer.Gradients(sg_network.weights, optimizer=sg_optimizer)
 
         sg_update_target_weights = graph.TfNode([tf.assign(variable, value) for variable, value in utils.Utils.izip(sg_target_network.weights.node, sg_network.weights.node)])
 
