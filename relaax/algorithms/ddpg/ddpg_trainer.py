@@ -1,6 +1,4 @@
 from __future__ import absolute_import
-
-from builtins import range
 from builtins import object
 
 import logging
@@ -11,11 +9,12 @@ import threading
 from relaax.common import profiling
 from relaax.server.common import session
 from relaax.common.algorithms.lib import episode
+from relaax.common.algorithms.lib import observation
 from relaax.common.algorithms.lib import utils
 
-from .. import ddpg_config as cfg
-from .. import ddpg_model
-from . import ddpg_observation
+from . import ddpg_config as cfg
+from . import ddpg_model
+
 
 logger = logging.getLogger(__name__)
 profiler = profiling.get_profiler(__name__)
@@ -33,7 +32,7 @@ class DDPGEpisode(object):
                                             cfg.config.exploration.rnd_seed,
                                             'state', 'action', 'reward', 'terminal', 'next_state')
         self.episode.begin()
-        self.observation = ddpg_observation.DDPGObservation()
+        self.observation = observation.Observation(cfg.config.input.history)
         self.last_action = self.noise_epsilon = None
         self.episode_cnt = self.cur_loop_cnt = 0
         self.exploration_noise = utils.OUNoise(cfg.config.output.action_size,

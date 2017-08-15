@@ -5,7 +5,7 @@ import numpy as np
 
 from relaax.common import profiling
 from . import ddpg_config as cfg
-from .lib import ddpg_episode
+from . import ddpg_trainer
 
 logger = logging.getLogger(__name__)
 profiler = profiling.get_profiler(__name__)
@@ -22,8 +22,8 @@ class Agent(object):
 
     # environment is ready and
     # waiting for agent to initialize
-    def init(self, exploit=False, hogwild_update=False):
-        self.episode = ddpg_episode.DDPGEpisode(self.ps, self.metrics, exploit, hogwild_update)
+    def init(self, exploit=False, hogwild_update=True):
+        self.episode = ddpg_trainer.DDPGEpisode(self.ps, self.metrics, exploit, hogwild_update)
         self.episode.begin()
         return True
 
