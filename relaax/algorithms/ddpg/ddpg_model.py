@@ -67,27 +67,20 @@ class SharedParameters(subgraph.Subgraph):
 
         # needs reassign weights from actor & critic to target networks
         sg_init_actor_target_weights = \
-            graph.TfNode([tf.assign(variable, value) for variable, value
-                          in utils.Utils.izip(sg_actor_target_weights.node, sg_actor_weights.node)])
+            graph.AssignWeights(sg_actor_target_weights, sg_actor_weights).op
         sg_init_critic_target_weights = \
-            graph.TfNode([tf.assign(variable, value) for variable, value
-                          in utils.Utils.izip(sg_critic_target_weights.node, sg_critic_weights.node)])
+            graph.AssignWeights(sg_critic_target_weights, sg_critic_weights).op
 
-        tau_res = graph.TfNode(1. - cfg.config.tau).node
         sg_update_actor_target_weights = \
-            graph.TfNode([tf.assign(variable, tau_res * variable + cfg.config.tau * value) for variable, value
-                          in utils.Utils.izip(sg_actor_target_weights.node, sg_actor_weights.node)])
+            graph.AssignWeights(sg_actor_target_weights, sg_actor_weights, cfg.config.tau).op
         sg_update_critic_target_weights = \
-            graph.TfNode([tf.assign(variable, tau_res * variable + cfg.config.tau * value) for variable, value
-                          in utils.Utils.izip(sg_critic_target_weights.node, sg_critic_weights.node)])
+            graph.AssignWeights(sg_critic_target_weights, sg_critic_weights, cfg.config.tau).op
 
         sg_actor_optimizer = graph.AdamOptimizer(cfg.config.actor_learning_rate)
         sg_critic_optimizer = graph.AdamOptimizer(cfg.config.critic_learning_rate)
 
-        sg_actor_gradients = layer.Gradients(sg_actor_weights,
-                                             optimizer=sg_actor_optimizer)
-        sg_critic_gradients = layer.Gradients(sg_critic_weights,
-                                              optimizer=sg_critic_optimizer)
+        sg_actor_gradients = layer.Gradients(sg_actor_weights, optimizer=sg_actor_optimizer)
+        sg_critic_gradients = layer.Gradients(sg_critic_weights, optimizer=sg_critic_optimizer)
 
         sg_initialize = graph.Initialize()
 
