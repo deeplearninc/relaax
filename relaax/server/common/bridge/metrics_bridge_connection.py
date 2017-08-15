@@ -2,7 +2,6 @@ from __future__ import absolute_import
 from builtins import object
 import grpc
 
-from relaax.server.metrics_server.metrics_server_config import options
 from relaax.server.common.metrics import metrics
 from relaax.server.common.metrics import enabled_metrics
 
@@ -16,20 +15,26 @@ profiler = profiling.get_profiler(__name__)
 
 
 class MetricsBridgeConnection(object):
-    def __init__(self, server):
-        self._server = server
+    def __init__(self, options):
+        self._server = options.metrics_server
         self.metrics = enabled_metrics.EnabledMetrics(options, BridgeMetrics(self))
         self._stub = None
 
     def set_x(self, x):
-        self.stub.SetX(bridge_pb2.X(x=x))
+        message = bridge_pb2.X(x=x)
+        self.send('SetX', lambda: message)
 
-
-    @property
-    def stub(self):
+    def send(self, method_name, message_factory):
         if self._stub is None:
             self._stub = bridge_pb2.BridgeStub(grpc.insecure_channel('%s:%d' % self._server))
-        return self._stub
+            for _ in range(9):
+                method = getattr(self._stub, method_name)
+                message = message_factory()
+                try:
+                    return method(message)
+                except grpc.RpcError as e:
+                    pass
+        return getattr(self._stub, method_name)(message_factory())
 
 
 class BridgeMetrics(metrics.Metrics):
@@ -49,5 +54,5 @@ class BridgeMetrics(metrics.Metrics):
         self.send('histogram', name=name, y=y, x=x)
 
     def send(self, method, **kwargs):
-        messages = bridge_message.BridgeMessage.serialize(dict(method=method, kwargs=kwargs))
-        self.connection.stub.StoreMetric(messages)
+        data = dict(method=method, kwargs=kwargs)
+        self.connection.send('StoreMetric', lambda: bridge_message.BridgeMessage.serialize(data))
