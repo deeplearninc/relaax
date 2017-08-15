@@ -132,10 +132,7 @@ class AgentModel(subgraph.Subgraph):
                                                  loss=sg_actor_network.actor,
                                                  grad_ys=-ph_action_gradient.node)
 
-        sg_critic_loss = loss.MeanSquaredLoss(sg_critic_network.critic)
-        if cfg.config.l2:
-            sg_critic_l2loss = loss.L2Loss(sg_critic_network.weights, cfg.config.l2_decay)
-            sg_critic_loss = graph.TfNode(sg_critic_loss.node + sg_critic_l2loss.node)
+        sg_critic_loss = loss.DDPGLoss(sg_critic_network, cfg.config)
 
         if cfg.config.no_ps:
             sg_critic_optimizer = graph.AdamOptimizer(cfg.config.critic_learning_rate)

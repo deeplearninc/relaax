@@ -15,10 +15,11 @@ config.actor_learning_rate = options.get('algorithm/actor_learning_rate', 1e-4)
 config.critic_learning_rate = options.get('algorithm/critic_learning_rate', 1e-3)
 config.tau = options.get('algorithm/tau', 1e-3)
 
-config.l2 = options.get('algorithm/l2', False)
+config.l2 = options.get('algorithm/l2', True)
 config.l2_decay = options.get('algorithm/l2_decay', 1e-2)
 
-config.ou_noise = options.get('algorithm/ou_noise', False)
+config.output.scale = options.get('algorithm/output/scale', 1.)
+config.ou_noise = options.get('algorithm/ou_noise', True)
 
 config.exploration.ou_mu = options.get('algorithm/exploration/ou_mu', .0)
 config.exploration.ou_theta = options.get('algorithm/exploration/ou_theta', .15)

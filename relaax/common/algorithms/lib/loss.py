@@ -134,6 +134,16 @@ def DA3CLoss(actor, critic, cfg):
     return Loss(actor, critic, cfg)
 
 
+class DDPGLoss(subgraph.Subgraph):
+    def build_graph(self, critic_nn, cfg):
+        loss = MeanSquaredLoss(critic_nn.critic)
+        self.ph_predicted = loss.ph_predicted
+        if cfg.l2:
+            l2_loss = L2Loss(critic_nn.weights, cfg.l2_decay)
+            loss = loss.node + l2_loss.node
+        return loss
+
+
 class MeanSquaredLoss(subgraph.Subgraph):
     def build_graph(self, y, size=1):
         self.ph_predicted = tf.placeholder(tf.float32, [None, size])
