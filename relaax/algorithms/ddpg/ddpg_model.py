@@ -36,10 +36,19 @@ class CriticNetwork(subgraph.Subgraph):
 
         dense_1st = layer.Dense(layer.Flatten(input), sizes[0], layer.Activation.Relu)
         dense_2nd = layer.DoubleDense(dense_1st, self.ph_action, sizes[1], layer.Activation.Relu)
+        layers = [input, dense_1st, dense_2nd]
 
-        self.critic = layer.Dense(dense_2nd, 1, init_var=3e-3)
+        net = layer.GenericLayers(dense_2nd,
+                                  [dict(type=layer.Dense, size=size,
+                                        activation=layer.Activation.Relu) for size in sizes[2:]])
+        if len(sizes[2:]) > 0:
+            layers.append(net)
+
+        self.critic = layer.Dense(net, 1, init_var=3e-3)
         self.ph_state = input.ph_state
-        self.weights = layer.Weights(input, dense_1st, dense_2nd, self.critic)
+
+        layers.append(self.critic)
+        self.weights = layer.Weights(*layers)
 
 
 # Weights of the policy are shared across
