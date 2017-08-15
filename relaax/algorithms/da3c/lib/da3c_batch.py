@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 profiler = profiling.get_profiler(__name__)
 
 
-class DA3CEpisode(object):
+class DA3CBatch(object):
     def __init__(self, parameter_server, metrics, exploit, hogwild_update):
         self.exploit = exploit
         self.ps = parameter_server
@@ -67,7 +67,7 @@ class DA3CEpisode(object):
             self.push_experience(reward)
         if terminal:
             if state is not None:
-                logger.warning('DA3CEpisode.step ignores state in case of terminal.')
+                logger.warning('DA3CBatch.step ignores state in case of terminal.')
                 state = None
         else:
             assert state is not None

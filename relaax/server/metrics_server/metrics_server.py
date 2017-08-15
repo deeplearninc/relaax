@@ -71,7 +71,7 @@ class MetricsServer(object):
     @staticmethod
     def metrics_factory(x):
         metrics = []
-        if options.get('relaax_metrics_server/log_metrics', False):
+        if options.get('relaax_metrics_server/log_metrics_to_console', False):
             metrics.append(logging_metrics.LoggingMetrics(x))
         metrics_dir = options.get('relaax_metrics_server/metrics_dir')
         if metrics_dir is not None:

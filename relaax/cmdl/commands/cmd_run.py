@@ -33,6 +33,7 @@ class PopenPatched(subprocess.Popen):
             create_new_process_group = 0x00000200
             detached_process = 0x00000008
             #options.update(creationflags=detached_process | create_new_process_group)
+            os.environ["COMSPEC"]= "powershell.exe"
         elif start_new_session:
             if sys.version_info < (3, 2):
                 options.update(preexec_fn=os.setsid)
@@ -92,7 +93,7 @@ class CmdlRun(object):
         self.components = components if bool(components) else set(['all'])
 
         if sys.platform == 'win32':
-            self.nobuffer = 'set PYTHONUNBUFFERED=true&&'
+            self.nobuffer = 'set PYTHONUNBUFFERED=true;'
         else:
             self.nobuffer = 'PYTHONUNBUFFERED=true'
         self.config_yaml = ConfigYaml()
@@ -108,7 +109,11 @@ class CmdlRun(object):
         self.run_wsproxy(manager)
         self.run_client(manager)
 
-        manager.loop()
+        try:
+            manager.loop()
+        except InterruptedError:
+            pass
+                
         sys.exit(manager.returncode)
 
     def intersection(self, lst):
@@ -221,6 +226,7 @@ def cmdl(ctx, components, config, n_environments, exploit, show_ui):
     ctx.setup_logger(format='%(asctime)s %(name)s\t\t  | %(message)s')
     # Disable TF warnings
     os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+    os.environ["COMSPEC"]= "powershell.exe"
     # Execute command
     if sys.platform == 'win32':
         honcho.manager.KILL_WAIT = 120
@@ -231,11 +237,11 @@ def cmdl(ctx, components, config, n_environments, exploit, show_ui):
         firstRun = False 
         mutex = ctypes.windll.kernel32.CreateMutexA(None, False, "RELAAX_WINDOWS_MUTEX")
         if _winapi.GetLastError() == 0:
-            firstRun = True
+            firstRun1 = True
             
         if firstRun:
-            os.system("start " + ' '.join(sys.argv))
-            time.sleep(2)
+            os.system("start powershell " + ' '.join(sys.argv))
+            time.sleep(5)
             _winapi.CloseHandle(mutex)
         else:
             _winapi.CloseHandle(mutex)    

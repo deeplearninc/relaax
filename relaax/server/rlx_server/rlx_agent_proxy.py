@@ -17,7 +17,7 @@ class RLXAgentProxy(object):
 
     def __init__(self):
         ps = ps_bridge_connection.PsBridgeConnection(options.parameter_server)
-        metrics_connection = metrics_bridge_connection.MetricsBridgeConnection(options.metrics_server)
+        metrics_connection = metrics_bridge_connection.MetricsBridgeConnection(options)
         metrics = x_metrics.XMetrics(ps.session.op_n_step, metrics_connection.metrics)
         self.agent = options.Agent(ps, metrics)
 
@@ -56,7 +56,7 @@ class RLXAgentProxy(object):
                 return self._error_message('unknown command')
         except BaseException as e:
             log.error("Error while processing [%s] command by the agent" % data.get('command'))
-            log.error(traceback.format_exc())
+            log.debug(traceback.format_exc())
             return self._error_message(str(e))
 
     def _error_message(self, message):
