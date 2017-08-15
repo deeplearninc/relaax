@@ -119,27 +119,23 @@ class AgentModel(subgraph.Subgraph):
         sg_critic_target_network = CriticNetwork()
 
         ph_action_gradient = graph.Placeholder(np.float32, (None, cfg.config.output.action_size))
+        actor_grad_args = dict(loss=sg_actor_network.actor, grad_ys=-ph_action_gradient.node)
+
         if cfg.config.no_ps:
             sg_actor_optimizer = graph.AdamOptimizer(cfg.config.actor_learning_rate)
-            sg_actor_gradients = layer.Gradients(sg_actor_network.weights,
-                                                 loss=sg_actor_network.actor,
-                                                 grad_ys=-ph_action_gradient.node,
-                                                 optimizer=sg_actor_optimizer)
-        else:
-            sg_actor_gradients = layer.Gradients(sg_actor_network.weights,
-                                                 loss=sg_actor_network.actor,
-                                                 grad_ys=-ph_action_gradient.node)
+            actor_grad_args.update(dict(optimizer=sg_actor_optimizer))
+
+        sg_actor_gradients = layer.Gradients(sg_actor_network.weights, **actor_grad_args)
 
         sg_critic_loss = loss.DDPGLoss(sg_critic_network, cfg.config)
+        critic_grad_args = dict(loss=sg_critic_loss)
 
         if cfg.config.no_ps:
             sg_critic_optimizer = graph.AdamOptimizer(cfg.config.critic_learning_rate)
-            sg_critic_gradients = layer.Gradients(sg_critic_network.weights,
-                                                  loss=sg_critic_loss,
-                                                  optimizer=sg_critic_optimizer)
-        else:
-            sg_critic_gradients = layer.Gradients(sg_critic_network.weights,
-                                                  loss=sg_critic_loss)
+            critic_grad_args.update(dict(optimizer=sg_critic_optimizer))
+
+        sg_critic_gradients = layer.Gradients(sg_critic_network.weights, **critic_grad_args)
+
         sg_critic_action_gradients = layer.Gradients(sg_critic_network.ph_action,
                                                      loss=sg_critic_network.critic)
 
@@ -155,14 +151,20 @@ class AgentModel(subgraph.Subgraph):
 
         self.op_get_action = self.Op(sg_actor_network.actor,
                                      state=sg_actor_network.ph_state)
+        self.op_get_critic_q = self.Op(sg_critic_network.critic,
+                                       state=sg_critic_network.ph_state,
+                                       action=sg_critic_network.ph_action)
+
+        self.op_get_actor_target = self.Op(sg_actor_target_network.actor,
+                                           state=sg_actor_target_network.ph_state)
+        self.op_get_critic_target = self.Op(sg_critic_target_network.critic,
+                                            state=sg_critic_target_network.ph_state,
+                                            action=sg_critic_target_network.ph_action)
+
         self.op_compute_actor_gradients = self.Op(sg_actor_gradients.calculate,
                                                   state=sg_actor_network.ph_state,
                                                   grad_ys=ph_action_gradient)
 
-        self.op_critic_loss = self.Op(sg_critic_loss,
-                                      state=sg_critic_network.ph_state,
-                                      action=sg_critic_network.ph_action,
-                                      predicted=sg_critic_loss.ph_predicted)
         self.op_compute_critic_gradients = self.Op(sg_critic_gradients.calculate,
                                                    state=sg_critic_network.ph_state,
                                                    action=sg_critic_network.ph_action,
@@ -172,17 +174,11 @@ class AgentModel(subgraph.Subgraph):
                                                           state=sg_critic_network.ph_state,
                                                           action=sg_critic_network.ph_action)
 
-        self.op_get_actor_target = self.Op(sg_actor_target_network.actor,
-                                           state=sg_actor_target_network.ph_state)
-        self.op_get_critic_target = self.Op(sg_critic_target_network.critic,
-                                            state=sg_critic_target_network.ph_state,
-                                            action=sg_critic_target_network.ph_action)
-
-        self.op_get_critic_q = self.Op(sg_critic_network.critic,
-                                       state=sg_critic_network.ph_state,
-                                       action=sg_critic_network.ph_action)
-
-        # Integrate with grad computation by log_lvl
+        # Integrated with grad computation by log_lvl
+        self.op_critic_loss = self.Op(sg_critic_loss,
+                                      state=sg_critic_network.ph_state,
+                                      action=sg_critic_network.ph_action,
+                                      predicted=sg_critic_loss.ph_predicted)
         self.op_compute_norm_actor_gradients = self.Op(sg_actor_gradients.global_norm,
                                                        state=sg_actor_network.ph_state,
                                                        grad_ys=ph_action_gradient)

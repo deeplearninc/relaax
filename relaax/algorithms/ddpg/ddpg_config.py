@@ -2,7 +2,7 @@ from relaax.common.python.config.loaded_config import options
 
 config = options.get('algorithm')
 
-config.log_lvl = options.get('relaax-metrics-server/log_level', 'INFO')
+config.log_lvl = options.get('relaax-metrics-server/log_level', 'INFO')  # INFO | DEBUG | VERBOSE
 config.no_ps = options.get('algorithm/no_ps', False)
 
 config.buffer_size = options.get('algorithm/buffer_size', 4*10**5)

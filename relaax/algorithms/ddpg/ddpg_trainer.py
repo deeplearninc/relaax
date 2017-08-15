@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 profiler = profiling.get_profiler(__name__)
 
 
-class DDPGEpisode(object):
+class Trainer(object):
     def __init__(self, parameter_server, metrics, exploit, hogwild_update):
         self.exploit = exploit
         self.ps = parameter_server
@@ -141,7 +141,6 @@ class DDPGEpisode(object):
 
         if self.terminal and cfg.config.log_lvl == 'DEBUG':
             x = self.episode_cnt
-            self.metrics.histogram('states', experience['state'], x)
             self.metrics.histogram('action_target_scaled', action_target_scaled, x)
 
             critic_sq_loss = self.session.op_critic_loss(state=experience['state'],
@@ -150,15 +149,15 @@ class DDPGEpisode(object):
             self.metrics.histogram('y', y, x)
             self.metrics.scalar('critic_sq_loss', critic_sq_loss, x)
 
-            self.metrics.histogram('target_q', target_q, x)
-            self.metrics.histogram('predicted_q', predicted_q, x)
+            self.metrics.histogram('q_target', target_q, x)
+            self.metrics.histogram('q_predicted', predicted_q, x)
 
             for i, g in enumerate(utils.Utils.flatten(critic_grads)):
-                self.metrics.histogram('critic_grads_%d' % i, g, x)
+                self.metrics.histogram('grads_critic_%d' % i, g, x)
             for i, g in enumerate(utils.Utils.flatten(action_grads)):
-                self.metrics.histogram('action_grads_%d' % i, g, x)
+                self.metrics.histogram('grads_action_%d' % i, g, x)
             for i, g in enumerate(utils.Utils.flatten(actor_grads)):
-                self.metrics.histogram('actor_grads_%d' % i, g, x)
+                self.metrics.histogram('grads_actor_%d' % i, g, x)
 
         if cfg.config.log_lvl == 'VERBOSE':
             norm_critic_grads = self.session.op_compute_norm_critic_gradients(state=experience['state'],
@@ -168,9 +167,9 @@ class DDPGEpisode(object):
                                                                                      action=scaled_out)
             norm_actor_grads = self.session.op_compute_norm_actor_gradients(state=experience['state'],
                                                                             grad_ys=action_grads)
-            self.metrics.scalar('critic_grads_norm', norm_critic_grads)
-            self.metrics.scalar('action_grads_norm', norm_action_grads)
-            self.metrics.scalar('actor_grads_norm', norm_actor_grads)
+            self.metrics.scalar('grads_norm_critic', norm_critic_grads)
+            self.metrics.scalar('grads_norm_action', norm_action_grads)
+            self.metrics.scalar('grads_norm_actor', norm_actor_grads)
 
             self.metrics.histogram('batch_states', experience['state'])
             self.metrics.histogram('batch_actions', experience['action'])
@@ -207,14 +206,14 @@ class DDPGEpisode(object):
             x = self.episode_cnt
 
             for i, g in enumerate(utils.Utils.flatten(actor_weights)):
-                self.metrics.histogram('actor_weights_%d' % i, g, x)
+                self.metrics.histogram('weights_actor_%d' % i, g, x)
             for i, g in enumerate(utils.Utils.flatten(critic_weights)):
-                self.metrics.histogram('critic_weights_%d' % i, g, x)
+                self.metrics.histogram('weights_critic_%d' % i, g, x)
 
             for i, g in enumerate(utils.Utils.flatten(actor_target_weights)):
-                self.metrics.histogram('actor_target_weights_%d' % i, g, x)
+                self.metrics.histogram('weights_actor_target_%d' % i, g, x)
             for i, g in enumerate(utils.Utils.flatten(critic_target_weights)):
-                self.metrics.histogram('critic_target_weights_%d' % i, g, x)
+                self.metrics.histogram('weights_critic_target_%d' % i, g, x)
 
     def push_experience(self, reward, state, terminal):
         assert self.observation.queue is not None
