@@ -76,6 +76,8 @@ class Network(subgraph.Subgraph):
                              ph_lstm_state=critic_head.ph_lstm_state,
                              lstm_zero_state=critic_head.lstm_zero_state, lstm_state=critic_head.lstm_state)
 
+        self.lstm_zero_state = (self.actor.lstm_zero_state, self.critic.lstm_zero_state)
+
 
 # Weights of the policy are shared across
 # all agents and stored on the parameter server

@@ -11,8 +11,6 @@ from relaax.common import profiling
 from relaax.server.common import session
 from relaax.common.algorithms.lib import utils
 
-#from . import da3c_config
-#from .lib import da3c_batch
 from .lib.da3c_replay_buffer import DA3CReplayBuffer
 from . import da3c_config
 from . import da3c_model
@@ -21,8 +19,6 @@ from .lib import da3c_observation
 
 logger = logging.getLogger(__name__)
 profiler = profiling.get_profiler(__name__)
-
-
 M = False
 
 
@@ -54,9 +50,7 @@ class Agent(object):
         model = da3c_model.AgentModel()
         self.session = session.Session(model)
         if da3c_config.config.use_lstm:
-            self.lstm_zero_state = (model.actor.lstm_zero_state, model.critic.lstm_zero_state)
-            self.lstm_state = self.initial_lstm_state = \
-                    (model.actor.lstm_zero_state, model.actor.lstm_zero_state)
+            self.lstm_state = self.initial_lstm_state = self.lstm_zero_state = model.lstm_zero_state
 
         self.observation = da3c_observation.DA3CObservation()
         self.last_action = None
