@@ -7,6 +7,7 @@ import logging
 from relaax.common import profiling
 from relaax.server.common import session
 from relaax.common.algorithms.lib import utils
+from relaax.common.algorithms.lib import observation
 
 from .. import dqn_config
 from .. import dqn_model
@@ -28,7 +29,7 @@ class Trainer(object):
         self.session.op_initialize()
 
         self.replay_buffer = dqn_utils.ReplayBuffer(dqn_config.config.replay_buffer_size)
-        self.observation = dqn_utils.DQNObservation()
+        self.observation = observation.Observation(dqn_config.config.input.history)
 
         self.last_action = None
         self.local_step = 0

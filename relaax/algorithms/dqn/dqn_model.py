@@ -1,7 +1,5 @@
 from __future__ import absolute_import
 
-import tensorflow as tf
-
 from relaax.common.algorithms import subgraph
 from relaax.common.algorithms.lib import graph
 from relaax.common.algorithms.lib import layer
@@ -58,7 +56,7 @@ class AgentModel(subgraph.Subgraph):
         sg_gradients_calc = layer.Gradients(sg_network.weights, loss=sg_loss)
         sg_gradients_apply = layer.Gradients(sg_network.weights, optimizer=sg_optimizer)
 
-        sg_update_target_weights = graph.TfNode([tf.assign(variable, value) for variable, value in utils.Utils.izip(sg_target_network.weights.node, sg_network.weights.node)])
+        sg_update_target_weights = graph.AssignWeights(sg_target_network.weights, sg_network.weights)
 
         # Expose public API
         self.op_assign_weights = self.Op(sg_network.weights.assign, weights=sg_network.weights.ph_weights)

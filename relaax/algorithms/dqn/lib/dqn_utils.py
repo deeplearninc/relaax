@@ -35,23 +35,3 @@ class Actor(subgraph.Subgraph):
         return tf.cond(tf.less(tf.random_uniform([]), eps),
                        lambda: tf.random_uniform([], 0, dqn_config.config.output.action_size, dtype=tf.int32),
                        lambda: tf.cast(tf.squeeze(tf.argmax(self.ph_q_value, axis=1)), tf.int32))
-
-
-class DQNObservation(object):
-    def __init__(self):
-        self.queue = deque(maxlen=dqn_config.config.input.history)
-
-    def add_state(self, state):
-        if state is None:
-            self.queue.clear()
-        elif self.is_none():
-                while len(self.queue) < self.queue.maxlen:
-                    self.queue.append(np.array(state))
-        else:
-            self.queue.append(np.array(state))
-
-    def get_state(self):
-        return np.array(self.queue).T
-
-    def is_none(self):
-        return len(self.queue) == 0
