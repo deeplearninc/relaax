@@ -36,7 +36,7 @@ class Ops(object):
         self.feed_dict = feed_dict
 
     def __call__(self, session, **kwargs):
-        ops = [self.cast(op) for op in self.ops]
+        ops = [Utils.cast(op) for op in self.ops]
         feed_dict = {v: kwargs[k] for k, v in self.feed_dict.items()}
         # print('feed_dict')
         # for k, v in self.flatten_feed_dict(feed_dict).items():
@@ -58,13 +58,8 @@ class Ops(object):
 
     def flatten_fd(self, feed_dict):
         for k, v in feed_dict.items():
-            for kk, vv in Utils.izip2(self.cast(k), v):
+            for kk, vv in Utils.izip2(k, v):
                 yield kk, vv
-
-    def cast(self, v):
-        if isinstance(v, Subgraph):
-            return v.node
-        return v
 
 
 class Utils(object):
@@ -106,6 +101,7 @@ class Utils(object):
 
     @classmethod
     def izip2(cls, v1, v2):
+        v1 = cls.cast(v1)
         if isinstance(v1, (tuple, list)):
             assert isinstance(v2, (tuple, list))
             assert len(v1) == len(v2)
@@ -121,3 +117,9 @@ class Utils(object):
                     yield vvv1, vvv2
         else:
             yield v1, v2
+
+    @staticmethod
+    def cast(v):
+        if isinstance(v, Subgraph):
+            return v.node
+        return v
