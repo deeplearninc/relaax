@@ -13,10 +13,10 @@ class Subgraph(object):
         return self.__node
 
     def Op(self, op, **feed_dict):
-        return Ops([op], feed_dict)
+        return Op(op, feed_dict)
 
     def Ops(self, *ops, **feed_dict):
-        return Ops(ops, feed_dict)
+        return Op(ops, feed_dict)
 
     def Call(self, f):
         return Call(f)
@@ -30,53 +30,46 @@ class Call(object):
         return self.f(session, *args, **kwargs)
 
 
-class Ops(object):
-    def __init__(self, ops, feed_dict):
-        self.ops = ops
+class Op(object):
+    def __init__(self, op, feed_dict):
+        self.op = op
         self.feed_dict = feed_dict
 
     def __call__(self, session, **kwargs):
-        ops = [Utils.cast(op) for op in self.ops]
         feed_dict = {v: kwargs[k] for k, v in self.feed_dict.items()}
         # print('feed_dict')
         # for k, v in self.flatten_feed_dict(feed_dict).items():
         #     import numpy as np
         #     print(repr(k), repr(np.asarray(v).shape))
-        result = Utils.reconstruct(
-            session.run(
-                list(Utils.flatten(ops)),
-                feed_dict=self.flatten_feed_dict(feed_dict)
-            ),
-            ops
-        )
-        if len(ops) == 1:
-            result, = result
-        return result
+        return self.reconstruct(session.run(list(self.flatten(self.op)),
+                                             feed_dict=self.flatten_feed_dict(feed_dict)), self.op)
 
-    def flatten_feed_dict(self, feed_dict):
-        return {k: v for k, v in self.flatten_fd(feed_dict)}
+    @classmethod
+    def flatten_feed_dict(cls, feed_dict):
+        return {k: v for k, v in cls.flatten_fd(feed_dict)}
 
-    def flatten_fd(self, feed_dict):
+    @classmethod
+    def flatten_fd(cls, feed_dict):
         for k, v in feed_dict.items():
-            for kk, vv in Utils.izip2(k, v):
+            for kk, vv in cls.izip2(k, v):
                 yield kk, vv
 
+    @classmethod
+    def map(cls, v, mapping):
 
-class Utils(object):
-    @staticmethod
-    def map(v, mapping):
-
-        def map_(v):
+        def _map(v):
+            v = cls.cast(v)
             if isinstance(v, (tuple, list)):
-                return [map_(v1) for v1 in v]
+                return [_map(v1) for v1 in v]
             if isinstance(v, dict):
-                return {k: map_(v1) for k, v1 in v.items()}
+                return {k: _map(v1) for k, v1 in v.items()}
             return mapping(v)
 
-        return map_(v)
+        return _map(v)
 
     @classmethod
     def flatten(cls, v):
+        v = cls.cast(v)
         if isinstance(v, (tuple, list)):
             for vv in v:
                 for vvv in cls.flatten(vv):
