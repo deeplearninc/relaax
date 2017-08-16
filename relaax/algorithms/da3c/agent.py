@@ -23,6 +23,9 @@ logger = logging.getLogger(__name__)
 profiler = profiling.get_profiler(__name__)
 
 
+M = False
+
+
 # DA3CAgent implements training regime for DA3C algorithm
 # If exploit on init set to True, agent will run in exploitation regime:
 # stop updating shared parameters and at the end of every episode load
@@ -47,15 +50,13 @@ class Agent(object):
     # environment is ready and
     # waiting for agent to initialize
     def init(self, exploit=False, hogwild_update=True):
-        #self.batch = da3c_batch.DA3CBatch(self.ps, self.metrics, exploit, hogwild_update)
-        #self.batch.begin()
-
         self.exploit = exploit
         model = da3c_model.AgentModel()
         self.session = session.Session(model)
         if da3c_config.config.use_lstm:
-            self.lstm_zero_state = model.lstm_zero_state
-            self.lstm_state = self.initial_lstm_state = model.lstm_zero_state
+            self.lstm_zero_state = (model.actor.lstm_zero_state, model.critic.lstm_zero_state)
+            self.lstm_state = self.initial_lstm_state = \
+                    (model.actor.lstm_zero_state, model.actor.lstm_zero_state)
 
         self.observation = da3c_observation.DA3CObservation()
         self.last_action = None
@@ -100,7 +101,7 @@ class Agent(object):
             self.push_experience(reward, terminal)
         if terminal:
             if state is not None:
-                logger.warning('DA3CBatch.step ignores state in case of terminal.')
+                logger.warning('Agent.step ignores state in case of terminal.')
                 state = None
         else:
             assert state is not None
@@ -161,15 +162,15 @@ class Agent(object):
     def send_experience(self, experience):
         self.apply_gradients(self.compute_gradients(experience), len(experience))
         if da3c_config.config.use_icm:
-            self.ps.session.op_icm_apply_gradients(
-                gradients=self.compute_icm_gradients(experience))
+            self.ps.session.op_icm_apply_gradients(gradients=self.compute_icm_gradients(experience))
 
     @profiler.wrap
     def receive_experience(self):
         self.ps.session.op_check_weights()
         weights = self.ps.session.op_get_weights()
-        for i, w in enumerate(utils.Utils.flatten(weights)):
-            self.metrics.histogram('weight_%d' % i, w)
+        if M:
+            for i, w in enumerate(utils.Utils.flatten(weights)):
+                self.metrics.histogram('weight_%d' % i, w)
         self.session.op_assign_weights(weights=weights)
         if da3c_config.config.use_icm:
             self.session.op_icm_assign_weights(weights=self.ps.session.op_icm_get_weights())
@@ -200,8 +201,10 @@ class Agent(object):
 
     def get_action_and_value_from_network(self):
         if da3c_config.config.use_lstm:
-            action, value, lstm_state = self.session.op_get_action_value_and_lstm_state(
-                state=[self.observation.queue], lstm_state=self.lstm_state, lstm_step=[1])
+            action, value, lstm_state = \
+                    self.session.op_get_action_value_and_lstm_state(state=[self.observation.queue],
+                                                                    lstm_state=self.lstm_state,
+                                                                    lstm_step=[1])
             condition = self.experience is not None and \
                         (len(self.experience) == da3c_config.config.batch_size or self.terminal)
             if not condition:
@@ -211,14 +214,15 @@ class Agent(object):
 
         value, = value
         if len(action) == 1:
-            self.metrics.histogram('action', action)
+            if M:
+                self.metrics.histogram('action', action)
             probabilities, = action
             return utils.choose_action_descrete(probabilities), value
         mu, sigma2 = action
-        self.metrics.histogram('mu', mu)
-        self.metrics.histogram('sigma2', sigma2)
-        return utils.choose_action_continuous(mu, sigma2,
-                                              da3c_config.config.output.action_low,
+        if M:
+            self.metrics.histogram('mu', mu)
+            self.metrics.histogram('sigma2', sigma2)
+        return utils.choose_action_continuous(mu, sigma2, da3c_config.config.output.action_low,
                                               da3c_config.config.output.action_high), value
 
     def get_intrinsic_reward(self, state):
@@ -260,7 +264,9 @@ class Agent(object):
         if da3c_config.config.use_gae:
             feeds.update(dict(advantage=advantage))
 
-        return self.session.op_compute_gradients(**feeds)
+        gradients, summaries = self.session.op_compute_gradients_and_summaries(**feeds)
+        self.metrics.summary(summaries)
+        return gradients
 
     def compute_icm_gradients(self, experience):
         states, icm_states = experience['state'], []
@@ -271,8 +277,9 @@ class Agent(object):
             discounted_reward=self.discounted_reward)
 
     def apply_gradients(self, gradients, experience_size):
-        for i, g in enumerate(utils.Utils.flatten(gradients)):
-            self.metrics.histogram('gradients_%d' % i, g)
+        if M:
+            for i, g in enumerate(utils.Utils.flatten(gradients)):
+                self.metrics.histogram('gradients_%d' % i, g)
         self.ps.session.op_apply_gradients(gradients=gradients, increment=experience_size)
         self.ps.session.op_check_weights()
 

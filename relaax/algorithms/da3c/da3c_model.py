@@ -112,8 +112,8 @@ class SharedParameters(subgraph.Subgraph):
         if da3c_config.config.use_icm:
             # Expose ICM public API
             self.op_icm_get_weights = self.Op(sg_icm_weights)
-            self.op_icm_apply_gradients = self.Ops(sg_icm_gradients.apply,
-                                                   gradients=sg_icm_gradients.ph_gradients)
+            self.op_icm_apply_gradients = self.Op(sg_icm_gradients.apply,
+                                                  gradients=sg_icm_gradients.ph_gradients)
 
         # Expose public API
         self.op_n_step = self.Op(sg_global_step.n)
@@ -121,8 +121,8 @@ class SharedParameters(subgraph.Subgraph):
         self.op_get_weights = self.Ops(self.actor.weights, self.critic.weights)
         self.op_apply_gradients = self.Ops(sg_actor_gradients.apply, sg_critic_gradients.apply,
                                            sg_global_step.increment,
-                                           actor_gradients=sg_actor_gradients.ph_gradients,
-                                           critic_gradients=sg_critic_gradients.ph_gradients,
+                                           gradients=(sg_actor_gradients.ph_gradients,
+                                                      sg_critic_gradients.ph_gradients),
                                            increment=sg_global_step.ph_increment)
         self.op_initialize = self.Op(sg_initialize)
 
@@ -152,8 +152,7 @@ class AgentModel(subgraph.Subgraph):
             # Expose ICM public API
             self.op_icm_assign_weights = self.Op(sg_icm_network.weights.assign,
                                                  weights=sg_icm_network.weights.ph_weights)
-            self.op_get_intrinsic_reward = self.Ops(sg_icm_network.rew_out,
-                                                    state=sg_icm_network.ph_state)
+            self.op_get_intrinsic_reward = self.Op(sg_icm_network.rew_out, state=sg_icm_network.ph_state)
             self.op_compute_icm_gradients = self.Op(sg_icm_gradients.calculate,
                                             state=sg_icm_network.ph_state, action=sg_icm_loss.ph_action,
                                             discounted_reward=sg_icm_loss.ph_discounted_reward)
@@ -171,8 +170,8 @@ class AgentModel(subgraph.Subgraph):
 
         # Expose public API
         self.op_assign_weights = self.Ops(sg_network.actor.weights.assign, sg_network.critic.weights.assign,
-                                         actor_weights=sg_network.actor.weights.ph_weights,
-                                         critic_weights=sg_network.critic.weights.ph_weights)
+                                          weights=(sg_network.actor.weights.ph_weights,
+                                                   sg_network.critic.weights.ph_weights))
 
         feeds = dict(state=sg_network.ph_state, action=sg_loss.ph_action,
                      discounted_reward=sg_loss.ph_discounted_reward)
@@ -181,22 +180,19 @@ class AgentModel(subgraph.Subgraph):
             feeds.update(dict(advantage=sg_loss.ph_advantage))
 
         if da3c_config.config.use_lstm:
-            feeds.update(dict(actor_lstm_state=sg_network.actor.ph_lstm_state,
-                              critic_lstm_state=sg_network.critic.ph_lstm_state))
-            self.actor_lstm_zero_state = sg_network.actor.lstm_zero_state
-            self.critic_lstm_zero_state = sg_network.critic.lstm_zero_state
-            self.op_get_action_value_and_lstm_state = self.Ops(sg_network.actor.head, sg_network.critic.head,
-                                                               sg_network.actor.lstm_state,
-                                                               sg_network.critic.lstm_state,
-                                                               state=sg_network.ph_state,
-                                                               actor_lstm_state=sg_network.actor.ph_lstm_state,
-                                                               critic_lstm_state=sg_network.critic.ph_lstm_state)
+            feeds.update(dict(lstm_state=(sg_network.actor.ph_lstm_state, sg_network.critic.ph_lstm_state)))
+            self.lstm_zero_state = (sg_network.actor.lstm_zero_state, sg_network.critic.lstm_zero_state)
+            self.op_get_action_value_and_lstm_state = \
+                    self.Ops(sg_network.actor.head, sg_network.critic.head,
+                             (sg_network.actor.lstm_state, sg_network.critic.lstm_state),
+                             state=sg_network.ph_state,
+                             lstm_state=(sg_network.actor.ph_lstm_state, sg_network.critic.ph_lstm_state))
         else:
             self.op_get_action_and_value = self.Ops(sg_network.actor.head, sg_network.critic.head,
                                                     state=sg_network.ph_state)
 
-        self.op_compute_gradients_and_summaries = self.Ops(sg_actor_gradients.calculate,
-                                                           sg_critic_gradients.calculate, summaries, **feeds)
+        self.op_compute_gradients_and_summaries = \
+                self.Ops((sg_actor_gradients.calculate, sg_critic_gradients.calculate), summaries, **feeds)
 
 
 if __name__ == '__main__':
