@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 from builtins import object
-from .lib import dqn_episode
+from .lib import dqn_trainer
 
 from relaax.common import profiling
 
@@ -16,7 +16,7 @@ class Agent(object):
     # environment is ready and
     # waiting for agent to initialize
     def init(self, exploit=False, hogwild_update=False):
-        self.episode = dqn_episode.DQNEpisode(self.ps, self.metrics, exploit, hogwild_update)
+        self.episode = dqn_trainer.Trainer(self.ps, self.metrics, exploit, hogwild_update)
         self.episode.begin()
         return True
 

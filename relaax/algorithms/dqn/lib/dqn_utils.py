@@ -21,7 +21,7 @@ class ReplayBuffer(object):
         self._replay_memory.append(value)
 
 
-class Action(subgraph.Subgraph):
+class Actor(subgraph.Subgraph):
     def build_graph(self):
         self.ph_local_step = tf.placeholder(tf.int64, [])
         self.ph_q_value = tf.placeholder(tf.float32, [None, dqn_config.config.output.action_size])

@@ -39,23 +39,22 @@ class DA3CDiscreteLoss(subgraph.Subgraph):
 
 
 class DQNLoss(subgraph.Subgraph):
-    def build_graph(self, q_network,
-                    output, double_dqn, gamma):  # TODO: refactor into single variable
+    def build_graph(self, q_network, cfg):
         self.ph_reward = tf.placeholder(tf.float32, [None])
         self.ph_action = tf.placeholder(tf.int32, [None])
         self.ph_terminal = tf.placeholder(tf.int32, [None])
-        self.ph_q_next_target = tf.placeholder(tf.float32, [None, output.action_size])
-        self.ph_q_next = tf.placeholder(tf.float32, [None, output.action_size])
+        self.ph_q_next_target = tf.placeholder(tf.float32, [None, cfg.output.action_size])
+        self.ph_q_next = tf.placeholder(tf.float32, [None, cfg.output.action_size])
 
-        action_one_hot = tf.one_hot(self.ph_action, output.action_size)
+        action_one_hot = tf.one_hot(self.ph_action, cfg.output.action_size)
         q_action = tf.reduce_sum(tf.multiply(q_network.node, action_one_hot), axis=1)
 
-        if double_dqn:
-            q_max = tf.reduce_sum(tf.multiply(self.ph_q_next_target, tf.one_hot(tf.argmax(self.ph_q_next, axis=1), output.action_size)), axis=1)
+        if cfg.double_dqn:
+            q_max = tf.reduce_sum(tf.multiply(self.ph_q_next_target, tf.one_hot(tf.argmax(self.ph_q_next, axis=1), cfg.output.action_size)), axis=1)
         else:
             q_max = tf.reduce_max(self.ph_q_next_target, axis=1)
 
-        y = tf.add(self.ph_reward, tf.multiply(tf.cast(tf.subtract(1, self.ph_terminal), tf.float32), tf.scalar_mul(gamma, q_max)))
+        y = tf.add(self.ph_reward, tf.multiply(tf.cast(tf.subtract(1, self.ph_terminal), tf.float32), tf.scalar_mul(cfg.rewards_gamma, q_max)))
 
         return tf.losses.absolute_difference(q_action, y)
 

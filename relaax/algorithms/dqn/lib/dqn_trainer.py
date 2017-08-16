@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 profiler = profiling.get_profiler(__name__)
 
 
-class DQNEpisode(object):
+class Trainer(object):
     def __init__(self, parameter_server, metrics, exploit, hogwild_update):
         self.ps = parameter_server
         self.metrics = metrics

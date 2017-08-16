@@ -9,7 +9,7 @@ from relaax.common.algorithms.lib import loss
 from relaax.common.algorithms.lib import utils
 
 from . import dqn_config as cfg
-from .lib.dqn_utils import Action
+from .lib.dqn_utils import Actor
 
 
 class Network(subgraph.Subgraph):
@@ -21,11 +21,9 @@ class Network(subgraph.Subgraph):
 
         output = layer.Dense(hidden, cfg.config.output.action_size)
 
-        layers = [input, hidden, output]
-
         self.ph_state = input.ph_state
         self.output = output
-        self.weights = layer.Weights(*layers)
+        self.weights = layer.Weights(input, hidden, output)
 
 
 class GlobalServer(subgraph.Subgraph):
@@ -49,14 +47,14 @@ class AgentModel(subgraph.Subgraph):
         sg_network = Network()
         sg_target_network = Network()
 
-        sg_get_action = Action()
+        sg_get_action = Actor()
 
         if cfg.config.optimizer == 'Adam':
             sg_optimizer = graph.AdamOptimizer(cfg.config.initial_learning_rate)
         else:
             raise NotImplementedError
 
-        sg_loss = loss.DQNLoss(sg_network.output, cfg.config.output, cfg.config.double_dqn, cfg.config.rewards_gamma)
+        sg_loss = loss.DQNLoss(sg_network.output, cfg.config)
         sg_gradients_calc = layer.Gradients(sg_network.weights, loss=sg_loss)
         sg_gradients_apply = layer.Gradients(sg_network.weights, optimizer=sg_optimizer)
 
