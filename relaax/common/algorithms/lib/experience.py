@@ -16,3 +16,8 @@ class Experience(object):
         for k, v in self._lists.items():
             v.append(kwargs[k])
         self._len += 1
+
+    def del_record(self, size=1):
+        for k, v in self._lists.items():
+            del v[:size]
+        self._len -= size

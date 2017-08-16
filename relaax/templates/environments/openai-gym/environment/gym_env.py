@@ -65,8 +65,10 @@ class GymEnv(object):
         if limit is not None:
             self.gym._max_episode_steps = limit
 
-        shape = options.get('environment/shape', options.get('environment/image', (84, 84)))
-        self._shape = shape[:2]
+        self.shape = options.get('environment/shape', (84, 84))
+        if len(self.shape) > 1:
+            self._shape = (self.shape[0], self.shape[1])
+            self._channels = 0 if len(self.shape) == 2 else self.shape[-1]
 
         self._crop = options.get('environment/crop', True)
         self._process_state = self._process_all
@@ -91,15 +93,15 @@ class GymEnv(object):
             return space.shape[0]
         return space.n
 
+    def get_action_high(self):
+        return self.gym.action_space.high
+
     def act(self, action):
         if self._show_ui or self._record:
             self.gym.render()
 
         state, reward, terminal, info = self.gym.step(action)
-        if terminal:
-            state = None
-        else:
-            state = self._process_state(state)
+        state = self._process_state(state)
 
         return reward, state, terminal
 
@@ -120,6 +122,9 @@ class GymEnv(object):
         return state
 
     def _process_img(self, screen):
+        if self._channels < 2:
+            screen = np.dot(screen[..., :3], [0.299, 0.587, 0.114]).astype(np.uint8)
+
         if self._crop:
             screen = screen[32:36 + 160, :160]
 
@@ -132,6 +137,9 @@ class GymEnv(object):
 
         return screen
 
-    @staticmethod
-    def _process_all(state):
+    def _process_all(self, state):
+        if self.shape == (84, 84):
+            self.shape = state.shape
+        if state.shape != self.shape:
+            state = np.reshape(state, self.shape)
         return state

@@ -3,6 +3,7 @@ import tensorflow as tf
 
 from relaax.common.algorithms import subgraph
 from relaax.common.algorithms.lib import graph
+from relaax.common.algorithms.lib import utils
 
 
 class DA3CDiscreteLoss(subgraph.Subgraph):
@@ -131,6 +132,29 @@ def DA3CContinuousLoss(cfg):
 def DA3CLoss(actor, critic, cfg):
     Loss = DA3CContinuousLoss(cfg) if actor.continuous else DA3CDiscreteLoss
     return Loss(actor, critic, cfg)
+
+
+class DDPGLoss(subgraph.Subgraph):
+    def build_graph(self, critic_nn, cfg):
+        loss = MeanSquaredLoss(critic_nn.critic)
+        self.ph_predicted = loss.ph_predicted
+        if cfg.l2:
+            l2_loss = L2Loss(critic_nn.weights, cfg.l2_decay)
+            loss = loss.node + l2_loss.node
+        return loss
+
+
+class MeanSquaredLoss(subgraph.Subgraph):
+    def build_graph(self, y, size=1):
+        self.ph_predicted = tf.placeholder(tf.float32, [None, size])
+        return tf.reduce_mean(tf.square(self.ph_predicted - y.node))
+
+
+class L2Loss(subgraph.Subgraph):
+    def build_graph(self, weights, l2_decay=0.01):
+        flattened_weights = list(utils.Utils.flatten(weights.node))
+        l2_loss = tf.add_n([tf.nn.l2_loss(w) for w in flattened_weights])
+        return l2_decay * l2_loss
 
 
 class PGLoss(subgraph.Subgraph):

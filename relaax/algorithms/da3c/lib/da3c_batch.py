@@ -155,7 +155,8 @@ class DA3CBatch(object):
             if not condition:
                 self.lstm_state = lstm_state
         else:
-            action, value = self.session.op_get_action_and_value(state=[self.observation.queue])
+            action, value = self.session.op_get_action_and_value(
+                state=[self.observation.queue])
 
         value, = value
         if len(action) == 1:
@@ -221,7 +222,8 @@ class DA3CBatch(object):
     def apply_gradients(self, gradients, experience_size):
         for i, g in enumerate(utils.Utils.flatten(gradients)):
             self.metrics.histogram('gradients_%d' % i, g)
-        self.ps.session.op_apply_gradients(gradients=gradients, increment=experience_size)
+        self.ps.session.op_apply_gradients(
+            gradients=gradients, increment=experience_size)
         self.ps.session.op_check_weights()
 
     @staticmethod

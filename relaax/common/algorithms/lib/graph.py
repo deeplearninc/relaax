@@ -223,3 +223,14 @@ class Initialize(subgraph.Subgraph):
 class TfNode(subgraph.Subgraph):
     def build_graph(self, tf_tensor):
         return tf_tensor
+
+
+class AssignWeights(subgraph.Subgraph):
+    def build_graph(self, w1, w2, part=None):
+        if part is None:
+            self.op = TfNode([tf.assign(variable, value) for variable, value
+                              in utils.Utils.izip(w1.node, w2.node)])
+        else:
+            trap = 1. - part
+            self.op = TfNode([tf.assign(variable, trap * variable + part * value) for variable, value
+                              in utils.Utils.izip(w1.node, w2.node)])
