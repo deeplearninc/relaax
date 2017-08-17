@@ -4,6 +4,8 @@ import numpy as np
 from PIL import Image
 from struct import *
 
+V = False
+
 class RLXMessageImage(object):
     def __init__(self, image):
         self.image = image
@@ -225,7 +227,8 @@ class RLXMessage(object):
     @classmethod
     def to_wire(cls, data):
         buf = bytearray()
-        buf += pack("I", 1)
+        if V:
+            buf += pack("I", 1)
 
         for key in data:
             #print((key, type(data[key]).__name__))
@@ -238,9 +241,10 @@ class RLXMessage(object):
     def from_wire(cls, data):
         res = {}
         offset = 0
-        #read version
-        unpack_from("I", data, offset)[0]
-        offset += 4
+        if V:
+            #read version
+            unpack_from("I", data, offset)[0]
+            offset += 4
 
         while offset < len(data):
             (field_name, offset) = cls._unpack_string(data, offset)
