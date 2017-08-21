@@ -160,7 +160,7 @@ class Placeholder(subgraph.Subgraph):
         np.float32: tf.float32
     }
 
-    def build_graph(self, dtype, shape=None):
+    def build_graph(self, dtype, shape=None, name=None):
         """Assemble one placeholder.
 
         Args:
@@ -171,7 +171,7 @@ class Placeholder(subgraph.Subgraph):
             placeholder of given shape and data type
         """
 
-        ph = tf.placeholder(self.DTYPE[dtype], shape=shape)
+        ph = tf.placeholder(self.DTYPE[dtype], shape=shape, name=name)
         if dtype not in [np.int32, np.int64]:
             self.checked = tf.check_numerics(ph, '')
         return ph
