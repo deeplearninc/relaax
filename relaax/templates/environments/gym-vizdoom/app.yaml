@@ -4,17 +4,18 @@ environment:
   run: python environment/training.py
   name: ppaquette/DoomMyWayHome-v0
   max_episodes: 10000
-  infinite_run: False
-
-metrics:
-  episode_reward: true
-  server_latency: false
-  action: false
-  mu: false
-  sigma2: false
-  critic: true
+  infinite_run: false
 
 relaax-metrics-server:
+  enable_unknown_metrics: false
+  metrics:
+    episode_reward: true
+    server_latency: false
+    action: false
+    mu: false
+    sigma2: false
+    critic: true
+
   bind: localhost:7002
   metrics_dir: logs/metrics
   log_metrics_to_console: false
