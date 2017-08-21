@@ -62,10 +62,6 @@ class SharedParameters(subgraph.Subgraph):
 
         if da3c_config.config.optimizer == 'Adam':
             sg_optimizer = optimizer.AdamOptimizer(da3c_config.config.initial_learning_rate)
-            if da3c_config.config.use_icm:
-                sg_icm_optimizer = optimizer.AdamOptimizer(da3c_config.config.initial_learning_rate)
-                sg_icm_weights = icm_model.ICM().weights
-                sg_icm_gradients = optimizer.Gradients(sg_icm_weights, optimizer=sg_icm_optimizer)
         else:
             sg_learning_rate = da3c_graph.LearningRate(sg_global_step)
             sg_optimizer = optimizer.RMSPropOptimizer(
@@ -78,6 +74,10 @@ class SharedParameters(subgraph.Subgraph):
         sg_initialize = graph.Initialize()
 
         if da3c_config.config.use_icm:
+            sg_icm_optimizer = optimizer.AdamOptimizer(da3c_config.config.initial_learning_rate)
+            sg_icm_weights = icm_model.ICM().weights
+            sg_icm_gradients = optimizer.Gradients(sg_icm_weights, optimizer=sg_icm_optimizer)
+
             # Expose ICM public API
             self.op_icm_get_weights = self.Op(sg_icm_weights)
             self.op_icm_apply_gradients = self.Ops(sg_icm_gradients.apply,
@@ -101,12 +101,12 @@ class AgentModel(subgraph.Subgraph):
 
         sg_loss = loss.DA3CLoss(sg_network.actor, sg_network.critic, da3c_config.config)
         sg_gradients = optimizer.Gradients(sg_network.weights, loss=sg_loss,
-                                       norm=da3c_config.config.gradients_norm_clipping)
+                                           norm=da3c_config.config.gradients_norm_clipping)
 
         if da3c_config.config.use_icm:
             sg_icm_network = icm_model.ICM()
             sg_icm_loss = loss.ICMLoss(sg_network.actor, sg_icm_network,
-                                       da3c_config.config.ICM.alpha, da3c_config.config.ICM.beta)
+                                       da3c_config.config.icm.alpha, da3c_config.config.icm.beta)
             sg_icm_gradients = optimizer.Gradients(sg_icm_network.weights, loss=sg_icm_loss)
 
             # Expose ICM public API
@@ -115,8 +115,9 @@ class AgentModel(subgraph.Subgraph):
             self.op_get_intrinsic_reward = self.Ops(sg_icm_network.rew_out,
                                                     state=sg_icm_network.ph_state)
             self.op_compute_icm_gradients = self.Op(sg_icm_gradients.calculate,
-                                            state=sg_icm_network.ph_state, action=sg_icm_loss.ph_action,
-                                            discounted_reward=sg_icm_loss.ph_discounted_reward)
+                                                    state=sg_icm_network.ph_state,
+                                                    action=sg_icm_loss.ph_action,
+                                                    discounted_reward=sg_icm_loss.ph_discounted_reward)
 
         # Expose public API
         self.op_assign_weights = self.Op(sg_network.weights.assign,

@@ -99,8 +99,8 @@ class Expand(subgraph.Subgraph):
 
 
 class Concat(subgraph.Subgraph):
-    def build_graph(self, concat_dim, values, name='concat'):
-        return tf.concat(concat_dim, [v.node for v in values], name=name)
+    def build_graph(self, values, axis, name='concat'):
+        return tf.concat([v.node for v in values], axis, name=name)
 
 
 class List(subgraph.Subgraph):
@@ -164,7 +164,7 @@ class Placeholder(subgraph.Subgraph):
         """Assemble one placeholder.
 
         Args:
-            shape: The shape of the placeholder to be fed (optional). If the shape is not
+            shape: The shape of the tensor to be fed (optional). If the shape is not
       specified, you can feed a tensor of any shape.
             dtype: The type of elements in the placeholder to be fed.
             name: A name for the placeholder (optional).
