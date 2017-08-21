@@ -274,7 +274,6 @@ class LbfgsOptimizer(object):
 
 class NnRegression(object):
     def __init__(self, net, session, mixfrac=1.0, maxiter=25):
-        self.net = net
         self.mixfrac = mixfrac
 
         x_nx = net.input
