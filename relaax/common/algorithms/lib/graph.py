@@ -164,8 +164,10 @@ class Placeholder(subgraph.Subgraph):
         """Assemble one placeholder.
 
         Args:
-            shape: placehoder shape
-            dtype: placeholder data type
+            shape: The shape of the placeholder to be fed (optional). If the shape is not
+      specified, you can feed a tensor of any shape.
+            dtype: The type of elements in the placeholder to be fed.
+            name: A name for the placeholder (optional).
 
         Returns:
             placeholder of given shape and data type
