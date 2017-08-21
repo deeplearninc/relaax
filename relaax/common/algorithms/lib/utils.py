@@ -12,7 +12,7 @@ from relaax.common.python.config.loaded_config import options
 log = logging.getLogger(__name__)
 
 
-def discounted_reward(rewards, gamma):
+def discounted_reward(rewards, gamma, normalize=False):
     # take 1D float array of rewards and compute discounted reward
     rewards = np.vstack(rewards)
     discounted_reward = np.zeros_like(rewards, dtype=np.float32)
@@ -20,10 +20,12 @@ def discounted_reward(rewards, gamma):
     for t in reversed(range(rewards.size)):
         running_add = running_add * gamma + rewards[t]
         discounted_reward[t] = running_add
+
     # size the rewards to be unit normal
     # it helps control the gradient estimator variance
-    #discounted_reward -= np.mean(discounted_reward)
-    #discounted_reward /= np.std(discounted_reward) + 1e-20
+    if normalize:
+        discounted_reward -= np.mean(discounted_reward)
+        discounted_reward /= np.std(discounted_reward) + 1e-20
 
     return discounted_reward
 
@@ -54,6 +56,28 @@ def assemble_and_show_graphs(*graphs):
     log.info(('Writing TF summary to %s. '
               'Please use tensorboad to watch.') % log_dir)
     tf.summary.FileWriter(log_dir, graph=tf.get_default_graph())
+
+
+class OUNoise:
+    """Ornstein-Uhlenbeck Noise Process"""
+    def __init__(self, action_size, mu=0.0, theta=0.15, sigma=0.3, seed=123):
+        self.action_size = action_size
+        self.mu = mu
+        self.theta = theta
+        self.sigma = sigma
+        self.state = np.ones(self.action_size) * self.mu
+        np.random.seed(seed)
+
+    def reset(self, seed=None):
+        if seed is not None:
+            np.random.seed(seed)
+        self.state = np.ones(self.action_size) * self.mu
+
+    def noise(self):
+        x = self.state
+        dx = self.theta * (self.mu - x) + self.sigma * np.random.randn(len(x))
+        self.state = x + dx
+        return self.state
 
 
 class Utils(object):

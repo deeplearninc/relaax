@@ -48,11 +48,12 @@ class Border(object):
 
 
 class BaseLayer(subgraph.Subgraph):
-    def build_graph(self, x, shape, transformation, activation):
-        d = 1.0
-        p = np.prod(shape[:-1])
-        if p != 0:
-            d = 1.0 / np.sqrt(p)
+    def build_graph(self, x, shape, transformation, activation, d=None):
+        if d is None:
+            d = 1.0
+            p = np.prod(shape[:-1])
+            if p != 0:
+                d = 1.0 / np.sqrt(p)
         initializer = graph.RandomUniformInitializer(minval=-d, maxval=d)
         W = graph.Variable(initializer(np.float32, shape)).node
         b = graph.Variable(initializer(np.float32, shape[-1:])).node
@@ -70,11 +71,41 @@ class Convolution(BaseLayer):
 
 
 class Dense(BaseLayer):
-    def build_graph(self, x, size=1, activation=Activation.Null):
+    def build_graph(self, x, size=1, activation=Activation.Null, init_var=None):
         assert len(x.node.shape) == 2
         shape = (x.node.shape.as_list()[1], size)
         tr = lambda x, W: tf.matmul(x.node, W)
-        return super(Dense, self).build_graph(x, shape, tr, activation)
+        return super(Dense, self).build_graph(x, shape, tr, activation, d=init_var)
+
+
+class DoubleDense(BaseLayer):
+    def build_graph(self, x1, x2, size=1, activation=Activation.Null):
+        assert len(x1.node.shape) == 2
+        shape1 = (x1.node.shape.as_list()[1], size)
+        assert len(x2.node.shape) == 2
+        shape2 = (x2.node.shape.as_list()[1], size)
+
+        ops = lambda x1, W1, x2, W2: tf.matmul(x1, W1) + tf.matmul(x2, W2)
+
+        d = 1.0
+        p = np.prod(shape1[:-1])
+        if p != 0:
+            d = 1.0 / np.sqrt(p)
+        initializer = graph.RandomUniformInitializer(minval=-d, maxval=d)
+        W1 = graph.Variable(initializer(np.float32, shape1)).node
+
+        d = 1.0
+        p = np.prod(shape2[:-1])
+        if p != 0:
+            d = 1.0 / np.sqrt(p)
+        initializer = graph.RandomUniformInitializer(minval=-d, maxval=d)
+        W2 = graph.Variable(initializer(np.float32, shape2)).node
+
+        initializer = graph.RandomUniformInitializer()
+        b = graph.Variable(initializer(np.float32, shape2[-1:])).node
+        self.weight = graph.TfNode((W1, W2, b))
+
+        return activation(ops(x1.node, W1, x2.node, W2) + b)
 
 
 class LSTM(subgraph.Subgraph):
@@ -116,7 +147,7 @@ class GenericLayers(subgraph.Subgraph):
         return last.node
 
 
-class DescreteActor(subgraph.Subgraph):
+class DiscreteActor(subgraph.Subgraph):
     def build_graph(self, head, output):
         action_size = output.action_size
         actor = Dense(head, action_size, activation=Activation.Softmax)
@@ -138,8 +169,18 @@ class ContinuousActor(subgraph.Subgraph):
 
 
 def Actor(head, output):
-    Actor = ContinuousActor if output.continuous else DescreteActor
+    Actor = ContinuousActor if output.continuous else DiscreteActor
     return Actor(head, output)
+
+
+class DDPGActor(subgraph.Subgraph):
+    def build_graph(self, head, output):
+        self.action_size = output.action_size
+        self.continuous = True
+
+        self.out = Dense(head, self.action_size, activation=Activation.Tanh, init_var=3e-3)
+        self.weight = self.out.weight
+        self.scaled_out = graph.TfNode(self.out.node * output.scale)
 
 
 class InputPlaceholder(subgraph.Subgraph):
@@ -198,23 +239,3 @@ class Weights(subgraph.Subgraph):
                                              enumerate(utils.Utils.flatten(weights))]))
         self.global_norm = tf.global_norm(list(utils.Utils.flatten(weights)))
         return weights
-
-
-class Gradients(subgraph.Subgraph):
-    def build_graph(self, weights, loss=None, optimizer=None, norm=False):
-        if loss is not None:
-            gradients = tf.gradients(loss.node, list(utils.Utils.flatten(weights.node)))
-            gradients = [tf.check_numerics(g, 'gradient_%d' % i) for i, g in enumerate(gradients)]
-
-            # store gradients global norm before clipping
-            self.global_norm = tf.global_norm(gradients)
-
-            # clip gradients after global norm has been stored
-            if norm:
-                gradients, _ = tf.clip_by_global_norm(gradients, norm)
-            self.calculate = graph.TfNode(utils.Utils.reconstruct(gradients, weights.node))
-        if optimizer is not None:
-            self.ph_gradients = graph.Placeholders(weights)
-            self.apply = graph.TfNode(optimizer.node.apply_gradients(
-                utils.Utils.izip(self.ph_gradients.checked, weights.node)))
-

@@ -3,6 +3,7 @@ import tensorflow as tf
 
 from relaax.common.algorithms import subgraph
 from relaax.common.algorithms.lib import graph
+from relaax.common.algorithms.lib import utils
 
 
 class DA3CDiscreteLoss(subgraph.Subgraph):
@@ -30,8 +31,8 @@ class DA3CDiscreteLoss(subgraph.Subgraph):
                            self.entropy * cfg.entropy_beta)
 
         # value loss (output)
-        # (Learning rate for Critic is half of Actor's, it's l2 without dividing by 0.5)
-        self.value_loss = tf.reduce_sum(tf.square(self.ph_discounted_reward.node - critic.node))
+        # (Learning rate for Critic is half of Actor's, so it should be half of l2)
+        self.value_loss = cfg.critic_scale * tf.nn.l2_loss(self.ph_discounted_reward.node - critic.node)
 
         # gradient of policy and value are summed up
         return self.policy_loss + self.value_loss
@@ -49,16 +50,11 @@ class DA3CNormContinuousLoss(subgraph.Subgraph):
         log_prob = normal_dist.log_prob(self.ph_action.node)
 
         self.entropy = tf.reduce_sum(normal_dist.entropy())
-        policy_loss = - (tf.reduce_sum(tf.reduce_sum(log_prob, axis=1) * td) +
-                      cfg.entropy_beta * self.entropy)
+        self.policy_loss = - (tf.reduce_sum(tf.reduce_sum(log_prob, axis=1) * td) +
+                           cfg.entropy_beta * self.entropy)
 
-        # value loss (output)
-        # (Learning rate for Critic is half of Actor's, it's l2 without dividing by 0.5)
-        value_loss = tf.reduce_mean(tf.square(td))
-
-        # gradient of policy and value are summed up
-        self.policy_loss = policy_loss
-        self.value_loss = value_loss
+        # (Learning rate for Critic is half of Actor's, so it should be half of l2)
+        self.value_loss = cfg.critic_scale * tf.nn.l2_loss(td)
 
 
 class DA3CExpContinuousLoss(subgraph.Subgraph):
@@ -81,7 +77,8 @@ class DA3CExpContinuousLoss(subgraph.Subgraph):
                    - tf.constant(.5) * tf.log(tf.constant(2 * np.pi)) - log_std_dev
 
         policy_loss = -tf.reduce_sum(tf.reduce_sum(log_prob + cfg.entropy_beta * entropy, axis=1) * td)
-        value_loss = tf.reduce_sum(tf.square(self.ph_discounted_reward.node - critic.node))
+        # (Learning rate for Critic is half of Actor's, so it should be half of l2)
+        value_loss = cfg.critic_scale * tf.nn.l2_loss(self.ph_discounted_reward.node - critic.node)
 
         # gradient of policy and value are summed up
         return policy_loss + value_loss
@@ -113,8 +110,8 @@ class DA3CExtContinuousLoss(subgraph.Subgraph):
                                                  tf.stop_gradient(td)) + cfg.entropy_beta * entropy)
 
         # value loss (output)
-        # (Learning rate for Critic is half of Actor's, it's l2 without dividing by 0.5)
-        value_loss = tf.reduce_sum(tf.square(self.ph_discounted_reward.node - critic.node))
+        # (Learning rate for Critic is half of Actor's, so it should be half of l2)
+        value_loss = cfg.critic_scale * tf.nn.l2_loss(self.ph_discounted_reward.node - critic.node)
 
         # gradient of policy and value are summed up
         return policy_loss + value_loss
@@ -134,6 +131,29 @@ def DA3CLoss(actor, critic, cfg):
     return Loss(actor, critic, cfg)
 
 
+class DDPGLoss(subgraph.Subgraph):
+    def build_graph(self, critic_nn, cfg):
+        loss = MeanSquaredLoss(critic_nn.critic)
+        self.ph_predicted = loss.ph_predicted
+        if cfg.l2:
+            l2_loss = L2Loss(critic_nn.weights, cfg.l2_decay)
+            loss = loss.node + l2_loss.node
+        return loss
+
+
+class MeanSquaredLoss(subgraph.Subgraph):
+    def build_graph(self, y, size=1):
+        self.ph_predicted = tf.placeholder(tf.float32, [None, size])
+        return tf.reduce_mean(tf.square(self.ph_predicted - y.node))
+
+
+class L2Loss(subgraph.Subgraph):
+    def build_graph(self, weights, l2_decay=0.01):
+        flattened_weights = list(utils.Utils.flatten(weights.node))
+        l2_loss = tf.add_n([tf.nn.l2_loss(w) for w in flattened_weights])
+        return l2_decay * l2_loss
+
+
 class PGLoss(subgraph.Subgraph):
     def build_graph(self, action_size, network):
         self.ph_action = graph.Placeholder(np.int32, (None,))
@@ -147,22 +167,21 @@ class PGLoss(subgraph.Subgraph):
         return -tf.reduce_sum(log_like_op * self.ph_discounted_reward.node)
 
 
-class ICMLoss(subgraph.Subgraph):  # alpha=0.1 | beta=0.2
-    def build_graph(self, policy_actor, icm_nn, alpha, beta):
+class ICMLoss(subgraph.Subgraph):  # pi_lambda=0.1 | beta=0.2
+    def build_graph(self, policy_actor, icm_nn, icm_cfg):
         self.ph_action = graph.Placeholder(np.int32, (None,), name='action_from_policy')
-        self.ph_discounted_reward = graph.Placeholder(np.float32, (None, 1), name='dr')
+        self.ph_discounted_reward = graph.Placeholder(np.float32, (None, 1), name='edr')
 
         action_one_hot = tf.one_hot(self.ph_action.node, policy_actor.action_size)
         action_log_prob = tf.log(tf.maximum(policy_actor.node, 1e-20))
 
         log_like = tf.reduce_sum(action_log_prob * action_one_hot, axis=1)
-        policy_loss = -tf.reduce_sum(log_like * self.ph_discounted_reward.node) * alpha
+        policy_loss = -tf.reduce_sum(log_like * self.ph_discounted_reward.node) * icm_cfg.pi_lambda
 
         icm_action = tf.maximum(icm_nn.inv_out.node, 1e-20)
         max_like_sum = tf.reduce_sum(icm_action * action_one_hot)
-        inv_loss = (1 - beta) * max_like_sum
+        inv_loss = (1 - icm_cfg.beta) * max_like_sum
 
-        print('icm_nn.discrepancy', icm_nn.discrepancy.get_shape())
-        fwd_loss = tf.reduce_sum(icm_nn.discrepancy) * beta
+        fwd_loss = icm_nn.discrepancy * icm_cfg.beta
 
         return policy_loss + inv_loss + fwd_loss

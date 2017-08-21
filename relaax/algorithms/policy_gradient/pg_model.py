@@ -3,6 +3,7 @@ from __future__ import absolute_import
 from relaax.common.algorithms import subgraph
 from relaax.common.algorithms.lib import graph
 from relaax.common.algorithms.lib import layer
+from relaax.common.algorithms.lib import optimizer
 from relaax.common.algorithms.lib import loss
 from relaax.common.algorithms.lib import utils
 
@@ -32,8 +33,8 @@ class SharedParameters(subgraph.Subgraph):
         # Build graph
         sg_global_step = graph.GlobalStep()
         sg_weights = Network().weights
-        sg_optimizer = graph.AdamOptimizer(pg_config.config.learning_rate)
-        sg_gradients = layer.Gradients(sg_weights, optimizer=sg_optimizer)
+        sg_optimizer = optimizer.AdamOptimizer(pg_config.config.learning_rate)
+        sg_gradients = optimizer.Gradients(sg_weights, optimizer=sg_optimizer)
         sg_initialize = graph.Initialize()
 
         # Expose public API
@@ -53,7 +54,7 @@ class PolicyModel(subgraph.Subgraph):
 
         sg_loss = loss.PGLoss(action_size=pg_config.config.output.action_size,
                               network=sg_network)
-        sg_gradients = layer.Gradients(sg_network.weights, loss=sg_loss)
+        sg_gradients = optimizer.Gradients(sg_network.weights, loss=sg_loss)
 
         # Expose public API
         self.op_assign_weights = self.Op(sg_network.weights.assign,

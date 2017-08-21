@@ -6,6 +6,7 @@ from relaax.common.algorithms import subgraph
 from relaax.common.algorithms.lib import graph
 from relaax.common.algorithms.lib import layer
 from relaax.common.algorithms.lib import loss
+from relaax.common.algorithms.lib import optimizer
 from .lib import da3c_graph
 from . import da3c_config
 from . import icm_model
@@ -60,20 +61,17 @@ class SharedParameters(subgraph.Subgraph):
         sg_weights = sg_network.weights
 
         if da3c_config.config.optimizer == 'Adam':
-            sg_optimizer = graph.AdamOptimizer(da3c_config.config.initial_learning_rate)
+            sg_optimizer = optimizer.AdamOptimizer(da3c_config.config.initial_learning_rate)
             if da3c_config.config.use_icm:
-                sg_icm_optimizer = graph.AdamOptimizer(da3c_config.config.initial_learning_rate)
+                sg_icm_optimizer = optimizer.AdamOptimizer(da3c_config.config.initial_learning_rate)
                 sg_icm_weights = icm_model.ICM().weights
-                sg_icm_gradients = layer.Gradients(sg_icm_weights, optimizer=sg_icm_optimizer)
+                sg_icm_gradients = optimizer.Gradients(sg_icm_weights, optimizer=sg_icm_optimizer)
         else:
             sg_learning_rate = da3c_graph.LearningRate(sg_global_step)
-            sg_optimizer = graph.RMSPropOptimizer(
-                learning_rate=sg_learning_rate,
-                decay=da3c_config.config.RMSProp.decay,
-                momentum=0.0,
-                epsilon=da3c_config.config.RMSProp.epsilon
-            )
-        sg_gradients = layer.Gradients(sg_weights, optimizer=sg_optimizer)
+            sg_optimizer = optimizer.RMSPropOptimizer(learning_rate=sg_learning_rate,
+                                                      decay=da3c_config.config.RMSProp.decay, momentum=0.0,
+                                                      epsilon=da3c_config.config.RMSProp.epsilon)
+        sg_gradients = optimizer.Gradients(sg_weights, optimizer=sg_optimizer)
         sg_initialize = graph.Initialize()
 
         if da3c_config.config.use_icm:
@@ -99,23 +97,23 @@ class AgentModel(subgraph.Subgraph):
         sg_network = Network()
 
         sg_loss = loss.DA3CLoss(sg_network.actor, sg_network.critic, da3c_config.config)
-        sg_gradients = layer.Gradients(sg_network.weights, loss=sg_loss,
-                                       norm=da3c_config.config.gradients_norm_clipping)
+        sg_gradients = optimizer.Gradients(sg_network.weights, loss=sg_loss,
+                                           norm=da3c_config.config.gradients_norm_clipping)
 
         if da3c_config.config.use_icm:
             sg_icm_network = icm_model.ICM()
             sg_icm_loss = loss.ICMLoss(sg_network.actor, sg_icm_network,
                                        da3c_config.config.ICM.alpha, da3c_config.config.ICM.beta)
-            sg_icm_gradients = layer.Gradients(sg_icm_network.weights, loss=sg_icm_loss)
+            sg_icm_gradients = optimizer.Gradients(sg_icm_network.weights, loss=sg_icm_loss)
 
             # Expose ICM public API
             self.op_icm_assign_weights = self.Op(sg_icm_network.weights.assign,
                                                  weights=sg_icm_network.weights.ph_weights)
             self.op_get_intrinsic_reward = self.Ops(sg_icm_network.rew_out,
                                                     state=sg_icm_network.ph_state)
-            self.op_compute_icm_gradients = self.Op(sg_icm_gradients.calculate,
-                                            state=sg_icm_network.ph_state, action=sg_icm_loss.ph_action,
-                                            discounted_reward=sg_icm_loss.ph_discounted_reward)
+            self.op_compute_icm_gradients = \
+                    self.Op(sg_icm_gradients.calculate, state=sg_icm_network.ph_state,
+                            action=sg_icm_loss.ph_action, discounted_reward=sg_icm_loss.ph_discounted_reward)
 
         batch_size = tf.to_float(tf.shape(sg_network.ph_state.node)[0])
 
@@ -123,7 +121,7 @@ class AgentModel(subgraph.Subgraph):
             tf.summary.scalar('policy_loss', sg_loss.policy_loss / batch_size),
             tf.summary.scalar('value_loss', sg_loss.value_loss / batch_size),
             tf.summary.scalar('entropy', sg_loss.entropy / batch_size),
-            tf.summary.scalar('gradients_global_norm', sg_gradients.global_norm),
+            tf.summary.scalar('gradients_global_norm', sg_gradients.global_norm.node),
             tf.summary.scalar('weights_global_norm', sg_network.weights.global_norm)])
 
         # Expose public API
@@ -138,10 +136,9 @@ class AgentModel(subgraph.Subgraph):
         if da3c_config.config.use_lstm:
             feeds.update(dict(lstm_state=sg_network.ph_lstm_state))
             self.lstm_zero_state = sg_network.lstm_zero_state
-            self.op_get_action_value_and_lstm_state = self.Ops(sg_network.actor, sg_network.critic,
-                                                               sg_network.lstm_state,
-                                                               state=sg_network.ph_state,
-                                                               lstm_state=sg_network.ph_lstm_state)
+            self.op_get_action_value_and_lstm_state = \
+                    self.Ops(sg_network.actor, sg_network.critic, sg_network.lstm_state,
+                             state=sg_network.ph_state, lstm_state=sg_network.ph_lstm_state)
         else:
             self.op_get_action_and_value = self.Ops(sg_network.actor, sg_network.critic,
                                                     state=sg_network.ph_state)
