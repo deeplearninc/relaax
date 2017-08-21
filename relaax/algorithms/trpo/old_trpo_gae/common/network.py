@@ -4,8 +4,10 @@ from keras.layers.core import Dense, Lambda
 
 from relaax.algorithms.trpo.old_trpo_gae.algorithm_lib.core import *
 
-from relaax.algorithms.trpo import trpo_model
 from relaax.common.algorithms.lib import utils
+
+from relaax.algorithms.trpo import trpo_config
+from relaax.algorithms.trpo import trpo_model
 
 
 class PolicyNet(object):
@@ -41,15 +43,33 @@ class PolicyNet(object):
         return self.session.model.adv_n.node
 
 
-def make_mlps(config, relaax_session):
-    value_net = Sequential()
-    for (i, layeroutsize) in enumerate(config.hidden_sizes):
-        # add one extra feature for timestep
-        input_shape = dict(input_shape=(config.input.shape[0]+1,)) if i == 0 else {}
-        value_net.add(Dense(layeroutsize, activation=config.activation, **input_shape))
-    value_net.add(Dense(1))
+class ValueNet(object):
+    def __init__(self, relaax_session):
+        self.session = relaax_session
 
-    return PolicyNet(relaax_session), value_net
+        value_net = Sequential()
+        for (i, layeroutsize) in enumerate(trpo_config.config.hidden_sizes):
+            # add one extra feature for timestep
+            input_shape = dict(input_shape=(trpo_config.config.input.shape[0]+1,)) if i == 0 else {}
+            value_net.add(Dense(layeroutsize, activation=trpo_config.config.activation, **input_shape))
+        value_net.add(Dense(1))
+        self._net = value_net
+
+    @property
+    def input(self):
+        return self._net.input
+
+    @property
+    def output(self):
+        return self._net.output
+
+    @property
+    def trainable_weights(self):
+        return self._net.trainable_weights
+
+
+def make_mlps(relaax_session):
+    return PolicyNet(relaax_session), ValueNet(relaax_session)
 
 
 def make_filters(config):

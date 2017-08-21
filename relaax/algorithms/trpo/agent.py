@@ -26,7 +26,7 @@ class Agent(object):
     def init(self, exploit=False):
         model = trpo_model.AgentModel()
         self.session = session.Session(model)
-        self.agent = agent.Agent(trpo_config.options.algorithm, self.ps, self.session)
+        self.agent = agent.Agent(self.ps, self.session)
         return True
 
     # environment generated new state and reward

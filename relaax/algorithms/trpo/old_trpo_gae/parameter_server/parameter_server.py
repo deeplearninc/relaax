@@ -6,14 +6,14 @@ import numpy as np
 from scipy.signal import lfilter
 from time import time
 
+from ... import trpo_config
+
 from ..common import network
 
 
 class ParameterServer(object):
-    def __init__(self, config, saver_factory, metrics, relaax_session):
+    def __init__(self, saver_factory, metrics, relaax_session):
         self.relaax_session = relaax_session
-
-        self.config = config        # common configuration, which is rewritten by yaml
 
         self.paths = []             # experience accumulator
         self.paths_len = 0          # length of experience
@@ -24,22 +24,24 @@ class ParameterServer(object):
         self._session = relaax_session.session
         keras.backend.set_session(self._session)
 
-        self.policy_net, self.value_net = network.make_mlps(config, relaax_session)
+        self.policy_net, self.value_net = network.make_mlps(relaax_session)
 
-        self.policy, self.baseline = network.make_wrappers(config, self.policy_net, self.value_net,
-                                                           self._session, relaax_session, metrics)
-        self.trpo_updater = network.TrpoUpdater(config, self.policy, self._session, relaax_session)
+        self.policy, self.baseline = network.make_wrappers(trpo_config.config, self.policy_net,
+                                                           self.value_net, self._session, relaax_session,
+                                                           metrics)
+        self.trpo_updater = network.TrpoUpdater(trpo_config.config, self.policy, self._session,
+                                                relaax_session)
 
         self._saver = None
 
         self._session.run(tf.variables_initializer(tf.global_variables()))
 
-        if config.use_filter:
-            self.M = np.zeros(config.state_size)
-            self.S = np.zeros(config.state_size)
+        if trpo_config.config.use_filter:
+            self.M = np.zeros(trpo_config.config.state_size)
+            self.S = np.zeros(trpo_config.config.state_size)
 
         self._bridge = _Bridge(metrics, self)
-        if config.async:
+        if trpo_config.config.async:
             self._bridge = _BridgeAsync(metrics, self)
 
     def close(self):
@@ -64,10 +66,10 @@ class ParameterServer(object):
         self.paths_len += length
         self.paths.append(paths)
 
-        if self.config.use_filter:
+        if trpo_config.config.use_filter:
             self.update_filter_state(paths["filter_diff"])
 
-        if self.paths_len >= self.config.PG_OPTIONS.timesteps_per_batch:
+        if self.paths_len >= trpo_config.config.PG_OPTIONS.timesteps_per_batch:
             self.trpo_update()
             self.paths_len = 0
             self.paths = []
@@ -89,12 +91,12 @@ class ParameterServer(object):
     def compute_advantage(self):
         # Compute & Add to paths: return, baseline, advantage
         for path in self.paths:
-            path["return"] = discount(path["reward"], self.config.PG_OPTIONS.rewards_gamma)
+            path["return"] = discount(path["reward"], trpo_config.config.PG_OPTIONS.rewards_gamma)
             b = path["baseline"] = self.baseline.predict(path)
             b1 = np.append(b, 0 if path["terminated"] else b[-1])
-            deltas = path["reward"] + self.config.PG_OPTIONS.rewards_gamma * b1[1:] - b1[:-1]
-            path["advantage"] = discount(deltas, self.config.PG_OPTIONS.rewards_gamma *
-                                         self.config.PG_OPTIONS.gae_lambda)
+            deltas = path["reward"] + trpo_config.config.PG_OPTIONS.rewards_gamma * b1[1:] - b1[:-1]
+            path["advantage"] = discount(deltas, trpo_config.config.PG_OPTIONS.rewards_gamma *
+                                         trpo_config.config.PG_OPTIONS.gae_lambda)
         alladv = np.concatenate([path["advantage"] for path in self.paths])
         # Standardize advantage
         std = alladv.std()

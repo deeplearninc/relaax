@@ -7,12 +7,13 @@ from collections import defaultdict
 
 import keras.backend
 
+from ... import trpo_config
+
 from ..common import network
 
 
 class Agent(object):
-    def __init__(self, config, parameter_server, relaax_session):
-        self._config = config
+    def __init__(self, parameter_server, relaax_session):
         self.ps = parameter_server
         self.relaax_session = relaax_session
 
@@ -28,8 +29,8 @@ class Agent(object):
         self._session = tf.Session()
         keras.backend.set_session(self._session)
 
-        self.policy_net, value_net = network.make_mlps(config, relaax_session)
-        self.policy, _ = network.make_wrappers(config, self.policy_net, value_net,
+        self.policy_net, value_net = network.make_mlps(relaax_session)
+        self.policy, _ = network.make_wrappers(trpo_config.config, self.policy_net, value_net,
                                                self._session, relaax_session, parameter_server.metrics)
 
         self._session.run(tf.variables_initializer(tf.global_variables()))
@@ -38,8 +39,8 @@ class Agent(object):
         self._n_iter = self.ps.session.call_wait_for_iteration()
         relaax_session.op_set_weights(weights=self.ps.session.op_get_weights())
 
-        if config.use_filter:
-            self.obs_filter, _ = network.make_filters(config)
+        if trpo_config.config.use_filter:
+            self.obs_filter, _ = network.make_filters(trpo_config.config)
             state = self.ps.session.call_get_filter_state()
             self.obs_filter.rs.set(*state)
 
@@ -50,7 +51,7 @@ class Agent(object):
         start = time.time()
 
         obs = state
-        if self._config.use_filter:
+        if trpo_config.config.use_filter:
             obs = self.obs_filter(state)
         self.data["observation"].append(obs)
 
@@ -80,7 +81,8 @@ class Agent(object):
         self.server_latency_accumulator = 0
         self.ps.metrics.scalar('server_latency', latency)
 
-        self._send_experience(terminated=(self._episode_timestep < self._config.PG_OPTIONS.timestep_limit))
+        self._send_experience(terminated=
+                              (self._episode_timestep < trpo_config.config.PG_OPTIONS.timestep_limit))
         return score
 
     def reward(self, reward):
@@ -96,7 +98,7 @@ class Agent(object):
     def _send_experience(self, terminated=False):
         self.data["terminated"] = terminated
         self.data["filter_diff"] = (0, np.zeros(1), np.zeros(1))
-        if self._config.use_filter:
+        if trpo_config.config.use_filter:
             mean, std = self.obs_filter.rs.get_diff()
             self.data["filter_diff"] = (self._episode_timestep, mean, std)
         self.ps.session.call_send_experience(self._n_iter, dict(self.data), self._episode_timestep)
@@ -111,7 +113,7 @@ class Agent(object):
             self._n_iter = old_n_iter
             return
 
-        if self._n_iter > self._config.PG_OPTIONS.n_iter:
+        if self._n_iter > trpo_config.config.PG_OPTIONS.n_iter:
             self._stop_training = True
             return
 
@@ -121,6 +123,6 @@ class Agent(object):
             self.relaax_session.op_set_weights(weights=self.ps.session.op_get_weights())
             self.collecting_time = time.time()
 
-        if self._config.use_filter:
+        if trpo_config.config.use_filter:
             state = self.ps.session.call_get_filter_state()
             self.obs_filter.rs.set(*state)
