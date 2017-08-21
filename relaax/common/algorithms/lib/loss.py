@@ -32,7 +32,7 @@ class DA3CDiscreteLoss(subgraph.Subgraph):
 
         # value loss (output)
         # (Learning rate for Critic is half of Actor's, so it should be half of l2)
-        value_loss = 0.5 * tf.nn.l2_loss(self.ph_discounted_reward.node - critic.node)
+        value_loss = cfg.critic_scale * tf.nn.l2_loss(self.ph_discounted_reward.node - critic.node)
 
         # gradient of policy and value are summed up
         return policy_loss + value_loss
@@ -55,7 +55,7 @@ class DA3CNormContinuousLoss(subgraph.Subgraph):
 
         # value loss (output)
         # (Learning rate for Critic is half of Actor's, so it should be half of l2)
-        value_loss = 0.5 * tf.nn.l2_loss(self.ph_discounted_reward.node - critic.node)
+        value_loss = cfg.critic_scale * tf.nn.l2_loss(self.ph_discounted_reward.node - critic.node)
 
         # gradient of policy and value are summed up
         return policy_loss + value_loss
@@ -82,7 +82,7 @@ class DA3CExpContinuousLoss(subgraph.Subgraph):
 
         policy_loss = -tf.reduce_sum(tf.reduce_sum(log_prob + cfg.entropy_beta * entropy, axis=1) * td)
         # (Learning rate for Critic is half of Actor's, so it should be half of l2)
-        value_loss = 0.5 * tf.nn.l2_loss(self.ph_discounted_reward.node - critic.node)
+        value_loss = cfg.critic_scale * tf.nn.l2_loss(self.ph_discounted_reward.node - critic.node)
 
         # gradient of policy and value are summed up
         return policy_loss + value_loss
@@ -115,7 +115,7 @@ class DA3CExtContinuousLoss(subgraph.Subgraph):
 
         # value loss (output)
         # (Learning rate for Critic is half of Actor's, so it should be half of l2)
-        value_loss = 0.5 * tf.nn.l2_loss(self.ph_discounted_reward.node - critic.node)
+        value_loss = cfg.critic_scale * tf.nn.l2_loss(self.ph_discounted_reward.node - critic.node)
 
         # gradient of policy and value are summed up
         return policy_loss + value_loss

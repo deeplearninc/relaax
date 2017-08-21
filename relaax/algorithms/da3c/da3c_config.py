@@ -7,6 +7,7 @@ for key, value in [('use_convolutions', [])]:
         setattr(config, key, value)
 
 config.output.scale = options.get('algorithm/output/scale', 1.0)
+config.critic_scale = options.get('algorithm/critic_scale', 0.5)
 config.output.loss_type = options.get('algorithm/output/loss_type', 'Normal')
 config.optimizer = options.get('algorithm/optimizer', 'Adam')
 config.use_icm = options.get('algorithm/use_icm', False)
