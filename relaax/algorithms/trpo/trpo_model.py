@@ -6,7 +6,7 @@ import tensorflow as tf
 from relaax.common.algorithms import subgraph
 from relaax.common.algorithms.lib import graph
 from relaax.common.algorithms.lib import layer
-from relaax.common.algorithms.lib import loss
+from relaax.common.algorithms.lib import optimizer
 from relaax.common.algorithms.lib import utils
 
 from . import trpo_config
@@ -189,7 +189,7 @@ class SharedParameters(subgraph.Subgraph):
         sg_network = Network()
         sg_get_weights_flatten = GetVariablesFlatten(sg_network.weights)
         sg_set_weights_flatten = SetVariablesFlatten(sg_network.weights)
-        #sg_gradients = layer.Gradients(loss, sg_network.weights)
+        #sg_gradients = optimizer.Gradients(loss, sg_network.weights)
 
         ph_adv_n = graph.TfNode(tf.placeholder(tf.float32, name='adv_n'))
 
@@ -203,7 +203,7 @@ class SharedParameters(subgraph.Subgraph):
         # Policy gradient:
         sg_surr = graph.TfNode(-tf.reduce_mean(tf.multiply(tf.exp(sg_logp_n.node -
             sg_oldlogp_n.node), ph_adv_n.node)))
-        sg_gradients = layer.Gradients(sg_network.weights, loss=sg_surr)
+        sg_gradients = optimizer.Gradients(sg_network.weights, loss=sg_surr)
         sg_gradients_flatten = GetVariablesFlatten(sg_gradients.calculate)
 
         sg_initialize = graph.Initialize()
