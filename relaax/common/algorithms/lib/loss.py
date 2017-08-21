@@ -31,8 +31,8 @@ class DA3CDiscreteLoss(subgraph.Subgraph):
                                      entropy * cfg.entropy_beta)
 
         # value loss (output)
-        # (Learning rate for Critic is half of Actor's, it's l2 without dividing by 0.5)
-        value_loss = tf.reduce_sum(tf.square(self.ph_discounted_reward.node - critic.node))
+        # (Learning rate for Critic is half of Actor's, so it should be half of l2)
+        value_loss = 0.5 * tf.nn.l2_loss(self.ph_discounted_reward.node - critic.node)
 
         # gradient of policy and value are summed up
         return policy_loss + value_loss
@@ -54,8 +54,8 @@ class DA3CNormContinuousLoss(subgraph.Subgraph):
         policy_loss = -tf.reduce_sum(tf.reduce_sum(log_prob + cfg.entropy_beta * entropy, axis=1) * td)
 
         # value loss (output)
-        # (Learning rate for Critic is half of Actor's, it's l2 without dividing by 0.5)
-        value_loss = tf.reduce_sum(tf.square(self.ph_discounted_reward.node - critic.node))
+        # (Learning rate for Critic is half of Actor's, so it should be half of l2)
+        value_loss = 0.5 * tf.nn.l2_loss(self.ph_discounted_reward.node - critic.node)
 
         # gradient of policy and value are summed up
         return policy_loss + value_loss
@@ -81,7 +81,8 @@ class DA3CExpContinuousLoss(subgraph.Subgraph):
                    - tf.constant(.5) * tf.log(tf.constant(2 * np.pi)) - log_std_dev
 
         policy_loss = -tf.reduce_sum(tf.reduce_sum(log_prob + cfg.entropy_beta * entropy, axis=1) * td)
-        value_loss = tf.reduce_sum(tf.square(self.ph_discounted_reward.node - critic.node))
+        # (Learning rate for Critic is half of Actor's, so it should be half of l2)
+        value_loss = 0.5 * tf.nn.l2_loss(self.ph_discounted_reward.node - critic.node)
 
         # gradient of policy and value are summed up
         return policy_loss + value_loss
@@ -113,8 +114,8 @@ class DA3CExtContinuousLoss(subgraph.Subgraph):
                                                  tf.stop_gradient(td)) + cfg.entropy_beta * entropy)
 
         # value loss (output)
-        # (Learning rate for Critic is half of Actor's, it's l2 without dividing by 0.5)
-        value_loss = tf.reduce_sum(tf.square(self.ph_discounted_reward.node - critic.node))
+        # (Learning rate for Critic is half of Actor's, so it should be half of l2)
+        value_loss = 0.5 * tf.nn.l2_loss(self.ph_discounted_reward.node - critic.node)
 
         # gradient of policy and value are summed up
         return policy_loss + value_loss
