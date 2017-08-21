@@ -9,14 +9,6 @@ from relaax.common.algorithms.lib import utils
 
 
 class PolicyNet(object):
-    def __init__(self, net):
-        for attr in ['input', 'output', 'trainable_weights', 'set_weights', 'get_weights']:
-            value = getattr(net, attr)
-            setattr(self, attr, value)
-            print('UGU', attr, type(value), repr(value))
-
-
-class NewPolicyNet(object):
     def __init__(self, relaax_session):
         self.session = relaax_session
 
@@ -50,21 +42,6 @@ class NewPolicyNet(object):
 
 
 def make_mlps(config, relaax_session):
-    old_policy_net = False
-
-    if old_policy_net:
-        policy_net = Sequential()
-        for (i, layeroutsize) in enumerate(config.hidden_sizes):
-            input_shape = dict(input_shape=config.input.shape) if i == 0 else {}
-            policy_net.add(Dense(layeroutsize, activation=config.activation, **input_shape))
-        if config.output.continuous:
-            policy_net.add(Dense(config.output.action_size))
-            # policy_net.add(Lambda(lambda x: x * 0.1))
-            policy_net.add(ConcatFixedStd())
-        else:
-            policy_net.add(Dense(config.output.action_size, activation="softmax"))
-            # policy_net.add(Lambda(lambda x: x * 0.1))
-
     value_net = Sequential()
     for (i, layeroutsize) in enumerate(config.hidden_sizes):
         # add one extra feature for timestep
@@ -72,9 +49,7 @@ def make_mlps(config, relaax_session):
         value_net.add(Dense(layeroutsize, activation=config.activation, **input_shape))
     value_net.add(Dense(1))
 
-    if old_policy_net:
-        return PolicyNet(policy_net), value_net
-    return NewPolicyNet(relaax_session), value_net
+    return PolicyNet(relaax_session), value_net
 
 
 def make_filters(config):
