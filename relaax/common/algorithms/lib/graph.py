@@ -74,8 +74,7 @@ class L2loss(subgraph.Subgraph):
         Returns:
             A Tensor. Has the same type as t.
         """
-
-        return tf.nn.l2_loss(t, name=name)
+        self.op = tf.nn.l2_loss(t, name=name)
 
 
 class Softmax(subgraph.Subgraph):

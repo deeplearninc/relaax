@@ -37,8 +37,8 @@ class ICM(subgraph.Subgraph):
         self.ph_state = input.ph_state  # should be even wrt to batch_size for now
         self.inv_out = inv_fc2
 
-        self.discrepancy = graph.L2loss(fwd_fc2.node - get_second.node)
-        self.rew_out = cfg.config.icm.nu * self.discrepancy.node
+        self.discrepancy = graph.L2loss(fwd_fc2.node - get_second.node).op
+        self.rew_out = graph.TfNode(cfg.config.icm.nu * self.discrepancy)
 
         layers = [input, inv_fc1, inv_fc2, fwd_fc1, fwd_fc2]
         self.weights = layer.Weights(*layers)
