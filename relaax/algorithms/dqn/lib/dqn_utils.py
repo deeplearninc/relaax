@@ -29,7 +29,7 @@ class ReplayBuffer(object):
     def append(self, value):
         self._replay_memory.append(value)
         if len(self._replay_memory) == self._replay_memory.maxlen:
-            self._weights = map(lambda x: math.pow(x, self._alpha), range(1, self._replay_memory.maxlen + 1))
+            self._weights = list(map(lambda x: math.pow(x, self._alpha), range(1, self._replay_memory.maxlen + 1)))
 
 
 class Actor(subgraph.Subgraph):
