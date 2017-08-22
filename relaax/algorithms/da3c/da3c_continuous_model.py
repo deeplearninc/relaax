@@ -92,10 +92,6 @@ class SharedParameters(subgraph.Subgraph):
         if da3c_config.config.optimizer == 'Adam':
             sg_actor_optimizer = optimizer.AdamOptimizer(da3c_config.config.actor_initial_learning_rate)
             sg_critic_optimizer = optimizer.AdamOptimizer(da3c_config.config.critic_initial_learning_rate)
-            if da3c_config.config.use_icm:
-                sg_icm_optimizer = optimizer.AdamOptimizer(da3c_config.config.actor_initial_learning_rate)
-                sg_icm_weights = icm_model.ICM().weights
-                sg_icm_gradients = optimizer.Gradients(sg_icm_weights, optimizer=sg_icm_optimizer)
         else:
             sg_actor_learning_rate = da3c_graph.LearningRate(sg_global_step,
                                                              da3c_config.config.actor_initial_learning_rate)
@@ -109,13 +105,18 @@ class SharedParameters(subgraph.Subgraph):
                                                              epsilon=da3c_config.config.RMSProp.epsilon)
         sg_actor_gradients = optimizer.Gradients(self.actor.weights, optimizer=sg_actor_optimizer)
         sg_critic_gradients = optimizer.Gradients(self.critic.weights, optimizer=sg_critic_optimizer)
-        sg_initialize = graph.Initialize()
 
         if da3c_config.config.use_icm:
+            sg_icm_optimizer = optimizer.AdamOptimizer(da3c_config.config.icm.lr)
+            sg_icm_weights = icm_model.ICM().weights
+            sg_icm_gradients = optimizer.Gradients(sg_icm_weights, optimizer=sg_icm_optimizer)
+
             # Expose ICM public API
             self.op_icm_get_weights = self.Op(sg_icm_weights)
             self.op_icm_apply_gradients = self.Op(sg_icm_gradients.apply,
                                                   gradients=sg_icm_gradients.ph_gradients)
+
+        sg_initialize = graph.Initialize()
 
         # Expose public API
         self.op_n_step = self.Op(sg_global_step.n)
@@ -153,9 +154,12 @@ class AgentModel(subgraph.Subgraph):
             # Expose ICM public API
             self.op_icm_assign_weights = self.Op(sg_icm_network.weights.assign,
                                                  weights=sg_icm_network.weights.ph_weights)
-            self.op_get_intrinsic_reward = self.Op(sg_icm_network.rew_out, state=sg_icm_network.ph_state)
+            self.op_get_intrinsic_reward = self.Op(sg_icm_network.rew_out,
+                                                   state=sg_icm_network.ph_state,
+                                                   probs=sg_icm_network.ph_probs)
             self.op_compute_icm_gradients = self.Op(sg_icm_gradients.calculate,
                                                     state=sg_icm_network.ph_state,
+                                                    probs=sg_icm_network.ph_probs,
                                                     action=sg_icm_loss.ph_action,
                                                     discounted_reward=sg_icm_loss.ph_discounted_reward)
 

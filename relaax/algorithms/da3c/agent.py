@@ -222,7 +222,7 @@ class Agent(object):
 
         if state is not None:
             icm_input = [self.observation.queue, self.icm_observation.queue]
-            return self.session.op_get_intrinsic_reward(state=icm_input, probs=[self.last_probs])
+            return self.session.op_get_intrinsic_reward(state=icm_input, probs=[self.last_probs])[0]
         return 0
 
     def compute_gradients(self, experience):
