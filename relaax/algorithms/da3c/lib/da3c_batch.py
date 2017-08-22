@@ -37,6 +37,7 @@ class DA3CBatch(object):
         self.observation = da3c_observation.DA3CObservation()
         self.last_action = None
         self.last_value = None
+        self.last_probs = None
         if hogwild_update:
             self.queue = queue.Queue(10)
             threading.Thread(target=self.execute_tasks).start()
@@ -78,6 +79,7 @@ class DA3CBatch(object):
         self.terminal = terminal
         assert self.last_action is None
         assert self.last_value is None
+        assert self.last_probs is None
 
         self.get_action_and_value()
 
@@ -89,7 +91,7 @@ class DA3CBatch(object):
 
     @profiler.wrap
     def reset(self):
-        self.episode = episode.Episode('reward', 'state', 'action', 'value')
+        self.episode = episode.Episode('reward', 'state', 'action', 'value', 'probs')
         if da3c_config.config.use_lstm:
             self.initial_lstm_state = self.lstm_state = self.lstm_zero_state
 
@@ -127,24 +129,29 @@ class DA3CBatch(object):
         assert self.observation.queue is not None
         assert self.last_action is not None
         assert self.last_value is not None
+        assert self.last_probs is not None
 
         self.episode.step(
             reward=reward,
             state=self.observation.queue,
             action=self.last_action,
-            value=self.last_value
+            value=self.last_value,
+            probs=self.last_probs
         )
         self.last_action = None
         self.last_value = None
+        self.last_probs = None
 
     def get_action_and_value(self):
         if self.observation.queue is None:
             self.last_action = None
             self.last_value = None
+            self.last_probs = None
         else:
             self.last_action, self.last_value = self.get_action_and_value_from_network()
             assert self.last_action is not None
             assert self.last_value is not None
+            assert self.last_probs is not None
 
     def get_action_and_value_from_network(self):
         if da3c_config.config.use_lstm:
@@ -161,9 +168,10 @@ class DA3CBatch(object):
         value, = value
         if len(action) == 1:
             self.metrics.histogram('action', action)
-            probabilities, = action
-            return utils.choose_action_descrete(probabilities), value
+            self.last_probs, = action
+            return utils.choose_action_descrete(self.last_probs), value
         mu, sigma2 = action
+        self.last_probs = mu
         self.metrics.histogram('mu', mu)
         self.metrics.histogram('sigma2', sigma2)
         return utils.choose_action_continuous(mu, sigma2,
@@ -175,9 +183,9 @@ class DA3CBatch(object):
 
         if state is not None:
             icm_input = [self.observation.queue, self.icm_observation.queue]
-            intrinsic_reward = self.session.op_get_intrinsic_reward(state=icm_input)
+            intrinsic_reward = self.session.op_get_intrinsic_reward(state=icm_input, probs=[self.last_probs])
 
-            print('intrinsic_reward', intrinsic_reward.shape, intrinsic_reward)
+            # print('intrinsic_reward', intrinsic_reward.shape, intrinsic_reward)
             return intrinsic_reward
         return 0
 
@@ -187,17 +195,15 @@ class DA3CBatch(object):
             r = self.last_value
 
         reward = experience['reward']
-        self.discounted_reward = np.zeros_like(reward, dtype=np.float32)
-
         gamma = da3c_config.config.rewards_gamma
+
         # compute discounted rewards
-        for t in reversed(range(len(reward))):
-            r = reward[t] + gamma * r
-            self.discounted_reward[t] = r
+        self.discounted_reward = self.discount(np.asarray(reward + [r]), gamma)[:-1]
 
         if da3c_config.config.use_gae:
             forward_values = np.asarray(experience['value'][1:] + [r]) * gamma
             rewards = np.asarray(reward) + forward_values - np.asarray(experience['value'])
+
             gae_gamma = da3c_config.config.rewards_gamma * da3c_config.config.gae_lambda
             advantage = self.discount(rewards, gae_gamma)
 
@@ -216,7 +222,7 @@ class DA3CBatch(object):
         for i in range(len(states) - 1):
             icm_states.extend((states[i], states[i + 1]))
         return self.session.op_compute_icm_gradients(
-            state=icm_states, action=experience['action'],
+            state=icm_states, probs=experience['probs'], action=experience['action'],
             discounted_reward=self.discounted_reward)
 
     def apply_gradients(self, gradients, experience_size):

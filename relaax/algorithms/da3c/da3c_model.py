@@ -113,9 +113,11 @@ class AgentModel(subgraph.Subgraph):
             self.op_icm_assign_weights = self.Op(sg_icm_network.weights.assign,
                                                  weights=sg_icm_network.weights.ph_weights)
             self.op_get_intrinsic_reward = self.Ops(sg_icm_network.rew_out,
-                                                    state=sg_icm_network.ph_state)
+                                                    state=sg_icm_network.ph_state,
+                                                    probs=sg_icm_network.ph_probs)
             self.op_compute_icm_gradients = self.Op(sg_icm_gradients.calculate,
                                                     state=sg_icm_network.ph_state,
+                                                    probs=sg_icm_network.ph_probs,
                                                     action=sg_icm_loss.ph_action,
                                                     discounted_reward=sg_icm_loss.ph_discounted_reward)
 

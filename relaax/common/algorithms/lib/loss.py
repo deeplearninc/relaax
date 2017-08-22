@@ -174,7 +174,7 @@ class PGLoss(subgraph.Subgraph):
 class ICMLoss(subgraph.Subgraph):  # pi_lambda=0.1 | beta=0.2
     def build_graph(self, policy_actor, icm_nn, icm_cfg):
         self.ph_action = graph.Placeholder(np.int32, (None,), name='action_from_policy')
-        self.ph_discounted_reward = graph.Placeholder(np.float32, (None, 1), name='edr')
+        self.ph_discounted_reward = graph.Placeholder(np.float32, (None,), name='edr')
 
         action_one_hot = tf.one_hot(self.ph_action.node, policy_actor.action_size)
         action_log_prob = tf.log(tf.maximum(policy_actor.node, 1e-20))

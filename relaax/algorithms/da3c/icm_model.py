@@ -15,7 +15,7 @@ class ICM(subgraph.Subgraph):
         input = layer.Input(cfg.config.input, descs=[dict(conv_layer)] * 4)
 
         shape = [None] + [cfg.config.output.action_size]
-        self.ph_action = graph.Placeholder(np.float32, shape=shape, name='pred_action')
+        self.ph_probs = graph.Placeholder(np.float32, shape=shape, name='act_probs')
 
         flattened_input = layer.Flatten(input)
         last_size = flattened_input.node.shape.as_list()[-1]
@@ -25,7 +25,7 @@ class ICM(subgraph.Subgraph):
         get_first = graph.TfNode(inverse_inp.node[:, :last_size])
         get_second = graph.TfNode(inverse_inp.node[:, last_size:])
 
-        forward_inp = graph.Concat([get_first, self.ph_action], axis=1)
+        forward_inp = graph.Concat([get_first, self.ph_probs], axis=1)
 
         fc_size = cfg.config.hidden_sizes[-1]
         inv_fc1 = layer.Dense(inverse_inp, fc_size, layer.Activation.Relu)
