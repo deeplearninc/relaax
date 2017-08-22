@@ -99,14 +99,15 @@ class SharedParameters(subgraph.Subgraph):
         else:
             sg_actor_learning_rate = da3c_graph.LearningRate(sg_global_step,
                                                              da3c_config.config.actor_initial_learning_rate)
-            sg_critic_learning_rate = da3c_graph.LearningRate(sg_global_step,
-                                                              da3c_config.config.critic_initial_learning_rate)
+            sg_critic_learning_rate = \
+                da3c_graph.LearningRate(sg_global_step, da3c_config.config.critic_initial_learning_rate)
             sg_actor_optimizer = graph.RMSPropOptimizer(learning_rate=sg_actor_learning_rate,
-                decay=da3c_config.config.RMSProp.decay, momentum=0.0,
-                epsilon=da3c_config.config.RMSProp.epsilon)
+                                                        decay=da3c_config.config.RMSProp.decay, momentum=0.0,
+                                                        epsilon=da3c_config.config.RMSProp.epsilon)
             sg_critic_optimizer = graph.RMSPropOptimizer(learning_rate=sg_critic_learning_rate,
-                decay=da3c_config.config.RMSProp.decay, momentum=0.0,
-                epsilon=da3c_config.config.RMSProp.epsilon)
+                                                         decay=da3c_config.config.RMSProp.decay,
+                                                         momentum=0.0,
+                                                         epsilon=da3c_config.config.RMSProp.epsilon)
         sg_actor_gradients = optimizer.Gradients(self.actor.weights, optimizer=sg_actor_optimizer)
         sg_critic_gradients = optimizer.Gradients(self.critic.weights, optimizer=sg_critic_optimizer)
         sg_initialize = graph.Initialize()
@@ -156,8 +157,9 @@ class AgentModel(subgraph.Subgraph):
                                                  weights=sg_icm_network.weights.ph_weights)
             self.op_get_intrinsic_reward = self.Op(sg_icm_network.rew_out, state=sg_icm_network.ph_state)
             self.op_compute_icm_gradients = self.Op(sg_icm_gradients.calculate,
-                                            state=sg_icm_network.ph_state, action=sg_icm_loss.ph_action,
-                                            discounted_reward=sg_icm_loss.ph_discounted_reward)
+                                                    state=sg_icm_network.ph_state,
+                                                    action=sg_icm_loss.ph_action,
+                                                    discounted_reward=sg_icm_loss.ph_discounted_reward)
 
         batch_size = tf.to_float(tf.shape(sg_network.ph_state.node)[0])
 
@@ -185,13 +187,13 @@ class AgentModel(subgraph.Subgraph):
             feeds.update(dict(lstm_state=(sg_network.actor.ph_lstm_state, sg_network.critic.ph_lstm_state)))
             self.lstm_zero_state = (sg_network.actor.lstm_zero_state, sg_network.critic.lstm_zero_state)
             self.op_get_action_value_and_lstm_state = \
-                    self.Ops(sg_network.actor.head, sg_network.critic.head,
-                             (sg_network.actor.lstm_state, sg_network.critic.lstm_state),
-                             state=sg_network.ph_state,
-                             lstm_state=(sg_network.actor.ph_lstm_state, sg_network.critic.ph_lstm_state))
+                self.Ops(sg_network.actor.head, sg_network.critic.head,
+                         (sg_network.actor.lstm_state, sg_network.critic.lstm_state),
+                         state=sg_network.ph_state,
+                         lstm_state=(sg_network.actor.ph_lstm_state, sg_network.critic.ph_lstm_state))
         else:
             self.op_get_action_and_value = self.Ops(sg_network.actor.head, sg_network.critic.head,
                                                     state=sg_network.ph_state)
 
         self.op_compute_gradients_and_summaries = \
-                self.Ops((sg_actor_gradients.calculate, sg_critic_gradients.calculate), summaries, **feeds)
+            self.Ops((sg_actor_gradients.calculate, sg_critic_gradients.calculate), summaries, **feeds)

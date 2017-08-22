@@ -28,7 +28,7 @@ class DA3CDiscreteLoss(subgraph.Subgraph):
         # policy loss (output)  (Adding minus, because the original paper's
         # objective function is for gradient ascent, but we use gradient descent optimizer)
         self.policy_loss = (-tf.reduce_sum(tf.reduce_sum(log_pi * action_one_hot, axis=1) * td) +
-                           self.entropy * cfg.entropy_beta)
+                            self.entropy * cfg.entropy_beta)
 
         # value loss (output)
         # (Learning rate for Critic is half of Actor's, so it should be half of l2)
@@ -51,7 +51,7 @@ class DA3CNormContinuousLoss(subgraph.Subgraph):
 
         self.entropy = tf.reduce_sum(normal_dist.entropy())
         self.policy_loss = - (tf.reduce_sum(tf.reduce_sum(log_prob, axis=1) * td) +
-                           cfg.entropy_beta * self.entropy)
+                              cfg.entropy_beta * self.entropy)
 
         # (Learning rate for Critic is half of Actor's, so it should be half of l2)
         self.value_loss = cfg.critic_scale * tf.nn.l2_loss(td)
@@ -68,7 +68,8 @@ class DA3CExpContinuousLoss(subgraph.Subgraph):
         sigma2 += tf.constant(1e-6)
 
         log_std_dev = tf.log(sigma2)
-        entropy = tf.reduce_mean(log_std_dev + tf.constant(0.5 * np.log(2. * np.pi * np.e), tf.float32), axis=0)
+        entropy = tf.reduce_mean(log_std_dev + tf.constant(0.5 * np.log(2. * np.pi * np.e), tf.float32),
+                                 axis=0)
 
         l2_dist = tf.square(self.ph_action.node - mu)
         sqr_std_dev = tf.constant(2.) * tf.square(sigma2) + tf.constant(1e-6)

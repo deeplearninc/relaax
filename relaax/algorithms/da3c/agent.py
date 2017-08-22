@@ -73,10 +73,8 @@ class Agent(object):
         if da3c_config.config.use_lstm:
             self.initial_lstm_state = self.lstm_state
         self.get_action_and_value()
-        #self.replay_buffer.begin_remove()
 
     def end(self, experience):
-        #experience = self.replay_buffer.end_remove()
         if not self.exploit:
             self.do_task(lambda: self.send_experience(experience))
 
@@ -119,13 +117,6 @@ class Agent(object):
     def update(self, reward, state, terminal):
         self.check_state_shape(state)
         self.step(reward, state, terminal)
-
-        # if (self.experience is not None and len(self.experience) == da3c_config.config.batch_size) or terminal:
-        #     self.end()
-        #     if terminal:
-        #         self.reset()
-        #     self.begin()
-
         return self.last_action
 
     @staticmethod
@@ -135,8 +126,8 @@ class Agent(object):
         expected_shape = list(da3c_config.options.algorithm.input.shape)
         actual_shape = list(np.asarray(state).shape)
         if actual_shape != expected_shape:
-            logger.warning('State shape %s does not match to expected one %s.',
-                    repr(actual_shape), repr(expected_shape))
+            logger.warning('State shape %s does not match to expected one %s.', repr(actual_shape),
+                           repr(expected_shape))
 
     #########################
     # From batch
@@ -199,8 +190,8 @@ class Agent(object):
                     self.session.op_get_action_value_and_lstm_state(state=[self.observation.queue],
                                                                     lstm_state=self.lstm_state,
                                                                     lstm_step=[1])
-            condition = self.experience is not None and \
-                        (len(self.experience) == da3c_config.config.batch_size or self.terminal)
+            condition = self.experience is not None and (len(self.experience) ==
+                                                         da3c_config.config.batch_size or self.terminal)
             if not condition:
                 self.lstm_state = lstm_state
         else:

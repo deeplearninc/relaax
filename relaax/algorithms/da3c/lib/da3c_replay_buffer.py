@@ -1,5 +1,7 @@
 from relaax.common.algorithms.lib import experience
+
 from .. import da3c_config
+
 
 class DA3CReplayBuffer(object):
     def __init__(self, callback):

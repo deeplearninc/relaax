@@ -65,8 +65,10 @@ class Convolution(BaseLayer):
     def build_graph(self, x, n_filters, filter_size, stride,
                     border=Border.Valid, activation=Activation.Null):
         shape = filter_size + [x.node.shape.as_list()[-1], n_filters]
-        tr = lambda x, W: tf.nn.conv2d(x.node, W, strides=[1] + stride + [1],
-                                       padding=border)
+
+        def tr(x, W):
+            return tf.nn.conv2d(x.node, W, strides=[1] + stride + [1], padding=border)
+
         return super(Convolution, self).build_graph(x, shape, tr, activation)
 
 
@@ -74,7 +76,10 @@ class Dense(BaseLayer):
     def build_graph(self, x, size=1, activation=Activation.Null, init_var=None):
         assert len(x.node.shape) == 2
         shape = (x.node.shape.as_list()[1], size)
-        tr = lambda x, W: tf.matmul(x.node, W)
+
+        def tr(x, W):
+            return tf.matmul(x.node, W)
+
         return super(Dense, self).build_graph(x, shape, tr, activation, d=init_var)
 
 
@@ -84,8 +89,6 @@ class DoubleDense(BaseLayer):
         shape1 = (x1.node.shape.as_list()[1], size)
         assert len(x2.node.shape) == 2
         shape2 = (x2.node.shape.as_list()[1], size)
-
-        ops = lambda x1, W1, x2, W2: tf.matmul(x1, W1) + tf.matmul(x2, W2)
 
         d = 1.0
         p = np.prod(shape1[:-1])
@@ -105,7 +108,7 @@ class DoubleDense(BaseLayer):
         b = graph.Variable(initializer(np.float32, shape2[-1:])).node
         self.weight = graph.TfNode((W1, W2, b))
 
-        return activation(ops(x1.node, W1, x2.node, W2) + b)
+        return activation(tf.matmul(x1.node, W1) + tf.matmul(x2.node, W2) + b)
 
 
 class LSTM(subgraph.Subgraph):

@@ -111,9 +111,10 @@ class AgentModel(subgraph.Subgraph):
                                                  weights=sg_icm_network.weights.ph_weights)
             self.op_get_intrinsic_reward = self.Ops(sg_icm_network.rew_out,
                                                     state=sg_icm_network.ph_state)
-            self.op_compute_icm_gradients = \
-                    self.Op(sg_icm_gradients.calculate, state=sg_icm_network.ph_state,
-                            action=sg_icm_loss.ph_action, discounted_reward=sg_icm_loss.ph_discounted_reward)
+            self.op_compute_icm_gradients = self.Op(sg_icm_gradients.calculate,
+                                                    state=sg_icm_network.ph_state,
+                                                    action=sg_icm_loss.ph_action,
+                                                    discounted_reward=sg_icm_loss.ph_discounted_reward)
 
         batch_size = tf.to_float(tf.shape(sg_network.ph_state.node)[0])
 
@@ -136,9 +137,10 @@ class AgentModel(subgraph.Subgraph):
         if da3c_config.config.use_lstm:
             feeds.update(dict(lstm_state=sg_network.ph_lstm_state))
             self.lstm_zero_state = sg_network.lstm_zero_state
-            self.op_get_action_value_and_lstm_state = \
-                    self.Ops(sg_network.actor, sg_network.critic, sg_network.lstm_state,
-                             state=sg_network.ph_state, lstm_state=sg_network.ph_lstm_state)
+            self.op_get_action_value_and_lstm_state = self.Ops(sg_network.actor, sg_network.critic,
+                                                               sg_network.lstm_state,
+                                                               state=sg_network.ph_state,
+                                                               lstm_state=sg_network.ph_lstm_state)
         else:
             self.op_get_action_and_value = self.Ops(sg_network.actor, sg_network.critic,
                                                     state=sg_network.ph_state)

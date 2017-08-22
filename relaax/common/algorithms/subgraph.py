@@ -42,7 +42,7 @@ class Op(object):
         #     import numpy as np
         #     print(repr(k), repr(np.asarray(v).shape))
         return self.reconstruct(session.run(list(self.flatten(self.op)),
-                                             feed_dict=self.flatten_feed_dict(feed_dict)), self.op)
+                                feed_dict=self.flatten_feed_dict(feed_dict)), self.op)
 
     @classmethod
     def flatten_feed_dict(cls, feed_dict):
