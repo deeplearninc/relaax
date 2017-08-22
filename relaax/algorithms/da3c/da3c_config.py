@@ -1,4 +1,5 @@
 from relaax.common.python.config.loaded_config import options
+from argparse import Namespace
 
 config = options.get('algorithm')
 
@@ -18,6 +19,8 @@ config.output.action_low = options.get('algorithm/output/action_low', [])
 config.gradients_norm_clipping = options.get('algorithm/gradients_norm_clipping', False)
 
 # ICM parameters
+if not hasattr(config, 'icm'):
+    config.icm = options.get('algorithm/icm', Namespace())
 config.icm.nu = options.get('algorithm/icm/nu', 0.8)
 config.icm.pi_lambda = options.get('algorithm/icm/pi_lambda', 0.1)
 config.icm.beta = options.get('algorithm/icm/beta', 0.2)
