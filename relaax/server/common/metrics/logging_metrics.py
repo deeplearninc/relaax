@@ -14,6 +14,9 @@ class LoggingMetrics(metrics.Metrics):
     def __init__(self, x):
         self._x = x
 
+    def summary(self, summary, x=None):
+        pass
+
     def scalar(self, name, y, x=None):
         self.emit(name, y, x)
 
