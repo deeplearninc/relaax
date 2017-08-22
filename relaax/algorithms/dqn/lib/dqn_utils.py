@@ -1,5 +1,4 @@
 from builtins import object
-import numpy as np
 
 from .. import dqn_config
 
@@ -8,17 +7,29 @@ from relaax.common.algorithms import subgraph
 
 from collections import deque
 import random
+import math
 
 
 class ReplayBuffer(object):
-    def __init__(self, max_len):
+    def __init__(self, max_len, alpha=None):
         self._replay_memory = deque(maxlen=max_len)
+        self._alpha = alpha
+
+        self._weights = None
 
     def sample(self, size):
-        return random.sample(self._replay_memory, size)
+        if self._alpha is None or self._alpha == 0.0:
+            return random.sample(self._replay_memory, size)
+        else:
+            weights = map(lambda x: math.pow(x, self._alpha), range(1, len(self._replay_memory) + 1)) if self._weights is None else self._weights
+            return random.choices(self._replay_memory,
+                                  weights=weights,
+                                  k=size)
 
     def append(self, value):
         self._replay_memory.append(value)
+        if len(self._replay_memory) == self._replay_memory.maxlen:
+            self._weights = map(lambda x: math.pow(x, self._alpha), range(1, self._replay_memory.maxlen + 1))
 
 
 class Actor(subgraph.Subgraph):

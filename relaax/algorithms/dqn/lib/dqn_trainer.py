@@ -21,14 +21,14 @@ profiler = profiling.get_profiler(__name__)
 
 
 class Trainer(object):
-    def __init__(self, parameter_server, metrics, exploit, hogwild_update):
+    def __init__(self, parameter_server, metrics):
         self.ps = parameter_server
         self.metrics = metrics
 
         self.session = session.Session(dqn_model.AgentModel())
         self.session.op_initialize()
 
-        self.replay_buffer = dqn_utils.ReplayBuffer(dqn_config.config.replay_buffer_size)
+        self.replay_buffer = dqn_utils.ReplayBuffer(dqn_config.config.replay_buffer_size, dqn_config.config.alpha)
         self.observation = observation.Observation(dqn_config.config.input.history)
 
         self.last_action = None

@@ -195,7 +195,7 @@ class InputPlaceholder(subgraph.Subgraph):
 
         if np.prod(input_shape) == 0:
             input_shape = [1]
-        shape = [None] + input_shape + ([input.history] if hasattr(input, 'history') else [])
+        shape = [None] + input_shape + [input.history]
         self.ph_state = graph.Placeholder(np.float32, shape=shape)
 
         if not input.use_convolutions or len(shape) <= 4:
