@@ -91,15 +91,13 @@ class Agent(object):
             if da3c_config.config.use_icm:
                 reward += self.get_intrinsic_reward(state)
             self.push_experience(reward, terminal)
+
         if terminal:
-            if state is not None:
-                logger.warning('Agent.step ignores state in case of terminal.')
-                state = None
+            self.observation.add_state(None)
         else:
             assert state is not None
-        if state is not None:
             self.metrics.histogram('state', state)
-        self.observation.add_state(state)
+            self.observation.add_state(state)
 
         self.terminal = terminal
         assert self.last_action is None
