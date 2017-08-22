@@ -1,6 +1,4 @@
 from __future__ import print_function
-from keras.models import Sequential
-from keras.layers.core import Dense, Lambda
 
 from relaax.algorithms.trpo.old_trpo_gae.algorithm_lib.core import *
 
@@ -8,36 +6,6 @@ from relaax.common.algorithms.lib import utils
 
 from relaax.algorithms.trpo import trpo_config
 from relaax.algorithms.trpo import trpo_model
-
-
-class ValueNet(object):
-    def __init__(self, relaax_session):
-        self.session = relaax_session
-
-        # add one extra feature for timestep
-        input_shape = dict(input_shape=(trpo_config.config.input.shape[0]+1,))
-        value_net = Sequential()
-        for layeroutsize in trpo_config.config.hidden_sizes:
-            value_net.add(Dense(layeroutsize, activation=trpo_config.config.activation, **input_shape))
-            input_shape = {}
-        value_net.add(Dense(1))
-        self._net = value_net
-
-    @property
-    def input(self):
-        return self._net.input
-
-    @property
-    def output(self):
-        return self._net.output
-
-    @property
-    def trainable_weights(self):
-        return self._net.trainable_weights
-
-
-def make_mlps(relaax_session):
-    return relaax_session.model.policy_net, ValueNet(relaax_session)
 
 
 def make_filters(config):
@@ -58,7 +26,7 @@ def make_wrappers(config, policy_net, value_net, session, relaax_session, relaax
         probtype = Categorical(config.output.action_size)
 
     
-    policy = StochPolicyKeras(policy_net, probtype, session, relaax_session, relaax_metrics)
+    policy = StochPolicyKeras(policy_net, probtype, relaax_session, relaax_metrics)
     baseline = NnVf(value_net, config.PG_OPTIONS.timestep_limit, dict(mixfrac=0.1), session, relaax_metrics)
 
     return policy, baseline

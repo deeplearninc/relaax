@@ -1,11 +1,8 @@
 from __future__ import print_function
 
-import tensorflow as tf
 import numpy as np
 import time
 from collections import defaultdict
-
-import keras.backend
 
 from ... import trpo_config
 
@@ -23,17 +20,10 @@ class Agent(object):
 
         self.data = defaultdict(list)
 
-        # inform Keras that we are going to initialize variables here
-        keras.backend.manual_variable_initialization(True)
-
-        self._session = tf.Session()
-        keras.backend.set_session(self._session)
-
-        self.policy_net, value_net = network.make_mlps(relaax_session)
-        self.policy, _ = network.make_wrappers(trpo_config.config, self.policy_net, value_net,
-                                               self._session, relaax_session, parameter_server.metrics)
-
-        self._session.run(tf.variables_initializer(tf.global_variables()))
+        self.policy_net = relaax_session.model.policy_net
+        self.policy, _ = network.make_wrappers(trpo_config.config, self.policy_net,
+                                               relaax_session.model.value_net, relaax_session.session,
+                                               relaax_session, parameter_server.metrics)
 
         # counter for global updates at parameter server
         self._n_iter = self.ps.session.call_wait_for_iteration()

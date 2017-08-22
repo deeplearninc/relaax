@@ -160,8 +160,8 @@ class Network(subgraph.Subgraph):
         self.weights = layer.Weights(*([input, head] + actor_layers))
 
 
-class PolicyNet(object):
-    def __init__(self):
+class PolicyNet(subgraph.Subgraph):
+    def build_graph(self):
         sg_network = Network()
 
         ph_adv_n = graph.TfNode(tf.placeholder(tf.float32, name='adv_n'))
@@ -181,6 +181,26 @@ class PolicyNet(object):
         self.ph_sampled_variable = sg_probtype.ph_sampled_variable
         self.ph_prob_variable = ph_oldprob_np
         self.ph_adv_n = ph_adv_n
+
+
+class ValueNet(subgraph.Subgraph):
+    def build_graph(self):
+        input_size, = trpo_config.config.input.shape
+
+        # add one extra feature for timestep
+        ph_state = graph.Placeholder(np.float32, shape=(None, input_size + 1))
+
+        activation = layer.Activation.get_activation(trpo_config.config.activation)
+        descs = [dict(type=layer.Dense, size=size, activation=activation) for size
+                 in trpo_config.config.hidden_sizes]
+        descs.append(dict(type=layer.Dense, size=1))
+
+        value = layer.GenericLayers(ph_state, descs)
+
+        self.ph_state = ph_state
+        self.value = value
+        self.weights = layer.Weights(value)
+        self.trainable_weights = list(utils.Utils.flatten(self.weights.node))
 
 
 # Weights of the policy are shared across
@@ -210,9 +230,12 @@ class SharedParameters(subgraph.Subgraph):
         sg_gradients = optimizer.Gradients(sg_policy_net.weights, loss=sg_policy_net.surr)
         sg_gradients_flatten = GetVariablesFlatten(sg_gradients.calculate)
 
+        sg_value_net = ValueNet()
+
         sg_initialize = graph.Initialize()
 
         self.policy_net = sg_policy_net
+        self.value_net = sg_value_net
 
         # Expose public API
         self.op_n_step = self.Op(sg_global_step.n)
@@ -251,10 +274,7 @@ class AgentModel(subgraph.Subgraph):
 
         # TODO: remove it. It is not used actually.
         self.policy_net = None
-
-        self.input = sg_network.ph_state
-        self.output = sg_network.actor
-        # self.trainable_weights = list(utils.Utils.flatten(sg_network.weights.node))
+        self.value_net = ValueNet()
 
         # Expose public API
         self.op_set_weights = self.Op(sg_network.weights.assign, weights=sg_network.weights.ph_weights)

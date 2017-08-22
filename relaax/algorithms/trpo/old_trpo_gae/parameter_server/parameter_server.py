@@ -1,7 +1,5 @@
 from __future__ import print_function
 
-import keras.backend
-import tensorflow as tf
 import numpy as np
 from scipy.signal import lfilter
 from time import time
@@ -18,23 +16,16 @@ class ParameterServer(object):
         self.paths = []             # experience accumulator
         self.paths_len = 0          # length of experience
 
-        # inform Keras that we are going to initialize variables here
-        keras.backend.manual_variable_initialization(True)
-
-        self._session = relaax_session.session
-        keras.backend.set_session(self._session)
-
-        self.policy_net, self.value_net = network.make_mlps(relaax_session)
+        self.policy_net = relaax_session.model.policy_net
+        # self.value_net = relaax_session.model.value_net
 
         self.policy, self.baseline = network.make_wrappers(trpo_config.config, self.policy_net,
-                                                           self.value_net, self._session, relaax_session,
-                                                           metrics)
-        self.trpo_updater = network.TrpoUpdater(trpo_config.config, self.policy, self._session,
+                                                           relaax_session.model.value_net,
+                                                           relaax_session.session, relaax_session, metrics)
+        self.trpo_updater = network.TrpoUpdater(trpo_config.config, self.policy, relaax_session.session,
                                                 relaax_session)
 
         self._saver = None
-
-        self._session.run(tf.variables_initializer(tf.global_variables()))
 
         if trpo_config.config.use_filter:
             self.M = np.zeros(trpo_config.config.state_size)

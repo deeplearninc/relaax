@@ -1,6 +1,5 @@
 import tensorflow as tf
 import scipy.optimize
-from keras.layers.core import Layer
 from collections import OrderedDict
 
 from distributions import *
@@ -9,31 +8,6 @@ from filters import *
 
 dtype = tf.float32
 concat = np.concatenate
-
-
-# ================================================================
-# Keras
-# ================================================================
-
-class ConcatFixedStd(Layer):
-    input_ndim = 2
-
-    def __init__(self, **kwargs):
-        Layer.__init__(self, **kwargs)
-        self.logstd = None
-
-    def build(self, input_shape):
-        input_dim = input_shape[1]
-        self.logstd = tf.Variable(tf.zeros(input_dim, dtype), name='{}_logstd'.format(self.name))
-        self.trainable_weights = [self.logstd]
-
-    def get_output_shape_for(self, input_shape):
-        return input_shape[0], input_shape[1] * 2
-
-    def call(self, x):
-        Mean = x  # Mean = x * 0.1
-        Std = tf.tile(tf.reshape(tf.exp(self.logstd), [1, -1]), (tf.shape(Mean)[0], 1))
-        return tf.concat([Mean, Std], axis=1)
 
 
 # ================================================================
@@ -136,7 +110,7 @@ class DiagGauss(ProbType):
 
 
 class StochPolicyKeras(object):
-    def __init__(self, net, probtype, session, relaax_session, relaax_metrics):
+    def __init__(self, net, probtype, relaax_session, relaax_metrics):
         self._net = net
         self._probtype = probtype
         self.relaax_session = relaax_session
@@ -276,16 +250,15 @@ class NnRegression(object):
     def __init__(self, net, session, mixfrac=1.0, maxiter=25):
         self.mixfrac = mixfrac
 
-        x_nx = net.input
-        self.predict = TensorFlowLazyFunction([x_nx], net.output, session)
+        x_nx = net.ph_state.node
+        self.predict = TensorFlowLazyFunction([x_nx], net.value.node, session)
 
-        ypred_ny = net.output
         ytarg_ny = tf.placeholder(dtype, name='ytarg')
 
         var_list = net.trainable_weights
         l2 = 1e-3 * tf.add_n([tf.reduce_sum(tf.square(v)) for v in var_list])
 
-        mse = tf.reduce_mean(tf.square(ytarg_ny - ypred_ny))
+        mse = tf.reduce_mean(tf.square(ytarg_ny - net.value.node))
         symb_args = [x_nx, ytarg_ny]
 
         loss = mse + l2
