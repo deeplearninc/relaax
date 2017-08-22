@@ -160,6 +160,29 @@ class Network(subgraph.Subgraph):
         self.weights = layer.Weights(*([input, head] + actor_layers))
 
 
+class PolicyNet(object):
+    def __init__(self):
+        sg_network = Network()
+
+        ph_adv_n = graph.TfNode(tf.placeholder(tf.float32, name='adv_n'))
+
+        sg_probtype = ProbType(trpo_config.config.output.action_size)
+
+        ph_oldprob_np = sg_probtype.ProbVariable()
+
+        sg_logp_n = sg_probtype.Loglikelihood(sg_network.actor)
+        sg_oldlogp_n = sg_probtype.Loglikelihood(ph_oldprob_np)
+
+        self.ph_state = sg_network.ph_state
+        self.actor = sg_network.actor
+        self.weights = sg_network.weights
+        self.trainable_weights = list(utils.Utils.flatten(sg_network.weights.node))
+        self.surr = graph.TfNode(-tf.reduce_mean(tf.exp(sg_logp_n.node - sg_oldlogp_n.node) * ph_adv_n.node))
+        self.ph_sampled_variable = sg_probtype.ph_sampled_variable
+        self.ph_prob_variable = ph_oldprob_np
+        self.ph_adv_n = ph_adv_n
+
+
 # Weights of the policy are shared across
 # all agents and stored on the parameter server
 class SharedParameters(subgraph.Subgraph):
@@ -175,39 +198,21 @@ class SharedParameters(subgraph.Subgraph):
     def build_graph(self):
         # Build graph
         
+        sg_policy_net = PolicyNet()
+
         sg_n_iter = trpo_graph.NIter()
 
         sg_global_step = graph.GlobalStep()
 
-        sg_network = Network()
-        sg_get_weights_flatten = GetVariablesFlatten(sg_network.weights)
-        sg_set_weights_flatten = SetVariablesFlatten(sg_network.weights)
-        #sg_gradients = optimizer.Gradients(loss, sg_network.weights)
+        sg_get_weights_flatten = GetVariablesFlatten(sg_policy_net.weights)
+        sg_set_weights_flatten = SetVariablesFlatten(sg_policy_net.weights)
 
-        ph_adv_n = graph.TfNode(tf.placeholder(tf.float32, name='adv_n'))
-
-        sg_probtype = ProbType(trpo_config.config.output.action_size)
-
-        ph_oldprob_np = sg_probtype.ProbVariable()
-
-        sg_logp_n = sg_probtype.Loglikelihood(sg_network.actor)
-        sg_oldlogp_n = sg_probtype.Loglikelihood(ph_oldprob_np)
-
-        # Policy gradient:
-        sg_surr = graph.TfNode(-tf.reduce_mean(tf.multiply(tf.exp(sg_logp_n.node - sg_oldlogp_n.node),
-                                                           ph_adv_n.node)))
-        sg_gradients = optimizer.Gradients(sg_network.weights, loss=sg_surr)
+        sg_gradients = optimizer.Gradients(sg_policy_net.weights, loss=sg_policy_net.surr)
         sg_gradients_flatten = GetVariablesFlatten(sg_gradients.calculate)
 
         sg_initialize = graph.Initialize()
 
-        self.input = sg_network.ph_state
-        self.output = sg_network.actor
-        self.trainable_weights = list(utils.Utils.flatten(sg_network.weights.node))
-        self.surr = sg_surr
-        self.sampled_variable = sg_probtype.ph_sampled_variable
-        self.prob_variable = ph_oldprob_np
-        self.adv_n = ph_adv_n
+        self.policy_net = sg_policy_net
 
         # Expose public API
         self.op_n_step = self.Op(sg_global_step.n)
@@ -224,17 +229,18 @@ class SharedParameters(subgraph.Subgraph):
         self.op_n_iter = sg_n_iter.op_n_iter
         self.op_next_iter = sg_n_iter.op_next_iter
 
-        self.op_get_action = self.Op(sg_network.actor, state=sg_network.ph_state)
+        self.op_get_action = self.Op(sg_policy_net.actor, state=sg_policy_net.ph_state)
 
         self.op_get_weights_flatten = self.Op(sg_get_weights_flatten)
         self.op_set_weights_flatten = self.Op(sg_set_weights_flatten,
                                               weights=sg_set_weights_flatten.ph_value)
 
-        self.op_get_weights = self.Op(sg_network.weights)
+        self.op_get_weights = self.Op(sg_policy_net.weights)
 
-        self.op_compute_policy_gradient = self.Op(sg_gradients_flatten, state=sg_network.ph_state,
-                                                  sampled_variable=self.sampled_variable, adv_n=ph_adv_n,
-                                                  oldprob_np=ph_oldprob_np)
+        self.op_compute_policy_gradient = self.Op(sg_gradients_flatten, state=sg_policy_net.ph_state,
+                                                  sampled_variable=sg_policy_net.ph_sampled_variable,
+                                                  adv_n=sg_policy_net.ph_adv_n,
+                                                  oldprob_np=sg_policy_net.ph_prob_variable)
 
 
 # Policy run by Agent(s)
@@ -242,6 +248,9 @@ class AgentModel(subgraph.Subgraph):
     def build_graph(self):
         # Build graph
         sg_network = Network()
+
+        # TODO: remove it. It is not used actually.
+        self.policy_net = None
 
         self.input = sg_network.ph_state
         self.output = sg_network.actor

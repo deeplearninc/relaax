@@ -10,39 +10,6 @@ from relaax.algorithms.trpo import trpo_config
 from relaax.algorithms.trpo import trpo_model
 
 
-class PolicyNet(object):
-    def __init__(self, relaax_session):
-        self.session = relaax_session
-
-    @property
-    def input(self):
-        return self.session.model.input.node
-
-    @property
-    def output(self):
-        return self.session.model.output.node
-
-    @property
-    def trainable_weights(self):
-        return self.session.model.trainable_weights
-
-    @property
-    def surr(self):
-        return self.session.model.surr.node
-
-    @property
-    def sampled_variable(self):
-        return self.session.model.sampled_variable.node
-
-    @property
-    def prob_variable(self):
-        return self.session.model.prob_variable.node
-
-    @property
-    def adv_n(self):
-        return self.session.model.adv_n.node
-
-
 class ValueNet(object):
     def __init__(self, relaax_session):
         self.session = relaax_session
@@ -70,7 +37,7 @@ class ValueNet(object):
 
 
 def make_mlps(relaax_session):
-    return PolicyNet(relaax_session), ValueNet(relaax_session)
+    return relaax_session.model.policy_net, ValueNet(relaax_session)
 
 
 def make_filters(config):
@@ -108,18 +75,19 @@ class TrpoUpdater(object):
         params = stochpol.net.trainable_weights
         self.ezflat = EzFlat(params, session)
 
-        ob_no = stochpol.net.input
-        act_na = stochpol.net.sampled_variable
-        adv_n = stochpol.net.adv_n
+        ob_no = stochpol.net.ph_state.node
+        act_na = stochpol.net.ph_sampled_variable.node
+        adv_n = stochpol.net.ph_adv_n.node
 
         # Probability distribution:
-        prob_np = stochpol.net.output
-        oldprob_np = stochpol.net.prob_variable
+        prob_np = stochpol.net.actor.node
+        oldprob_np = stochpol.net.ph_prob_variable.node
 
         # Policy gradient:
-        surr = stochpol.net.surr
+        surr = stochpol.net.surr.node
 
-        kl_firstfixed = tf.reduce_sum(probtype.kl(tf.stop_gradient(prob_np), prob_np)) / tf.cast(tf.shape(ob_no)[0], tf.float32)
+        kl_firstfixed = tf.reduce_sum(probtype.kl(tf.stop_gradient(prob_np), prob_np)) / \
+                        tf.cast(tf.shape(ob_no)[0], tf.float32)
 
         grads = tf.gradients(kl_firstfixed, params)
         flat_tangent = tf.placeholder(dtype, name='flat_tan')
