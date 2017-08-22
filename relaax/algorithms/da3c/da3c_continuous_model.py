@@ -90,10 +90,10 @@ class SharedParameters(subgraph.Subgraph):
         self.critic = sg_network.critic
 
         if da3c_config.config.optimizer == 'Adam':
-            sg_actor_optimizer = graph.AdamOptimizer(da3c_config.config.actor_initial_learning_rate)
-            sg_critic_optimizer = graph.AdamOptimizer(da3c_config.config.critic_initial_learning_rate)
+            sg_actor_optimizer = optimizer.AdamOptimizer(da3c_config.config.actor_initial_learning_rate)
+            sg_critic_optimizer = optimizer.AdamOptimizer(da3c_config.config.critic_initial_learning_rate)
             if da3c_config.config.use_icm:
-                sg_icm_optimizer = graph.AdamOptimizer(da3c_config.config.actor_initial_learning_rate)
+                sg_icm_optimizer = optimizer.AdamOptimizer(da3c_config.config.actor_initial_learning_rate)
                 sg_icm_weights = icm_model.ICM().weights
                 sg_icm_gradients = optimizer.Gradients(sg_icm_weights, optimizer=sg_icm_optimizer)
         else:
@@ -101,13 +101,12 @@ class SharedParameters(subgraph.Subgraph):
                                                              da3c_config.config.actor_initial_learning_rate)
             sg_critic_learning_rate = \
                 da3c_graph.LearningRate(sg_global_step, da3c_config.config.critic_initial_learning_rate)
-            sg_actor_optimizer = graph.RMSPropOptimizer(learning_rate=sg_actor_learning_rate,
-                                                        decay=da3c_config.config.RMSProp.decay, momentum=0.0,
-                                                        epsilon=da3c_config.config.RMSProp.epsilon)
-            sg_critic_optimizer = graph.RMSPropOptimizer(learning_rate=sg_critic_learning_rate,
-                                                         decay=da3c_config.config.RMSProp.decay,
-                                                         momentum=0.0,
-                                                         epsilon=da3c_config.config.RMSProp.epsilon)
+            sg_actor_optimizer = optimizer.RMSPropOptimizer(learning_rate=sg_actor_learning_rate,
+                                                            decay=da3c_config.config.RMSProp.decay, momentum=0.0,
+                                                            epsilon=da3c_config.config.RMSProp.epsilon)
+            sg_critic_optimizer = optimizer.RMSPropOptimizer(learning_rate=sg_critic_learning_rate,
+                                                             decay=da3c_config.config.RMSProp.decay, momentum=0.0,
+                                                             epsilon=da3c_config.config.RMSProp.epsilon)
         sg_actor_gradients = optimizer.Gradients(self.actor.weights, optimizer=sg_actor_optimizer)
         sg_critic_gradients = optimizer.Gradients(self.critic.weights, optimizer=sg_critic_optimizer)
         sg_initialize = graph.Initialize()
@@ -148,8 +147,7 @@ class AgentModel(subgraph.Subgraph):
 
         if da3c_config.config.use_icm:
             sg_icm_network = icm_model.ICM()
-            sg_icm_loss = loss.ICMLoss(sg_network.actor.head, sg_icm_network,
-                                       da3c_config.config.ICM.alpha, da3c_config.config.ICM.beta)
+            sg_icm_loss = loss.ICMLoss(sg_network.actor, sg_icm_network, da3c_config.config.icm)
             sg_icm_gradients = optimizer.Gradients(sg_icm_network.weights, loss=sg_icm_loss)
 
             # Expose ICM public API

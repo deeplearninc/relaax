@@ -102,8 +102,7 @@ class AgentModel(subgraph.Subgraph):
 
         if da3c_config.config.use_icm:
             sg_icm_network = icm_model.ICM()
-            sg_icm_loss = loss.ICMLoss(sg_network.actor, sg_icm_network,
-                                       da3c_config.config.ICM.alpha, da3c_config.config.ICM.beta)
+            sg_icm_loss = loss.ICMLoss(sg_network.actor, sg_icm_network, da3c_config.config.icm)
             sg_icm_gradients = optimizer.Gradients(sg_icm_network.weights, loss=sg_icm_loss)
 
             # Expose ICM public API
