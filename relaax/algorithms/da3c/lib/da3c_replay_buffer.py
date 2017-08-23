@@ -1,11 +1,13 @@
 from relaax.common.algorithms.lib import experience
+
 from .. import da3c_config
+
 
 class DA3CReplayBuffer(object):
     def __init__(self, callback):
         self.callback = callback
 
-        self.keys = ['reward', 'state', 'action', 'value']
+        self.keys = ['reward', 'state', 'action', 'value', 'probs']
         self.experience = None
         self._begin()
 
@@ -31,6 +33,6 @@ class DA3CReplayBuffer(object):
         self.callback.end(experience)
 
     def _reset(self):
-        self.keys = ['reward', 'state', 'action', 'value']
+        self.keys = ['reward', 'state', 'action', 'value', 'probs']
         self.experience = None
         self.callback.reset()

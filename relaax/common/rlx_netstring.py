@@ -1,7 +1,7 @@
 from builtins import str
 from builtins import object
 import re
-from struct import *
+
 
 class NetStringException(Exception):
     pass
@@ -54,7 +54,7 @@ class NetString(object):
             rest -= len(packet)
         data = b''.join(packets)
         assert len(data) == length
-        return data#.decode()
+        return data  # .decode()
 
     def _receive_length(self):
         digits = []

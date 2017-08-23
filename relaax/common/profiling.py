@@ -1,10 +1,9 @@
 from __future__ import absolute_import
-from builtins import range
+
 from builtins import object
 
 import json
 import os
-import six
 import sys
 import threading
 import time
@@ -22,16 +21,20 @@ def enable(enabled):
 def set_handlers(handlers):
     Profiler.handlers = handlers
 
+
 def get_handlers():
     return Profiler.handlers
+
 
 def add_handler(handler):
     if handler not in Profiler.handlers:
         Profiler.handlers.append(handler)
 
+
 def remove_handler(handler):
     if handler in Profiler.handlers:
         Profiler.handlers.remove(handler)
+
 
 def wrap(f):
     return Profiler.root.wrap(f)
@@ -83,9 +86,11 @@ class Profiler(object):
         except AttributeError:
             name = f.__name__
         event = CompleteEvent(self, name)
+
         def wrapper(*args, **kwargs):
             with event:
                 return f(*args, **kwargs)
+
         return wrapper
 
     def handle(self, record):

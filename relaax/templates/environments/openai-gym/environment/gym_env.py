@@ -65,9 +65,9 @@ class GymEnv(object):
         if limit is not None:
             self.gym._max_episode_steps = limit
 
-        self.shape = options.get('environment/shape', (84, 84))
+        self.shape = options.get('environment/shape', options.get('environment/image', (84, 84)))
+        self._shape = shape[:2]
         if len(self.shape) > 1:
-            self._shape = (self.shape[0], self.shape[1])
             self._channels = 0 if len(self.shape) == 2 else self.shape[-1]
 
         self._crop = options.get('environment/crop', True)
@@ -126,14 +126,13 @@ class GymEnv(object):
             screen = np.dot(screen[..., :3], [0.299, 0.587, 0.114]).astype(np.uint8)
 
         if self._crop:
-            screen = screen[32:36 + 160, :160]
+            screen = screen[34:34 + 160, :160]
 
-        if self._shape[0] < 84:
-            screen = np.array(Image.fromarray(screen).resize(
-                (84, 84), resample=Image.BILINEAR), dtype=np.uint8)
+        if self._shape[0] < 80:
+            screen = np.array(Image.fromarray(screen).resize((80, 80), resample=Image.BILINEAR),
+                              dtype=np.uint8)
 
-        screen = RLXMessageImage(Image.fromarray(screen).resize(
-            self._shape, resample=Image.BILINEAR))
+        screen = RLXMessageImage(Image.fromarray(screen).resize(self._shape, resample=Image.BILINEAR))
 
         return screen
 

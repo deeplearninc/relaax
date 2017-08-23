@@ -1,7 +1,6 @@
 from builtins import next
 from builtins import range
 from builtins import object
-import itertools
 import logging
 import numpy as np
 import tensorflow as tf
@@ -36,8 +35,7 @@ def choose_action_descrete(probabilities, exploit=False):
     return np.random.choice(len(probabilities), p=probabilities)
 
 
-def choose_action_continuous(mu, sigma2,
-        min_clip=-float('inf'), max_clip=float('inf'), exploit=False):
+def choose_action_continuous(mu, sigma2, min_clip=-float('inf'), max_clip=float('inf'), exploit=False):
     if min_clip is None or (type(min_clip) is list and len(min_clip) == 0):
         min_clip = -float('inf')
     if max_clip is None or (type(max_clip) is list and len(max_clip) == 0):
@@ -45,7 +43,7 @@ def choose_action_continuous(mu, sigma2,
     if exploit:
         act, = mu
     else:
-        act, = (np.random.randn(*sigma2.shape).astype(np.float32) * sigma2 + mu)
+        act, = np.random.randn(*sigma2.shape).astype(np.float32) * sigma2 + mu
     return np.clip(act, min_clip, max_clip)
 
 

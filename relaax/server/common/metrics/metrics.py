@@ -2,6 +2,9 @@ from builtins import object
 
 
 class Metrics(object):
+    def summary(self, summary, x=None):
+        raise NotImplementedError
+
     def scalar(self, name, y, x=None):
         raise NotImplementedError
 

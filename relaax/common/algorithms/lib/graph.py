@@ -74,8 +74,32 @@ class L2loss(subgraph.Subgraph):
         Returns:
             A Tensor. Has the same type as t.
         """
+        self.op = tf.nn.l2_loss(t, name=name)
 
-        return tf.nn.l2_loss(t, name=name)
+
+class SparseSoftmaxCrossEntropyWithLogits(subgraph.Subgraph):
+    """Computes sparse softmax cross entropy between `logits` and `labels`."""
+
+    def build_graph(self, logits, labels, name=None):
+        """
+        Args:
+          logits: Unscaled log probabilities of rank `r` and shape
+            `[d_0, d_1, ..., d_{r-2}, num_classes]` with `float` dtype.
+          labels: `Tensor` of shape `[d_0, d_1, ..., d_{r-2}]` with `int` dtype.
+            Each entry in `labels` must be an index in `[0, num_classes)`.
+          name: A name for the operation (optional).
+
+        Returns:
+          A `Tensor` of the same shape as `labels` and of the same type as `logits`
+          with the softmax cross entropy loss.
+        """
+        self.op = tf.reduce_sum(
+            tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits.node, labels=labels), name=name)
+
+
+class ArgMax(subgraph.Subgraph):
+    def build_graph(self, input, axis=None, name=None):
+        self.op = tf.argmax(input.node, axis=axis, name=name)
 
 
 class Softmax(subgraph.Subgraph):
@@ -99,8 +123,8 @@ class Expand(subgraph.Subgraph):
 
 
 class Concat(subgraph.Subgraph):
-    def build_graph(self, concat_dim, values, name='concat'):
-        return tf.concat(concat_dim, [v.node for v in values], name=name)
+    def build_graph(self, values, axis, name='concat'):
+        return tf.concat([v.node for v in values], axis, name=name)
 
 
 class List(subgraph.Subgraph):
@@ -164,7 +188,7 @@ class Placeholder(subgraph.Subgraph):
         """Assemble one placeholder.
 
         Args:
-            shape: The shape of the placeholder to be fed (optional). If the shape is not
+            shape: The shape of the tensor to be fed (optional). If the shape is not
       specified, you can feed a tensor of any shape.
             dtype: The type of elements in the placeholder to be fed.
             name: A name for the placeholder (optional).

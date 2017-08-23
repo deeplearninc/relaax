@@ -42,6 +42,10 @@ class BridgeMetrics(metrics.Metrics):
         self.connection = connection
 
     @profiler.wrap
+    def summary(self, summary, x=None):
+        self.send('summary', summary=summary, x=x)
+
+    @profiler.wrap
     def scalar(self, name, y, x=None):
         self.send('scalar', name=name, y=y, x=x)
 

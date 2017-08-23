@@ -1,8 +1,10 @@
+---
 environment:
   run: python training.py
   steps: 3000
   max_episodes: 1
   infinite_run: false
+  log_level: INFO
 
 enable_unknown_metrics: true
 metrics:
@@ -13,19 +15,19 @@ metrics:
   sigma2: true
   critic: true
 
-relaax-metrics-server:
+relaax_metrics_server:
   bind: localhost:7002
   metrics_dir: logs/metrics
   log_metrics: false
   log_level: INFO
 
-relaax-parameter-server:
-  --bind: localhost:7000
-  --log-level: INFO
+relaax_parameter_server:
+  bind: localhost:7000
+  log_level: INFO
 
-relaax-rlx-server:
-  --bind: localhost:7001
-  --log-level: INFO
+relaax_rlx_server:
+  bind: localhost:7001
+  log_level: INFO
 
 algorithm:
   name: da3c                      # short name for algorithm to load

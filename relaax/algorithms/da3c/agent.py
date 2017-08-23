@@ -10,17 +10,16 @@ import six.moves.queue as queue
 from relaax.common import profiling
 from relaax.server.common import session
 from relaax.common.algorithms.lib import utils
+from relaax.common.algorithms.lib import observation
 
-#from . import da3c_config
-#from .lib import da3c_batch
 from .lib.da3c_replay_buffer import DA3CReplayBuffer
 from . import da3c_config
 from . import da3c_model
-from .lib import da3c_observation
 
 
 logger = logging.getLogger(__name__)
 profiler = profiling.get_profiler(__name__)
+M = False
 
 
 # DA3CAgent implements training regime for DA3C algorithm
@@ -38,6 +37,7 @@ class Agent(object):
         self.observation = None
         self.last_action = None
         self.last_value = None
+        self.last_probs = None
         self.queue = None
         self.icm_observation = None
         self.replay_buffer = None
@@ -47,27 +47,24 @@ class Agent(object):
     # environment is ready and
     # waiting for agent to initialize
     def init(self, exploit=False, hogwild_update=True):
-        #self.batch = da3c_batch.DA3CBatch(self.ps, self.metrics, exploit, hogwild_update)
-        #self.batch.begin()
-
         self.exploit = exploit
         model = da3c_model.AgentModel()
         self.session = session.Session(model)
         if da3c_config.config.use_lstm:
-            self.lstm_zero_state = model.lstm_zero_state
-            self.lstm_state = self.initial_lstm_state = model.lstm_zero_state
+            self.lstm_state = self.initial_lstm_state = self.lstm_zero_state = model.lstm_zero_state
 
-        self.observation = da3c_observation.DA3CObservation()
+        self.observation = observation.Observation(da3c_config.config.input.history)
         self.last_action = None
         self.last_value = None
-        if hogwild_update:
+        self.last_probs = None
+        if hogwild_update and not da3c_config.config.use_icm:
             self.queue = queue.Queue(10)
             threading.Thread(target=self.execute_tasks).start()
             self.receive_experience()
         else:
             self.queue = None
         if da3c_config.config.use_icm:
-            self.icm_observation = da3c_observation.DA3CObservation()
+            self.icm_observation = observation.Observation(da3c_config.config.input.history)
 
         self.replay_buffer = DA3CReplayBuffer(self)
         return True
@@ -78,10 +75,8 @@ class Agent(object):
         if da3c_config.config.use_lstm:
             self.initial_lstm_state = self.lstm_state
         self.get_action_and_value()
-        #self.replay_buffer.begin_remove()
 
     def end(self, experience):
-        #experience = self.replay_buffer.end_remove()
         if not self.exploit:
             self.do_task(lambda: self.send_experience(experience))
 
@@ -98,19 +93,22 @@ class Agent(object):
             if da3c_config.config.use_icm:
                 reward += self.get_intrinsic_reward(state)
             self.push_experience(reward, terminal)
+        else:
+            if da3c_config.config.use_icm:
+                self.icm_observation.add_state(None)
+                self.icm_observation.add_state(state)
+
         if terminal:
-            if state is not None:
-                logger.warning('DA3CBatch.step ignores state in case of terminal.')
-                state = None
+            self.observation.add_state(None)
         else:
             assert state is not None
-        if state is not None:
             self.metrics.histogram('state', state)
-        self.observation.add_state(state)
+            self.observation.add_state(state)
 
         self.terminal = terminal
         assert self.last_action is None
         assert self.last_value is None
+        assert self.last_probs is None
 
         self.get_action_and_value()
 
@@ -124,13 +122,6 @@ class Agent(object):
     def update(self, reward, state, terminal):
         self.check_state_shape(state)
         self.step(reward, state, terminal)
-
-        # if (self.experience is not None and len(self.experience) == da3c_config.config.batch_size) or terminal:
-        #     self.end()
-        #     if terminal:
-        #         self.reset()
-        #     self.begin()
-
         return self.last_action
 
     @staticmethod
@@ -140,8 +131,8 @@ class Agent(object):
         expected_shape = list(da3c_config.options.algorithm.input.shape)
         actual_shape = list(np.asarray(state).shape)
         if actual_shape != expected_shape:
-            logger.warning('State shape %s does not match to expected one %s.',
-                    repr(actual_shape), repr(expected_shape))
+            logger.warning('State shape %s does not match to expected one %s.', repr(actual_shape),
+                           repr(expected_shape))
 
     #########################
     # From batch
@@ -161,15 +152,15 @@ class Agent(object):
     def send_experience(self, experience):
         self.apply_gradients(self.compute_gradients(experience), len(experience))
         if da3c_config.config.use_icm:
-            self.ps.session.op_icm_apply_gradients(
-                gradients=self.compute_icm_gradients(experience))
+            self.ps.session.op_icm_apply_gradients(gradients=self.compute_icm_gradients(experience))
 
     @profiler.wrap
     def receive_experience(self):
         self.ps.session.op_check_weights()
         weights = self.ps.session.op_get_weights()
-        for i, w in enumerate(utils.Utils.flatten(weights)):
-            self.metrics.histogram('weight_%d' % i, w)
+        if M:
+            for i, w in enumerate(utils.Utils.flatten(weights)):
+                self.metrics.histogram('weight_%d' % i, w)
         self.session.op_assign_weights(weights=weights)
         if da3c_config.config.use_icm:
             self.session.op_icm_assign_weights(weights=self.ps.session.op_icm_get_weights())
@@ -178,32 +169,39 @@ class Agent(object):
         assert self.observation.queue is not None
         assert self.last_action is not None
         assert self.last_value is not None
+        assert self.last_probs is not None
 
         self.replay_buffer.step(
             terminal,
             reward=reward,
             state=self.observation.queue,
             action=self.last_action,
-            value=self.last_value
+            value=self.last_value,
+            probs=self.last_probs
         )
         self.last_action = None
         self.last_value = None
+        self.last_probs = None
 
     def get_action_and_value(self):
         if self.observation.queue is None:
             self.last_action = None
             self.last_value = None
+            self.last_probs = None
         else:
             self.last_action, self.last_value = self.get_action_and_value_from_network()
             assert self.last_action is not None
             assert self.last_value is not None
+            assert self.last_probs is not None
 
     def get_action_and_value_from_network(self):
         if da3c_config.config.use_lstm:
-            action, value, lstm_state = self.session.op_get_action_value_and_lstm_state(
-                state=[self.observation.queue], lstm_state=self.lstm_state, lstm_step=[1])
-            condition = self.experience is not None and \
-                        (len(self.experience) == da3c_config.config.batch_size or self.terminal)
+            action, value, lstm_state = \
+                    self.session.op_get_action_value_and_lstm_state(state=[self.observation.queue],
+                                                                    lstm_state=self.lstm_state,
+                                                                    lstm_step=[1])
+            condition = self.experience is not None and (len(self.experience) ==
+                                                         da3c_config.config.batch_size or self.terminal)
             if not condition:
                 self.lstm_state = lstm_state
         else:
@@ -211,14 +209,16 @@ class Agent(object):
 
         value, = value
         if len(action) == 1:
-            self.metrics.histogram('action', action)
-            probabilities, = action
-            return utils.choose_action_descrete(probabilities), value
+            if M:
+                self.metrics.histogram('action', action)
+            self.last_probs, = action
+            return utils.choose_action_descrete(self.last_probs), value
         mu, sigma2 = action
-        self.metrics.histogram('mu', mu)
-        self.metrics.histogram('sigma2', sigma2)
-        return utils.choose_action_continuous(mu, sigma2,
-                                              da3c_config.config.output.action_low,
+        self.last_probs = mu
+        if M:
+            self.metrics.histogram('mu', mu)
+            self.metrics.histogram('sigma2', sigma2)
+        return utils.choose_action_continuous(mu, sigma2, da3c_config.config.output.action_low,
                                               da3c_config.config.output.action_high), value
 
     def get_intrinsic_reward(self, state):
@@ -226,10 +226,7 @@ class Agent(object):
 
         if state is not None:
             icm_input = [self.observation.queue, self.icm_observation.queue]
-            intrinsic_reward = self.session.op_get_intrinsic_reward(state=icm_input)
-
-            print('intrinsic_reward', intrinsic_reward.shape, intrinsic_reward)
-            return intrinsic_reward
+            return self.session.op_get_intrinsic_reward(state=icm_input, probs=[self.last_probs])[0]
         return 0
 
     def compute_gradients(self, experience):
@@ -238,17 +235,15 @@ class Agent(object):
             r = self.last_value
 
         reward = experience['reward']
-        self.discounted_reward = np.zeros_like(reward, dtype=np.float32)
-
         gamma = da3c_config.config.rewards_gamma
+
         # compute discounted rewards
-        for t in reversed(range(len(reward))):
-            r = reward[t] + gamma * r
-            self.discounted_reward[t] = r
+        self.discounted_reward = self.discount(np.asarray(reward + [r]), gamma)[:-1]
 
         if da3c_config.config.use_gae:
             forward_values = np.asarray(experience['value'][1:] + [r]) * gamma
             rewards = np.asarray(reward) + forward_values - np.asarray(experience['value'])
+
             gae_gamma = da3c_config.config.rewards_gamma * da3c_config.config.gae_lambda
             advantage = self.discount(rewards, gae_gamma)
 
@@ -260,19 +255,21 @@ class Agent(object):
         if da3c_config.config.use_gae:
             feeds.update(dict(advantage=advantage))
 
-        return self.session.op_compute_gradients(**feeds)
+        gradients, summaries = self.session.op_compute_gradients_and_summaries(**feeds)
+        self.metrics.summary(summaries)
+        return gradients
 
     def compute_icm_gradients(self, experience):
         states, icm_states = experience['state'], []
         for i in range(len(states) - 1):
             icm_states.extend((states[i], states[i + 1]))
-        return self.session.op_compute_icm_gradients(
-            state=icm_states, action=experience['action'],
-            discounted_reward=self.discounted_reward)
+        icm_states.extend((states[-1], self.icm_observation.queue))
+        return self.session.op_compute_icm_gradients(state=icm_states, probs=experience['probs'])
 
     def apply_gradients(self, gradients, experience_size):
-        for i, g in enumerate(utils.Utils.flatten(gradients)):
-            self.metrics.histogram('gradients_%d' % i, g)
+        if M:
+            for i, g in enumerate(utils.Utils.flatten(gradients)):
+                self.metrics.histogram('gradients_%d' % i, g)
         self.ps.session.op_apply_gradients(gradients=gradients, increment=experience_size)
         self.ps.session.op_check_weights()
 

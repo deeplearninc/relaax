@@ -25,7 +25,8 @@ message Item {
         FLOAT_32 = 12;
         FLOAT_64 = 13;
         STR = 14;
-        NUMPY_ARRAY = 15;
+        BYTES = 15;
+        NUMPY_ARRAY = 16;
     }
 
     message NumpyArray {
@@ -41,6 +42,7 @@ message Item {
     sint64     int_value         = 4; // for int items only
     double     float_value       = 5; // for float items only
     string     str_value         = 6; // for str items only
+    bytes      bytes_value       = 7; // for bytes items only
     NumpyArray numpy_array_value = 8; // for numpy array items only
 }
 

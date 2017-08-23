@@ -1,12 +1,12 @@
 from __future__ import absolute_import
-import tensorflow as tf
 import numpy as np
 
 from relaax.common.algorithms import subgraph
 from relaax.common.algorithms.lib import graph
 from relaax.common.algorithms.lib import layer
-from relaax.common.algorithms.lib import loss
 from relaax.common.algorithms.lib import utils
+from relaax.common.algorithms.lib import loss
+from relaax.common.algorithms.lib import optimizer
 
 from . import ddpg_config as cfg
 
@@ -76,11 +76,11 @@ class SharedParameters(subgraph.Subgraph):
         sg_update_critic_target_weights = \
             graph.AssignWeights(sg_critic_target_weights, sg_critic_weights, cfg.config.tau).op
 
-        sg_actor_optimizer = graph.AdamOptimizer(cfg.config.actor_learning_rate)
-        sg_critic_optimizer = graph.AdamOptimizer(cfg.config.critic_learning_rate)
+        sg_actor_optimizer = optimizer.AdamOptimizer(cfg.config.actor_learning_rate)
+        sg_critic_optimizer = optimizer.AdamOptimizer(cfg.config.critic_learning_rate)
 
-        sg_actor_gradients = layer.Gradients(sg_actor_weights, optimizer=sg_actor_optimizer)
-        sg_critic_gradients = layer.Gradients(sg_critic_weights, optimizer=sg_critic_optimizer)
+        sg_actor_gradients = optimizer.Gradients(sg_actor_weights, optimizer=sg_actor_optimizer)
+        sg_critic_gradients = optimizer.Gradients(sg_critic_weights, optimizer=sg_critic_optimizer)
 
         sg_initialize = graph.Initialize()
 
@@ -122,21 +122,21 @@ class AgentModel(subgraph.Subgraph):
         actor_grad_args = dict(loss=sg_actor_network.actor, grad_ys=-ph_action_gradient.node)
 
         if cfg.config.no_ps:
-            sg_actor_optimizer = graph.AdamOptimizer(cfg.config.actor_learning_rate)
+            sg_actor_optimizer = optimizer.AdamOptimizer(cfg.config.actor_learning_rate)
             actor_grad_args.update(dict(optimizer=sg_actor_optimizer))
 
-        sg_actor_gradients = layer.Gradients(sg_actor_network.weights, **actor_grad_args)
+        sg_actor_gradients = optimizer.Gradients(sg_actor_network.weights, **actor_grad_args)
 
         sg_critic_loss = loss.DDPGLoss(sg_critic_network, cfg.config)
         critic_grad_args = dict(loss=sg_critic_loss)
 
         if cfg.config.no_ps:
-            sg_critic_optimizer = graph.AdamOptimizer(cfg.config.critic_learning_rate)
+            sg_critic_optimizer = optimizer.AdamOptimizer(cfg.config.critic_learning_rate)
             critic_grad_args.update(dict(optimizer=sg_critic_optimizer))
 
-        sg_critic_gradients = layer.Gradients(sg_critic_network.weights, **critic_grad_args)
+        sg_critic_gradients = optimizer.Gradients(sg_critic_network.weights, **critic_grad_args)
 
-        sg_critic_action_gradients = layer.Gradients(sg_critic_network.ph_action,
+        sg_critic_action_gradients = optimizer.Gradients(sg_critic_network.ph_action,
                                                      loss=sg_critic_network.critic)
 
         # Expose public API
