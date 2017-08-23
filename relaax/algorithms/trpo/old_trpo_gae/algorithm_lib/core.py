@@ -218,7 +218,7 @@ class LbfgsOptimizer(object):
         if extra_losses is not None:
             self.all_losses.update(extra_losses)
 
-        self.f_lossgrad = TensorFlowLazyFunction(list(symb_args), [loss, flatgrad(loss, params)], session)
+        self.f_lossgrad = TensorFlowLazyFunction(symb_args, [loss, flatgrad(loss, params)], session)
         self.f_losses = TensorFlowLazyFunction(symb_args, self.all_losses.values(), session)
         self.maxiter = maxiter
 
