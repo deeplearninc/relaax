@@ -14,6 +14,7 @@ algorithm:
     action_size: 2                      # action size for the given environment
 
   double_dqn: true                      # use DoubleDQN if true
+  dueling_dqn: true                     # use DuelingDQN if true
 
   hidden_sizes: [64]                    # list of dense layers sizes, for ex. [128, 64]
   batch_size: 32                        # maximum batch size, which need to accumulate for one update

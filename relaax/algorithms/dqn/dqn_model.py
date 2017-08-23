@@ -10,6 +10,8 @@ from relaax.common.algorithms.lib import optimizer
 from . import dqn_config as cfg
 from .lib.dqn_utils import Actor
 
+import tensorflow as tf
+
 
 class Network(subgraph.Subgraph):
     def build_graph(self):
@@ -18,11 +20,27 @@ class Network(subgraph.Subgraph):
         hidden = layer.GenericLayers(layer.Flatten(input),
                                      [dict(type=layer.Dense, size=size, activation=layer.Activation.Tanh) for size in cfg.config.hidden_sizes])
 
-        output = layer.Dense(hidden, cfg.config.output.action_size)
+        weights = [input, hidden]
+
+        if cfg.config.dueling_dqn:
+            v_input, a_input = tf.split(hidden.node, [cfg.config.hidden_sizes[-1] // 2, cfg.config.hidden_sizes[-1] // 2], axis=1)
+
+            v_input = graph.TfNode(v_input)
+            a_input = graph.TfNode(a_input)
+
+            v_output = layer.Dense(v_input, 1)
+            a_output = layer.Dense(a_input, cfg.config.output.action_size)
+
+            output = graph.TfNode(tf.add(v_output.node, tf.subtract(a_output.node, tf.reduce_mean(a_output.node, axis=1, keep_dims=True))))
+
+            weights.extend([v_output, a_output])
+        else:
+            output = layer.Dense(hidden, cfg.config.output.action_size)
+            weights.append(output)
 
         self.ph_state = input.ph_state
         self.output = output
-        self.weights = layer.Weights(input, hidden, output)
+        self.weights = layer.Weights(*weights)
 
 
 class GlobalServer(subgraph.Subgraph):
