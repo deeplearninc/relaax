@@ -93,6 +93,9 @@ class Agent(object):
             if da3c_config.config.use_icm:
                 reward += self.get_intrinsic_reward(state)
             self.push_experience(reward, terminal)
+        else:
+            if da3c_config.config.use_icm:
+                self.icm_observation.add_state(state)
 
         if terminal:
             self.observation.add_state(None)
