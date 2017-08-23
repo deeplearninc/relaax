@@ -36,7 +36,7 @@ class TrainingBase(object):
                 try:
                     episode_reward = self.episode(number)
                     if episode_reward is not None:
-                        self.agent.metrics.scalar('game_score', episode_reward)
+                        self.agent.metrics.scalar('episode_reward', episode_reward)
                     number += 1
 
                 except AgentProxyException as e:
@@ -49,8 +49,8 @@ class TrainingBase(object):
                         raise Exception('Can\'t reconnect, exiting...')
 
         except Exception as e:
-            log.error(str(e))
-            traceback.print_exc()
+            log.error("Error while running agent: %s" % str(e))
+            log.debug(traceback.format_exc())
 
         finally:
             # disconnect from the server

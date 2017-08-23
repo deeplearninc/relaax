@@ -1,17 +1,19 @@
 environment:
   run: python environment/training.py
 
-metrics:
-  episode_reward: true
-  game_score: true
-  server_latency: true
-  action: true
-  critic: true
-
 relaax-metrics-server:
+  enable_unknown_metrics: False
+  metrics:
+    episode_reward: true
+    server_latency: true
+    action: true
+    mu: true
+    sigma2: true
+    critic: true
+
   bind: localhost:7002
   metrics_dir: logs/metrics
-  log_metrics: false
+  log_metrics_to_console: false
   log_level: INFO
 
 relaax-parameter-server:

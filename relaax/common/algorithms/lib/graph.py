@@ -62,21 +62,6 @@ class XavierInitializer(object):
         )
 
 
-class AdamOptimizer(subgraph.Subgraph):
-    def build_graph(self, learning_rate=0.001):
-        return tf.train.AdamOptimizer(learning_rate=learning_rate)
-
-
-class RMSPropOptimizer(subgraph.Subgraph):
-    def build_graph(self, learning_rate, decay, momentum, epsilon):
-        return tf.train.RMSPropOptimizer(
-            learning_rate=learning_rate.node,
-            decay=decay,
-            momentum=momentum,
-            epsilon=epsilon
-        )
-
-
 class L2loss(subgraph.Subgraph):
     """Computes half the L2 norm of a tensor without the sqrt."""
 
@@ -89,8 +74,7 @@ class L2loss(subgraph.Subgraph):
         Returns:
             A Tensor. Has the same type as t.
         """
-
-        return tf.nn.l2_loss(t, name=name)
+        self.op = tf.nn.l2_loss(t, name=name)
 
 
 class Softmax(subgraph.Subgraph):
@@ -114,8 +98,8 @@ class Expand(subgraph.Subgraph):
 
 
 class Concat(subgraph.Subgraph):
-    def build_graph(self, concat_dim, values, name='concat'):
-        return tf.concat(concat_dim, [v.node for v in values], name=name)
+    def build_graph(self, values, axis, name='concat'):
+        return tf.concat([v.node for v in values], axis, name=name)
 
 
 class List(subgraph.Subgraph):
@@ -143,7 +127,7 @@ class Increment(subgraph.Subgraph):
 class VarAssign(subgraph.Subgraph):
     def build_graph(self, variable, value):
         self.ph_variable = Placeholders(variables=TfNode(variable))
-        self.assign_from_ph = TfNode(tf.assign(variable, self.ph_variable.node))
+        self.assign_from_ph = TfNode(tf.assign(variable, self.ph_variable.checked))
         self.assign_from_value = TfNode(tf.assign(variable, tf.constant(value)))
         return variable
 
@@ -175,26 +159,30 @@ class Placeholder(subgraph.Subgraph):
         np.float32: tf.float32
     }
 
-    def build_graph(self, dtype, shape=None):
+    def build_graph(self, dtype, shape=None, name=None):
         """Assemble one placeholder.
 
         Args:
-            shape: placehoder shape
-            dtype: placeholder data type
+            shape: The shape of the tensor to be fed (optional). If the shape is not
+      specified, you can feed a tensor of any shape.
+            dtype: The type of elements in the placeholder to be fed.
+            name: A name for the placeholder (optional).
 
         Returns:
             placeholder of given shape and data type
         """
 
-        return tf.placeholder(self.DTYPE[dtype], shape=shape)
+        ph = tf.placeholder(self.DTYPE[dtype], shape=shape, name=name)
+        if dtype not in [np.int32, np.int64]:
+            self.checked = tf.check_numerics(ph, '')
+        return ph
 
 
 class Placeholders(subgraph.Subgraph):
     def build_graph(self, variables):
-        return utils.Utils.map(
-            variables.node,
-            lambda v: tf.placeholder(shape=v.get_shape(), dtype=v.dtype)
-        )
+        phs = utils.Utils.map(variables.node, lambda v: tf.placeholder(shape=v.get_shape(), dtype=v.dtype))
+        self.checked = utils.Utils.map(phs, lambda ph: tf.check_numerics(ph, ''))
+        return phs
 
 
 class GlobalStep(subgraph.Subgraph):
@@ -236,3 +224,14 @@ class Initialize(subgraph.Subgraph):
 class TfNode(subgraph.Subgraph):
     def build_graph(self, tf_tensor):
         return tf_tensor
+
+
+class AssignWeights(subgraph.Subgraph):
+    def build_graph(self, w1, w2, part=None):
+        if part is None:
+            self.op = TfNode([tf.assign(variable, value) for variable, value
+                              in utils.Utils.izip(w1.node, w2.node)])
+        else:
+            trap = 1. - part
+            self.op = TfNode([tf.assign(variable, trap * variable + part * value) for variable, value
+                              in utils.Utils.izip(w1.node, w2.node)])

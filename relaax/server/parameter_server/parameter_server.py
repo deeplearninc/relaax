@@ -7,6 +7,7 @@ import ruamel.yaml
 import time
 import threading
 import signal
+import sys
 
 # Load configuration options
 # do it as early as possible
@@ -25,11 +26,18 @@ try:
     from Queue import Queue, Empty  # noqa
 except ImportError:
     from queue import Queue, Empty  # noqa
-
-    
+   
 log = logging.getLogger(__name__)
 
-
+#Win32 only
+g_ps = None
+def handler_event(dwCtrlType):
+    if dwCtrlType == 2:  # CTRL_CLOSE_EVENT
+        if g_ps is not None:
+            g_ps.save_checkpoint()
+        return 1  # don't chain to the next handler
+    return 0
+                        
 class ParameterServer(object):
 
     @classmethod
@@ -47,7 +55,7 @@ class ParameterServer(object):
     @classmethod    
     def exit_server(cls, signum, frame):
         cls.stopped_server = True
-            
+    
     @classmethod
     def start(cls):
         try:
@@ -65,26 +73,29 @@ class ParameterServer(object):
             # keep the server or else GC will stop it
             server = ps_bridge_server.PsBridgeServer(options.bind, ps_factory)
             server.start()
-
+            
             ps = ps_factory()
-            watch = cls.make_watch(ps)
+            watch = cls.make_watch(ps)                                                                                         #
 
             speedm = Speedometer(ps)
             events = multiprocessing.Queue()
             signal.signal(signal.SIGINT, cls.exit_server)
             signal.signal(signal.SIGTERM, cls.exit_server)
             cls.stopped_server = False
-
+            if sys.platform == 'win32':
+                from relaax.server.common.win32_ctl_handler import set_console_ctrl_handler
+                global g_ps
+                g_ps = ps
+                set_console_ctrl_handler(handler_event)    
+                                       
             while not cls.stopped_server:
-                #time.sleep(1)
+                watch.check()
                 try:
                     msg = events.get(timeout=1)
                 except Empty:
                     pass
                 except:
                     break    
-                else:
-                    watch.check()
             
             ps.save_checkpoint()
             speedm.stop_timer()
@@ -129,7 +140,7 @@ class ParameterServer(object):
 
     @staticmethod
     def metrics_factory(x):
-        connection = metrics_bridge_connection.MetricsBridgeConnection(options.metrics_server)
+        connection = metrics_bridge_connection.MetricsBridgeConnection(options)
         return x_metrics.XMetrics(x, connection.metrics)
 
     @staticmethod
@@ -176,7 +187,8 @@ class Speedometer(object):
     def measure(self, start_time, start_n_step):
         current_time = time.time()
         current_n_step = self.ps.session.op_n_step()
-        self.ps.metrics.scalar('steps_per_sec', (current_n_step - start_n_step) / (current_time - start_time))
+        self.ps.metrics.scalar('steps_per_sec',
+                               (current_n_step - start_n_step) / (current_time - start_time))
         self.run_timer(current_time, current_n_step)
 
     def run_timer(self, start_time, start_n_steps):

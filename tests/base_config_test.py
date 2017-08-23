@@ -91,7 +91,7 @@ class TestBaseConfig(object):
             self.config.setup_logger()
             assert False
         except Exception as e:
-            assert str(e) == 'Invalid log level: WRONG'
+            assert str(e) == 'Invalid logging level: WRONG'
 
     def test_load(self, monkeypatch):
         called_load_command_line = MockUtils.count_calls(self.config, 'load_command_line', monkeypatch)

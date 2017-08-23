@@ -75,7 +75,6 @@ class Agent(object):
 
     def reset(self):
         score = self._episode_reward
-        self.ps.metrics.scalar('episode_reward', score)
 
         latency = self.server_latency_accumulator / self._episode_timestep
         self.server_latency_accumulator = 0

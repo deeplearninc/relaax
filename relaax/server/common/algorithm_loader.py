@@ -1,6 +1,8 @@
 from builtins import object
 
+import glob
 import os.path
+import re
 
 from . import class_loader
 
@@ -22,3 +24,15 @@ class AlgorithmLoader(object):
         elif '.' not in algorithm_name:
             algorithm_name = 'relaax.algorithms.%s' % algorithm_name
         return class_loader.ClassLoader.load(algorithm_path, '%s.%s' % (algorithm_name, suffix))
+
+    @classmethod
+    def model_packages(cls, algorithm_path, algorithm_name):
+        if algorithm_path is not None:
+            _, algorithm_name = os.path.split(algorithm_path)
+        elif '.' not in algorithm_name:
+            algorithm_name = 'relaax.algorithms.%s' % algorithm_name
+        m = class_loader.ClassLoader.import_module(algorithm_path, '%s.parameter_server' % algorithm_name)
+        mpath, = m.__path__
+        for f in glob.glob(os.path.join(mpath, '*model.py')):
+            name, _ = os.path.splitext(os.path.basename(f))
+            yield algorithm_path, '%s.%s' % (algorithm_name, name)

@@ -26,8 +26,7 @@ class AgentProxy(object):
         self.skt = None
         self.transport = None
         self.address = rlx_server_url
-        self.metrics = enabled_metrics.EnabledMetrics(options.get('metrics'),
-                                                      AgentProxyMetrics(self._update_metrics))
+        self.metrics = enabled_metrics.EnabledMetrics(options, AgentProxyMetrics(self._update_metrics))
 
     @profiler.wrap
     def init(self, exploit=False):
@@ -48,10 +47,12 @@ class AgentProxy(object):
     def _update_metrics(self, method, name, y, x=None):
         return self._exchange({
             'command': 'update_metrics',
-            'method': method,
-            'name': name,
-            'y': y,
-            'x': x
+            'data': [{
+                'method': method,
+                'name': name,
+                'y': y,
+                'x': x
+            }]
         })
 
     def _exchange(self, data):

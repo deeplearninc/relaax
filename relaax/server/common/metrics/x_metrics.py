@@ -8,6 +8,11 @@ class XMetrics(metrics.Metrics):
         self._x = x
         self._metrics = metrics
 
+    def summary(self, summary, x=None):
+        if x is None:
+            x = self._x()
+        self._metrics.summary(summary, x)
+
     def scalar(self, name, y, x=None):
         if x is None:
             x = self._x()

@@ -5,8 +5,12 @@ from . import metrics
 
 class EnabledMetrics(metrics.Metrics):
     def __init__(self, options, metrics):
-        self._options = options
+        self._default = options.get('relaax_metrics_server/enable_unknown_metrics', False)
+        self._options = options.get('relaax_metrics_server/metrics', {})
         self._metrics = metrics
+
+    def summary(self, summary, x=None):
+        self._metrics.summary(summary, x)
 
     def scalar(self, name, y, x=None):
         if self._enabled(name):
@@ -17,4 +21,4 @@ class EnabledMetrics(metrics.Metrics):
             self._metrics.histogram(name, y, x)
 
     def _enabled(self, name):
-        return getattr(self._options, name, False)
+        return getattr(self._options, name, self._default)

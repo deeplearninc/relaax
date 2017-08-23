@@ -19,11 +19,14 @@ message Item {
         NONE = 6;
         BOOL = 7;
         INT = 8;
-        FLOAT = 9;
-        STR = 10;
-        NUMPY_INT_32 = 11;
-        NUMPY_INT_64 = 12;
-        NUMPY_ARRAY = 13;
+        NUMPY_INT_32 = 9;
+        NUMPY_INT_64 = 10;
+        FLOAT = 11;
+        FLOAT_32 = 12;
+        FLOAT_64 = 13;
+        STR = 14;
+        BYTES = 15;
+        NUMPY_ARRAY = 16;
     }
 
     message NumpyArray {
@@ -39,6 +42,7 @@ message Item {
     sint64     int_value         = 4; // for int items only
     double     float_value       = 5; // for float items only
     string     str_value         = 6; // for str items only
+    bytes      bytes_value       = 7; // for bytes items only
     NumpyArray numpy_array_value = 8; // for numpy array items only
 }
 
