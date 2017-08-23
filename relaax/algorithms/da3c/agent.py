@@ -10,11 +10,11 @@ import six.moves.queue as queue
 from relaax.common import profiling
 from relaax.server.common import session
 from relaax.common.algorithms.lib import utils
+from relaax.common.algorithms.lib import observation
 
 from .lib.da3c_replay_buffer import DA3CReplayBuffer
 from . import da3c_config
 from . import da3c_model
-from .lib import da3c_observation
 
 
 logger = logging.getLogger(__name__)
@@ -53,7 +53,7 @@ class Agent(object):
         if da3c_config.config.use_lstm:
             self.lstm_state = self.initial_lstm_state = self.lstm_zero_state = model.lstm_zero_state
 
-        self.observation = da3c_observation.DA3CObservation()
+        self.observation = observation.Observation(da3c_config.config.input.history)
         self.last_action = None
         self.last_value = None
         self.last_probs = None
@@ -64,7 +64,7 @@ class Agent(object):
         else:
             self.queue = None
         if da3c_config.config.use_icm:
-            self.icm_observation = da3c_observation.DA3CObservation()
+            self.icm_observation = observation.Observation(da3c_config.config.input.history)
 
         self.replay_buffer = DA3CReplayBuffer(self)
         return True
