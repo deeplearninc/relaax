@@ -77,6 +77,31 @@ class L2loss(subgraph.Subgraph):
         self.op = tf.nn.l2_loss(t, name=name)
 
 
+class SparseSoftmaxCrossEntropyWithLogits(subgraph.Subgraph):
+    """Computes sparse softmax cross entropy between `logits` and `labels`."""
+
+    def build_graph(self, logits, labels, name=None):
+        """
+        Args:
+          logits: Unscaled log probabilities of rank `r` and shape
+            `[d_0, d_1, ..., d_{r-2}, num_classes]` with `float` dtype.
+          labels: `Tensor` of shape `[d_0, d_1, ..., d_{r-2}]` with `int` dtype.
+            Each entry in `labels` must be an index in `[0, num_classes)`.
+          name: A name for the operation (optional).
+
+        Returns:
+          A `Tensor` of the same shape as `labels` and of the same type as `logits`
+          with the softmax cross entropy loss.
+        """
+        self.op = tf.reduce_sum(
+            tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits.node, labels=labels), name=name)
+
+
+class ArgMax(subgraph.Subgraph):
+    def build_graph(self, input, axis=None, name=None):
+        self.op = tf.argmax(input.node, axis=axis, name=name)
+
+
 class Softmax(subgraph.Subgraph):
     def build_graph(self, x):
         return tf.nn.softmax(x.node)

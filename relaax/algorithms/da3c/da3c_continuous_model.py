@@ -148,20 +148,14 @@ class AgentModel(subgraph.Subgraph):
 
         if da3c_config.config.use_icm:
             sg_icm_network = icm_model.ICM()
-            sg_icm_loss = loss.ICMLoss(sg_network.actor, sg_icm_network, da3c_config.config.icm)
-            sg_icm_gradients = optimizer.Gradients(sg_icm_network.weights, loss=sg_icm_loss)
+            sg_icm_gradients = optimizer.Gradients(sg_icm_network.weights, loss=sg_icm_network.loss)
 
             # Expose ICM public API
             self.op_icm_assign_weights = self.Op(sg_icm_network.weights.assign,
                                                  weights=sg_icm_network.weights.ph_weights)
-            self.op_get_intrinsic_reward = self.Op(sg_icm_network.rew_out,
-                                                   state=sg_icm_network.ph_state,
-                                                   probs=sg_icm_network.ph_probs)
-            self.op_compute_icm_gradients = self.Op(sg_icm_gradients.calculate,
-                                                    state=sg_icm_network.ph_state,
-                                                    probs=sg_icm_network.ph_probs,
-                                                    action=sg_icm_loss.ph_action,
-                                                    discounted_reward=sg_icm_loss.ph_discounted_reward)
+            feeds = dict(state=sg_icm_network.ph_state, probs=sg_icm_network.ph_probs)
+            self.op_get_intrinsic_reward = self.Ops(sg_icm_network.rew_out, **feeds)
+            self.op_compute_icm_gradients = self.Op(sg_icm_gradients.calculate, **feeds)
 
         batch_size = tf.to_float(tf.shape(sg_network.ph_state.node)[0])
 

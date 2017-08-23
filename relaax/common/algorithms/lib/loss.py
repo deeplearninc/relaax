@@ -166,23 +166,3 @@ class PGLoss(subgraph.Subgraph):
         log_like_op = tf.log(tf.reduce_sum(tf.one_hot(self.ph_action.node,
                                                       action_size) * network.node, axis=[1]))
         return -tf.reduce_sum(log_like_op * self.ph_discounted_reward.node)
-
-
-class ICMLoss(subgraph.Subgraph):  # pi_lambda=0.1 | beta=0.2
-    def build_graph(self, policy_actor, icm_nn, icm_cfg):
-        self.ph_action = graph.Placeholder(np.int32, (None,), name='action_from_policy')
-        self.ph_discounted_reward = graph.Placeholder(np.float32, (None,), name='edr')
-
-        action_one_hot = tf.one_hot(self.ph_action.node, policy_actor.action_size)
-        action_log_prob = tf.log(tf.maximum(policy_actor.node, 1e-20))
-
-        log_like = tf.reduce_sum(action_log_prob * action_one_hot, axis=1)
-        policy_loss = -tf.reduce_sum(log_like * self.ph_discounted_reward.node) * icm_cfg.pi_lambda
-
-        icm_action = tf.maximum(icm_nn.inv_out.node, 1e-20)
-        max_like_sum = tf.reduce_sum(icm_action * action_one_hot)
-        inv_loss = (1 - icm_cfg.beta) * max_like_sum
-
-        fwd_loss = icm_nn.discrepancy * icm_cfg.beta
-
-        return policy_loss + inv_loss + fwd_loss
