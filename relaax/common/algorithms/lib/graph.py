@@ -94,7 +94,7 @@ class SparseSoftmaxCrossEntropyWithLogits(subgraph.Subgraph):
           with the softmax cross entropy loss.
         """
         self.op = tf.reduce_sum(
-            tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits.node, labels=labels), name=name)
+            tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits.node, labels=labels.node), name=name)
 
 
 class ArgMax(subgraph.Subgraph):
