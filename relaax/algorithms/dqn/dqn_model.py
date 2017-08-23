@@ -49,6 +49,15 @@ class AgentModel(subgraph.Subgraph):
 
         if cfg.config.optimizer == 'Adam':
             sg_optimizer = graph.AdamOptimizer(cfg.config.initial_learning_rate)
+        elif cfg.config.optimizer == 'RMSProp':
+            param = {}
+            if hasattr(cfg.config, 'RMSProp'):
+                if hasattr(cfg.config.RMSProp, "decay"):
+                    param["decay"] = cfg.config.RMSProp.decay
+                if hasattr(cfg.config.RMSProp, "epsilon"):
+                    param["epsilon"] = cfg.config.RMSProp.epsilon
+
+            sg_optimizer = graph.RMSPropOptimizer(cfg.config.initial_learning_rate, **param)
         else:
             raise NotImplementedError
 
