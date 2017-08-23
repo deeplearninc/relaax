@@ -35,8 +35,6 @@ class Trainer(object):
         self.local_step = 0
         self.last_target_weights_update = 0
 
-        self.queue = None
-
     @profiler.wrap
     def begin(self):
         self.get_action()
@@ -54,7 +52,7 @@ class Trainer(object):
             self.last_target_weights_update = 0
 
         if self.local_step % dqn_config.config.update_weights_interval == 0:
-            self.do_task(self.receive_experience)
+            self.receive_experience()
 
         if self.local_step > dqn_config.config.start_sample_step:
             self.update()
@@ -77,19 +75,7 @@ class Trainer(object):
     @profiler.wrap
     def update(self):
         experience = self.replay_buffer.sample(dqn_config.config.batch_size)
-        self.do_task(lambda: self.send_experience(experience))
-
-    # Helper methods
-    def execute_tasks(self):
-        while True:
-            task = self.queue.get()
-            task()
-
-    def do_task(self, f):
-        if self.queue is None:
-            f()
-        else:
-            self.queue.put(f)
+        self.send_experience(experience)
 
     @profiler.wrap
     def send_experience(self, experience):
