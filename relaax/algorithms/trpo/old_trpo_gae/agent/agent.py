@@ -20,10 +20,7 @@ class Agent(object):
 
         self.data = defaultdict(list)
 
-        self.policy_net = relaax_session.model.policy_net
-        self.policy, _ = network.make_wrappers(trpo_config.config, self.policy_net,
-                                               relaax_session.model.value_net, relaax_session.session,
-                                               relaax_session, parameter_server.metrics)
+        self.policy = network.make_policy_wrapper(relaax_session, parameter_server.metrics)
 
         # counter for global updates at parameter server
         self._n_iter = self.ps.session.call_wait_for_iteration()

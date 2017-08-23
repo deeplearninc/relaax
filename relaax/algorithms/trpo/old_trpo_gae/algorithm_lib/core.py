@@ -110,42 +110,18 @@ class DiagGauss(ProbType):
 
 
 class StochPolicyKeras(object):
-    def __init__(self, net, probtype, relaax_session, relaax_metrics):
-        self._net = net
+    def __init__(self, probtype, relaax_session, relaax_metrics):
         self._probtype = probtype
-        self.relaax_session = relaax_session
-        self.relaax_metrics = relaax_metrics
-
-    @property
-    def probtype(self):
-        return self._probtype
-
-    @property
-    def net(self):
-        return self._net
-
-    @property
-    def variables(self):
-        return self._net.get_params()[0]
+        self._relaax_session = relaax_session
+        self._relaax_metrics = relaax_metrics
 
     def act(self, ob, stochastic=True):
-        prob = self.relaax_session.op_get_action(state=ob[None])
-        self.relaax_metrics.histogram('action', prob)
+        prob = self._relaax_session.op_get_action(state=ob[None])
+        self._relaax_metrics.histogram('action', prob)
         if stochastic:
-            return self.probtype.sample(prob)[0], {"prob": prob[0]}
+            return self._probtype.sample(prob)[0], {"prob": prob[0]}
         else:
-            return self.probtype.maxprob(prob)[0], {"prob": prob[0]}
-
-    def get_updates(self):
-        return self._net.updates
-
-    def get_flat(self):
-        return flatten(self.net.get_weights())
-
-    def set_from_flat(self, th):
-        weights = self.net.get_weights()
-        self._weight_shapes = [weight.shape for weight in weights]
-        self.net.set_weights(unflatten(th, self._weight_shapes))
+            return self._probtype.maxprob(prob)[0], {"prob": prob[0]}
 
 
 # ================================================================

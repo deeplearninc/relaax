@@ -16,14 +16,8 @@ class ParameterServer(object):
         self.paths = []             # experience accumulator
         self.paths_len = 0          # length of experience
 
-        self.policy_net = relaax_session.model.policy_net
-        # self.value_net = relaax_session.model.value_net
-
-        self.policy, self.baseline = network.make_wrappers(trpo_config.config, self.policy_net,
-                                                           relaax_session.model.value_net,
-                                                           relaax_session.session, relaax_session, metrics)
-        self.trpo_updater = network.TrpoUpdater(trpo_config.config, self.policy, relaax_session.session,
-                                                relaax_session)
+        self.baseline = network.make_baseline_wrapper(relaax_session, metrics)
+        self.trpo_updater = network.TrpoUpdater(relaax_session)
 
         self._saver = None
 

@@ -3,6 +3,8 @@ from __future__ import print_function
 import numpy as np
 import tensorflow as tf
 
+from ... import trpo_config
+
 from relaax.algorithms.trpo.old_trpo_gae.algorithm_lib import core
 
 
@@ -16,41 +18,41 @@ def make_filters(config):
     return obfilter, rewfilter
 
 
-def make_wrappers(config, policy_net, value_net, session, relaax_session, relaax_metrics):
+def make_probtype():
+    if trpo_config.config.output.continuous:
+        return core.DiagGauss(trpo_config.config.output.action_size)
+    return core.Categorical(trpo_config.config.output.action_size)
 
-    if config.output.continuous:
-        probtype = core.DiagGauss(config.output.action_size)
-    else:
-        probtype = core.Categorical(config.output.action_size)
 
-    policy = core.StochPolicyKeras(policy_net, probtype, relaax_session, relaax_metrics)
-    baseline = core.NnVf(value_net, config.PG_OPTIONS.timestep_limit, dict(mixfrac=0.1), session,
-                         relaax_metrics)
+def make_policy_wrapper(relaax_session, relaax_metrics):
+    return core.StochPolicyKeras(make_probtype(), relaax_session, relaax_metrics)
 
-    return policy, baseline
+
+def make_baseline_wrapper(relaax_session, relaax_metrics):
+    return core.NnVf(relaax_session.model.value_net, trpo_config.config.PG_OPTIONS.timestep_limit,
+                     dict(mixfrac=0.1), relaax_session.session, relaax_metrics)
 
 
 class TrpoUpdater(object):
-    def __init__(self, config, stochpol, session, relaax_session):
+    def __init__(self, relaax_session):
+        probtype = make_probtype()
+        net = relaax_session.model.policy_net
 
-        self.cfg = config
-        self.stochpol = stochpol
         self.relaax_session = relaax_session
 
-        probtype = stochpol.probtype
-        params = stochpol.net.trainable_weights
-        self.ezflat = core.EzFlat(params, session)
+        params = net.trainable_weights
+        self.ezflat = core.EzFlat(params, relaax_session.session)
 
-        ob_no = stochpol.net.ph_state.node
-        act_na = stochpol.net.ph_sampled_variable.node
-        adv_n = stochpol.net.ph_adv_n.node
+        ob_no = net.ph_state.node
+        act_na = net.ph_sampled_variable.node
+        adv_n = net.ph_adv_n.node
 
         # Probability distribution:
-        prob_np = stochpol.net.actor.node
-        oldprob_np = stochpol.net.ph_prob_variable.node
+        prob_np = net.actor.node
+        oldprob_np = net.ph_prob_variable.node
 
         # Policy gradient:
-        surr = stochpol.net.surr.node
+        surr = net.surr.node
 
         kl_firstfixed = tf.reduce_sum(probtype.kl(tf.stop_gradient(prob_np), prob_np)) / \
             tf.cast(tf.shape(ob_no)[0], tf.float32)
@@ -75,8 +77,8 @@ class TrpoUpdater(object):
 
         args = [ob_no, act_na, adv_n, oldprob_np]
 
-        self.compute_losses = core.TensorFlowLazyFunction(args, [surr, kl, ent], session)
-        self.compute_fisher_vector_product = core.TensorFlowLazyFunction([flat_tangent] + args, fvp, session)
+        self.compute_losses = core.TensorFlowLazyFunction(args, [surr, kl, ent], relaax_session.session)
+        self.compute_fisher_vector_product = core.TensorFlowLazyFunction([flat_tangent] + args, fvp, relaax_session.session)
 
     def __call__(self, paths):
         prob_np = core.concat([path["prob"] for path in paths])
@@ -85,11 +87,10 @@ class TrpoUpdater(object):
         advantage_n = core.concat([path["advantage"] for path in paths])
         args = (np.reshape(ob_no, ob_no.shape + (1,)), action_na, advantage_n, prob_np)
 
-        cfg = self.cfg
         thprev = self.ezflat.get_params_flat()
 
         def fisher_vector_product(p):
-            return self.compute_fisher_vector_product(p, *args) + cfg.TRPO.cg_damping * p
+            return self.compute_fisher_vector_product(p, *args) + trpo_config.config.TRPO.cg_damping * p
 
         g = self.relaax_session.op_compute_policy_gradient(state=np.reshape(ob_no, ob_no.shape + (1,)),
                                                            sampled_variable=action_na, adv_n=advantage_n,
@@ -100,7 +101,7 @@ class TrpoUpdater(object):
         else:
             stepdir = cg(fisher_vector_product, -g)
             shs = .5*stepdir.dot(fisher_vector_product(stepdir))
-            lm = np.sqrt(shs / cfg.TRPO.max_kl)
+            lm = np.sqrt(shs / trpo_config.config.TRPO.max_kl)
             print("lagrange multiplier:", lm, "gnorm:", np.linalg.norm(g))
             fullstep = stepdir / lm
             neggdotstepdir = -g.dot(stepdir)
