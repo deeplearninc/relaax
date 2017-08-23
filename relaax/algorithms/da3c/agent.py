@@ -57,7 +57,7 @@ class Agent(object):
         self.last_action = None
         self.last_value = None
         self.last_probs = None
-        if hogwild_update:
+        if hogwild_update and not da3c_config.config.use_icm:
             self.queue = queue.Queue(10)
             threading.Thread(target=self.execute_tasks).start()
             self.receive_experience()
@@ -95,6 +95,7 @@ class Agent(object):
             self.push_experience(reward, terminal)
         else:
             if da3c_config.config.use_icm:
+                self.icm_observation.add_state(None)
                 self.icm_observation.add_state(state)
 
         if terminal:
