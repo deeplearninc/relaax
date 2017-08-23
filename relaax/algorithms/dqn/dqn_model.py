@@ -5,6 +5,7 @@ from relaax.common.algorithms.lib import graph
 from relaax.common.algorithms.lib import layer
 from relaax.common.algorithms.lib import loss
 from relaax.common.algorithms.lib import utils
+from relaax.common.algorithms.lib import optimizer
 
 from . import dqn_config as cfg
 from .lib.dqn_utils import Actor
@@ -48,7 +49,7 @@ class AgentModel(subgraph.Subgraph):
         sg_get_action = Actor()
 
         if cfg.config.optimizer == 'Adam':
-            sg_optimizer = graph.AdamOptimizer(cfg.config.initial_learning_rate)
+            sg_optimizer = optimizer.AdamOptimizer(cfg.config.initial_learning_rate)
         elif cfg.config.optimizer == 'RMSProp':
             param = {}
             if hasattr(cfg.config, 'RMSProp'):
@@ -57,13 +58,13 @@ class AgentModel(subgraph.Subgraph):
                 if hasattr(cfg.config.RMSProp, "epsilon"):
                     param["epsilon"] = cfg.config.RMSProp.epsilon
 
-            sg_optimizer = graph.RMSPropOptimizer(cfg.config.initial_learning_rate, **param)
+            sg_optimizer = optimizer.RMSPropOptimizer(cfg.config.initial_learning_rate, **param)
         else:
             raise NotImplementedError
 
         sg_loss = loss.DQNLoss(sg_network.output, cfg.config)
-        sg_gradients_calc = layer.Gradients(sg_network.weights, loss=sg_loss)
-        sg_gradients_apply = layer.Gradients(sg_network.weights, optimizer=sg_optimizer)
+        sg_gradients_calc = optimizer.Gradients(sg_network.weights, loss=sg_loss)
+        sg_gradients_apply = optimizer.Gradients(sg_network.weights, optimizer=sg_optimizer)
 
         sg_update_target_weights = graph.AssignWeights(sg_target_network.weights, sg_network.weights)
 
