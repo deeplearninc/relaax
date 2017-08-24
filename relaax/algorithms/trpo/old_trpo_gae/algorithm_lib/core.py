@@ -15,9 +15,6 @@ concat = np.concatenate
 # ================================================================
 
 class ProbType(object):
-    def kl(self, prob0, prob1):
-        raise NotImplementedError
-
     def entropy(self, prob):
         raise NotImplementedError
 
@@ -28,9 +25,6 @@ class ProbType(object):
 class Categorical(ProbType):
     def __init__(self, n):
         self.n = n
-
-    def kl(self, prob0, prob1):
-        return tf.reduce_sum((prob0 * tf.log(prob0 / prob1)), axis=1)
 
     def entropy(self, prob0):
         return -tf.reduce_sum((prob0 * tf.log(prob0)), axis=1)
@@ -47,14 +41,6 @@ class Categorical(ProbType):
 class DiagGauss(ProbType):
     def __init__(self, d):
         self.d = d
-
-    def kl(self, prob0, prob1):
-        mean0 = prob0[:, :self.d]
-        std0 = prob0[:, self.d:]
-        mean1 = prob1[:, :self.d]
-        std1 = prob1[:, self.d:]
-        return tf.reduce_sum(tf.log(std1 / std0), axis=1) + tf.reduce_sum(
-            ((tf.square(std0) + tf.square(mean0 - mean1)) / (2.0 * tf.square(std1))), axis=1) - 0.5 * self.d
 
     def entropy(self, prob):
         std_nd = prob[:, self.d:]

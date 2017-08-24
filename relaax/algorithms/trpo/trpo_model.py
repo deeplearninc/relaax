@@ -66,11 +66,11 @@ class Categorical(subgraph.Subgraph):
 
     @property
     def Kl(self):
-        return KlSubgraph
+        return self.KlSubgraph
 
     @property
     def Entropy(self):
-        return EntropySubgraph
+        return self.EntropySubgraph
 
 
 class DiagGauss(subgraph.Subgraph):
@@ -173,6 +173,11 @@ class PolicyNet(subgraph.Subgraph):
         sg_logp_n = sg_probtype.Loglikelihood(sg_network.actor)
         sg_oldlogp_n = sg_probtype.Loglikelihood(ph_oldprob_np)
 
+        sg_sum = tf.reduce_sum(sg_probtype.Kl(graph.TfNode(tf.stop_gradient(sg_network.actor.node)),
+                                              sg_network.actor).node)
+        sg_factor = tf.cast(tf.shape(sg_network.ph_state.node)[0], tf.float32)
+        sg_kl_first_fixed = graph.TfNode(sg_sum / sg_factor)
+
         self.ph_state = sg_network.ph_state
         self.actor = sg_network.actor
         self.weights = sg_network.weights
@@ -181,6 +186,7 @@ class PolicyNet(subgraph.Subgraph):
         self.ph_sampled_variable = sg_probtype.ph_sampled_variable
         self.ph_prob_variable = ph_oldprob_np
         self.ph_adv_n = ph_adv_n
+        self.kl_first_fixed = sg_kl_first_fixed
 
 
 class ValueNet(subgraph.Subgraph):

@@ -54,10 +54,7 @@ class TrpoUpdater(object):
         # Policy gradient:
         surr = net.surr.node
 
-        kl_firstfixed = tf.reduce_sum(probtype.kl(tf.stop_gradient(prob_np), prob_np)) / \
-            tf.cast(tf.shape(ob_no)[0], tf.float32)
-
-        grads = tf.gradients(kl_firstfixed, params)
+        grads = tf.gradients(net.kl_first_fixed.node, params)
         flat_tangent = tf.placeholder(core.dtype, name='flat_tan')
 
         shapes = map(core.var_shape, params)
