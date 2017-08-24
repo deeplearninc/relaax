@@ -15,18 +15,6 @@ concat = np.concatenate
 # ================================================================
 
 class ProbType(object):
-    def sampled_variable(self):
-        raise NotImplementedError
-
-    def prob_variable(self):
-        raise NotImplementedError
-
-    def likelihood(self, a, prob):
-        raise NotImplementedError
-
-    def loglikelihood(self, a, prob):
-        raise NotImplementedError
-
     def kl(self, prob0, prob1):
         raise NotImplementedError
 
@@ -40,19 +28,6 @@ class ProbType(object):
 class Categorical(ProbType):
     def __init__(self, n):
         self.n = n
-
-    def sampled_variable(self):
-        return tf.placeholder(tf.int32, name='a')
-
-    def prob_variable(self):
-        return tf.placeholder(dtype, name='prob')
-
-    def likelihood(self, a, prob):
-        return tf.reduce_sum(prob * tf.one_hot(a, self.n), axis=1)
-        # prob[tf.range(prob.shape[0]), a]
-
-    def loglikelihood(self, a, prob):
-        return tf.log(self.likelihood(a, prob))
 
     def kl(self, prob0, prob1):
         return tf.reduce_sum((prob0 * tf.log(prob0 / prob1)), axis=1)
@@ -72,21 +47,6 @@ class Categorical(ProbType):
 class DiagGauss(ProbType):
     def __init__(self, d):
         self.d = d
-
-    def sampled_variable(self):
-        return tf.placeholder(dtype, name='a')
-
-    def prob_variable(self):
-        return tf.placeholder(dtype, name='prob')
-
-    def loglikelihood(self, a, prob):
-        mean0 = prob[:, :self.d]
-        std0 = prob[:, self.d:]
-        return - 0.5 * tf.reduce_sum(tf.square((a - mean0) / std0), axis=1) \
-               - 0.5 * tf.log(2.0 * np.pi) * self.d - tf.reduce_sum(tf.log(std0), axis=1)
-
-    def likelihood(self, a, prob):
-        return tf.exp(self.loglikelihood(a, prob))
 
     def kl(self, prob0, prob1):
         mean0 = prob0[:, :self.d]
