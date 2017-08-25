@@ -3,6 +3,7 @@ from __future__ import absolute_import
 from builtins import object
 
 import logging
+import random
 
 from relaax.common import profiling
 from relaax.server.common import session
@@ -12,9 +13,6 @@ from relaax.common.algorithms.lib import observation
 from .. import dqn_config
 from .. import dqn_model
 from . import dqn_utils
-
-import random
-
 
 logger = logging.getLogger(__name__)
 profiler = profiling.get_profiler(__name__)
@@ -28,7 +26,8 @@ class Trainer(object):
         self.session = session.Session(dqn_model.AgentModel())
         self.session.op_initialize()
 
-        self.replay_buffer = dqn_utils.ReplayBuffer(dqn_config.config.replay_buffer_size, dqn_config.config.alpha)
+        self.replay_buffer = dqn_utils.ReplayBuffer(dqn_config.config.replay_buffer_size,
+                                                    dqn_config.config.alpha)
         self.observation = observation.Observation(dqn_config.config.input.history)
 
         self.last_action = None
@@ -45,7 +44,7 @@ class Trainer(object):
         self.last_target_weights_update += 1
 
         if self.last_target_weights_update > dqn_config.config.update_target_weights_min_steps and \
-                        random.random() < 1.0 / dqn_config.config.update_target_weights_interval:
+                random.random() < 1.0 / dqn_config.config.update_target_weights_interval:
             weights = self.session.op_get_weights()
             self.ps.session.op_assign_target_weights(target_weights=weights)
 
@@ -61,10 +60,10 @@ class Trainer(object):
         if state is not None:
             self.metrics.histogram('state', state)
 
-        if reward is not None:
-            self.push_experience(reward, state, terminal)
-        else:
+        if reward is None:
             self.observation.add_state(state)
+        else:
+            self.push_experience(reward, state, terminal)
 
         if terminal:
             self.observation.add_state(None)
@@ -79,7 +78,7 @@ class Trainer(object):
 
     @profiler.wrap
     def send_experience(self, experience):
-        batch = dict(zip(experience[0], zip(*[d.values() for d in experience])))  # list of dicts to dict of lists
+        batch = dict(zip(experience[0], zip(*[d.values() for d in experience])))
         q_next_target = self.session.op_get_q_target_value(next_state=batch["next_state"])
         q_next = self.session.op_get_q_value(state=batch["next_state"])
 

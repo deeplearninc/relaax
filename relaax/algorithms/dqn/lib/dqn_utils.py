@@ -1,13 +1,13 @@
 from builtins import object
 
-from .. import dqn_config
-
-import tensorflow as tf
-from relaax.common.algorithms import subgraph
-
 from collections import deque
 import random
 import math
+
+import tensorflow as tf
+
+from .. import dqn_config
+from relaax.common.algorithms import subgraph
 
 
 class ReplayBuffer(object):
@@ -21,7 +21,8 @@ class ReplayBuffer(object):
         if self._alpha is None or self._alpha == 0.0:
             return random.sample(self._replay_memory, size)
         else:
-            weights = map(lambda x: math.pow(x, self._alpha), range(1, len(self._replay_memory) + 1)) if self._weights is None else self._weights
+            weights = map(lambda x: math.pow(x, self._alpha),
+                          range(1, len(self._replay_memory) + 1)) if self._weights is None else self._weights
             return random.choices(self._replay_memory,
                                   weights=weights,
                                   k=size)
@@ -29,7 +30,7 @@ class ReplayBuffer(object):
     def append(self, value):
         self._replay_memory.append(value)
         if len(self._replay_memory) == self._replay_memory.maxlen:
-            self._weights = list(map(lambda x: math.pow(x, self._alpha), range(1, self._replay_memory.maxlen + 1)))
+            self._weights = [math.pow(x, self._alpha) for x in range(1, self._replay_memory.maxlen + 1)]
 
 
 class Actor(subgraph.Subgraph):
@@ -42,7 +43,11 @@ class Actor(subgraph.Subgraph):
         else:
             decay_steps = dqn_config.config.eps.decay_steps
 
-        eps = tf.train.polynomial_decay(dqn_config.config.eps.initial, self.ph_local_step, decay_steps, dqn_config.config.eps.end)
+        eps = tf.train.polynomial_decay(dqn_config.config.eps.initial,
+                                        self.ph_local_step,
+                                        decay_steps,
+                                        dqn_config.config.eps.end)
+
         return tf.cond(tf.less(tf.random_uniform([]), eps),
                        lambda: tf.random_uniform([], 0, dqn_config.config.output.action_size, dtype=tf.int32),
                        lambda: tf.cast(tf.squeeze(tf.argmax(self.ph_q_value, axis=1)), tf.int32))
