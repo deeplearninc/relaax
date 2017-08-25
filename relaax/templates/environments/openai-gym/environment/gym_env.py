@@ -68,7 +68,7 @@ class GymEnv(object):
         shape = options.get('environment/shape', options.get('environment/image', (84, 84)))
         self._shape = shape[:2]
         if len(self._shape) > 1:
-            self._channels = 0 if len(self._shape) == 2 else self._shape[-1]
+            self._channels = 0 if len(shape) == 2 else shape[-1]
 
         self._crop = options.get('environment/crop', True)
         self._process_state = self._process_all

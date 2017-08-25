@@ -27,7 +27,7 @@ class LabEnv(object):
 
         shape = options.get('environment/shape', (84, 84))
         self._height, self._width = shape[0], shape[1]
-        self._channels = 1 if len(shape) == 2 else 3
+        self._channels = 0 if len(shape) == 2 else shape[-1]
 
         action_size = options.get('environment/action_size', 'medium')
         if action_size in ACTIONS:
@@ -83,7 +83,7 @@ class LabEnv(object):
     def _process_state(self):
         screen = self.env.observations()['RGB_INTERLACED']
 
-        if self._channels == 1:
+        if self._channels < 2:
             screen = np.dot(screen[..., :3], [0.299, 0.587, 0.114])
 
         if self._show_ui:
