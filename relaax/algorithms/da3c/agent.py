@@ -238,7 +238,7 @@ class Agent(object):
         gamma = da3c_config.config.rewards_gamma
 
         # compute discounted rewards
-        self.discounted_reward = self.discount(np.asarray(reward + [r]), gamma)[:-1]
+        self.discounted_reward = self.discount(np.asarray(reward + [r], dtype=np.float32), gamma)[:-1]
 
         if da3c_config.config.use_gae:
             forward_values = np.asarray(experience['value'][1:] + [r]) * gamma
