@@ -41,7 +41,6 @@ class TrpoUpdater(object):
         self.relaax_session = relaax_session
 
         params = net.trainable_weights
-        self.ezflat = core.EzFlat(params, relaax_session.session)
 
         ob_no = net.ph_state.node
         act_na = net.ph_sampled_variable.node
@@ -51,31 +50,26 @@ class TrpoUpdater(object):
         prob_np = net.actor.node
         oldprob_np = net.ph_prob_variable.node
 
-        # Policy gradient:
-        surr = net.surr.node
+        grads1 = tf.gradients(net.kl_first_fixed.node, params)
+        tangent = tf.placeholder(core.dtype, name='flat_tan')
 
-        grads = tf.gradients(net.kl_first_fixed.node, params)
-        flat_tangent = tf.placeholder(core.dtype, name='flat_tan')
-
-        shapes = map(core.var_shape, params)
+        gvp = []
         start = 0
-        tangents = []
-        for shape in shapes:
-            size = np.prod(shape)
-            tangents.append(tf.reshape(flat_tangent[start:(start + size)], shape))
+        for g in grads1:
+            size = np.prod(g.shape.as_list())
+            gvp.append(tf.reduce_sum(tf.reshape(g, [-1]) * tangent[start:start + size]))
             start += size
-        gvp = [tf.reduce_sum(g * tangent) for (g, tangent) in zip(grads, tangents)]
 
-        # Fisher-vector product
-        fvp = core.flatgrad(gvp, params)
+        grads2 = tf.gradients(gvp, params)
+        fvp = tf.concat([tf.reshape(g, [-1]) for g in grads2], axis=0)
 
         ent = tf.reduce_mean(probtype.entropy(prob_np))
-        kl = tf.reduce_mean(probtype.kl(oldprob_np, prob_np))
 
         args = [ob_no, act_na, adv_n, oldprob_np]
 
-        self.compute_losses = core.TensorFlowLazyFunction(args, [surr, kl, ent], relaax_session.session)
-        self.compute_fisher_vector_product = core.TensorFlowLazyFunction([flat_tangent] + args, fvp, relaax_session.session)
+        self.compute_losses = core.TensorFlowLazyFunction(args, [net.surr.node, net.kl.node, ent],
+                                                          relaax_session.session)
+        self.compute_fisher_vector_product = core.TensorFlowLazyFunction([tangent] + args, fvp, relaax_session.session)
 
     def __call__(self, paths):
         prob_np = core.concat([path["prob"] for path in paths])
@@ -84,7 +78,7 @@ class TrpoUpdater(object):
         advantage_n = core.concat([path["advantage"] for path in paths])
         args = (np.reshape(ob_no, ob_no.shape + (1,)), action_na, advantage_n, prob_np)
 
-        thprev = self.ezflat.get_params_flat()
+        thprev = self.relaax_session.op_get_weights_flatten()
 
         def fisher_vector_product(p):
             return self.compute_fisher_vector_product(p, *args) + trpo_config.config.TRPO.cg_damping * p
@@ -104,12 +98,12 @@ class TrpoUpdater(object):
             neggdotstepdir = -g.dot(stepdir)
 
             def loss(th):
-                self.ezflat.set_params_flat(th)
+                self.relaax_session.op_set_weights_flatten(value=th)
                 return self.compute_losses(*args)[0]
 
             success, theta = linesearch(loss, thprev, fullstep, neggdotstepdir/lm)
             print("success", success)
-            self.ezflat.set_params_flat(theta)
+            self.relaax_session.op_set_weights_flatten(value=theta)
 
 
 def linesearch(f, x, fullstep, expected_improve_rate, max_backtracks=10, accept_ratio=.1):

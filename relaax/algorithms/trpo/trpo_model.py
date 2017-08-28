@@ -15,23 +15,19 @@ from .lib import trpo_graph
 
 class GetVariablesFlatten(subgraph.Subgraph):
     def build_graph(self, variables):
-        tensors = utils.Utils.flatten(variables.node)
-        return tf.concat([tf.reshape(t, [np.prod(t.shape.as_list())]) for t in tensors], axis=0)
+        return tf.concat([tf.reshape(t, [-1]) for t in utils.Utils.flatten(variables.node)], axis=0)
 
 
 class SetVariablesFlatten(subgraph.Subgraph):
     def build_graph(self, variables):
-        tensors = list(utils.Utils.flatten(variables.node))
-        total_size = sum(np.prod(t.shape.as_list()) for t in tensors)
-        self.ph_value = tf.placeholder(tf.float32, [total_size])
+        self.ph_value = tf.placeholder(tf.float32, [None])
         start = 0
         assignes = []
-        for t in tensors:
+        for t in utils.Utils.flatten(variables.node):
             shape = t.shape.as_list()
             size = np.prod(shape)
             assignes.append(tf.assign(t, tf.reshape(self.ph_value[start:start + size], shape)))
             start += size
-        assert start == total_size
         return tf.group(*assignes)
 
 
@@ -173,20 +169,25 @@ class PolicyNet(subgraph.Subgraph):
         sg_logp_n = sg_probtype.Loglikelihood(sg_network.actor)
         sg_oldlogp_n = sg_probtype.Loglikelihood(ph_oldprob_np)
 
+        sg_surr = graph.TfNode(-tf.reduce_mean(tf.exp(sg_logp_n.node - sg_oldlogp_n.node) * ph_adv_n.node))
+
         sg_sum = tf.reduce_sum(sg_probtype.Kl(graph.TfNode(tf.stop_gradient(sg_network.actor.node)),
                                               sg_network.actor).node)
         sg_factor = tf.cast(tf.shape(sg_network.ph_state.node)[0], tf.float32)
         sg_kl_first_fixed = graph.TfNode(sg_sum / sg_factor)
 
+        sg_kl = graph.TfNode(tf.reduce_mean(sg_probtype.Kl(ph_oldprob_np, sg_network.actor).node))
+
         self.ph_state = sg_network.ph_state
         self.actor = sg_network.actor
         self.weights = sg_network.weights
         self.trainable_weights = list(utils.Utils.flatten(sg_network.weights.node))
-        self.surr = graph.TfNode(-tf.reduce_mean(tf.exp(sg_logp_n.node - sg_oldlogp_n.node) * ph_adv_n.node))
+        self.surr = sg_surr
         self.ph_sampled_variable = sg_probtype.ph_sampled_variable
         self.ph_prob_variable = ph_oldprob_np
         self.ph_adv_n = ph_adv_n
         self.kl_first_fixed = sg_kl_first_fixed
+        self.kl = sg_kl
 
 
 class ValueNet(subgraph.Subgraph):
@@ -260,11 +261,10 @@ class SharedParameters(subgraph.Subgraph):
 
         self.op_get_action = self.Op(sg_policy_net.actor, state=sg_policy_net.ph_state)
 
-        self.op_get_weights_flatten = self.Op(sg_get_weights_flatten)
-        self.op_set_weights_flatten = self.Op(sg_set_weights_flatten,
-                                              weights=sg_set_weights_flatten.ph_value)
-
         self.op_get_weights = self.Op(sg_policy_net.weights)
+
+        self.op_get_weights_flatten = self.Op(sg_get_weights_flatten)
+        self.op_set_weights_flatten = self.Op(sg_set_weights_flatten, value=sg_set_weights_flatten.ph_value)
 
         self.op_compute_policy_gradient = self.Op(sg_gradients_flatten, state=sg_policy_net.ph_state,
                                                   sampled_variable=sg_policy_net.ph_sampled_variable,
