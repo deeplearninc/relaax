@@ -13,8 +13,8 @@ class TensorFlowLazyFunction(object):
 
     def __call__(self, *args, **kwargs):
         feeds = {}
-        for (argpos, arg) in enumerate(args):
-            feeds[self._inputs[argpos]] = arg
+        for i, v in zip(self._inputs, args):
+            feeds[i] = v
         # for k, v in feeds.items():
         #     print('feed', repr(k.get_shape().as_list()), repr(v.shape))
         return self.session.run(self._outputs, feeds)
