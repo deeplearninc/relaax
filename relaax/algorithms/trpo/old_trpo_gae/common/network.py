@@ -8,6 +8,9 @@ from ... import trpo_config
 from relaax.algorithms.trpo.old_trpo_gae.algorithm_lib import core
 
 
+D2 = False
+
+
 def make_filters(config):
     if config.use_filter:
         obfilter = core.ZFilter(core.RunningStatExt(config.input.shape), clip=5)
@@ -50,26 +53,35 @@ class TrpoUpdater(object):
         prob_np = net.actor.node
         oldprob_np = net.ph_prob_variable.node
 
-        grads1 = tf.gradients(net.kl_first_fixed.node, params)
-        tangent = tf.placeholder(core.dtype, name='flat_tan')
-
-        gvp = []
-        start = 0
-        for g in grads1:
-            size = np.prod(g.shape.as_list())
-            gvp.append(tf.reduce_sum(tf.reshape(g, [-1]) * tangent[start:start + size]))
-            start += size
-
-        grads2 = tf.gradients(gvp, params)
-        fvp = tf.concat([tf.reshape(g, [-1]) for g in grads2], axis=0)
+        args = [ob_no, act_na, adv_n, oldprob_np]
 
         ent = tf.reduce_mean(probtype.entropy(prob_np))
 
-        args = [ob_no, act_na, adv_n, oldprob_np]
-
         self.compute_losses = core.TensorFlowLazyFunction(args, [net.surr.node, net.kl.node, ent],
                                                           relaax_session.session)
-        self.compute_fisher_vector_product = core.TensorFlowLazyFunction([tangent] + args, fvp, relaax_session.session)
+
+        tangent = tf.placeholder(core.dtype, name='flat_tan')
+
+        if D2:
+            grads1 = tf.gradients(net.kl_first_fixed.node, params)
+            gvp = []
+            start = 0
+            for g in grads1:
+                size = np.prod(g.shape.as_list())
+                gvp.append(tf.reduce_sum(tf.reshape(g, [-1]) * tangent[start:start + size]))
+                start += size
+
+            grads2 = tf.gradients(gvp, params)
+            fvp = tf.concat([tf.reshape(g, [-1]) for g in grads2], axis=0)
+
+            self.compute_fisher_vector_product = core.TensorFlowLazyFunction([tangent] + args, fvp,
+                                                                             relaax_session.session)
+        else:
+            def cfvp(tangent, g):
+                v = np.matmul(g, tangent)
+                return np.mean(np.multiply(g, np.expand_dims(v, -1)), axis=0)
+
+            self.cfvp = cfvp
 
     def __call__(self, paths):
         prob_np = core.concat([path["prob"] for path in paths])
@@ -80,12 +92,33 @@ class TrpoUpdater(object):
 
         thprev = self.relaax_session.op_get_weights_flatten()
 
-        def fisher_vector_product(p):
-            return self.compute_fisher_vector_product(p, *args) + trpo_config.config.TRPO.cg_damping * p
+        if D2:
+            g = self.relaax_session.op_compute_policy_gradient(state=np.reshape(ob_no, ob_no.shape + (1,)),
+                                                               sampled_variable=action_na, adv_n=advantage_n,
+                                                               oldprob_np=prob_np)
 
-        g = self.relaax_session.op_compute_policy_gradient(state=np.reshape(ob_no, ob_no.shape + (1,)),
-                                                           sampled_variable=action_na, adv_n=advantage_n,
-                                                           oldprob_np=prob_np)
+            def fisher_vector_product(p):
+                return self.compute_fisher_vector_product(p, *args) + trpo_config.config.TRPO.cg_damping * p
+        else:
+            gs = []
+            for path in paths:
+                prob_np = path["prob"]
+                ob_no = np.asarray(path["observation"])
+                action_na = path["action"]
+                advantage_n = path["advantage"]
+
+                g = self.relaax_session.op_compute_policy_gradient(state=np.reshape(ob_no,
+                                                                   ob_no.shape + (1,)),
+                                                                   sampled_variable=action_na,
+                                                                   adv_n=advantage_n, oldprob_np=prob_np)
+                gs.append(g)
+            g_matrix = np.stack(gs)
+
+            def fisher_vector_product(p):
+                return self.cfvp(p, g_matrix) + trpo_config.config.TRPO.cg_damping * p
+
+            g = np.mean(g_matrix, axis=0)
+
 
         if np.allclose(g, 0):
             print("got zero gradient. not updating")
