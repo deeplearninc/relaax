@@ -1,5 +1,6 @@
 from __future__ import print_function
 
+import logging
 import numpy as np
 import tensorflow as tf
 
@@ -8,7 +9,9 @@ from ... import trpo_config
 from relaax.algorithms.trpo.old_trpo_gae.algorithm_lib import core
 
 
-D2 = False
+D2 = True
+
+log = logging.getLogger(__name__)
 
 
 def make_filters(config):
@@ -63,6 +66,7 @@ class TrpoUpdater(object):
         tangent = tf.placeholder(core.dtype, name='flat_tan')
 
         if D2:
+            log.info("Using second KL derivatives")
             grads1 = tf.gradients(net.kl_first_fixed.node, params)
             gvp = []
             start = 0
@@ -77,6 +81,7 @@ class TrpoUpdater(object):
             self.compute_fisher_vector_product = core.TensorFlowLazyFunction([tangent] + args, fvp,
                                                                              relaax_session.session)
         else:
+            log.info("Using outer-product trick")
             def cfvp(tangent, g):
                 v = np.matmul(g, tangent)
                 return np.mean(np.multiply(g, np.expand_dims(v, -1)), axis=0)

@@ -2,9 +2,10 @@ import tensorflow as tf
 import scipy.optimize
 from collections import OrderedDict
 
-from distributions import *
-from misc_utils import *
-from filters import *
+from .distributions import *
+from .misc_utils import *
+from .filters import *
+import numpy as np
 
 dtype = tf.float32
 concat = np.concatenate
@@ -260,3 +261,25 @@ class TensorFlowUpdateFunction(object):
         else:
             assert len(outputs_list) == 1
         return outputs_list[0]
+
+
+def explained_variance(ypred,y):
+    """
+    Computes fraction of variance that ypred explains about y.
+    Returns 1 - Var[y-ypred] / Var[y]
+    interpretation:
+        ev=0  =>  might as well have predicted zero
+        ev=1  =>  perfect prediction
+        ev<0  =>  worse than just predicting zero
+    """
+    assert y.ndim == 1 and ypred.ndim == 1
+    vary = np.var(y)
+    return np.nan if vary==0 else 1 - np.var(y-ypred)/vary
+
+
+def explained_variance_2d(ypred, y):
+    assert y.ndim == 2 and ypred.ndim == 2
+    vary = np.var(y, axis=0)
+    out = 1 - np.var(y-ypred)/vary
+    out[vary < 1e-10] = 0
+    return out

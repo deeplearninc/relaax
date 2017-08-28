@@ -45,7 +45,7 @@ class Agent(object):
         action, agentinfo = self.policy.act(np.reshape(obs, obs.shape + (1,)))
         self.data["action"].append(action)
 
-        for (k, v) in agentinfo.iteritems():
+        for (k, v) in agentinfo.items():
             self.data[k].append(v)
 
         self.server_latency_accumulator += time.time() - start
