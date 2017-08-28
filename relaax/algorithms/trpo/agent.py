@@ -37,13 +37,10 @@ class Agent(object):
         if reward is not None:
             if self.agent.reward(reward):
                 return None
-        if terminal and state is not None:
-            logger.warning('Agent.update ignores state in case of terminal.')
-        else:
-            assert (state is None) == terminal
         if terminal:
             self.agent.reset()
             return None
+        assert state is not None
         return self.agent.act(np.asarray(state))
 
     # environment is asking to reset agent
