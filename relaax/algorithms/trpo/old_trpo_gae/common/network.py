@@ -8,8 +8,8 @@ from ... import trpo_config
 
 from relaax.algorithms.trpo.old_trpo_gae.algorithm_lib import core
 
-
-D2 = True
+D2 = False
+PPO = True
 
 log = logging.getLogger(__name__)
 
@@ -82,6 +82,7 @@ class TrpoUpdater(object):
                                                                              relaax_session.session)
         else:
             log.info("Using outer-product trick")
+
             def cfvp(tangent, g):
                 v = np.matmul(g, tangent)
                 return np.mean(np.multiply(g, np.expand_dims(v, -1)), axis=0)
@@ -95,53 +96,65 @@ class TrpoUpdater(object):
         advantage_n = core.concat([path["advantage"] for path in paths])
         args = (np.reshape(ob_no, ob_no.shape + (1,)), action_na, advantage_n, prob_np)
 
-        thprev = self.relaax_session.op_get_weights_flatten()
+        theta_old = self.relaax_session.op_get_weights_flatten()
 
-        if D2:
-            g = self.relaax_session.op_compute_policy_gradient(state=np.reshape(ob_no, ob_no.shape + (1,)),
-                                                               sampled_variable=action_na, adv_n=advantage_n,
-                                                               oldprob_np=prob_np)
-
-            def fisher_vector_product(p):
-                return self.compute_fisher_vector_product(p, *args) + trpo_config.config.TRPO.cg_damping * p
+        if PPO:
+            # Do 10 epochs of Adam on clipped PPO loss
+            for i in range(10):
+                _ = self.relaax_session.op_ppo_optimize(state=np.reshape(ob_no, ob_no.shape + (1,)),
+                                                        sampled_variable=action_na, adv_n=advantage_n,
+                                                        oldprob_np=prob_np)
+                # TODO: add KL new/old for debug
+                log.info("PPO update finished")
         else:
-            gs = []
-            for path in paths:
-                prob_np = path["prob"]
-                ob_no = np.asarray(path["observation"])
-                action_na = path["action"]
-                advantage_n = path["advantage"]
+            if D2:
+                g = self.relaax_session.op_compute_policy_gradient(state=np.reshape(ob_no, ob_no.shape + (1,)),
+                                                                   sampled_variable=action_na, adv_n=advantage_n,
+                                                                   oldprob_np=prob_np)
 
-                g = self.relaax_session.op_compute_policy_gradient(state=np.reshape(ob_no,
-                                                                   ob_no.shape + (1,)),
-                                                                   sampled_variable=action_na,
-                                                                   adv_n=advantage_n, oldprob_np=prob_np)
-                gs.append(g)
-            g_matrix = np.stack(gs)
+                def fisher_vector_product(p):
+                    return self.compute_fisher_vector_product(p, *args) + trpo_config.config.TRPO.cg_damping * p
+            else:
+                gs = []
+                for path in paths:
+                    prob_np = path["prob"]
+                    ob_no = np.asarray(path["observation"])
+                    action_na = path["action"]
+                    advantage_n = path["advantage"]
 
-            def fisher_vector_product(p):
-                return self.cfvp(p, g_matrix) + trpo_config.config.TRPO.cg_damping * p
+                    g = self.relaax_session.op_compute_policy_gradient(state=np.reshape(ob_no,
+                                                                                        ob_no.shape + (1,)),
+                                                                       sampled_variable=action_na,
+                                                                       adv_n=advantage_n, oldprob_np=prob_np)
+                    gs.append(g)
+                g_matrix = np.stack(gs)
 
-            g = np.mean(g_matrix, axis=0)
+                def fisher_vector_product(p):
+                    return self.cfvp(p, g_matrix) + trpo_config.config.TRPO.cg_damping * p
 
+                g = np.mean(g_matrix, axis=0)
 
-        if np.allclose(g, 0):
-            print("got zero gradient. not updating")
-        else:
-            stepdir = cg(fisher_vector_product, -g)
-            shs = .5*stepdir.dot(fisher_vector_product(stepdir))
-            lm = np.sqrt(shs / trpo_config.config.TRPO.max_kl)
-            print("lagrange multiplier:", lm, "gnorm:", np.linalg.norm(g))
-            fullstep = stepdir / lm
-            neggdotstepdir = -g.dot(stepdir)
+            if np.allclose(g, 0):
+                print("got zero gradient. not updating")
+            else:
+                stepdir = cg(fisher_vector_product, -g)
+                shs = .5 * stepdir.dot(fisher_vector_product(stepdir))
+                lm = np.sqrt(shs / trpo_config.config.TRPO.max_kl)
+                print("lagrange multiplier:", lm, "gnorm:", np.linalg.norm(g))
+                fullstep = stepdir / lm
+                neggdotstepdir = -g.dot(stepdir)
 
-            def loss(th):
-                self.relaax_session.op_set_weights_flatten(value=th)
-                return self.compute_losses(*args)[0]
+                def loss(th):
+                    self.relaax_session.op_set_weights_flatten(value=th)
+                    return self.compute_losses(*args)[0]
 
-            success, theta = linesearch(loss, thprev, fullstep, neggdotstepdir/lm)
-            print("success", success)
-            self.relaax_session.op_set_weights_flatten(value=theta)
+                success, theta = linesearch(loss, theta_old, fullstep, neggdotstepdir / lm)
+                print("success", success)
+                self.relaax_session.op_set_weights_flatten(value=theta)
+
+        # end if PPO
+
+    # end call
 
 
 def linesearch(f, x, fullstep, expected_improve_rate, max_backtracks=10, accept_ratio=.1):
@@ -150,12 +163,12 @@ def linesearch(f, x, fullstep, expected_improve_rate, max_backtracks=10, accept_
     """
     fval = f(x)
     print("fval before", fval)
-    for (_n_backtracks, stepfrac) in enumerate(.5**np.arange(max_backtracks)):
-        xnew = x + stepfrac*fullstep
+    for (_n_backtracks, stepfrac) in enumerate(.5 ** np.arange(max_backtracks)):
+        xnew = x + stepfrac * fullstep
         newfval = f(xnew)
         actual_improve = fval - newfval
-        expected_improve = expected_improve_rate*stepfrac
-        ratio = actual_improve/expected_improve
+        expected_improve = expected_improve_rate * stepfrac
+        ratio = actual_improve / expected_improve
         print("a/e/r", actual_improve, expected_improve, ratio)
         if ratio > accept_ratio and actual_improve > 0:
             print("fval after", newfval)
@@ -182,11 +195,11 @@ def cg(f_Ax, b, cg_iters=10, callback=None, verbose=False, residual_tol=1e-10):
             print(fmtstr % (i, rdotr, np.linalg.norm(x)))
         z = f_Ax(p)
         v = rdotr / p.dot(z)
-        x += v*p
-        r -= v*z
+        x += v * p
+        r -= v * z
         newrdotr = r.dot(r)
-        mu = newrdotr/rdotr
-        p = r + mu*p
+        mu = newrdotr / rdotr
+        p = r + mu * p
 
         rdotr = newrdotr
         if rdotr < residual_tol:
@@ -195,5 +208,5 @@ def cg(f_Ax, b, cg_iters=10, callback=None, verbose=False, residual_tol=1e-10):
     if callback is not None:
         callback(x)
     if verbose:
-        print(fmtstr % (i+1, rdotr, np.linalg.norm(x)))
+        print(fmtstr % (i + 1, rdotr, np.linalg.norm(x)))
     return x

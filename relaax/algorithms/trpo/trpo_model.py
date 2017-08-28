@@ -178,6 +178,17 @@ class PolicyNet(subgraph.Subgraph):
 
         sg_kl = graph.TfNode(tf.reduce_mean(sg_probtype.Kl(ph_oldprob_np, sg_network.actor).node))
 
+        # PPO clipped surrogate loss
+
+        # likelihood ration of old and new policy
+        r_theta = tf.exp(sg_logp_n.node - sg_oldlogp_n.node)
+        surr = r_theta * ph_adv_n.node
+        clip_e = trpo_config.config.PPO.clip_e
+        surr_clipped = tf.clip_by_value(r_theta, 1.0 - clip_e,  1.0 + clip_e) * ph_adv_n.node
+        sg_ppo_loss = graph.TfNode(-tf.reduce_mean(tf.minimum(surr, surr_clipped)))
+
+        # end PPO loss
+
         self.ph_state = sg_network.ph_state
         self.actor = sg_network.actor
         self.weights = sg_network.weights
@@ -188,6 +199,7 @@ class PolicyNet(subgraph.Subgraph):
         self.ph_adv_n = ph_adv_n
         self.kl_first_fixed = sg_kl_first_fixed
         self.kl = sg_kl
+        self.ppo_loss = sg_ppo_loss
 
 
 class ValueNet(subgraph.Subgraph):
@@ -239,6 +251,14 @@ class SharedParameters(subgraph.Subgraph):
 
         sg_value_net = ValueNet()
 
+        # Global PPO loss optimizer
+
+        sg_ppo_loss = sg_policy_net.ppo_loss
+        op_ppo_optimize = graph.TfNode(
+                tf.train.AdamOptimizer(learning_rate=trpo_config.config.PPO.learning_rate).minimize(sg_ppo_loss.node))
+
+        # end PPO optimizer
+
         sg_initialize = graph.Initialize()
 
         self.policy_net = sg_policy_net
@@ -267,6 +287,12 @@ class SharedParameters(subgraph.Subgraph):
         self.op_set_weights_flatten = self.Op(sg_set_weights_flatten, value=sg_set_weights_flatten.ph_value)
 
         self.op_compute_policy_gradient = self.Op(sg_gradients_flatten, state=sg_policy_net.ph_state,
+                                                  sampled_variable=sg_policy_net.ph_sampled_variable,
+                                                  adv_n=sg_policy_net.ph_adv_n,
+                                                  oldprob_np=sg_policy_net.ph_prob_variable)
+
+        # One epoch of PPO optimization
+        self.op_ppo_optimize = self.Op(op_ppo_optimize, state=sg_policy_net.ph_state,
                                                   sampled_variable=sg_policy_net.ph_sampled_variable,
                                                   adv_n=sg_policy_net.ph_adv_n,
                                                   oldprob_np=sg_policy_net.ph_prob_variable)
