@@ -1,10 +1,12 @@
+from __future__ import absolute_import
+
 import tensorflow as tf
 import scipy.optimize
 from collections import OrderedDict
 
-from distributions import *
-from misc_utils import *
-from filters import *
+from .distributions import *
+from .misc_utils import *
+from .filters import *
 
 dtype = tf.float32
 concat = np.concatenate
@@ -141,7 +143,7 @@ class LbfgsOptimizer(object):
             self.all_losses.update(extra_losses)
 
         self.f_lossgrad = TensorFlowLazyFunction(symb_args, [loss, flatgrad(loss, params)], session)
-        self.f_losses = TensorFlowLazyFunction(symb_args, self.all_losses.values(), session)
+        self.f_losses = TensorFlowLazyFunction(symb_args, list(self.all_losses.values()), session)
         self.maxiter = maxiter
 
     def update(self, *args):
