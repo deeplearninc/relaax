@@ -264,7 +264,9 @@ class Agent(object):
         for i in range(len(states) - 1):
             icm_states.extend((states[i], states[i + 1]))
         icm_states.extend((states[-1], self.icm_observation.queue))
-        return self.session.op_compute_icm_gradients(state=icm_states, probs=experience['probs'])
+        return self.session.op_compute_icm_gradients(state=icm_states,
+                                                     action=experience['action'],
+                                                     probs=experience['probs'])
 
     def apply_gradients(self, gradients, experience_size):
         if M:

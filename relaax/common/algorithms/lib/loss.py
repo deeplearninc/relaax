@@ -27,8 +27,8 @@ class DA3CDiscreteLoss(subgraph.Subgraph):
 
         # policy loss (output)  (Adding minus, because the original paper's
         # objective function is for gradient ascent, but we use gradient descent optimizer)
-        self.policy_loss = (-tf.reduce_sum(tf.reduce_sum(log_pi * action_one_hot, axis=1) * td) +
-                            self.entropy * cfg.entropy_beta)
+        self.policy_loss = -(tf.reduce_sum(tf.reduce_sum(log_pi * action_one_hot, axis=1) * td) +
+                             self.entropy * cfg.entropy_beta)
 
         # value loss (output)
         # (Learning rate for Critic is half of Actor's, so it should be half of l2)

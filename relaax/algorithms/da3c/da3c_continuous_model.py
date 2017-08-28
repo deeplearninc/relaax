@@ -153,8 +153,11 @@ class AgentModel(subgraph.Subgraph):
             # Expose ICM public API
             self.op_icm_assign_weights = self.Op(sg_icm_network.weights.assign,
                                                  weights=sg_icm_network.weights.ph_weights)
+
             feeds = dict(state=sg_icm_network.ph_state, probs=sg_icm_network.ph_probs)
             self.op_get_intrinsic_reward = self.Ops(sg_icm_network.rew_out, **feeds)
+
+            feeds.update(dict(action=sg_icm_network.ph_taken))
             self.op_compute_icm_gradients = self.Op(sg_icm_gradients.calculate, **feeds)
 
         batch_size = tf.to_float(tf.shape(sg_network.ph_state.node)[0])

@@ -58,8 +58,8 @@ class DoomEnv(object):
             env._max_episode_steps = limit
 
         shape = options.get('environment/shape', (42, 42))
-        self._shape = (shape[0], shape[1])
-        self._channels = 1 if len(shape) == 2 else 3
+        self._shape = shape[:2]
+        self._channels = 0 if len(shape) == 2 else shape[-1]
 
         self.action_size = self._get_action_size(env)
         if self.action_size != options.algorithm.output.action_size:
@@ -114,7 +114,7 @@ class DoomEnv(object):
         self._obs_buffer.append(screen)
         screen = np.max(np.stack(self._obs_buffer), axis=0)
 
-        if self._channels == 1:
+        if self._channels < 2:
             screen = np.dot(screen[..., :3], [0.299, 0.587, 0.114])
 
         screen = np.array(Image.fromarray(screen).resize(
