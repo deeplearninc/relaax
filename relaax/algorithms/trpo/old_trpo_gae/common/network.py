@@ -50,26 +50,15 @@ class TrpoUpdater(object):
         prob_np = net.actor.node
         oldprob_np = net.ph_prob_variable.node
 
-        grads1 = tf.gradients(net.kl_first_fixed.node, params)
-        tangent = tf.placeholder(core.dtype, name='flat_tan')
-
-        gvp = []
-        start = 0
-        for g in grads1:
-            size = np.prod(g.shape.as_list())
-            gvp.append(tf.reduce_sum(tf.reshape(g, [-1]) * tangent[start:start + size]))
-            start += size
-
-        grads2 = tf.gradients(gvp, params)
-        fvp = tf.concat([tf.reshape(g, [-1]) for g in grads2], axis=0)
-
         ent = tf.reduce_mean(probtype.entropy(prob_np))
 
         args = [ob_no, act_na, adv_n, oldprob_np]
 
         self.compute_losses = core.TensorFlowLazyFunction(args, [net.surr.node, net.kl.node, ent],
                                                           relaax_session.session)
-        self.compute_fisher_vector_product = core.TensorFlowLazyFunction([tangent] + args, fvp, relaax_session.session)
+        self.compute_fisher_vector_product = core.TensorFlowLazyFunction([net.ph_tangent.node] + args,
+                                                                         net.fvp.node,
+                                                                         relaax_session.session)
 
     def __call__(self, paths):
         prob_np = core.concat([path["prob"] for path in paths])

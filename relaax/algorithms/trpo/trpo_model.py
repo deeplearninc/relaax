@@ -156,6 +156,26 @@ class Network(subgraph.Subgraph):
         self.weights = layer.Weights(*([input, head] + actor_layers))
 
 
+class FisherVectorProduct(subgraph.Subgraph):
+    def build_graph(self, kl_first_fixed, weights):
+        weight_list = list(utils.Utils.flatten(weights.node))
+        gradients1 = tf.gradients(kl_first_fixed.node, weight_list)
+        ph_tangent = graph.Placeholder(np.float32, shape=(None,))
+
+        gvp = []
+        start = 0
+        for g in gradients1:
+            size = np.prod(g.shape.as_list())
+            gvp.append(tf.reduce_sum(tf.reshape(g, [-1]) * ph_tangent.node[start:start + size]))
+            start += size
+
+        gradients2 = tf.gradients(gvp, weight_list)
+        fvp = tf.concat([tf.reshape(g, [-1]) for g in gradients2], axis=0)
+
+        self.ph_tangent = ph_tangent
+        return fvp
+
+
 class PolicyNet(subgraph.Subgraph):
     def build_graph(self):
         sg_network = Network()
@@ -178,6 +198,8 @@ class PolicyNet(subgraph.Subgraph):
 
         sg_kl = graph.TfNode(tf.reduce_mean(sg_probtype.Kl(ph_oldprob_np, sg_network.actor).node))
 
+        sg_fvp = FisherVectorProduct(sg_kl_first_fixed, sg_network.weights)
+
         self.ph_state = sg_network.ph_state
         self.actor = sg_network.actor
         self.weights = sg_network.weights
@@ -188,6 +210,8 @@ class PolicyNet(subgraph.Subgraph):
         self.ph_adv_n = ph_adv_n
         self.kl_first_fixed = sg_kl_first_fixed
         self.kl = sg_kl
+        self.fvp = sg_fvp
+        self.ph_tangent = sg_fvp.ph_tangent
 
 
 class ValueNet(subgraph.Subgraph):
