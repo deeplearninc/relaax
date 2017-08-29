@@ -15,22 +15,18 @@ class ReplayBuffer(object):
         self._replay_memory = deque(maxlen=max_len)
         self._alpha = alpha
 
-        self._weights = None
+        self._weights = [math.pow(x, self._alpha) for x in range(1, self._replay_memory.maxlen + 1)]
 
     def sample(self, size):
         if self._alpha is None or self._alpha == 0.0:
             return random.sample(self._replay_memory, size)
         else:
-            weights = map(lambda x: math.pow(x, self._alpha),
-                          range(1, len(self._replay_memory) + 1)) if self._weights is None else self._weights
             return random.choices(self._replay_memory,
-                                  weights=weights,
+                                  weights=self._weights[:len(self._replay_memory)],
                                   k=size)
 
     def append(self, value):
         self._replay_memory.append(value)
-        if len(self._replay_memory) == self._replay_memory.maxlen:
-            self._weights = [math.pow(x, self._alpha) for x in range(1, self._replay_memory.maxlen + 1)]
 
 
 class Actor(subgraph.Subgraph):

@@ -15,8 +15,8 @@ class Agent(object):
 
     # environment is ready and
     # waiting for agent to initialize
-    def init(self, exploit=False, hogwild_update=False):
-        self.episode = dqn_trainer.Trainer(self.ps, self.metrics)
+    def init(self, exploit=False):
+        self.episode = dqn_trainer.Trainer(self.ps, self.metrics, exploit=exploit)
         self.episode.begin()
         return True
 

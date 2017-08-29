@@ -25,7 +25,6 @@ class Network(subgraph.Subgraph):
 
         if config.dueling_dqn:
             if config.hidden_sizes:
-                assert config.hidden_sizes[-1] % 2 == 0
                 v_input, a_input = tf.split(hidden.node,
                                             [config.hidden_sizes[-1] // 2, config.hidden_sizes[-1] // 2],
                                             axis=1)
@@ -89,7 +88,7 @@ class AgentModel(subgraph.Subgraph):
         else:
             raise NotImplementedError
 
-        sg_loss = loss.DQNLoss(sg_network.output, config)
+        sg_loss = loss.DQNLoss(sg_network.output)
         sg_gradients_calc = optimizer.Gradients(sg_network.weights, loss=sg_loss)
         sg_gradients_apply = optimizer.Gradients(sg_network.weights, optimizer=sg_optimizer)
 

@@ -19,9 +19,10 @@ profiler = profiling.get_profiler(__name__)
 
 
 class Trainer(object):
-    def __init__(self, parameter_server, metrics):
+    def __init__(self, parameter_server, metrics, exploit):
         self.ps = parameter_server
         self.metrics = metrics
+        self._exploit = exploit
 
         self.session = session.Session(dqn_model.AgentModel())
         self.session.op_initialize()
@@ -43,7 +44,8 @@ class Trainer(object):
         self.local_step += 1
         self.last_target_weights_update += 1
 
-        if self.last_target_weights_update > dqn_config.config.update_target_weights_min_steps and \
+        if not self._exploit and \
+                self.last_target_weights_update > dqn_config.config.update_target_weights_min_steps and \
                 random.random() < 1.0 / dqn_config.config.update_target_weights_interval:
             weights = self.session.op_get_weights()
             self.ps.session.op_assign_target_weights(target_weights=weights)
