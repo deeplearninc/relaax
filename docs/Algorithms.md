@@ -185,14 +185,17 @@ Measure how fast Agent returns Action in response to the State sent by the Clien
 
 | Node Type  | Number of clients | Latency  |
 | ---------- |:-----------------:|:--------:|
-| m4.xlarge  |          32       | 323.23ms |
+| c4.large   |           4       | ???ms    |
+| c4.large   |           8       | ???ms    |
+| c4.large   |          16       | ???ms    |
+| m4.xlarge  |          32       | 323ms    |
 | m4.xlarge  |          48       | ???ms    |
 | m4.xlarge  |          64       | ???ms    |
+| c4.xlarge  |          32       | ???ms    |
 | c4.xlarge  |          48       | ???ms    |
 | c4.xlarge  |          64       | ???ms    |
-| c4.xlarge-m4.xlarge | 64       | ???ms    |
-| c4.xlarge-m4.xlarge | 96       | ???ms    |
-| c4.xlarge-m4.xlarge | 128      | ???ms    |
+| c4.xlarge  |          96       | ???ms    |
+| c4.xlarge  |          128      | ???ms    |
 | c4.2xlarge |          232      | ???ms    |
 | c4.2xlarge |          271      | ???ms    |
 

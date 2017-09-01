@@ -14,7 +14,7 @@ class Gradients(subgraph.Subgraph):
                 gradients = [g / float(batch_size) for g in gradients]
 
             # store gradients global norm before clipping
-            self.global_norm = graph.TfNode(tf.global_norm(gradients))
+            self.global_norm = tf.global_norm(gradients)
 
             # clip gradients after global norm has been stored
             if norm:

@@ -47,12 +47,13 @@ class Head(subgraph.Subgraph):
 
 
 class Subnet(object):
-    def __init__(self, head, weights, ph_lstm_state, lstm_zero_state, lstm_state):
+    def __init__(self, head, weights, ph_lstm_state=None, lstm_zero_state=None, lstm_state=None):
         self.head = head
         self.weights = weights
-        self.ph_lstm_state = ph_lstm_state
-        self.lstm_zero_state = lstm_zero_state
-        self.lstm_state = lstm_state
+        if da3c_config.config.use_lstm:
+            self.ph_lstm_state = ph_lstm_state
+            self.lstm_zero_state = lstm_zero_state
+            self.lstm_state = lstm_state
 
 
 class Network(subgraph.Subgraph):
@@ -68,15 +69,22 @@ class Network(subgraph.Subgraph):
 
         self.ph_state = input_placeholder.ph_state
 
-        self.actor = Subnet(head=actor, weights=layer.Weights(actor_head, actor),
-                            ph_lstm_state=actor_head.ph_lstm_state,
-                            lstm_zero_state=actor_head.lstm_zero_state, lstm_state=actor_head.lstm_state)
+        feeds = dict(head=actor, weights=layer.Weights(actor_head, actor))
+        if da3c_config.config.use_lstm:
+            feeds.update(dict(ph_lstm_state=actor_head.ph_lstm_state,
+                              lstm_zero_state=actor_head.lstm_zero_state,
+                              lstm_state=actor_head.lstm_state))
+        self.actor = Subnet(**feeds)
 
-        self.critic = Subnet(head=graph.Flatten(critic), weights=layer.Weights(critic_head, c1, critic),
-                             ph_lstm_state=critic_head.ph_lstm_state,
-                             lstm_zero_state=critic_head.lstm_zero_state, lstm_state=critic_head.lstm_state)
+        feeds = dict(head=graph.Flatten(critic), weights=layer.Weights(critic_head, c1, critic))
+        if da3c_config.config.use_lstm:
+            feeds.update(dict(ph_lstm_state=critic_head.ph_lstm_state,
+                              lstm_zero_state=critic_head.lstm_zero_state,
+                              lstm_state=critic_head.lstm_state))
+        self.critic = Subnet(**feeds)
 
-        self.lstm_zero_state = (self.actor.lstm_zero_state, self.critic.lstm_zero_state)
+        if da3c_config.config.use_lstm:
+            self.lstm_zero_state = (self.actor.lstm_zero_state, self.critic.lstm_zero_state)
 
 
 # Weights of the policy are shared across
@@ -90,17 +98,14 @@ class SharedParameters(subgraph.Subgraph):
         self.critic = sg_network.critic
 
         if da3c_config.config.optimizer == 'Adam':
-            sg_actor_optimizer = optimizer.AdamOptimizer(da3c_config.config.actor_initial_learning_rate)
-            sg_critic_optimizer = optimizer.AdamOptimizer(da3c_config.config.critic_initial_learning_rate)
+            sg_actor_optimizer = optimizer.AdamOptimizer(da3c_config.config.initial_learning_rate)
+            sg_critic_optimizer = optimizer.AdamOptimizer(da3c_config.config.initial_learning_rate)
         else:
-            sg_actor_learning_rate = da3c_graph.LearningRate(sg_global_step,
-                                                             da3c_config.config.actor_initial_learning_rate)
-            sg_critic_learning_rate = \
-                da3c_graph.LearningRate(sg_global_step, da3c_config.config.critic_initial_learning_rate)
-            sg_actor_optimizer = optimizer.RMSPropOptimizer(learning_rate=sg_actor_learning_rate,
+            sg_learning_rate = da3c_graph.LearningRate(sg_global_step, da3c_config.config.initial_learning_rate)
+            sg_actor_optimizer = optimizer.RMSPropOptimizer(learning_rate=sg_learning_rate,
                                                             decay=da3c_config.config.RMSProp.decay, momentum=0.0,
                                                             epsilon=da3c_config.config.RMSProp.epsilon)
-            sg_critic_optimizer = optimizer.RMSPropOptimizer(learning_rate=sg_critic_learning_rate,
+            sg_critic_optimizer = optimizer.RMSPropOptimizer(learning_rate=sg_learning_rate,
                                                              decay=da3c_config.config.RMSProp.decay, momentum=0.0,
                                                              epsilon=da3c_config.config.RMSProp.epsilon)
         sg_actor_gradients = optimizer.Gradients(self.actor.weights, optimizer=sg_actor_optimizer)

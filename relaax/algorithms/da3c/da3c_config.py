@@ -22,6 +22,5 @@ config.gradients_norm_clipping = options.get('algorithm/gradients_norm_clipping'
 if not hasattr(config, 'icm'):
     config.icm = options.get('algorithm/icm', Namespace())
 config.icm.nu = options.get('algorithm/icm/nu', 0.8)
-config.icm.pi_lambda = options.get('algorithm/icm/pi_lambda', 0.1)
 config.icm.beta = options.get('algorithm/icm/beta', 0.2)
 config.icm.lr = options.get('algorithm/icm/lr', 1e-3)
