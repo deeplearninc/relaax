@@ -12,7 +12,7 @@
 
 ### [Distributed A3C](#algorithms)
 Inspired by original [paper](https://arxiv.org/abs/1602.01783) - Asynchronous Methods for Deep Reinforcement Learning from [DeepMind](https://deepmind.com/)
-[img](http://latex.codecogs.com/svg.latex?%5Csum_%7Bi%3D0%7D%5E%7BT%7D+i%2Ax%5E%7B2%7D)
+![img](http://latex.codecogs.com/svg.latex?%5Csum_%7Bi%3D0%7D%5E%7BT%7D+i%2Ax%5E%7B2%7D)
 
 #### [Distributed A3C Architecture](#algorithms)
 ![img](resources/DA3C-Architecture.png)
