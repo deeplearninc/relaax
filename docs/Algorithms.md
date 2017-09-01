@@ -122,6 +122,9 @@ You can also specify hyperparameters for training in provided `params.yaml` file
        epsilon: 0.1
        gradient_norm_clipping: 40
 
+**DA3C Graph sample from Tensorboard**
+![img](resources/DA3C-Graph.png)
+
 #### [Performance on some of the Atari Environments](#algorithms)
 Breakout with DA3C-FF and 8 parallel agents: score performance is similar to DeepMind [paper](https://arxiv.org/pdf/1602.01783v2.pdf#19)
 ![img](resources/Breakout-8th-80mil.png "Breakout")
