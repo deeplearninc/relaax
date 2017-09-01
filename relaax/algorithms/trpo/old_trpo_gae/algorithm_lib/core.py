@@ -1,15 +1,11 @@
 from __future__ import absolute_import
 
+import numpy as np
 import tensorflow as tf
 import scipy.optimize
-from collections import OrderedDict
 
-from .distributions import *
-from .misc_utils import *
-from .filters import *
-
-dtype = tf.float32
-concat = np.concatenate
+from . import distributions
+from . import misc_utils
 
 
 # ================================================================
@@ -28,13 +24,9 @@ class Categorical(ProbType):
     def __init__(self, n):
         self.n = n
 
-    def entropy(self, prob0):
-        return -tf.reduce_sum((prob0 * tf.log(prob0)), axis=1)
-
     @staticmethod
     def sample(prob):
-        # distributions.categorical_sample(prob)
-        return categorical_sample(prob)
+        return distributions.categorical_sample(prob)
 
     def maxprob(self, prob):
         return tf.argmax(prob, axis=1)
@@ -43,10 +35,6 @@ class Categorical(ProbType):
 class DiagGauss(ProbType):
     def __init__(self, d):
         self.d = d
-
-    def entropy(self, prob):
-        std_nd = prob[:, self.d:]
-        return tf.reduce_sum(tf.log(std_nd), axis=1) + .5 * np.log(2 * np.pi * np.e) * self.d
 
     def sample(self, prob):
         mean_nd = prob[:, :self.d]
@@ -76,118 +64,40 @@ class StochPolicyKeras(object):
 # Value functions
 # ================================================================
 
-def var_shape(x):
-    out = [k.value for k in x.get_shape()]
-    assert all(isinstance(a, int) for a in out), \
-        "shape function assumes that shape is fully known"
-    return out
-
-
-def numel(x):
-    return np.prod(var_shape(x))
-
-
-def flatgrad(loss, var_list):
-    grads = tf.gradients(loss, var_list)
-    return tf.concat([tf.reshape(grad, [numel(v)]) for (v, grad) in zip(var_list, grads)], axis=0)
-
-
-class GetFlat(object):
-    def __init__(self, var_list, session):
-        self.session = session
-        self.op = tf.concat([tf.reshape(v, [numel(v)]) for v in var_list], axis=0)
-
-    def __call__(self):
-        return self.op.eval(session=self.session)
-
-
-class SetFromFlat(object):
-    def __init__(self, var_list, session):
-        self.session = session
-
-        shapes = map(var_shape, var_list)
-        total_size = sum(np.prod(shape) for shape in shapes)
-        self.theta = theta = tf.placeholder(dtype, [total_size])
-        start = 0
-        updates = []
-        # for v in var_list:
-        for (shape, v) in zip(shapes, var_list):
-            size = np.prod(shape)
-            updates.append(tf.assign(v, tf.reshape(theta[start:start + size], shape)))
-            start += size
-        self.op = tf.group(*updates)
-
-    def __call__(self, theta):
-        self.session.run(self.op, feed_dict={self.theta: theta})
-
-
-class EzFlat(object):
-    def __init__(self, var_list, session):
-        self.gf = GetFlat(var_list, session)
-        self.sff = SetFromFlat(var_list, session)
-
-    def set_params_flat(self, theta):
-        self.sff(theta)
-
-    def get_params_flat(self):
-        return self.gf()
-
-
 class LbfgsOptimizer(object):
-    def __init__(self, session, loss,  params, symb_args, extra_losses=None, maxiter=25):
-        self.ezflat = EzFlat(params, session)
-
-        self.all_losses = OrderedDict()
-        self.all_losses["loss"] = loss
-        if extra_losses is not None:
-            self.all_losses.update(extra_losses)
-
-        self.f_lossgrad = TensorFlowLazyFunction(symb_args, [loss, flatgrad(loss, params)], session)
-        self.f_losses = TensorFlowLazyFunction(symb_args, list(self.all_losses.values()), session)
+    def __init__(self, value_model, maxiter=25):
+        self.value_model = value_model
         self.maxiter = maxiter
 
-    def update(self, *args):
-        thprev = self.ezflat.get_params_flat()
+    def update(self, state, ytarg_ny):
+        thprev = self.value_model.op_get_weights_flatten()
 
         def lossandgrad(th):
-            self.ezflat.set_params_flat(th)
-            l, g = self.f_lossgrad(*args)
-            g = g.astype('float64')
-            return l, g
+            self.value_model.op_set_weights_flatten(value=th)
+            l, g = self.value_model.op_compute_loss_and_gradient(state=state, ytarg_ny=ytarg_ny)
+            return l, g.astype('float64')
 
-        losses_before = self.f_losses(*args)
+        losses_before = self.value_model.op_losses(state=state, ytarg_ny=ytarg_ny)
         theta, _, opt_info = scipy.optimize.fmin_l_bfgs_b(lossandgrad, thprev, maxiter=self.maxiter)
         del opt_info['grad']
         print('opt_info', opt_info)     # future
 
-        self.ezflat.set_params_flat(theta)
-        losses_after = self.f_losses(*args)
-        info = OrderedDict()
+        self.value_model.op_set_weights_flatten(value=theta)
+        losses_after = self.value_model.op_losses(state=state, ytarg_ny=ytarg_ny)
+        info = {}
 
-        for (name, lossbefore, lossafter) in zip(self.all_losses.keys(), losses_before, losses_after):
+        for (name, lossbefore, lossafter) in zip(["loss", "mse", "l2"], losses_before, losses_after):
             info[name+"_before"] = lossbefore
             info[name+"_after"] = lossafter
         return info
 
 
 class NnRegression(object):
-    def __init__(self, net, session, mixfrac=1.0, maxiter=25):
+    def __init__(self, value_model, mixfrac=1.0, maxiter=25):
+        self.value_model = value_model
         self.mixfrac = mixfrac
 
-        x_nx = net.ph_state.node
-        self.predict = TensorFlowLazyFunction([x_nx], net.value.node, session)
-
-        ytarg_ny = tf.placeholder(dtype, name='ytarg')
-
-        var_list = net.trainable_weights
-        l2 = 1e-3 * tf.add_n([tf.reduce_sum(tf.square(v)) for v in var_list])
-
-        mse = tf.reduce_mean(tf.square(ytarg_ny - net.value.node))
-        symb_args = [x_nx, ytarg_ny]
-
-        loss = mse + l2
-        self.opt = LbfgsOptimizer(session, loss, var_list, symb_args,
-                                  maxiter=maxiter, extra_losses={"mse": mse, "l2": l2})
+        self.opt = LbfgsOptimizer(value_model, maxiter=maxiter)
 
     def fit(self, x_nx, ytarg_ny):
         nY = ytarg_ny.shape[1]
@@ -201,16 +111,19 @@ class NnRegression(object):
         out["TargStdev"] = ytarg_ny.std()
 
         if nY == 1:
-            out["EV_before"] = explained_variance_2d(ypredold_ny, ytarg_ny)[0]
-            out["EV_after"] = explained_variance_2d(yprednew_ny, ytarg_ny)[0]
+            out["EV_before"] = misc_utils.explained_variance_2d(ypredold_ny, ytarg_ny)[0]
+            out["EV_after"] = misc_utils.explained_variance_2d(yprednew_ny, ytarg_ny)[0]
         else:
-            out["EV_avg"] = explained_variance(yprednew_ny.ravel(), ytarg_ny.ravel())
+            out["EV_avg"] = misc_utils.explained_variance(yprednew_ny.ravel(), ytarg_ny.ravel())
         return out
+
+    def predict(self, x):
+        return self.value_model.op_value(state=x)
 
 
 class NnVf(object):
-    def __init__(self, vnet, timestep_limit, regression_params, session, metrics):
-        self.reg = NnRegression(vnet, session, **regression_params)
+    def __init__(self, value_model, timestep_limit, regression_params, metrics):
+        self.reg = NnRegression(value_model, **regression_params)
         self.timestep_limit = timestep_limit
         self.metrics = metrics
 
@@ -221,44 +134,9 @@ class NnVf(object):
         return value
 
     def fit(self, paths):
-        ob_no = concat([self.preproc(path["observation"]) for path in paths], axis=0)
-        vtarg_n1 = concat([path["return"] for path in paths]).reshape(-1, 1)
+        ob_no = np.concatenate([self.preproc(path["observation"]) for path in paths], axis=0)
+        vtarg_n1 = np.concatenate([path["return"] for path in paths]).reshape(-1, 1)
         return self.reg.fit(ob_no, vtarg_n1)
 
     def preproc(self, ob_no):
-        return concat([ob_no, np.arange(len(ob_no)).reshape(-1, 1) / float(self.timestep_limit)], axis=1)
-
-
-# ================================================================
-# Auxiliary functions
-# ================================================================
-
-class TensorFlowUpdateFunction(object):
-    def __init__(self, inputs, outputs, session, updates=()):
-        self._inputs = inputs
-        self._outputs = outputs
-        self._updates = updates
-        self.session = session
-
-    def __call__(self, *args, **kwargs):
-        feeds = {}
-        for (argpos, arg) in enumerate(args):
-            feeds[self._inputs[argpos]] = arg
-
-        try:
-            outputs_identity = [tf.identity(output) for output in self._outputs]
-            output_is_list = True
-        except TypeError:
-            outputs_identity = [tf.identity(self._outputs)]
-            output_is_list = False
-
-        # with tf.control_dependencies(outputs_identity):
-        assign_ops = [tf.assign(variable, replacement) for variable, replacement in self._updates]
-
-        outputs_list = self.session.run(outputs_identity + assign_ops, feeds)[:len(outputs_identity)]
-
-        if output_is_list:
-            return outputs_list
-        else:
-            assert len(outputs_list) == 1
-        return outputs_list[0]
+        return np.concatenate([ob_no, np.arange(len(ob_no)).reshape(-1, 1) / float(self.timestep_limit)], axis=1)

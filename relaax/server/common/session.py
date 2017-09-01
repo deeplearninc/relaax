@@ -8,7 +8,7 @@ from relaax.server.common.saver import tensorflow_checkpoint
 
 class Session(object):
     def __init__(self, *args, **kwargs):
-        self.session = tf.Session()
+        self.tf_session = tf.Session()
         if len(args) == 0:
             assert len(kwargs) > 0
             self.model = SuperModel(kwargs)
@@ -19,10 +19,10 @@ class Session(object):
 
     def __getattr__(self, name):
         # print('name', name)
-        return SessionMethod(self.session, getattr(self.model, name))
+        return SessionMethod(self, getattr(self.model, name))
 
     def create_checkpoint(self):
-        return tensorflow_checkpoint.TensorflowCheckpoint(self.session)
+        return tensorflow_checkpoint.TensorflowCheckpoint(self.tf_session)
 
 
 class SuperModel(object):
