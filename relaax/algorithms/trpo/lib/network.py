@@ -3,9 +3,9 @@ from __future__ import print_function
 import numpy as np
 import tensorflow as tf
 
-from ... import trpo_config
+from .. import trpo_config
 
-from ..algorithm_lib import core
+from . import core
 
 
 def make_filter(config):

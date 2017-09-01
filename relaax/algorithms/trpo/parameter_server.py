@@ -9,7 +9,7 @@ from relaax.server.common import session
 
 from . import trpo_config
 from . import trpo_model
-from .old_trpo_gae.common import network
+from .lib import network
 
 
 class ParameterServer(parameter_server_base.ParameterServerBase):

@@ -11,7 +11,7 @@ from relaax.common import profiling
 
 from . import trpo_config
 from . import trpo_model
-from .old_trpo_gae.common import network
+from .lib import network
 
 
 logger = logging.getLogger(__name__)
