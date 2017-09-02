@@ -43,8 +43,11 @@ The gradient update can be represented with _TD_-error multiplier as in original
 or with an estimate of the _advantage_ function:
 ![img](http://latex.codecogs.com/svg.latex?%5Cbigtriangledown_%7B%7B%5Ctheta%7D%27%7Dlog%5C%2C%5Cpi%5Cleft%28a_%7Bt%7D%5Cmid%5C%5Cs_%7Bt%7D%3B%5C%2C%7B%5Ctheta%7D%27%5Cright%29A%5Cleft%28s_%7Bt%7D%2Ca_%7Bt%7D%3B%5C%2C%5Ctheta%2C%5Ctheta_%7B%5Cupsilon%7D%5Cright%29),
 where
-![img](http://latex.codecogs.com/svg.latex?A%5Cleft%28s_%7Bt%7D%2Ca_%7Bt%7D%3B%5C%2C%5Ctheta%2C%5Ctheta_%7B%5Cupsilon%7D%5Cright%29%3D%5Csum_%7Bi%3D0%7D%5E%7Bk-1%7D%5Cgamma%5E%7Bi%7Dr_%7Bt%2Bi%7D%2B%5Cgamma%5E%7Bk%7DV%5Cleft%28s_%7Bt%7D%3B%5Ctheta_%7B%5Cupsilon%7D%5Cright%29)
+![img](http://latex.codecogs.com/svg.latex?A%5Cleft%28s_%7Bt%7D%2Ca_%7Bt%7D%3B%5C%2C%5Ctheta%2C%5Ctheta_%7B%5Cupsilon%7D%5Cright%29%3D%5Csum_%7Bi%3D0%7D%5E%7Bk-1%7D%5Cgamma%5E%7Bi%7Dr_%7Bt%2Bi%7D%2B%5Cgamma%5E%7Bk%7DV%5Cleft%28s_%7Bt%2Bk%7D%3B%5Ctheta_%7B%5Cupsilon%7D%5Cright%29-V%5Cleft%28s_%7Bt%7D%3B%5Ctheta_%7B%5Cupsilon%7D%5Cright%29)
 with _k_ upbounded by _t_<sub>_max_</sub>.
+To use the last one just set config parameter `use_gae` to `true`.
+The full set of possible config setups would be described later.
+Gradients are also applied with delay compensation on the server parameter for better convergence.  
 
 #### [Distributed A3C Architecture](#algorithms)
 ![img](resources/DA3C-Architecture.png)
@@ -54,45 +57,47 @@ with _k_ upbounded by _t_<sub>_max_</sub>.
 The main role of any client is feeding data to an Agent by transferring:
 state, reward and terminal signals (for episodic tasks if episode ends).
 Client updates these signals at each time step by receiving the action
-signal from an Agent and then sends updated values to it.
+signal from an Agent and then sends updated values back.
 
 - _Process State_: each state could be pass through some filtering
 procedure before transferring (if you defined). It could be some color,
 edge or blob transformations (for image input) or more complex
 pyramidal, Kalman's and spline filters.
 
-**Agent (Parallel Learner)** - one or more Agents can connect to a Global Learner.
+**Agent (Parallel Learner)** - each Agent connects to the Parameter Server.
 
-The main role of any agent is to perform main training loop.
-Agent synchronize their neural network weights with global network by
-copying the last one at the beginning of the loop. Agent performs
-N steps of Client's signals receiving and sending actions back.
+The main role of any agent is to perform a main training loop.
+Agent synchronize their neural network weights with the global network
+by copying the last one weights at the beginning of each training mini loop.
+Agent executes N steps of Client's signals receiving and sending actions back.
 These N steps is similar to batch collection. If batch is collected
-Agent computes the loss (wrt collected data) and pass it to Optimizer.
-RMSProp optimizer computes gradients, which sends to the Global Learner
-to update their neural network weights. Several Agents work in parallel
-and can update global network in concurrent way.
+Agent computes the loss (wrt collected data) and pass it to the Optimizer.
+It could be some SGD optimizer (ADAM or RMSProp) which computes gradients
+and sends it to the Parameter Server for update of its neural network weights.
+All Agents works absolutely independent in asynchronous way and can update or 
+receive the global network weights at any time.
 
-- _Agent's Neural Network_: we use the network architecture from this [Mnih's paper](https://arxiv.org/abs/1312.5602) (by default).
-    - _Input_: 3D input to pass through 2D convolutions (default: 84x84x4).
-    - _Convolution Layer #1_: 16 filters with 8x8 kernel and stride 4 in both directions, then ReLU applies (by default).
-    - _Convolution Layer #2_: 32 filters with 4x4 kernel and stride 2 in both directions, then ReLU applies (by default).
-    Sequence of two convolutions allows to define nonlinearity dependencies.
-    - _Fully connected Layer_: consists of 256 hidden units, then ReLU applies (by default).
-    - _Policy_: outputs number of units equals to action size, passed through softmax operator (by default).
-    It is Actor's output, which represents Q-values on unity distribution (equals to probability) of state-action value function - Q(s, a).
-    - _Value_: outputs one value without applying of additional operators (by default).
-    It is Critic's output, which represents value function output V(s) - how well this state (equals to expected return from this point).
+- _Agent's Neural Network_: we use the neural network architecture similar to [universe agent](https://github.com/openai/universe-starter-agent/blob/master/model.py) (by default).
+    - _Input_: `3D` input to pass through `2D` convolutions (default: `42x42x1`).
+    - _Convolution Layers : `4` layers with `32` filters each and `3x3` kernel, stride `2`, `ELU` activation (by default).
+    - _Fully connected Layers_: one layer with `256` hidden units and `ReLU` activation (by default).
+    - _LSTM Layers_: one layer with `256` cell size (by default it's replaced with fully connected layer).
+    - _Actor_: fully connected layer with number of units equals to `action_size` and `Softmax` activation (by default).  
+    It outputs an `1-D` array with probability distribution between possible actions.
+    - _Critic_: fully connected layer with `1` unit (by default).  
+    It outputs an `0-D` array representing the value of an state (expected return from this point).
 
-- _Total Loss_: it's scalar sum of value and policy loss.
+- _Total Loss_ _`= Policy_Loss + critic_scale * Value_Loss`_  
+    It uses `critic_scale` parameter to set a `critic learning rate` relative to `policy learning rate`  
+    It's set to `0.5` by default, i.e. the `critic learning rate` is `2` times smaller than `policy learning rate`
+    
     - _Value Loss_: sum (over all batch samples) of squared difference between
-    total discounted reward (R) and a value of the current sample state - V(s),
-    i.e. expected accumulated reward from this time step.
-    `R = ri + gamma * V(s from N+1_step)`, where
-     `ri` - immediate reward from this sample,
-     `gamma` - discount factor (constant for the model),
-     `V(s from N+1_step)` - value of the state next to the N-th state,
-      if next state is terminal then `V = 0`.
+    expected discounted reward `(R)` and a value of the current sample state - `V(s)`,
+    i.e. expected discounted return from this state.  
+    ![img](http://latex.codecogs.com/svg.latex?0.5%2A%5Csum_%7Bt%3D0%7D%5E%7Bt_%7Bmax%7D-1%7D%5Cleft%28R_%7Bt%7D-V%5Cleft%28s_%7Bt%7D%3B%5Ctheta_%7B%5Cupsilon%7D%5Cright%29%5Cright%29%5E%7B2%7D),
+    where ![img](http://latex.codecogs.com/svg.latex?R_%7Bt%7D%3D%5Csum_%7Bi%3D0%7D%5E%7Bk-1%7D%5Cgamma%5E%7Bi%7Dr_%7Bt%2Bi%7D%2B%5Cgamma%5E%7Bk%7DV%5Cleft%28s_%7Bt%7D%3B%5Ctheta_%7B%5Cupsilon%7D%5Cright%29)
+    with _k_ upbounded by _t_<sub>_max_</sub>.  
+    If _s<sub>t</sub>_ is terminal then _V(s<sub>t</sub>) = 0_.
 
     - _Policy Loss_: output of the policy (P) is an array of probability
      distribution over all possibly actions for the given sample state.
@@ -113,16 +118,7 @@ We will become more confident in some actions while training
 and the probability distribution is becoming more acute.
 It also helps to solve a problem of "path along the cliff" with high reward at the end.
 
-- _RMSProp Optimizer_: we use this type of optimizer wrt original paper.
-RMSProp is more customizable optimizer than Adam for instance and you
-can get better result if you fit it with appropriate parameters.
-We set `learning rate = 7e-4` for RMSProp and linear anneal this value through
-the training process wrt global training step. We also setup `decay = 0.99`
-and `epsilon = 0.01` for the optimizer. Agent's RMSProp just used to
-compute gradients wrt current Agent's neural network weights and given loss,
-while all moments and slots of optimizer are stored (and shared) at Global Learner.
-
-- _Gradients_: we clip computed gradients before transferring.
+- _Compute Gradients_: we clip computed gradients before transferring.
 
     `output_grads = computed_grads * 40.0 / l2norm(computed_grads)`
 
@@ -137,9 +133,16 @@ to synchronize. Global Learner can be sharded to speedup the training process.
 
 - _Global Neural Network_: network architecture is similar to Agent's one.
 
-- _RMSProp Optimizer_: has the same parameters as Agent's one,
-but used only to apply receiving gradients. This RMSProp
+- _RMSProp Optimizer_: Momentum Optimizers also
 stores moments and slots that are global for all Agents.
+we use this type of optimizer wrt original paper.
+RMSProp is more customizable optimizer than Adam for instance and you
+can get better result if you fit it with appropriate parameters.
+We set `learning rate = 7e-4` for RMSProp and linear anneal this value through
+the training process wrt global training step. We also setup `decay = 0.99`
+and `epsilon = 0.01` for the optimizer. Agent's RMSProp just used to
+compute gradients wrt current Agent's neural network weights and given loss,
+while all moments and slots of optimizer are stored (and shared) at Global Learner.
 
 You can also specify hyperparameters for training in provided `params.yaml` file:
 
