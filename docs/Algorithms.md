@@ -13,6 +13,26 @@
 ### [Distributed A3C](#algorithms)
 Inspired by original [paper](https://arxiv.org/abs/1602.01783) - Asynchronous Methods for Deep Reinforcement Learning from [DeepMind](https://deepmind.com/)
 
+It is actor-critic algorithm, which learns both a policy and a state-value function, and the value function
+is used for bootstrapping, i.e., updating a state from subsequent estimates, to reduce variance and
+accelerate learning.
+
+In DA3C, parallel actors employ different exploration policies to stabilize training, so that experience
+replay is not utilized. Different from most deep learning algorithms, this distributed method can
+run on the multiple nodes with centralised parameter server. For Atari games, DA3C ran much faster yet
+performed better than or comparably with DQN, Gorila, D-DQN, Dueling D-DQN, and Prioritized D-DQN.
+Furthermore DA3C also performs better than original A3C or it synchronous variant, which called A2C. 
+DA3C also succeeded on continuous motor control problems: TORCS car racing games and MujoCo physics
+manipulation and locomotion, and Labyrinth, a navigating task in random 3D mazes using visual inputs,
+in which an agent will face a new maze in each new episode, so that it needs to learn a general strategy
+to explore random mazes. 
+
+There are original pseudo code for A3C:
+
+![img](resources/A3C-pseudo_code.png)
+
+DA3C maintains a policy ![img](http://latex.codecogs.com/svg.latex?%5Cpi%5Cleft%28a_%7Bt%7D%5Cmids_%7Bt%7D%3B%5Ctheta%5Cright%29)
+
 ![img](http://latex.codecogs.com/svg.latex?%5Csum_%7Bi%3D0%7D%5E%7BT%7Di%2Ax%5E%7B2%7D)
 
 #### [Distributed A3C Architecture](#algorithms)
@@ -123,6 +143,7 @@ You can also specify hyperparameters for training in provided `params.yaml` file
        gradient_norm_clipping: 40
 
 **DA3C Graph sample from Tensorboard**
+
 ![img](resources/DA3C-Graph.png)
 
 #### [Performance on some of the Atari Environments](#algorithms)
