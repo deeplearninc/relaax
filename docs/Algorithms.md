@@ -11,7 +11,8 @@
 - [Other Algorithms](#other-algorithms)
 
 ### [Distributed A3C](#algorithms)
-Inspired by original [paper](https://arxiv.org/abs/1602.01783) - Asynchronous Methods for Deep Reinforcement Learning from [DeepMind](https://deepmind.com/)
+Inspired by original [paper](https://arxiv.org/abs/1602.01783) - 
+Asynchronous Methods for Deep Reinforcement Learning from [DeepMind](https://deepmind.com/)
 
 It is actor-critic algorithm, which learns both a policy and a state-value function, and the value function
 is used for bootstrapping, i.e., updating a state from subsequent estimates, to reduce variance and
@@ -31,8 +32,21 @@ There are original pseudo code for A3C:
 
 ![img](resources/A3C-pseudo_code.png)
 
-DA3C maintains a policy ![img](http://latex.codecogs.com/svg.latex?%5Cpi%5Cleft%28a_%7Bt%7D%5Cmid%5C%5Cs_%7Bt%7D%3B%5Ctheta%5Cright%29)
-and an estimate of the value function ![img](http://latex.codecogs.com/svg.latex?V%5Cleft%28s_%7Bt%7D%3B%5Ctheta_%7B%5Cnu%7D%5Cright%29)
+DA3C maintains a policy ![img](http://latex.codecogs.com/svg.latex?%5Cpi%5Cleft%28a_%7Bt%7D%5Cmid%5C%5Cs_%7Bt%7D%3B%5C%2C%5Ctheta%5Cright%29)
+and an estimate of the value function ![img](http://latex.codecogs.com/svg.latex?V%5Cleft%28s_%7Bt%7D%3B%5Ctheta_%7B%5Cupsilon%7D%5Cright%29),
+being updated with _n_-step returns in the forward view, after every _t_<sub>_max_</sub> actions or
+reaching a terminal state, similar to using minibatches. In contrast to the original code we use processes
+for the agents instead of threads, where each agent or some set of agents can be run on separate node.   
+The gradient update can be represented with _TD_-error multiplier as in original paper
+![img](http://latex.codecogs.com/svg.latex?%5Cbigtriangledown_%7B%7B%5Ctheta%7D%27%7Dlog%5C%2C%5Cpi%5Cleft%28a_%7Bt%7D%5Cmid%5C%5Cs_%7Bt%7D%3B%5C%2C%7B%5Ctheta%7D%27%5Cright%29%5Cleft%28R-V%5Cleft%28s_%7Bt%7D%3B%7B%5Ctheta%7D%27_%7B%5Cupsilon%7D%5Cright%29%5Cright%29)
+or with an estimate of the _advantage_ function:
+
+![img](http://latex.codecogs.com/svg.latex?%5Cbigtriangledown_%7B%7B%5Ctheta%7D%27%7Dlog%5C%2C%5Cpi%5Cleft%28a_%7Bt%7D%5Cmid%5C%5Cs_%7Bt%7D%3B%5C%2C%7B%5Ctheta%7D%27%5Cright%29A%5Cleft%28s_%7Bt%7D%2Ca_%7Bt%7D%3B%5C%2C%5Ctheta%2C%5Ctheta_%7B%5Cupsilon%7D%5Cright%29),
+where
+
+![img](http://latex.codecogs.com/svg.latex?A%5Cleft%28s_%7Bt%7D%2Ca_%7Bt%7D%3B%5C%2C%5Ctheta%2C%5Ctheta_%7B%5Cupsilon%7D%5Cright%29%3D%5Csum_%7Bi%3D0%7D%5E%7Bk-1%7D%5Cgamma%5E%7Bi%7Dr_%7Bt%2Bi%7D%2B%5Cgamma%5E%7Bk%7DV%5Cleft%28s_%7Bt%7D%3B%5Ctheta_%7B%5Cupsilon%7D%5Cright%29)
+
+with _k_ upbounded by _t_<sub>_max_</sub>.
 
 #### [Distributed A3C Architecture](#algorithms)
 ![img](resources/DA3C-Architecture.png)
