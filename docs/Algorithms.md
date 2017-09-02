@@ -31,9 +31,8 @@ There are original pseudo code for A3C:
 
 ![img](resources/A3C-pseudo_code.png)
 
-DA3C maintains a policy ![img](http://latex.codecogs.com/svg.latex?%5Cpi%5Cleft%28a_%7Bt%7D%5Cmids_%7Bt%7D%3B%5Ctheta%5Cright%29)
-
-![img](http://latex.codecogs.com/svg.latex?%5Csum_%7Bi%3D0%7D%5E%7BT%7Di%2Ax%5E%7B2%7D)
+DA3C maintains a policy ![img](http://latex.codecogs.com/svg.latex?%5Cpi%5Cleft%28a_%7Bt%7D%5Cmid%5C%5Cs_%7Bt%7D%3B%5Ctheta%5Cright%29)
+and an estimate of the value function ![img](http://latex.codecogs.com/svg.latex?V%5Cleft%28s_%7Bt%7D%3B%5Ctheta_%7B%5Cnu%7D%5Cright%29)
 
 #### [Distributed A3C Architecture](#algorithms)
 ![img](resources/DA3C-Architecture.png)
