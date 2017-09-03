@@ -83,7 +83,7 @@ receive the global network weights at any time.
     - _Fully connected Layers_: one layer with `256` hidden units and `ReLU` activation (by default).
     - _LSTM Layers_: one layer with `256` cell size (by default it's replaced with fully connected layer).
     - _Actor_: fully connected layer with number of units equals to `action_size` and `Softmax` activation (by default).  
-    It outputs an `1-D` array with probability distribution between possible actions.
+    It outputs an `1-D` array of probability distribution over all possibly actions for the given state.
     - _Critic_: fully connected layer with `1` unit (by default).  
     It outputs an `0-D` array representing the value of an state (expected return from this point).
 
@@ -99,31 +99,33 @@ receive the global network weights at any time.
     with _k_ upbounded by _t_<sub>_max_</sub>.  
     If _s<sub>t</sub>_ is terminal then _V(s<sub>t</sub>) = 0_.
 
-    - _Policy Loss_: output of the policy (P) is an array of probability
-     distribution over all possibly actions for the given sample state.
-     Batch of samples is concatenated to the matrix.
-     `Policy Loss = log(P) * A * TD + entropy`, where
-     `A` - one-hot vectors for the chosen action of each sample.
-     `log(P) * A` - produce sparse matrix, which we reduce to a column vector.
-     `TD = (R - V)` - temporary difference between total discounted reward (R)
-     and a value of the current sample state V(s) - produce column vector.
-     `entropy = -sum(P * log(P), index=1) * entropy_beta_coefficient`,
-     after multiplying the policy (P) likelihood we sum the result matrix
-     by rows to produce a column vector. Then multiplying by `entropy_beta_coefficient = 0.01`
-     Finally we sum up all column vectors and reduce it to a scalar.
+    - _Policy Loss_:  
+    ![img](http://latex.codecogs.com/svg.latex?-%5Csum_%7Bt%3D1%7D%5E%7Bt_%7Bmax%7D%7D%5Cleft%28%5C%2Clog%5C%2C%5Cpi%28a_%7Bt%7D%5Cmid%5C%5Cs_%7Bt%7D%3B%7B%5Ctheta%7D%27%29%5C%2CA%28s_%7Bt%7D%2Ca_%7Bt%7D%3B%5C%2C%5Ctheta%2C%5Ctheta_%7B%5Cupsilon%7D%29-%5Cbeta%5C%2C%5Cpi%28%5Ccdot%5Cmid%5C%5Cs_%7Bt%7D%3B%7B%5Ctheta%7D%27%29%5Clog%5C%2C%5Cpi%28%5Ccdot%5Cmid%5C%5Cs_%7Bt%7D%3B%7B%5Ctheta%7D%27%29%5C%2C%5Cright%29)  
+     where the 1-st term is multiplication of policy log-likelihood on advantage function,  
+     and the last term is entropy multiplied by regularization parameter `entropy_beta = 0.01` (by default).
+
+- _Compute Gradients_: it computes the gradients wrt neural network weights and total loss.   
+    Gradients are also clipped wrt parameter `gradients_norm_clipping = 40.0` (by default).  
+    To perform the clipping, the values `nn_weights[i]` are set to:
+
+      nn_weights[i] * clip_norm / max(global_norm, clip_norm)
+
+    where:
+
+      global_norm = sqrt(sum([l2norm(w)**2 for w in nn_weights]))
+
+    If `clip_norm > global_norm` then the entries in `nn_weights` remain as they are,  
+    otherwise they're all shrunk by the global ratio.  
+    To avoid clipping just set `gradients_norm_clipping = false` in config yaml.
+
+- _Synchronize Weights_: we copy weights from Global network to
+Agent's network every training loop (N steps passed).
 
 - _Softmax Action_: we choose more often the actions, which has more probability.
 It helps to explore a lot of state-action pairs at the beginning of the training.
 We will become more confident in some actions while training
 and the probability distribution is becoming more acute.
 It also helps to solve a problem of "path along the cliff" with high reward at the end.
-
-- _Compute Gradients_: we clip computed gradients before transferring.
-
-    `output_grads = computed_grads * 40.0 / l2norm(computed_grads)`
-
-- _Synchronize Weights_: we copy weights from Global network to
-Agent's network every training loop (N steps passed).
 
 **Global Learner** - one for whole algorithm (training process).
 
