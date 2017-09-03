@@ -121,7 +121,7 @@ class AgentModel(subgraph.Subgraph):
             tf.summary.scalar('policy_loss', sg_loss.policy_loss / batch_size),
             tf.summary.scalar('value_loss', sg_loss.value_loss / batch_size),
             tf.summary.scalar('entropy', sg_loss.entropy / batch_size),
-            tf.summary.scalar('gradients_global_norm', sg_gradients.global_norm.node),
+            tf.summary.scalar('gradients_global_norm', sg_gradients.global_norm),
             tf.summary.scalar('weights_global_norm', sg_network.weights.global_norm)])
 
         # Expose public API
