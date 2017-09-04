@@ -163,8 +163,8 @@ also with another `Actor` type, `Policy Loss`, `Choose Action` procedure  and ad
 
 - _Policy Loss_: ![img](http://latex.codecogs.com/svg.latex?NLL%28N%28%5Cmu%2C%5Csigma%5E%7B2%7D%29%29%5C%2CA%28s_%7Bt%7D%2Ca_%7Bt%7D%3B%5C%2C%5Ctheta%2C%5Ctheta_%7B%5Cupsilon%7D%29-entropy)  
     The full expansion of `Policy Loss` for `continuous` action space looks like as follows:  
-    ![img](http://latex.codecogs.com/svg.latex?%5Csum_%7Bt%3D1%7D%5E%7Bt_%7Bmax%7D%7D%5Cleft%28%5Cleft%28%5Cfrac%7B%28%5Cpi%28a_%7Bt%7D%5Cmid%5C%5Cs_%7Bt%7D%3B%7B%5Ctheta%7D%27%29-%5Cpi%28%5Cmu_%7Bt%7D%5Cmid%5C%5Cs_%7Bt%7D%3B%5Ctheta%29%29%5E%7B2%7D%7D%7B2%5C%2C%5Cpi%5Cleft%28%5Csigma_%7Bt%7D%5Cmid%5C%5Cs_%7Bt%7D%3B%5Ctheta%5Cright%29%5E%7B2%7D%2Be%5E%7B-8%7D%7D-0.5%5Cln%282%5Cpi%29-%5Cln%5Cpi%28%5Csigma_%7Bt%7D%5Cmid%5C%5Cs_%7Bt%7D%3B%5Ctheta%29%5Cright%29A%28s_%7Bt%7D%2Ca_%7Bt%7D%3B%5C%2C%5Ctheta%2C%5Ctheta_%7B%5Cupsilon%7D%29-%5Cbeta%5C%2C%5Cleft%28%5Cln%5Cpi%28%5Csigma_%7Bt%7D%5Cmid%5C%5Cs_%7Bt%7D%3B%5Ctheta%29-0.5%5Cln%282%5Cpi%5C%5Ce%29%5Cright%29%5Cright%29)  
-    
+    ![img](http://latex.codecogs.com/svg.latex?%5Csum_%7Bt%3D1%7D%5E%7Bt_%7Bmax%7D%7D%5Cleft%28%5Cleft%28%5Cfrac%7B%28%5Cpi%28a_%7Bt%7D%5Cmid%5C%5Cs_%7Bt%7D%3B%7B%5Ctheta%7D%27%29-%5Cpi%28%5Cmu_%7Bt%7D%5Cmid%5C%5Cs_%7Bt%7D%3B%5Ctheta%29%29%5E%7B2%7D%7D%7B2%5C%2C%5Cpi%5Cleft%28%5Csigma_%7Bt%7D%5Cmid%5C%5Cs_%7Bt%7D%3B%5Ctheta%5Cright%29%5E%7B2%7D%2Be%5E%7B-8%7D%7D-0.5%5Cln%282%5Cpi%29-%5Cln%5Cpi%28%5Csigma_%7Bt%7D%5Cmid%5C%5Cs_%7Bt%7D%3B%5Ctheta%29%5Cright%29A%28s_%7Bt%7D%2Ca_%7Bt%7D%3B%5C%2C%5Ctheta%2C%5Ctheta_%7B%5Cupsilon%7D%29-%5Cbeta%5C%2C%5Cleft%28%5Cln%5Cpi%28%5Csigma_%7Bt%7D%5Cmid%5C%5Cs_%7Bt%7D%3B%5Ctheta%29+0.5%5Cln%282%5Cpi%5C%5Ce%29%5Cright%29%5Cright%29)  
+  
     where the term before `advantage` represents a negative-log-likelihood (`NLL`)  
     and the term, which is multiplied by `beta` is `entropy` of `Normal` distribution.
 
