@@ -154,7 +154,8 @@ also with another `Actor` type, `Policy Loss`, `Choose Action` procedure  and ad
 
 - _Actor (Continuous)_: it outputs two values `mu` & `sigma` separately for `Normal` distribution.  
     They are represented by `2` fully connected layers with number of units equals to `action_size`.
-    - _mu_: it applies a `Tanh` activation (by default) and represents the `mean` of the distribution.
+    - _mu_: it applies a `Tanh` activation (by default) and represents the `mean` of the distribution.  
+    It also allows to scale the output by config parameter `scale` or use another activation (or without it).
     - _sigma_: it applies a `SoftPlus` operator (by default), and represents the `variance` of the distribution.
 
 - _Choose Action_: it uses a random sampling for exploration wrt `sigma`  
@@ -167,7 +168,7 @@ also with another `Actor` type, `Policy Loss`, `Choose Action` procedure  and ad
     where the term before `advantage` represents a negative-log-likelihood (`NLL`)  
     and the term, which is multiplied by `beta` is `entropy` of `Normal` distribution.
 
-- _Signal Filtering_: it uses the `running` estimate of the `mean` and `standard deviation` wrt stream of data.  
+- _Signal Filtering_: it uses the `running` estimate of the `mean` and `variance` wrt a stream of data.  
     Inspired by this [source](http://www.johndcook.com/blog/standard_deviation/).
     It allows to filter both `states` and `rewards` (it uses only for states by default).
 
