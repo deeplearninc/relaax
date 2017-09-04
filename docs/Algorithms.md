@@ -2,6 +2,8 @@
 > click on title to go to contents
 - [Distributed A3C](#distributed-a3c)
     - [Distributed A3C Architecture](#distributed-a3c-architecture)
+    - [Intrinsic Curiosity Model for DA3C](#intrinsic-curiosity-model-for-da3c)
+    - [Distributed A3C Config](#distributed-a3c-config)
     - [Performance on some of the Atari Environments](#performance-on-some-of-the-atari-environments)
 - [Distributed A3C Continuous](#distributed-a3c-continuous)
     - [Distributed A3C Architecture with Continuous Actions](#distributed-a3c-architecture-with-continuous-actions)
@@ -118,45 +120,83 @@ receive the global network weights at any time.
     otherwise they're all shrunk by the global ratio.  
     To avoid clipping just set `gradients_norm_clipping = false` in config yaml.
 
-- _Synchronize Weights_: we copy weights from Global network to
-Agent's network every training loop (N steps passed).
+- _Synchronize Weights_: it synchronize agent's weights with global neural network by copying  
+    the last own to replace its own at the beginning of each batch collection step
+    (_1..t_<sub>_max_</sub> or _terminal_).  
+    The new step will not start until the weights are updated, but it allows to switch  
+    this procedure in non-blocking manner by setting `hogwild` to `true` in the code.
 
-- _Softmax Action_: we choose more often the actions, which has more probability.
-It helps to explore a lot of state-action pairs at the beginning of the training.
-We will become more confident in some actions while training
-and the probability distribution is becoming more acute.
-It also helps to solve a problem of "path along the cliff" with high reward at the end.
+- _Softmax Action_: it uses a `Boltzmann` distribution to select an action, so it chooses more  
+    often actions, which has more probability and we called this `Softmax` action for simplicity.  
+    This method has some benefits over classical _e_-greedy strategy and helps to avoid problem  
+    of "path along the cliff". Furthermore it helps to explore more at the beginning of the training.  
+    Agent becomes more confident in some actions while training and the probability distribution  
+    over actions is becoming more acute.
 
-**Global Learner** - one for whole algorithm (training process).
+**Parameter Server (Global)** - one for whole algorithm (training process).
 
-The main role of the Global Learner is updating of its own neural network weights
-by receiving gradients from the Agents and sending these weights to Agents
-to synchronize. Global Learner can be sharded to speedup the training process.
+The main role of the Parameter Server is to synchronize neural networks weights between Agents.  
+It holds the shared (global) neural network weights, which is updated by the Agents gradients,  
+and sent the actual copy of its weights back to Agents to synchronize.
 
-- _Global Neural Network_: network architecture is similar to Agent's one.
+- _Global Neural Network_: neural network weights is similar to Agent's one.
 
-- _RMSProp Optimizer_: Momentum Optimizers also
-stores moments and slots that are global for all Agents.
-we use this type of optimizer wrt original paper.
-RMSProp is more customizable optimizer than Adam for instance and you
-can get better result if you fit it with appropriate parameters.
-We set `learning rate = 7e-4` for RMSProp and linear anneal this value through
-the training process wrt global training step. We also setup `decay = 0.99`
-and `epsilon = 0.01` for the optimizer. Agent's RMSProp just used to
-compute gradients wrt current Agent's neural network weights and given loss,
-while all moments and slots of optimizer are stored (and shared) at Global Learner.
+- _Some SGD Optimizer_: it holds a SGD optimizer and its state (`Adam | RMSProp`).  
+    It is one for all Agents and used to apply gradients from them.  
+    The default optimizer is `Adam` with `initial_learning_rate = 1e-4`  
+    since the last one is linear annealing wrt `max_global_step` parameter.
 
-You can also specify hyperparameters for training in provided `params.yaml` file:
+#### [Intrinsic Curiosity Model for DA3C](#algorithms)
 
-    episode_len: 5                  # training loop size for one batch
+`DA3C` algorithm can also be extended with additional models.  
+By default it can use a [ICM](https://arxiv.org/abs/1705.05363) by setting `use_gae` parameter to `True`.
+
+`ICM` helps Agent to discover an environment out of curiosity when extrinsic rewards are spare
+or not present at all. This model proposed an intrinsic reward which is learned jointly with Agent's policy
+even without any extrinsic rewards from the environment. Conceptual architecture is shown in figure below:
+
+![img](resources/ICM-Architecture.png)
+
+#### [Distributed A3C Config](#algorithms)
+
+You must specify the parameters for the algorithm in the corresponding `app.yaml` file to run:
+
+    algorithm:
+        name: da3c                  # name of the algorithm to load
+
+    input:
+        shape: [42, 42]             # shape of the incoming state from an environment
+        history: 4                  # number of consecutive states to stack for input
+        use_convolutions: true      # set to True to use convolution layers after input
+
+    output:
+        continuous: false           # set to True to use continuous Actor
+        action_size: 18             # action size for the given environment
+
+    batch_size: 5                   # t_max for batch collection step size
+    hidden_sizes: [256]             # list to define layers sizes after convolutions
+
+    use_icm: true                   # set to True to use ICM module
+    use_gae: true                   # set to True to use generalized advantage estimation
+    gae_lambda: 1.00                # discount lambda for generalized advantage estimation
+
+    use_lstm: true                  # set to True to use LSTM instead of Fully-Connected layers
     max_global_step: 1e8            # amount of maximum global steps to pass through the training
-    initial_learning_rate: 7e-4     # initial learning rate
+
+    optimizer: Adam
+    initial_learning_rate: 1e-4     # initial learning rate which linear annealing through training
+
     entropy_beta: 0.01              # entropy regularization constant
-    rewards_gamma: 0.99             # discount factor for rewards
-    RMSProp:                        # optimizer's parameters
-       decay: 0.99
-       epsilon: 0.1
-       gradient_norm_clipping: 40
+    rewards_gamma: 0.99             # rewards discount factor
+    gradients_norm_clipping: 40.    # value for gradients norm clipping
+
+    icm:                            # ICM relevant parameters
+        nu: 0.01                    # prediction bonus multiplier for intrinsic reward
+        beta: 0.2                   # forward loss importance against inverse model
+        lr: 1e-3                    # ICM learning rate
+
+We use some notations to outline different versions of the `DA3C`.  
+So, 
 
 **DA3C Graph sample from Tensorboard**
 
@@ -172,7 +212,8 @@ we have some instability in training process (anyway DeepMind shows only 34 poin
 
 ### [Distributed A3C Continuous](#algorithms)
 Distributed version of A3C algorithm, which can cope with continuous action space.
-Inspired by original [paper](https://arxiv.org/abs/1602.01783) - Asynchronous Methods for Deep Reinforcement Learning from [DeepMind](https://deepmind.com/)
+Inspired by original [paper](https://arxiv.org/abs/1602.01783) - 
+Asynchronous Methods for Deep Reinforcement Learning from [DeepMind](https://deepmind.com/)
 
 #### [Distributed A3C Architecture with Continuous Actions](#algorithms)
 ![img](resources/DA3C-Continuous.png)
