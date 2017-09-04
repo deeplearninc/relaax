@@ -2,12 +2,11 @@
 > click on title to go to contents
 - [Distributed A3C](#distributed-a3c)
     - [Distributed A3C Architecture](#distributed-a3c-architecture)
+    - [Distributed A3C Continuous](#distributed-a3c-continuous)
     - [Intrinsic Curiosity Model for DA3C](#intrinsic-curiosity-model-for-da3c)
     - [Distributed A3C Config](#distributed-a3c-config)
     - [Performance on some of the Atari Environments](#performance-on-some-of-the-atari-environments)
-- [Distributed A3C Continuous](#distributed-a3c-continuous)
-    - [Distributed A3C Architecture with Continuous Actions](#distributed-a3c-architecture-with-continuous-actions)
-    - [Performance on gym's Walker](#performance-on-gyms-walker)
+    - [Performance on some Continuous Control Tasks](#performance-on-some-continuous-control-tasks)
 - [Distributed TRPO with GAE](#distributed-trpo-with-gae)
     - [Performance on gym's BipedalWalker](#performance-on-gyms-bipedalwalker)
 - [Other Algorithms](#other-algorithms)
@@ -146,6 +145,32 @@ and sent the actual copy of its weights back to Agents to synchronize.
     The default optimizer is `Adam` with `initial_learning_rate = 1e-4`  
     since the last one is linear annealing wrt `max_global_step` parameter.
 
+#### [Distributed A3C Continuous](#algorithms)
+Distributed version of A3C algorithm, which can cope with continuous action space.  
+Architecture is similar to the previous one, but it uses two separate neural networks for `Policy` & `Critic`  
+also with another `Actor` type, `Policy Loss`, `Choose Action` procedure  and additional state (reward) `filtering`.
+
+![img](resources/DA3C-Continuous.png)
+
+- _Actor (Continuous)_: it outputs two values `mu` & `sigma` separately for `Normal` distribution.  
+    They are represented by `2` fully connected layers with number of units equals to `action_size`.
+    - _mu_: it applies a `Tanh` activation (by default) and represents the `mean` of the distribution.
+    - _sigma_: it applies a `SoftPlus` operator (by default), and represents the `variance` of the distribution.
+
+- _Choose Action_: it uses a random sampling for exploration wrt `sigma`  
+    and defines the final `action` wrt formula: _`random(action_size) * sigma + mu`_
+
+- _Policy Loss_: ![img](http://latex.codecogs.com/svg.latex?NLL%28N%28%5Cmu%2C%5Csigma%5E%7B2%7D%29%29%5C%2CA%28s_%7Bt%7D%2Ca_%7Bt%7D%3B%5C%2C%5Ctheta%2C%5Ctheta_%7B%5Cupsilon%7D%29-entropy)  
+    The full expansion of `Policy Loss` for `continuous` action space looks like as follows:  
+    ![img](http://latex.codecogs.com/svg.latex?%5Csum_%7Bt%3D1%7D%5E%7Bt_%7Bmax%7D%7D%5Cleft%28%5Cleft%28%5Cfrac%7B%28%5Cpi%28a_%7Bt%7D%5Cmid%5C%5Cs_%7Bt%7D%3B%7B%5Ctheta%7D%27%29-%5Cpi%28%5Cmu_%7Bt%7D%5Cmid%5C%5Cs_%7Bt%7D%3B%5Ctheta%29%29%5E%7B2%7D%7D%7B2%5C%2C%5Cpi%5Cleft%28%5Csigma_%7Bt%7D%5Cmid%5C%5Cs_%7Bt%7D%3B%5Ctheta%5Cright%29%5E%7B2%7D%2Be%5E%7B-8%7D%7D-0.5%5Cln%282%5Cpi%29-%5Cln%5Cpi%28%5Csigma_%7Bt%7D%5Cmid%5C%5Cs_%7Bt%7D%3B%5Ctheta%29%5Cright%29A%28s_%7Bt%7D%2Ca_%7Bt%7D%3B%5C%2C%5Ctheta%2C%5Ctheta_%7B%5Cupsilon%7D%29-%5Cbeta%5C%2C%5Cleft%28%5Cln%5Cpi%28%5Csigma_%7Bt%7D%5Cmid%5C%5Cs_%7Bt%7D%3B%5Ctheta%29-0.5%5Cln%282%5Cpi%5C%5Ce%29%5Cright%29%5Cright%29)  
+    
+    where the term before `advantage` represents a negative-log-likelihood (`NLL`)  
+    and the term, which is multiplied by `beta` is `entropy` of `Normal` distribution.
+
+- _Signal Filtering_: it uses the `running` estimate of the `mean` and `standard deviation` wrt stream of data.  
+    Inspired by this [source](http://www.johndcook.com/blog/standard_deviation/).
+    It allows to filter both `states` and `rewards` (it uses only for states by default).
+
 #### [Intrinsic Curiosity Model for DA3C](#algorithms)
 
 `DA3C` algorithm can also be extended with additional models.  
@@ -172,6 +197,9 @@ You must specify the parameters for the algorithm in the corresponding `app.yaml
     output:
         continuous: false           # set to True to use continuous Actor
         action_size: 18             # action size for the given environment
+        scale: 2.5                  # multiplier to scale symmetrically continuous action
+        action_low: [-3]            # lower bound (or list of values) to clip continuous action
+        action_high: [2]            # upper bound (or list of values) to clip continuous action
 
     batch_size: 5                   # t_max for batch collection step size
     hidden_sizes: [256]             # list to define layers sizes after convolutions
@@ -195,110 +223,41 @@ You must specify the parameters for the algorithm in the corresponding `app.yaml
         beta: 0.2                   # forward loss importance against inverse model
         lr: 1e-3                    # ICM learning rate
 
-We use some notations to outline different versions of the `DA3C`.  
-So, 
+It allows to omit parameters that don't have sense for current setup.  
+It also could be helpful to use some notations to outline different versions of the `DA3C`.  
+Therefore `DA3C-LSTM` is referred to architecture with `LSTM` layers and `DA3C-FF` otherwise.  
+`Discrete DA3C-FF-GAE-ICM-16` outlines feedforward architecture with `discrete` actor,   
+generalized advantage estimation (`GAE`) and curiosity model (`ICM`) with `16` Agents. 
 
 **DA3C Graph sample from Tensorboard**
 
 ![img](resources/DA3C-Graph.png)
 
 #### [Performance on some of the Atari Environments](#algorithms)
-Breakout with DA3C-FF and 8 parallel agents: score performance is similar to DeepMind [paper](https://arxiv.org/pdf/1602.01783v2.pdf#19)
-![img](resources/Breakout-8th-80mil.png "Breakout")
+`DA3C-FF-16` on Breakout: 
+![img](resources/None.png "TBD Breakout")  
+`DA3C-FF-16` on Boxing: 
+![img](resources/None.png "TBD Boxing")  
+Performance on `Atari` environments from [A3C paper](https://arxiv.org/pdf/1602.01783v2.pdf#19)
 
-Boxing with DA3C-FF and 8 parallel agents: ih this case we outperforms significantly DeepMind, but
-we have some instability in training process (anyway DeepMind shows only 34 points after 80mil steps)
-![img](resources/Boxing-8th-35mil.png "Boxing")
+#### [Performance on some Continuous Control Tasks](#algorithms)
+`Continuous DA3C-LSTM-16` on BipedalWalker:
+![img](resources/None.png "TBD BipedalWalker")
 
-### [Distributed A3C Continuous](#algorithms)
-Distributed version of A3C algorithm, which can cope with continuous action space.
-Inspired by original [paper](https://arxiv.org/abs/1602.01783) - 
-Asynchronous Methods for Deep Reinforcement Learning from [DeepMind](https://deepmind.com/)
+##### [Compute Performance with different amount of clients and node types (AWS)](#algorithms)
 
-#### [Distributed A3C Architecture with Continuous Actions](#algorithms)
-![img](resources/DA3C-Continuous.png)
-
-Most of the parts are the same to previous scheme, excluding:
-
-- _Signal Filtering_: perform by Zfilter `y = (x-mean)/std` using running estimates of mean and std
- inspired by this [source](http://www.johndcook.com/blog/standard_deviation/). You can filter both
- states and rewards. We use it only for states by default.
-
-- _Agent's (Global) Neural Network_: we use the similar architecture to [A3C paper](https://arxiv.org/pdf/1602.01783v2.pdf#12).
-    Each continuous state passes some filtering procedure before transferring to _Input_ by default.
-    - _Input_: vector of filtered state input (default: 24).
-    - _Fully connected Layer_: consists of 128 hidden units, then ReLU applies (by default).
-    - _LSTM_: consists of 128 memory cells (by default).
-    - _Value_: outputs one value without applying of additional operators (by default).
-    It is Critic's output, which represents value function output V(s) - how well this state (equals to expected return from this point).
-    - _Policy_: Actor's output is divided separately on `mu` and `sigma`
-        - _mu_: scalar of linear output.
-        - _sigma_: applying SoftPlus operator, outputs a scalar.
-
-    You can also specify your own architecture in provided JSON file.
-
-- _Choose Action_: we use a random sampling wrt given `mu` and `sigma`
-
-- _Total Loss_: it's scalar sum of value and policy loss.
-    - _Value Loss_: the same to previous scheme.
-    - _Policy Loss_: `GausNLL * TD + entropy`
-
-    `GausNLL` is gaussian negative-log-likelihood
-
-    `GausNLL = (sum(log(sigma), index=1) + batch_size * log(2*pi))/2 - sum(power, index=1)`,
-
-     where `power = (A - mu)^2 * exp(-log(sigma)) * -0.5` - produce column vector.
-
-     `TD = (R - V)` - temporary difference between total discounted reward (R)
-     and a value of the current sample state V(s).
-
-    `entropy = -sum(0.5 * log(2 * pi * sigma) + 1, index=1) * entropy_beta_coefficient`,
-
-     resulting sparse matrix we sum over rows to produce column vector.
-
-    `entropy_beta_coefficient = 0.001`
-
-We also use a smaller `learning rate = 1e-4`
-
-#### [Performance on gym's Walker](#algorithms)
-![img](resources/a3c_cont-4th-80mil.png "Walker")
-
-##### [Server Latency](#algorithms)
-Measure how fast Agent returns Action in response to the State sent by the Client
-
-| Node Type  | Number of clients | Latency  |
-| ---------- |:-----------------:|:--------:|
-| c4.large   |           4       | ???ms    |
-| c4.large   |           8       | ???ms    |
-| c4.large   |          16       | ???ms    |
-| m4.xlarge  |          32       | 323ms    |
-| m4.xlarge  |          48       | ???ms    |
-| m4.xlarge  |          64       | ???ms    |
-| c4.xlarge  |          32       | ???ms    |
-| c4.xlarge  |          48       | ???ms    |
-| c4.xlarge  |          64       | ???ms    |
-| c4.xlarge  |          96       | ???ms    |
-| c4.xlarge  |          128      | ???ms    |
-| c4.2xlarge |          232      | ???ms    |
-| c4.2xlarge |          271      | ???ms    |
-
-TBD - Latency chart (Show latency of the agents over time)
-
-
-##### [Compute Performance with different amount of clients and node types (AWS)](#contents)
-
-| Node Type  | Number of clients | Performance       |
-| ---------- |:-----------------:| -----------------:|
-| m4.xlarge  |          32       | 99 steps per sec  |
-| m4.xlarge  |          48       | 167 steps per sec |
-| m4.xlarge  |          64       | 171 steps per sec |
-| c4.xlarge  |          48       | 169 steps per sec |
-| c4.xlarge  |          64       | 207 steps per sec |
-| c4.xlarge-m4.xlarge | 64       | 170 steps per sec |
-| c4.xlarge-m4.xlarge | 96       | 167 steps per sec |
-| c4.xlarge-m4.xlarge | 128      | 177 steps per sec |
-| c4.2xlarge |          232      | 232 steps per sec |
-| c4.2xlarge |          271      | 271 steps per sec |
+| Agent Node | PS Node    | Number of clients | Performance       |
+|:----------:|:----------:|:-----------------:|:-----------------:|
+| m4.xlarge  | m4.xlarge  |         32        | 99 steps per sec  |
+| m4.xlarge  | m4.xlarge  |         48        | 167 steps per sec |
+| m4.xlarge  | m4.xlarge  |         64        | 171 steps per sec |
+| c4.xlarge  | c4.xlarge  |         48        | 169 steps per sec |
+| c4.xlarge  | c4.xlarge  |         64        | 207 steps per sec |
+| c4.xlarge  | m4.xlarge  |         64        | 170 steps per sec |
+| c4.xlarge  | m4.xlarge  |         96        | 167 steps per sec |
+| c4.xlarge  | m4.xlarge  |        128        | 177 steps per sec |
+| c4.2xlarge | c4.2xlarge |        232        | 232 steps per sec |
+| c4.2xlarge | c4.2xlarge |        271        | 271 steps per sec |
 <br><br>
 
 
