@@ -9,6 +9,8 @@
     - [Performance on some Continuous Control Tasks](#performance-on-some-continuous-control-tasks)
 - [Distributed TRPO with GAE](#distributed-trpo-with-gae)
     - [Performance on gym's BipedalWalker](#performance-on-gyms-bipedalwalker)
+- [Distributed DDPG](#distributed-ddpg)
+- [Distributed Policy Gradient](#distributed-policy-gradient)
 - [Other Algorithms](#other-algorithms)
 
 ### [Distributed A3C](#algorithms)
@@ -280,6 +282,20 @@ Parameter server is blocked to update when the batch is collected and this proce
 ![img](resources/bipedal-walker-trpo-10k-control.png "BipedalWalker")
 <br><br>
 
+### [Distributed DDPG](#algorithms)
+Inspired by original [paper](https://arxiv.org/abs/1509.02971) - 
+Continuous control with deep reinforcement learning from [DeepMind](https://deepmind.com/)
+
+Bla
+<br><br>
+
+### [Distributed Policy Gradient](#algorithms)
+It is classical method based on `REINFORCE`
+[(Williams, 1992)](http://www-anw.cs.umass.edu/~barto/courses/cs687/williams92simple.pdf) rule.
+
+Bla
+<br><br>
+
 ### [Other Algorithms](#algorithms)
 These other algorithms we are working on and planning to make them run on RELAAX server:
 
@@ -302,7 +318,3 @@ Inspired by:
 * CEM
 Inspired by:
     - [Cross-Entropy Method for Reinforcement Learning](https://esc.fnwi.uva.nl/thesis/centraal/files/f2110275396.pdf)
-
-* DDPG
-Inspired by:
-    - [Continuous control with deep reinforcement learning](https://arxiv.org/abs/1509.02971)
