@@ -51,12 +51,13 @@ class PpoUpdater(object):
 class TrpoCalculator(object):
     def __init__(self, policy_model, paths):
         self.policy_model = policy_model
+        self.paths = paths
         self.prob_np = np.concatenate([path['prob'] for path in paths])
         ob_no = np.concatenate([path['observation'] for path in paths])
         self.state = np.reshape(ob_no, ob_no.shape + (1,))
         self.action_na = np.concatenate([path['action'] for path in paths])
         self.advantage_n = np.concatenate([path['advantage'] for path in paths])
-        self.init(paths)
+        self.init()
 
     def __call__(self):
         thprev = self.policy_model.op_get_weights_flatten()
@@ -85,9 +86,9 @@ class TrpoCalculator(object):
 
 
 class TrpoD1Calculator(TrpoCalculator):
-    def init(self, paths):
+    def init(self):
         gs = []
-        for path in paths:
+        for path in self.paths:
             ob_no = np.asarray(path['observation'])
             state = np.reshape(ob_no, ob_no.shape + (1,))
             g = self.policy_model.op_compute_gradient(state=state, sampled_variable=path['action'],
@@ -103,7 +104,7 @@ class TrpoD1Calculator(TrpoCalculator):
 
 
 class TrpoD2Calculator(TrpoCalculator):
-    def init(self, paths):
+    def init(self):
         self.g = self.policy_model.op_compute_gradient(state=self.state, sampled_variable=self.action_na,
                                                        adv_n=self.advantage_n, oldprob_np=self.prob_np)
 
@@ -114,19 +115,25 @@ class TrpoD2Calculator(TrpoCalculator):
         return fvp + trpo_config.config.TRPO.cg_damping * p
 
 
-class TrpoUpdater(object):
-    def __init__(self, policy_model, TrpoCalculator):
+class TrpoD1Updater(object):
+    def __init__(self, policy_model):
         self.policy_model = policy_model
-        self.TrpoCalculator = TrpoCalculator
 
     def __call__(self, paths):
-        self.TrpoCalculator(self.policy_model, paths)()
+        TrpoD1Calculator(self.policy_model, paths)()
+
+
+class TrpoD2Updater(object):
+    def __init__(self, policy_model):
+        self.policy_model = policy_model
+
+    def __call__(self, paths):
+        TrpoD2Calculator(self.policy_model, paths)()
 
 
 def Updater(policy_model):
-    if PPO:
-        return PpoUpdater(policy_model)
-    return TrpoUpdater(policy_model, TrpoD2Calculator if D2 else TrpoD1Calculator)
+    mapping = {'ppo': PpoUpdater, 'trpo-d1': TrpoD1Updater, 'trpo-d2': TrpoD2Updater}
+    return mapping[trpo_config.config.subtype](policy_model)
 
 
 def linesearch(f, x, fullstep, expected_improve_rate, max_backtracks=10, accept_ratio=.1):
