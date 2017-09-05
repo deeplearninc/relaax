@@ -72,8 +72,8 @@ class Agent(object):
         expected_shape = list(trpo_config.options.algorithm.input.shape)
         actual_shape = list(np.asarray(state).shape)
         if actual_shape != expected_shape:
-            logger.warning('State shape %s does not match to expected one %s.',
-                    repr(actual_shape), repr(expected_shape))
+            logger.warning('State shape %s does not match to expected one %s.', repr(actual_shape),
+                           repr(expected_shape))
 
     def act(self, state):
         start = time.time()
@@ -103,14 +103,12 @@ class Agent(object):
         return self.reset()
 
     def reset(self):
-        score = self._episode_reward
-
         latency = self.server_latency_accumulator / self._episode_timestep
         self.server_latency_accumulator = 0
         self.ps.metrics.scalar('server_latency', latency)
 
-        self._send_experience(terminated=
-                              (self._episode_timestep < trpo_config.config.PG_OPTIONS.timestep_limit))
+        self._send_experience(terminated=(self._episode_timestep <
+                                          trpo_config.config.PG_OPTIONS.timestep_limit))
         return True
 
     def reward(self, reward):

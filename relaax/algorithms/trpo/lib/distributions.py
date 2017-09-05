@@ -12,7 +12,7 @@ def categorical_sample(prob_nk):
     assert prob_nk.ndim == 2
     N = prob_nk.shape[0]
     csprob_nk = np.cumsum(prob_nk, axis=1)
-    return np.argmax(csprob_nk > np.random.rand(N,1), axis=1)
+    return np.argmax(csprob_nk > np.random.rand(N, 1), axis=1)
 
 
 def categorical_kl(p_nk, q_nk):

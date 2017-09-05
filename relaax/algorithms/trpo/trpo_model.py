@@ -92,8 +92,8 @@ class DiagGauss(subgraph.Subgraph):
             mean1 = prob1.node[:, :d]
             std1 = prob1.node[:, d:]
             return tf.reduce_sum(tf.log(std1 / std0), axis=1) + \
-                    tf.reduce_sum(((tf.square(std0) + tf.square(mean0 - mean1)) /
-                    (2.0 * tf.square(std1))), axis=1) - 0.5 * d
+                tf.reduce_sum(((tf.square(std0) + tf.square(mean0 - mean1)) /
+                              (2.0 * tf.square(std1))), axis=1) - 0.5 * d
 
     class EntropySubgraph(subgraph.Subgraph):
         def build_graph(self, prob, d):
@@ -232,7 +232,7 @@ class PolicyNet(subgraph.Subgraph):
         surr_clipped = tf.clip_by_value(r_theta, 1.0 - clip_e,  1.0 + clip_e) * ph_adv_n.node
         sg_ppo_loss = graph.TfNode(-tf.reduce_mean(tf.minimum(surr, surr_clipped)))
 
-        sg_minimize = graph.TfNode(tf.train.AdamOptimizer(\
+        sg_minimize = graph.TfNode(tf.train.AdamOptimizer(
                 learning_rate=trpo_config.config.PPO.learning_rate).minimize(sg_ppo_loss.node))
         self.op_ppo_optimize = self.Op(sg_minimize, state=sg_network.ph_state,
                                        sampled_variable=sg_probtype.ph_sampled_variable, adv_n=ph_adv_n,
@@ -262,7 +262,7 @@ class ValueNet(subgraph.Subgraph):
         sg_set_weights_flatten = SetVariablesFlatten(weights)
 
         l2 = graph.TfNode(1e-3 * tf.add_n([tf.reduce_sum(tf.square(v)) for v in
-                                              utils.Utils.flatten(weights.node)]))
+                                           utils.Utils.flatten(weights.node)]))
         loss = graph.TfNode(l2.node + mse.node)
 
         sg_gradients = optimizer.Gradients(weights, loss=loss)
@@ -293,7 +293,7 @@ class SharedParameters(subgraph.Subgraph):
 
     def build_graph(self):
         # Build graph
-        
+
         sg_policy_net = PolicyNet()
 
         sg_n_iter = trpo_graph.NIter()
@@ -319,8 +319,8 @@ class SharedParameters(subgraph.Subgraph):
         self.op_n_iter = sg_n_iter.op_n_iter
         self.op_next_iter = sg_n_iter.op_next_iter
 
-        self.policy = sg_policy_net 
-        self.value = sg_value_net 
+        self.policy = sg_policy_net
+        self.value = sg_value_net
 
 
 # Policy run by Agent(s)

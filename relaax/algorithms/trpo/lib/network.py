@@ -1,16 +1,13 @@
 from __future__ import print_function
 
 import numpy as np
-import tensorflow as tf
 
 from .. import trpo_config
-
 from . import core
 
 
 PPO = False
 D2 = True
-
 
 
 def make_filter(config):
@@ -115,7 +112,6 @@ class TrpoD2Calculator(TrpoCalculator):
                                                          sampled_variable=self.action_na,
                                                          adv_n=self.advantage_n, prob_variable=self.prob_np)
         return fvp + trpo_config.config.TRPO.cg_damping * p
-
 
 
 class TrpoUpdater(object):
