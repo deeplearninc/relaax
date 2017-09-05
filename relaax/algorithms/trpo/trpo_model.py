@@ -224,6 +224,19 @@ class PolicyNet(subgraph.Subgraph):
                                                 sampled_variable=sg_probtype.ph_sampled_variable,
                                                 adv_n=ph_adv_n, prob_variable=ph_oldprob_np)
 
+        # PPO clipped surrogate loss
+        # likelihood ration of old and new policy
+        r_theta = tf.exp(sg_logp_n.node - sg_oldlogp_n.node)
+        surr = r_theta * ph_adv_n.node
+        clip_e = trpo_config.config.PPO.clip_e
+        surr_clipped = tf.clip_by_value(r_theta, 1.0 - clip_e,  1.0 + clip_e) * ph_adv_n.node
+        sg_ppo_loss = graph.TfNode(-tf.reduce_mean(tf.minimum(surr, surr_clipped)))
+
+        sg_minimize = graph.TfNode(tf.train.AdamOptimizer(\
+                learning_rate=trpo_config.config.PPO.learning_rate).minimize(sg_ppo_loss.node))
+        self.op_ppo_optimize = self.Op(sg_minimize, state=sg_network.ph_state,
+                                       sampled_variable=sg_probtype.ph_sampled_variable, adv_n=ph_adv_n,
+                                       oldprob_np=ph_oldprob_np)
 
 
 class ValueNet(subgraph.Subgraph):

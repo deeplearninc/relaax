@@ -8,6 +8,11 @@ from .. import trpo_config
 from . import core
 
 
+PPO = True
+D2 = False
+
+
+
 def make_filter(config):
     if config.use_filter:
         return core.ZFilter(core.RunningStatExt(config.input.shape), clip=5)
@@ -42,33 +47,59 @@ class TrpoUpdater(object):
 
         thprev = self.policy_model.op_get_weights_flatten()
 
-        def fisher_vector_product(p):
-            fvp = self.policy_model.op_fisher_vector_product(tangent=p, state=state, sampled_variable=action_na,
-                                                       adv_n=advantage_n, prob_variable=prob_np)
-            return fvp + trpo_config.config.TRPO.cg_damping * p
-
-        g = self.policy_model.op_compute_gradient(state=state, sampled_variable=action_na, adv_n=advantage_n,
-                                            oldprob_np=prob_np)
-
-        if np.allclose(g, 0):
-            print("got zero gradient. not updating")
+        if PPO:
+             for i in range(trpo_config.config.PPO.n_epochs):
+                 self.policy_model.op_ppo_optimize(state=state, sampled_variable=action_na,
+                                                   adv_n=advantage_n, oldprob_np=prob_np)
+                 # TODO: add KL new/old for debug
         else:
-            stepdir = cg(fisher_vector_product, -g)
-            shs = .5*stepdir.dot(fisher_vector_product(stepdir))
-            lm = np.sqrt(shs / trpo_config.config.TRPO.max_kl)
-            print("lagrange multiplier:", lm, "gnorm:", np.linalg.norm(g))
-            fullstep = stepdir / lm
-            neggdotstepdir = -g.dot(stepdir)
+            if D2:
+                def fisher_vector_product(p):
+                    fvp = self.policy_model.op_fisher_vector_product(tangent=p, state=state,
+                                                                     sampled_variable=action_na,
+                                                                     adv_n=advantage_n, prob_variable=prob_np)
+                    return fvp + trpo_config.config.TRPO.cg_damping * p
 
-            def loss(th):
-                self.policy_model.op_set_weights_flatten(value=th)
-                surr, kl, ent = self.policy_model.op_losses(state=state, sampled_variable=action_na,
-                                                      adv_n=advantage_n, prob_variable=prob_np)
-                return surr
+                g = self.policy_model.op_compute_gradient(state=state, sampled_variable=action_na,
+                                                          adv_n=advantage_n, oldprob_np=prob_np)
+            else:
+                gs = []
+                for path in paths:
+                    ob_no = np.asarray(path["observation"])
+                    state_ = np.reshape(ob_no, ob_no.shape + (1,))
+                    g = self.policy_model.op_compute_gradient(state=state_, sampled_variable=path['action'],
+                                                              adv_n=path['advantage'], oldprob_np=path['prob'])
+                    gs.append(g)
+                g_matrix = np.stack(gs)
 
-            success, theta = linesearch(loss, thprev, fullstep, neggdotstepdir/lm)
-            print("success", success)
-            self.policy_model.op_set_weights_flatten(value=theta)
+                def cfvp(tangent, g):
+                    v = np.matmul(g, tangent)
+                    return np.mean(np.multiply(g, np.expand_dims(v, -1)), axis=0)
+
+                def fisher_vector_product(p):
+                    return cfvp(p, g_matrix) + trpo_config.config.TRPO.cg_damping * p
+
+                g = np.mean(g_matrix, axis=0)
+
+            if np.allclose(g, 0):
+                print("got zero gradient. not updating")
+            else:
+                stepdir = cg(fisher_vector_product, -g)
+                shs = .5*stepdir.dot(fisher_vector_product(stepdir))
+                lm = np.sqrt(shs / trpo_config.config.TRPO.max_kl)
+                print("lagrange multiplier:", lm, "gnorm:", np.linalg.norm(g))
+                fullstep = stepdir / lm
+                neggdotstepdir = -g.dot(stepdir)
+
+                def loss(th):
+                    self.policy_model.op_set_weights_flatten(value=th)
+                    surr, kl, ent = self.policy_model.op_losses(state=state, sampled_variable=action_na,
+                                                          adv_n=advantage_n, prob_variable=prob_np)
+                    return surr
+
+                success, theta = linesearch(loss, thprev, fullstep, neggdotstepdir/lm)
+                print("success", success)
+                self.policy_model.op_set_weights_flatten(value=theta)
 
 
 def linesearch(f, x, fullstep, expected_improve_rate, max_backtracks=10, accept_ratio=.1):

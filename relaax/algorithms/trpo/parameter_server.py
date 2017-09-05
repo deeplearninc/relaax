@@ -69,7 +69,7 @@ class Ps(object):
         if trpo_config.config.use_filter:
             self.update_filter_state(paths["filter_diff"])
 
-        if self.paths_len >= trpo_config.config.PG_OPTIONS.timesteps_per_batch:
+        if self.paths_len >= trpo_config.config.batch_size:
             self.trpo_update()
             self.paths_len = 0
             self.paths = []
