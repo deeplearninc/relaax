@@ -8,8 +8,8 @@ from .. import trpo_config
 from . import core
 
 
-PPO = True
-D2 = False
+PPO = False
+D2 = True
 
 
 
@@ -34,72 +34,103 @@ def make_baseline_wrapper(value_model, relaax_metrics):
                      relaax_metrics)
 
 
-class TrpoUpdater(object):
+class PpoUpdater(object):
     def __init__(self, policy_model):
         self.policy_model = policy_model
 
     def __call__(self, paths):
-        prob_np = np.concatenate([path["prob"] for path in paths])
-        ob_no = np.concatenate([path["observation"] for path in paths])
+        prob_np = np.concatenate([path['prob'] for path in paths])
+        ob_no = np.concatenate([path['observation'] for path in paths])
         state = np.reshape(ob_no, ob_no.shape + (1,))
-        action_na = np.concatenate([path["action"] for path in paths])
-        advantage_n = np.concatenate([path["advantage"] for path in paths])
+        action_na = np.concatenate([path['action'] for path in paths])
+        advantage_n = np.concatenate([path['advantage'] for path in paths])
 
+        for i in range(trpo_config.config.PPO.n_epochs):
+            self.policy_model.op_ppo_optimize(state=state, sampled_variable=action_na, adv_n=advantage_n,
+                                              oldprob_np=prob_np)
+        # TODO: add KL new/old for debug
+
+
+class TrpoCalculator(object):
+    def __init__(self, policy_model, paths):
+        self.policy_model = policy_model
+        self.prob_np = np.concatenate([path['prob'] for path in paths])
+        ob_no = np.concatenate([path['observation'] for path in paths])
+        self.state = np.reshape(ob_no, ob_no.shape + (1,))
+        self.action_na = np.concatenate([path['action'] for path in paths])
+        self.advantage_n = np.concatenate([path['advantage'] for path in paths])
+        self.init(paths)
+
+    def __call__(self):
         thprev = self.policy_model.op_get_weights_flatten()
 
-        if PPO:
-             for i in range(trpo_config.config.PPO.n_epochs):
-                 self.policy_model.op_ppo_optimize(state=state, sampled_variable=action_na,
-                                                   adv_n=advantage_n, oldprob_np=prob_np)
-                 # TODO: add KL new/old for debug
+        if np.allclose(self.g, 0):
+            print('got zero gradient. not updating')
         else:
-            if D2:
-                def fisher_vector_product(p):
-                    fvp = self.policy_model.op_fisher_vector_product(tangent=p, state=state,
-                                                                     sampled_variable=action_na,
-                                                                     adv_n=advantage_n, prob_variable=prob_np)
-                    return fvp + trpo_config.config.TRPO.cg_damping * p
+            stepdir = cg(self.fisher_vector_product, -self.g)
+            shs = .5 * stepdir.dot(self.fisher_vector_product(stepdir))
+            lm = np.sqrt(shs / trpo_config.config.TRPO.max_kl)
+            print('lagrange multiplier:', lm, 'gnorm:', np.linalg.norm(self.g))
+            fullstep = stepdir / lm
+            neggdotstepdir = -self.g.dot(stepdir)
 
-                g = self.policy_model.op_compute_gradient(state=state, sampled_variable=action_na,
-                                                          adv_n=advantage_n, oldprob_np=prob_np)
-            else:
-                gs = []
-                for path in paths:
-                    ob_no = np.asarray(path["observation"])
-                    state_ = np.reshape(ob_no, ob_no.shape + (1,))
-                    g = self.policy_model.op_compute_gradient(state=state_, sampled_variable=path['action'],
-                                                              adv_n=path['advantage'], oldprob_np=path['prob'])
-                    gs.append(g)
-                g_matrix = np.stack(gs)
+            def loss(th):
+                self.policy_model.op_set_weights_flatten(value=th)
+                surr, kl, ent = self.policy_model.op_losses(state=self.state,
+                                                            sampled_variable=self.action_na,
+                                                            adv_n=self.advantage_n,
+                                                            prob_variable=self.prob_np)
+                return surr
 
-                def cfvp(tangent, g):
-                    v = np.matmul(g, tangent)
-                    return np.mean(np.multiply(g, np.expand_dims(v, -1)), axis=0)
+            success, theta = linesearch(loss, thprev, fullstep, neggdotstepdir/lm)
+            print('success', success)
+            self.policy_model.op_set_weights_flatten(value=theta)
 
-                def fisher_vector_product(p):
-                    return cfvp(p, g_matrix) + trpo_config.config.TRPO.cg_damping * p
 
-                g = np.mean(g_matrix, axis=0)
+class TrpoD1Calculator(TrpoCalculator):
+    def init(self, paths):
+        gs = []
+        for path in paths:
+            ob_no = np.asarray(path['observation'])
+            state = np.reshape(ob_no, ob_no.shape + (1,))
+            g = self.policy_model.op_compute_gradient(state=state, sampled_variable=path['action'],
+                                                      adv_n=path['advantage'], oldprob_np=path['prob'])
+            gs.append(g)
+        self.g_matrix = np.stack(gs)
+        self.g = np.mean(self.g_matrix, axis=0)
 
-            if np.allclose(g, 0):
-                print("got zero gradient. not updating")
-            else:
-                stepdir = cg(fisher_vector_product, -g)
-                shs = .5*stepdir.dot(fisher_vector_product(stepdir))
-                lm = np.sqrt(shs / trpo_config.config.TRPO.max_kl)
-                print("lagrange multiplier:", lm, "gnorm:", np.linalg.norm(g))
-                fullstep = stepdir / lm
-                neggdotstepdir = -g.dot(stepdir)
+    def fisher_vector_product(self, p):
+        v = np.matmul(self.g_matrix, p)
+        cfvp = np.mean(np.multiply(self.g_matrix, np.expand_dims(v, -1)), axis=0)
+        return cfvp + trpo_config.config.TRPO.cg_damping * p
 
-                def loss(th):
-                    self.policy_model.op_set_weights_flatten(value=th)
-                    surr, kl, ent = self.policy_model.op_losses(state=state, sampled_variable=action_na,
-                                                          adv_n=advantage_n, prob_variable=prob_np)
-                    return surr
 
-                success, theta = linesearch(loss, thprev, fullstep, neggdotstepdir/lm)
-                print("success", success)
-                self.policy_model.op_set_weights_flatten(value=theta)
+class TrpoD2Calculator(TrpoCalculator):
+    def init(self, paths):
+        self.g = self.policy_model.op_compute_gradient(state=self.state, sampled_variable=self.action_na,
+                                                       adv_n=self.advantage_n, oldprob_np=self.prob_np)
+
+    def fisher_vector_product(self, p):
+        fvp = self.policy_model.op_fisher_vector_product(tangent=p, state=self.state,
+                                                         sampled_variable=self.action_na,
+                                                         adv_n=self.advantage_n, prob_variable=self.prob_np)
+        return fvp + trpo_config.config.TRPO.cg_damping * p
+
+
+
+class TrpoUpdater(object):
+    def __init__(self, policy_model, TrpoCalculator):
+        self.policy_model = policy_model
+        self.TrpoCalculator = TrpoCalculator
+
+    def __call__(self, paths):
+        self.TrpoCalculator(self.policy_model, paths)()
+
+
+def Updater(policy_model):
+    if PPO:
+        return PpoUpdater(policy_model)
+    return TrpoUpdater(policy_model, TrpoD2Calculator if D2 else TrpoD1Calculator)
 
 
 def linesearch(f, x, fullstep, expected_improve_rate, max_backtracks=10, accept_ratio=.1):
@@ -107,16 +138,16 @@ def linesearch(f, x, fullstep, expected_improve_rate, max_backtracks=10, accept_
     Backtracking linesearch, where expected_improve_rate is the slope dy/dx at the initial point
     """
     fval = f(x)
-    print("fval before", fval)
-    for stepfrac in .5**np.arange(max_backtracks):
-        xnew = x + stepfrac*fullstep
+    print('fval before', fval)
+    for stepfrac in .5 ** np.arange(max_backtracks):
+        xnew = x + stepfrac * fullstep
         newfval = f(xnew)
         actual_improve = fval - newfval
-        expected_improve = expected_improve_rate*stepfrac
+        expected_improve = expected_improve_rate * stepfrac
         ratio = actual_improve/expected_improve
-        print("a/e/r", actual_improve, expected_improve, ratio)
+        print('a/e/r', actual_improve, expected_improve, ratio)
         if ratio > accept_ratio and actual_improve > 0:
-            print("fval after", newfval)
+            print('fval after', newfval)
             return True, xnew
     return False, x
 
@@ -128,10 +159,10 @@ def cg(f_Ax, b, cg_iters=10, callback=None, verbose=False, residual_tol=1e-10):
     x = np.zeros_like(b)
     rdotr = r.dot(r)
 
-    fmtstr = "%10i %10.3g %10.3g"
-    titlestr = "%10s %10s %10s"
+    fmtstr = '%10i %10.3g %10.3g'
+    titlestr = '%10s %10s %10s'
     if verbose:
-        print(titlestr % ("iter", "residual norm", "soln norm"))
+        print(titlestr % ('iter', 'residual norm', 'soln norm'))
 
     for i in range(cg_iters):
         if callback is not None:

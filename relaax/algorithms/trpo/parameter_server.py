@@ -35,7 +35,7 @@ class Ps(object):
         self.paths_len = 0          # length of experience
 
         self.baseline = network.make_baseline_wrapper(relaax_session.value, metrics)
-        self.trpo_updater = network.TrpoUpdater(relaax_session.policy)
+        self.updater = network.Updater(relaax_session.policy)
 
         if trpo_config.config.use_filter:
             self.M = np.zeros(trpo_config.config.state_size)
@@ -83,7 +83,7 @@ class Ps(object):
         # Value Update
         self.baseline.fit(self.paths)
         # Policy Update
-        self.trpo_updater(self.paths)
+        self.updater(self.paths)
 
         print('Update time for {} iteration: {}'.format(self.n_iter(), time.time() - start))
         self.relaax_session.op_turn_collect_on()
