@@ -103,7 +103,7 @@ receive the global network weights at any time.
     If _s<sub>t</sub>_ is terminal then _V(s<sub>t</sub>) = 0_.
 
     - _Policy Loss_:  
-    ![img](http://latex.codecogs.com/svg.latex?-%5Csum_%7Bt%3D1%7D%5E%7Bt_%7Bmax%7D%7D%5Cleft%28%5C%2Clog%5C%2C%5Cpi%28a_%7Bt%7D%5Cmid%5C%5Cs_%7Bt%7D%3B%7B%5Ctheta%7D%27%29%5C%2CA%28s_%7Bt%7D%2Ca_%7Bt%7D%3B%5C%2C%5Ctheta%2C%5Ctheta_%7B%5Cupsilon%7D%29-%5Cbeta%5C%2C%5Cpi%28%5Ccdot%5Cmid%5C%5Cs_%7Bt%7D%3B%7B%5Ctheta%7D%27%29%5Clog%5C%2C%5Cpi%28%5Ccdot%5Cmid%5C%5Cs_%7Bt%7D%3B%7B%5Ctheta%7D%27%29%5C%2C%5Cright%29)  
+    ![img](http://latex.codecogs.com/svg.latex?-%5Csum_%7Bt%3D1%7D%5E%7Bt_%7Bmax%7D%7D%5Cleft%28%5C%2Clog%5C%2C%5Cpi%28a_%7Bt%7D%5Cmid%5C%5Cs_%7Bt%7D%3B%7B%5Ctheta%7D%27%29%5C%2CA%28s_%7Bt%7D%2Ca_%7Bt%7D%3B%5C%2C%5Ctheta%2C%5Ctheta_%7B%5Cupsilon%7D%29+%5Cbeta%5C%2C%5Cpi%28%5Ccdot%5Cmid%5C%5Cs_%7Bt%7D%3B%7B%5Ctheta%7D%27%29%5Clog%5C%2C%5Cpi%28%5Ccdot%5Cmid%5C%5Cs_%7Bt%7D%3B%7B%5Ctheta%7D%27%29%5C%2C%5Cright%29)  
      where the 1-st term is multiplication of policy log-likelihood on advantage function,  
      and the last term is entropy multiplied by regularization parameter `entropy_beta = 0.01` (by default).
 
@@ -293,7 +293,15 @@ Bla
 It is classical method based on `REINFORCE`
 [(Williams, 1992)](http://www-anw.cs.umass.edu/~barto/courses/cs687/williams92simple.pdf) rule.
 
-Bla
+Policy Gradient (or `PG`) maintains a policy ![img](http://latex.codecogs.com/svg.latex?%5Cpi%5Cleft%28a_%7Bt%7D%5Cmid%5C%5Cs_%7Bt%7D%3B%5C%2C%5Ctheta%5Cright%29)
+and similar to `DA3C` being updated with _n_-step returns in the forward view, after every _t_<sub>_max_</sub>
+actions or reaching a terminal state, similar to using minibatches.
+
+It is updating _θ_ in the direction of:
+![img](http://latex.codecogs.com/svg.latex?%5Cbigtriangledown_%7B%7B%5Ctheta%7D%27%7Dlog%5C%2C%5Cpi%5Cleft%28a_%7Bt%7D%5Cmid%5C%5Cs_%7Bt%7D%3B%5C%2C%7B%5Ctheta%5Cright%29R_%7Bt),  
+where ![img](http://latex.codecogs.com/svg.latex?R_%7Bt%7D%3D%5Csum_%7Bi%3D0%7D%5E%7Bk-1%7D%5Cgamma%5E%7Bi%7Dr_%7Bt%2Bi)
+with _k_ upbounded by _t_<sub>_max_</sub>.
+
 <br><br>
 
 ### [Other Algorithms](#algorithms)
