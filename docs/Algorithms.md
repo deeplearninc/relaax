@@ -10,7 +10,13 @@
 - [Distributed TRPO with GAE](#distributed-trpo-with-gae)
     - [Performance on gym's BipedalWalker](#performance-on-gyms-bipedalwalker)
 - [Distributed DDPG](#distributed-ddpg)
+    - [Distributed DDPG Architecture](#distributed-ddpg-architecture)
+    - [Distributed DDPG Config](#distributed-ddpg-config)
+    - [D-DDPG Performance on Continuous Control Tasks](#d-ddpg-performance-on-continuous-control-tasks)
 - [Distributed Policy Gradient](#distributed-policy-gradient)
+    - [Distributed Policy Gradient Architecture](#distributed-policy-gradient-architecture)
+    - [Distributed Policy Gradient Config](#distributed-policy-gradient-config)
+    - [Performance on some Classic Control Tasks](#performance-on-some-classic-control-tasks)
 - [Other Algorithms](#other-algorithms)
 
 ### [Distributed A3C](#algorithms)
@@ -195,7 +201,7 @@ You must specify the parameters for the algorithm in the corresponding `app.yaml
     input:
         shape: [42, 42]             # shape of the incoming state from an environment
         history: 4                  # number of consecutive states to stack for input
-        use_convolutions: true      # set to True to use convolution layers after input
+        use_convolutions: true      # set to True to process input by convolution layers
 
     output:
         continuous: false           # set to True to use continuous Actor
@@ -286,7 +292,49 @@ Parameter server is blocked to update when the batch is collected and this proce
 Inspired by original [paper](https://arxiv.org/abs/1509.02971) - 
 Continuous control with deep reinforcement learning from [DeepMind](https://deepmind.com/)
 
-Bla
+#### [Distributed DDPG Architecture](#algorithms)
+There are some new pic
+
+#### [Distributed DDPG Config](#algorithms)
+You must specify the parameters for the algorithm in the corresponding `app.yaml` file to run:
+
+    algorithm:
+        name: ddpg                  # name of the algorithm to load
+
+    input:
+        shape: [3]                  # shape of the incoming state from an environment
+        history: 1                  # number of consecutive states to stack for input
+        use_convolutions: false     # set to True to process input by convolution layers
+
+    output:
+        action_size: 1              # action size for the given environment
+        scale: 2.0                  # multiplier to scale symmetrically continuous action
+
+    hidden_sizes: [400, 300]        # list of dense layers sizes, for ex. [128, 64]
+    batch_size: 64                  # batch size, which needs for one network update
+    buffer_size: 10000              # local buffer size to sample experience (400k-1m)
+    rewards_gamma: 0.99             # rewards discount factor
+
+    actor_learning_rate: 0.0001     # actor learning rate
+    critic_learning_rate: 0.001     # critic learning rate
+    tau: 0.001                      # rate of target updates
+
+    l2: true                        # set to True to add l2 regularization loss for the Critic
+    l2_decay: 0.01                  # regularization constant multiplier for l2 loss for Critic
+    ou_noise: true                  # set to True to use Ornstein–Uhlenbeck process for the noise
+
+    exploration:                    # exploration parameters wrt Ornstein–Uhlenbeck process
+        ou_mu: 0.0
+        ou_theta: 0.15
+        ou_sigma: 0.20
+        tau: 25
+
+    log_lvl: INFO                   # additional metrics output wrt levels: INFO | DEBUG | VERBOSE
+    no_ps: false                    # set to True to perform training without parameter server
+
+#### [D-DDPG Performance on Continuous Control Tasks](#algorithms)
+`Distributed DDPG` with `4 Agents` on classic `Pendulum` continuous control task: 
+![img](resources/D-DDPG-a4-b64-bf10k.png "Distributed DDPG on Pendulum")
 <br><br>
 
 ### [Distributed Policy Gradient](#algorithms)
@@ -302,6 +350,124 @@ It is updating _θ_ in the direction of:
 where ![img](http://latex.codecogs.com/svg.latex?R_%7Bt%7D%3D%5Csum_%7Bi%3D0%7D%5E%7Bk-1%7D%5Cgamma%5E%7Bi%7Dr_%7Bt%2Bi)
 with _k_ upbounded by _t_<sub>_max_</sub>.
 
+#### [Distributed Policy Gradient Architecture](#algorithms)
+The principal architecture is similar to [DA3C](#distributed-a3c-architecture) except that it works  
+only with one `Policy` neural network and always uses `Discrete` actor.
+
+**Environment (Client)** - each client connects to a particular Agent (Learner).
+
+The main role of any client is feeding data to an Agent by transferring:
+state, reward and terminal signals (for episodic tasks if episode ends).
+Client updates these signals at each time step by receiving the action
+signal from an Agent and then sends updated values back.
+
+- _Process State_: each state could be pass through some filtering
+procedure before transferring (if you defined). It could be some color,
+edge or blob transformations (for image input) or more complex
+pyramidal, Kalman's and spline filters.
+
+**Agent (Parallel Learner)** - each Agent connects to the Parameter Server.
+
+The main role of any agent is to perform a main training loop.
+Agent synchronize their neural network weights with the global network
+by copying the last one weights at the beginning of each training mini loop.
+Agent executes N steps of Client's signals receiving and sending actions back.
+These N steps is similar to batch collection. If batch is collected
+Agent computes the loss (wrt collected data) and pass it to the Optimizer.
+It could be some SGD optimizer (ADAM or RMSProp) which computes gradients
+and sends it to the Parameter Server for update of its neural network weights.
+All Agents works absolutely independent in asynchronous way and can update or 
+receive the global network weights at any time.
+
+- _Agent's Neural Network_: we use the neural network architecture similar to [universe agent](https://github.com/openai/universe-starter-agent/blob/master/model.py) (by default).
+    - _Input_: `3D` input to pass through `2D` convolutions (default: `42x42x1`).
+    - _Convolution Layers : `4` layers with `32` filters each and `3x3` kernel, stride `2`, `ELU` activation (by default).
+    - _Fully connected Layers_: one layer with `256` hidden units and `ReLU` activation (by default).
+    - _LSTM Layers_: one layer with `256` cell size (by default it's replaced with fully connected layer).
+    - _Actor_: fully connected layer with number of units equals to `action_size` and `Softmax` activation (by default).  
+    It outputs an `1-D` array of probability distribution over all possibly actions for the given state.
+    - _Critic_: fully connected layer with `1` unit (by default).  
+    It outputs an `0-D` array representing the value of an state (expected return from this point).
+
+- _Total Loss_ _`= Policy_Loss + critic_scale * Value_Loss`_  
+    It uses `critic_scale` parameter to set a `critic learning rate` relative to `policy learning rate`  
+    It's set to `0.5` by default, i.e. the `critic learning rate` is `2` times smaller than `policy learning rate`
+    
+    - _Value Loss_: sum (over all batch samples) of squared difference between
+    expected discounted reward `(R)` and a value of the current sample state - `V(s)`,
+    i.e. expected discounted return from this state.  
+    ![img](http://latex.codecogs.com/svg.latex?0.5%2A%5Csum_%7Bt%3D0%7D%5E%7Bt_%7Bmax%7D-1%7D%5Cleft%28R_%7Bt%7D-V%5Cleft%28s_%7Bt%7D%3B%5Ctheta_%7B%5Cupsilon%7D%5Cright%29%5Cright%29%5E%7B2%7D),
+    where ![img](http://latex.codecogs.com/svg.latex?R_%7Bt%7D%3D%5Csum_%7Bi%3D0%7D%5E%7Bk-1%7D%5Cgamma%5E%7Bi%7Dr_%7Bt%2Bi%7D%2B%5Cgamma%5E%7Bk%7DV%5Cleft%28s_%7Bt%7D%3B%5Ctheta_%7B%5Cupsilon%7D%5Cright%29)
+    with _k_ upbounded by _t_<sub>_max_</sub>.  
+    If _s<sub>t</sub>_ is terminal then _V(s<sub>t</sub>) = 0_.
+
+    - _Policy Loss_:  
+    ![img](http://latex.codecogs.com/svg.latex?-%5Csum_%7Bt%3D1%7D%5E%7Bt_%7Bmax%7D%7D%5Cleft%28%5C%2Clog%5C%2C%5Cpi%28a_%7Bt%7D%5Cmid%5C%5Cs_%7Bt%7D%3B%7B%5Ctheta%7D%27%29%5C%2CA%28s_%7Bt%7D%2Ca_%7Bt%7D%3B%5C%2C%5Ctheta%2C%5Ctheta_%7B%5Cupsilon%7D%29+%5Cbeta%5C%2C%5Cpi%28%5Ccdot%5Cmid%5C%5Cs_%7Bt%7D%3B%7B%5Ctheta%7D%27%29%5Clog%5C%2C%5Cpi%28%5Ccdot%5Cmid%5C%5Cs_%7Bt%7D%3B%7B%5Ctheta%7D%27%29%5C%2C%5Cright%29)  
+     where the 1-st term is multiplication of policy log-likelihood on advantage function,  
+     and the last term is entropy multiplied by regularization parameter `entropy_beta = 0.01` (by default).
+
+- _Compute Gradients_: it computes the gradients wrt neural network weights and total loss.   
+    Gradients are also clipped wrt parameter `gradients_norm_clipping = 40.0` (by default).  
+    To perform the clipping, the values `nn_weights[i]` are set to:
+
+      nn_weights[i] * clip_norm / max(global_norm, clip_norm)
+
+    where:
+
+      global_norm = sqrt(sum([l2norm(w)**2 for w in nn_weights]))
+
+    If `clip_norm > global_norm` then the entries in `nn_weights` remain as they are,  
+    otherwise they're all shrunk by the global ratio.  
+    To avoid clipping just set `gradients_norm_clipping = false` in config yaml.
+
+- _Synchronize Weights_: it synchronize agent's weights with global neural network by copying  
+    the last own to replace its own at the beginning of each batch collection step
+    (_1..t_<sub>_max_</sub> or _terminal_).  
+    The new step will not start until the weights are updated, but it allows to switch  
+    this procedure in non-blocking manner by setting `hogwild` to `true` in the code.
+
+- _Softmax Action_: it uses a `Boltzmann` distribution to select an action, so it chooses more  
+    often actions, which has more probability and we called this `Softmax` action for simplicity.  
+    This method has some benefits over classical _e_-greedy strategy and helps to avoid problem  
+    of "path along the cliff". Furthermore it helps to explore more at the beginning of the training.  
+    Agent becomes more confident in some actions while training and the probability distribution  
+    over actions is becoming more acute.
+
+**Parameter Server (Global)** - one for whole algorithm (training process).
+
+The main role of the Parameter Server is to synchronize neural networks weights between Agents.  
+It holds the shared (global) neural network weights, which is updated by the Agents gradients,  
+and sent the actual copy of its weights back to Agents to synchronize.
+
+- _Global Neural Network_: neural network weights is similar to Agent's one.
+
+- _Some SGD Optimizer_: it holds a SGD optimizer and its state (`Adam | RMSProp`).  
+    It is one for all Agents and used to apply gradients from them.  
+    The default optimizer is `Adam` with `initial_learning_rate = 1e-4`  
+    since the last one is linear annealing wrt `max_global_step` parameter.
+
+#### [Distributed Policy Gradient Config](#algorithms)
+You must specify the parameters for the algorithm in the corresponding `app.yaml` file to run:
+
+    algorithm:
+        name: policy_gradient       # name of the algorithm to load
+
+    input:
+        shape: [4]                  # shape of the incoming state from an environment
+        history: 1                  # number of consecutive states to stack for input
+        use_convolutions: false     # set to True to process input by convolution layers
+
+    output:
+        action_size: 2              # action size for the given environment
+
+    hidden_sizes: [10]              # list to define layers sizes after convolutions
+    batch_size: 200                 # t_max for batch collection step size
+    learning_rate: 0.01             # learning rate for the optimizer
+    GAMMA: 0.99                     # rewards discount factor
+
+#### [Performance on some Classic Control Tasks](#algorithms)
+`Distributed Policy Gradient` with `4 Agents` on classic `CartPole` task: 
+![img](resources/D-PG-a4-b200.png "Distributed Policy Gradient on CartPole")  
 <br><br>
 
 ### [Other Algorithms](#algorithms)
