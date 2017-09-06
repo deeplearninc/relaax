@@ -232,7 +232,8 @@ You must specify the parameters for the algorithm in the corresponding `app.yaml
         beta: 0.2                   # forward loss importance against inverse model
         lr: 1e-3                    # ICM learning rate
 
-It allows to omit parameters that don't have sense for current setup.  
+It allows to omit parameters that don't have sense for current setup
+(it retrieves some from [default](https://github.com/deeplearninc/relaax/blob/641668e3b1b4a3c152b2c9fde83557a6c2f4e60a/relaax/algorithms/da3c/da3c_config.py)).  
 It also could be helpful to use some notations to outline different versions of the `DA3C`.  
 Therefore `DA3C-LSTM` is referred to architecture with `LSTM` layers and `DA3C-FF` otherwise.  
 `Discrete DA3C-FF-GAE-ICM-16` outlines feedforward architecture with `discrete` actor,   
@@ -293,7 +294,73 @@ Inspired by original [paper](https://arxiv.org/abs/1509.02971) -
 Continuous control with deep reinforcement learning from [DeepMind](https://deepmind.com/)
 
 #### [Distributed DDPG Architecture](#algorithms)
-There are some new pic
+![img](resources/DDPG-Architecture.png "TBD DDPG-Architecture")
+
+**Environment (Client)** - each client connects to a particular Agent (Learner).
+
+The main role of any client is feeding data to an Agent by transferring:
+state, reward and terminal signals (for episodic tasks if episode ends).
+Client updates these signals at each time step by receiving the action
+signal from an Agent and then sends updated values back.
+
+- _Process State_: each state could be pass through some filtering
+procedure before transferring (if you defined). It could be some color,
+edge or blob transformations (for image input) or more complex
+pyramidal, Kalman's and spline filters.
+
+**Agent (Parallel Learner)** - each Agent connects to the Parameter Server.
+
+The main role of any agent is to perform a main training loop.
+Agent synchronize their neural network weights with the global network
+by copying the last one weights at the beginning of each update procedure.
+Agent executes `1` step (TBD `N` steps) of Client's signals receiving and sending actions back,
+then it stores this interaction tuple `state | action | reward | next_state` in the `Replay Buffer`.
+These N steps is similar to batch collection. If `Replay Buffer` has enough samples
+to retrieve a batch of size, defined by config parameter `batch_size`, 
+Agent computes the loss (wrt collected data) and pass it to the Optimizer.
+It uses ADAM optimizer (by default) which computes gradients and sends them
+to the Parameter Server for update of its neural network weights.
+All Agents works absolutely independent in asynchronous way and can update or 
+receive the global network weights at any time.
+
+- _Agent's Neural Networks_: two neural networks one for the `Actor` and one for the `Critic`
+    - _Input_: input with shape consistent to pass through `2D` convolutions or to fully connected layers.
+    - _Convolution Layers : defined by relevant dictionary or use [default](https://github.com/deeplearninc/relaax/blob/641668e3b1b4a3c152b2c9fde83557a6c2f4e60a/relaax/common/algorithms/lib/layer.py#L223-L226).
+    - _Fully connected Layers_: set of layers defined by parameter `hidden_sizes` and `ReLU` activation (by default).
+    - _Actor_: fully connected layer with number of units equals to `action_size` and no activation (by default).  
+    It outputs an `1-D` array, which represents `Q` values over all possibly actions for the given state.
+    - _Critic_: fully connected layer with `1` unit (by default).  
+    It outputs an `0-D` array representing the value of an state (expected return from this point).
+
+- _Critic Loss_: TBD.
+
+- _Actor Loss_: TBD.
+
+- _Compute Gradients_: it computes the gradients wrt neural network weights and relevant loss.   
+
+- _Synchronize Weights_: it synchronize agent's weights with global neural network by copying  
+    the last own to replace its own at the beginning of each batch collection step.  
+    The new step will not start until the weights are updated.
+
+- _Choose Action_: it chooses an action with maximum `Q` value.  
+    Actions are summed up with some noise, which annealing through the training  
+    or (it recommended) to use `Ornstein–Uhlenbeck` process to generate noise by  
+    setting parameter `ou_noise` in config to `True`
+
+- _Signal Filtering_: it uses the `running` estimate of the `mean` and `variance` wrt a stream of data.  
+    Inspired by this [source](http://www.johndcook.com/blog/standard_deviation/).
+    It allows to filter both `states` and `rewards` (it uses only for states by default).
+
+**Parameter Server (Global)** - one for whole algorithm (training process).
+
+The main role of the Parameter Server is to synchronize neural networks weights between Agents.  
+It holds the shared (global) neural network weights, which is updated by the Agents gradients,  
+and sent the actual copy of its weights back to Agents to synchronize.
+
+- _Global Neural Networks_: neural networks weights is similar to Agent's one.
+
+- _Optimizers_: it holds two ADAM optimizers for `Actor` and `Critic` networks.  
+    Optimizer's states are global for all Agents and used to apply gradients from them.  
 
 #### [Distributed DDPG Config](#algorithms)
 You must specify the parameters for the algorithm in the corresponding `app.yaml` file to run:
@@ -331,6 +398,9 @@ You must specify the parameters for the algorithm in the corresponding `app.yaml
 
     log_lvl: INFO                   # additional metrics output wrt levels: INFO | DEBUG | VERBOSE
     no_ps: false                    # set to True to perform training without parameter server
+
+It allows to omit parameters that don't have sense for current setup
+(it retrieves some from [default](https://github.com/deeplearninc/relaax/blob/641668e3b1b4a3c152b2c9fde83557a6c2f4e60a/relaax/algorithms/ddpg/ddpg_config.py).  
 
 #### [D-DDPG Performance on Continuous Control Tasks](#algorithms)
 `Distributed DDPG` with `4 Agents` on classic `Pendulum` continuous control task: 
