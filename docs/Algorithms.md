@@ -87,7 +87,7 @@ All Agents works absolutely independent in asynchronous way and can update or
 receive the global network weights at any time.
 
 - _Agent's Neural Network_: we use the neural network architecture similar to [universe agent](https://github.com/openai/universe-starter-agent/blob/master/model.py) (by default).
-    - _Input_: `3D` input to pass through `2D` convolutions (default: `42x42x1`).
+    - _Input_: `3D` input to pass through `2D` convolutions (default: `42x42x1`) or any other shape.
     - _Convolution Layers : `4` layers with `32` filters each and `3x3` kernel, stride `2`, `ELU` activation (by default).
     - _Fully connected Layers_: one layer with `256` hidden units and `ReLU` activation (by default).
     - _LSTM Layers_: one layer with `256` cell size (by default it's replaced with fully connected layer).
@@ -346,7 +346,7 @@ and similar to `DA3C` being updated with _n_-step returns in the forward view, a
 actions or reaching a terminal state, similar to using minibatches.
 
 It is updating _θ_ in the direction of:
-![img](http://latex.codecogs.com/svg.latex?%5Cbigtriangledown_%7B%7B%5Ctheta%7D%27%7Dlog%5C%2C%5Cpi%5Cleft%28a_%7Bt%7D%5Cmid%5C%5Cs_%7Bt%7D%3B%5C%2C%7B%5Ctheta%5Cright%29R_%7Bt),  
+![img](http://latex.codecogs.com/svg.latex?%5Cbigtriangledown_%5Ctheta%5C%2Clog%5C%2C%5Cpi%5Cleft%28a_%7Bt%7D%5Cmid%5C%5Cs_%7Bt%7D%3B%5C%2C%7B%5Ctheta%5Cright%29R_%7Bt),  
 where ![img](http://latex.codecogs.com/svg.latex?R_%7Bt%7D%3D%5Csum_%7Bi%3D0%7D%5E%7Bk-1%7D%5Cgamma%5E%7Bi%7Dr_%7Bt%2Bi)
 with _k_ upbounded by _t_<sub>_max_</sub>.
 
@@ -374,57 +374,29 @@ by copying the last one weights at the beginning of each training mini loop.
 Agent executes N steps of Client's signals receiving and sending actions back.
 These N steps is similar to batch collection. If batch is collected
 Agent computes the loss (wrt collected data) and pass it to the Optimizer.
-It could be some SGD optimizer (ADAM or RMSProp) which computes gradients
-and sends it to the Parameter Server for update of its neural network weights.
+It uses an ADAM optimizer which computes gradients and sends it to the
+Parameter Server for update of its neural network weights.
 All Agents works absolutely independent in asynchronous way and can update or 
 receive the global network weights at any time.
 
-- _Agent's Neural Network_: we use the neural network architecture similar to [universe agent](https://github.com/openai/universe-starter-agent/blob/master/model.py) (by default).
-    - _Input_: `3D` input to pass through `2D` convolutions (default: `42x42x1`).
-    - _Convolution Layers : `4` layers with `32` filters each and `3x3` kernel, stride `2`, `ELU` activation (by default).
-    - _Fully connected Layers_: one layer with `256` hidden units and `ReLU` activation (by default).
-    - _LSTM Layers_: one layer with `256` cell size (by default it's replaced with fully connected layer).
+- _Agent's Neural Network_:
+    - _Input_: input with shape consistent to pass through `2D` convolutions or to fully connected layers.
+    - _Convolution Layers : defined by relevant dictionary or use [default](https://github.com/deeplearninc/relaax/blob/641668e3b1b4a3c152b2c9fde83557a6c2f4e60a/relaax/common/algorithms/lib/layer.py#L223-L226).
+    - _Fully connected Layers_: set of layers defined by parameter `hidden_sizes` and `ReLU` activation (by default).
     - _Actor_: fully connected layer with number of units equals to `action_size` and `Softmax` activation (by default).  
     It outputs an `1-D` array of probability distribution over all possibly actions for the given state.
-    - _Critic_: fully connected layer with `1` unit (by default).  
-    It outputs an `0-D` array representing the value of an state (expected return from this point).
 
-- _Total Loss_ _`= Policy_Loss + critic_scale * Value_Loss`_  
-    It uses `critic_scale` parameter to set a `critic learning rate` relative to `policy learning rate`  
-    It's set to `0.5` by default, i.e. the `critic learning rate` is `2` times smaller than `policy learning rate`
-    
-    - _Value Loss_: sum (over all batch samples) of squared difference between
-    expected discounted reward `(R)` and a value of the current sample state - `V(s)`,
-    i.e. expected discounted return from this state.  
-    ![img](http://latex.codecogs.com/svg.latex?0.5%2A%5Csum_%7Bt%3D0%7D%5E%7Bt_%7Bmax%7D-1%7D%5Cleft%28R_%7Bt%7D-V%5Cleft%28s_%7Bt%7D%3B%5Ctheta_%7B%5Cupsilon%7D%5Cright%29%5Cright%29%5E%7B2%7D),
-    where ![img](http://latex.codecogs.com/svg.latex?R_%7Bt%7D%3D%5Csum_%7Bi%3D0%7D%5E%7Bk-1%7D%5Cgamma%5E%7Bi%7Dr_%7Bt%2Bi%7D%2B%5Cgamma%5E%7Bk%7DV%5Cleft%28s_%7Bt%7D%3B%5Ctheta_%7B%5Cupsilon%7D%5Cright%29)
-    with _k_ upbounded by _t_<sub>_max_</sub>.  
-    If _s<sub>t</sub>_ is terminal then _V(s<sub>t</sub>) = 0_.
+- _Policy Loss_:  
+    ![img](http://latex.codecogs.com/svg.latex?%5Csum_%7Bt%3D1%7D%5E%7Bt_%7Bmax%7D%7D%5C%2C%5Cpi%5Cleft%28a_%7Bt%7D%5Cmid%5C%5Cs_%7Bt%7D%3B%5Ctheta%5Cright%29R_%7Bt%7D),
+    where ![img](http://latex.codecogs.com/svg.latex?R_%7Bt%7D%3D%5Csum_%7Bi%3D0%7D%5E%7Bk-1%7D%5Cgamma%5E%7Bi%7Dr_%7Bt%2Bi)
+    with _k_ upbounded by _t_<sub>_max_</sub>.
 
-    - _Policy Loss_:  
-    ![img](http://latex.codecogs.com/svg.latex?-%5Csum_%7Bt%3D1%7D%5E%7Bt_%7Bmax%7D%7D%5Cleft%28%5C%2Clog%5C%2C%5Cpi%28a_%7Bt%7D%5Cmid%5C%5Cs_%7Bt%7D%3B%7B%5Ctheta%7D%27%29%5C%2CA%28s_%7Bt%7D%2Ca_%7Bt%7D%3B%5C%2C%5Ctheta%2C%5Ctheta_%7B%5Cupsilon%7D%29+%5Cbeta%5C%2C%5Cpi%28%5Ccdot%5Cmid%5C%5Cs_%7Bt%7D%3B%7B%5Ctheta%7D%27%29%5Clog%5C%2C%5Cpi%28%5Ccdot%5Cmid%5C%5Cs_%7Bt%7D%3B%7B%5Ctheta%7D%27%29%5C%2C%5Cright%29)  
-     where the 1-st term is multiplication of policy log-likelihood on advantage function,  
-     and the last term is entropy multiplied by regularization parameter `entropy_beta = 0.01` (by default).
-
-- _Compute Gradients_: it computes the gradients wrt neural network weights and total loss.   
-    Gradients are also clipped wrt parameter `gradients_norm_clipping = 40.0` (by default).  
-    To perform the clipping, the values `nn_weights[i]` are set to:
-
-      nn_weights[i] * clip_norm / max(global_norm, clip_norm)
-
-    where:
-
-      global_norm = sqrt(sum([l2norm(w)**2 for w in nn_weights]))
-
-    If `clip_norm > global_norm` then the entries in `nn_weights` remain as they are,  
-    otherwise they're all shrunk by the global ratio.  
-    To avoid clipping just set `gradients_norm_clipping = false` in config yaml.
+- _Compute Gradients_: it computes the gradients wrt neural network weights and policy loss.  
 
 - _Synchronize Weights_: it synchronize agent's weights with global neural network by copying  
     the last own to replace its own at the beginning of each batch collection step
     (_1..t_<sub>_max_</sub> or _terminal_).  
-    The new step will not start until the weights are updated, but it allows to switch  
-    this procedure in non-blocking manner by setting `hogwild` to `true` in the code.
+    The new step will not start until the weights are updated.
 
 - _Softmax Action_: it uses a `Boltzmann` distribution to select an action, so it chooses more  
     often actions, which has more probability and we called this `Softmax` action for simplicity.  
@@ -441,10 +413,8 @@ and sent the actual copy of its weights back to Agents to synchronize.
 
 - _Global Neural Network_: neural network weights is similar to Agent's one.
 
-- _Some SGD Optimizer_: it holds a SGD optimizer and its state (`Adam | RMSProp`).  
+- _Adam Optimizer_: it holds optimizer's state.  
     It is one for all Agents and used to apply gradients from them.  
-    The default optimizer is `Adam` with `initial_learning_rate = 1e-4`  
-    since the last one is linear annealing wrt `max_global_step` parameter.
 
 #### [Distributed Policy Gradient Config](#algorithms)
 You must specify the parameters for the algorithm in the corresponding `app.yaml` file to run:
