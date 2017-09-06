@@ -128,7 +128,7 @@ receive the global network weights at any time.
     To avoid clipping just set `gradients_norm_clipping = false` in config yaml.
 
 - _Synchronize Weights_: it synchronize agent's weights with global neural network by copying  
-    the last own to replace its own at the beginning of each batch collection step
+    the last one to replace its own at the beginning of each batch collection step
     (_1..t_<sub>_max_</sub> or _terminal_).  
     The new step will not start until the weights are updated, but it allows to switch  
     this procedure in non-blocking manner by setting `hogwild` to `true` in the code.
@@ -291,7 +291,9 @@ Parameter server is blocked to update when the batch is collected and this proce
 
 ### [Distributed DDPG](#algorithms)
 Inspired by original [paper](https://arxiv.org/abs/1509.02971) - 
-Continuous control with deep reinforcement learning from [DeepMind](https://deepmind.com/)
+Continuous control with deep reinforcement learning from [DeepMind](https://deepmind.com/)  
+There are original pseudo code for DDPG:
+![img](resources/DDPG-Algorithm.png "DDPG-Algorithm")
 
 #### [Distributed DDPG Architecture](#algorithms)
 ![img](resources/DDPG-Architecture.png "TBD DDPG-Architecture")
@@ -323,7 +325,7 @@ to the Parameter Server for update of its neural network weights.
 All Agents works absolutely independent in asynchronous way and can update or 
 receive the global network weights at any time.
 
-- _Agent's Neural Networks_: two neural networks one for the `Actor` and one for the `Critic`
+- _Agent's Neural Networks_: `4` neural networks -> `Actor` & `Actor Target`, `Critic` & `Critic Target`
     - _Input_: input with shape consistent to pass through `2D` convolutions or to fully connected layers.
     - _Convolution Layers : defined by relevant dictionary or use [default](https://github.com/deeplearninc/relaax/blob/641668e3b1b4a3c152b2c9fde83557a6c2f4e60a/relaax/common/algorithms/lib/layer.py#L223-L226).
     - _Fully connected Layers_: set of layers defined by parameter `hidden_sizes` and `ReLU` activation (by default).
@@ -332,20 +334,33 @@ receive the global network weights at any time.
     - _Critic_: fully connected layer with `1` unit (by default).  
     It outputs an `0-D` array representing the value of an state (expected return from this point).
 
-- _Critic Loss_: TBD.
+- _Critic Loss_: it computes loss for the `Critic` neural network with the baselines as `Target` networks.  
+    ![img](http://latex.codecogs.com/svg.latex?%5Cfrac%7B1%7D%7BN%7D%5Csum_%7Bt%3D1%7D%5E%7BN%7D%5Cleft%28y_%7Bt%7D-Q%5Cleft%28s_%7Bt%7D%2Ca_%7Bt%7D%5Cmid%5Ctheta%5E%7BQ%7D%5Cright%29%5Cright%29%5E%7B2%7D),
+    where _N_ is a `batch_size` and
+    ![img](http://latex.codecogs.com/svg.latex?y_%7Bt%7D%3Dr_%7Bt%7D%2B%5Cgamma%7BQ%7D%27%5Cleft%28s_%7Bt%2B1%7D%2C%7B%5Cmu%7D%27%5Cleft%28s_%7Bt%2B1%7D%5Cmid%5Ctheta%5E%7B%7B%5Cmu%7D%27%7D%5Cright%29%5Cmid%5Ctheta%5E%7B%7BQ%7D%27%7D%5Cright%29).
 
-- _Actor Loss_: TBD.
+- _Actor Loss_: it computes loss for the `Actor` neural network wrt `Critic` network.  
+    ![img](http://latex.codecogs.com/svg.latex?%5Cfrac%7B1%7D%7BN%7D%5Csum_%7Bt%3D1%7D%5E%7BN%7D%5Cbigtriangledown_%7Ba%7DQ%5Cleft%28s%2Ca%5Cmid%5Ctheta%5E%7BQ%7D%5Cright%29%5Cmid_%7Bs%3Ds_%7Bt%7D%2Ca%3D%5Cmu%5Cleft%28s_%7Bt%7D%5Cright%29%7D%5Cbigtriangledown_%7B%5Ctheta%5E%7B%5Cmu%7D%7D%5Cmu%5Cleft%28s%5Cmid%5Ctheta%5E%7B%5Cmu%7D%5Cright%29%5Cmid_%7Bs_%7Bt%7D%7D),
+    where _N_ is a `batch_size`.
 
-- _Compute Gradients_: it computes the gradients wrt neural network weights and relevant loss.   
+- _Compute Gradients_: it computes the gradients wrt neural network weights and relevant loss.  
+    Gradients are computed only for `Actor` & `Critic` neural networks, not for `Target` ones.
 
-- _Synchronize Weights_: it synchronize agent's weights with global neural network by copying  
-    the last own to replace its own at the beginning of each batch collection step.  
+- _Synchronize Weights_: it synchronize agent's weights with global neural networks by copying  
+    the last ones to replace its own at the beginning of each batch collection step.  
     The new step will not start until the weights are updated.
-
+    
 - _Choose Action_: it chooses an action with maximum `Q` value.  
     Actions are summed up with some noise, which annealing through the training  
     or (it recommended) to use `Ornstein–Uhlenbeck` process to generate noise by  
-    setting parameter `ou_noise` in config to `True`
+    setting parameter `ou_noise` in config to `True`  
+    ![img](http://latex.codecogs.com/svg.latex?a_%7Bt%7D%3D%5Cmu%5Cleft%28s_%7Bt%7D%5Cmid%5Ctheta%5E%7B%5Cmu%7D%5Cright%29%2BN_%7Bt%7D),
+    where _N<sub>t</sub>_ is the noise process.
+
+- _Replay Buffer_: it holds a tuples `state | action | reward | next_state`  
+    in a cyclic buffer with the size defined by parameter `buffer_size`.  
+    Samples are retrieved from this buffer to perform an update  
+    with the size defined by parameter `batch_size`.
 
 - _Signal Filtering_: it uses the `running` estimate of the `mean` and `variance` wrt a stream of data.  
     Inspired by this [source](http://www.johndcook.com/blog/standard_deviation/).
@@ -354,13 +369,17 @@ receive the global network weights at any time.
 **Parameter Server (Global)** - one for whole algorithm (training process).
 
 The main role of the Parameter Server is to synchronize neural networks weights between Agents.  
-It holds the shared (global) neural network weights, which is updated by the Agents gradients,  
+It holds the shared (global) neural networks weights, which is updated by the Agents gradients,  
 and sent the actual copy of its weights back to Agents to synchronize.
 
 - _Global Neural Networks_: neural networks weights is similar to Agent's one.
 
-- _Optimizers_: it holds two ADAM optimizers for `Actor` and `Critic` networks.  
+- _Optimizers_: it holds two ADAM optimizers for `Actor` and `Critic` neural networks.  
     Optimizer's states are global for all Agents and used to apply gradients from them.  
+    It applies gradients only for `Actor` & `Critic` neural networks, not for `Target` ones.  
+    Then soft update for `Targets` networks are performed wrt parameter `tau`:  
+    ![img](http://latex.codecogs.com/svg.latex?%5Ctheta%5E%7B%7BQ%7D%27%7D%5Cleftarrow%5Ctau%5Ctheta%5E%7BQ%7D%2B%5Cleft%281-%5Ctau%5Cright%29%5Ctheta%5E%7B%7BQ%7D%27%7D)  
+    ![img](http://latex.codecogs.com/svg.latex?%5Ctheta%5E%7B%7B%5Cmu%7D%27%7D%5Cleftarrow%5Ctau%5Ctheta%5E%7B%5Cmu%7D%2B%5Cleft%281-%5Ctau%5Cright%29%5Ctheta%5E%7B%7B%5Cmu%7D%27%7D)
 
 #### [Distributed DDPG Config](#algorithms)
 You must specify the parameters for the algorithm in the corresponding `app.yaml` file to run:
@@ -464,7 +483,7 @@ receive the global network weights at any time.
 - _Compute Gradients_: it computes the gradients wrt neural network weights and policy loss.  
 
 - _Synchronize Weights_: it synchronize agent's weights with global neural network by copying  
-    the last own to replace its own at the beginning of each batch collection step
+    the last one to replace its own at the beginning of each batch collection step
     (_1..t_<sub>_max_</sub> or _terminal_).  
     The new step will not start until the weights are updated.
 
