@@ -46,7 +46,7 @@ class Agent(object):
 
     # environment is ready and
     # waiting for agent to initialize
-    def init(self, exploit=False, hogwild_update=True):
+    def init(self, exploit=False):
         self.exploit = exploit
         model = da3c_model.AgentModel()
         self.session = session.Session(model)
@@ -57,7 +57,7 @@ class Agent(object):
         self.last_action = None
         self.last_value = None
         self.last_probs = None
-        if hogwild_update and not da3c_config.config.use_icm:
+        if da3c_config.config.hogwild and not da3c_config.config.use_icm:
             self.queue = queue.Queue(10)
             threading.Thread(target=self.execute_tasks).start()
             self.receive_experience()

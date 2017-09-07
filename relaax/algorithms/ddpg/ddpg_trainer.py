@@ -34,7 +34,7 @@ class Trainer(object):
         self.episode.begin()
         self.observation = observation.Observation(cfg.config.input.history)
         self.last_action = self.noise_epsilon = None
-        self.episode_reward = self.episode_cnt = self.cur_loop_cnt = 0
+        self.episode_cnt = self.cur_loop_cnt = 0
         self.exploration_noise = utils.OUNoise(cfg.config.output.action_size,
                                                cfg.config.exploration.ou_mu,
                                                cfg.config.exploration.ou_theta,
@@ -77,7 +77,6 @@ class Trainer(object):
 
         if reward is not None:
             self.push_experience(reward, state, terminal)
-            self.episode_reward += reward
         else:
             self.observation.add_state(state)
 
@@ -89,11 +88,10 @@ class Trainer(object):
             self.cur_loop_cnt = 0
             self.ps.session.op_inc_episode_cnt(increment=1)
             self.observation.add_state(None)
-            Qmax, x = self.max_q / float(self.step_cnt), self.episode_cnt
+            Qmax = self.max_q / float(self.step_cnt)
             print('Qmax: %.4f' % Qmax)
-            self.metrics.scalar('Qmax', Qmax, x)
-            self.metrics.scalar('episode_reward', self.episode_reward, x)
-            self.episode_reward = self.max_q = self.step_cnt = 0
+            self.metrics.scalar('Qmax', Qmax, self.episode_cnt)
+            self.max_q = self.step_cnt = 0
 
         assert self.last_action is None
         self.get_action()
