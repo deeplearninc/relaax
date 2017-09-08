@@ -1,0 +1,4 @@
+algorithm:
+  name: dppo
+
+  batch_size: 5
