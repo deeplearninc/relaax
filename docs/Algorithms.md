@@ -291,12 +291,26 @@ Parameter server is blocked to update when the batch is collected and this proce
 
 ### [Distributed DDPG](#algorithms)
 Inspired by original [paper](https://arxiv.org/abs/1509.02971) - 
-Continuous control with deep reinforcement learning from [DeepMind](https://deepmind.com/)  
+Continuous control with deep reinforcement learning from [DeepMind](https://deepmind.com/)
+
+It is actor-critic, model-free, deep deterministic policy gradient (DDPG) algorithm in continuous action spaces,   
+by extending [DQN](http://www.nature.com/nature/journal/v518/n7540/full/nature14236.html?foxtrotcallback=true)
+and [DPG](http://proceedings.mlr.press/v32/silver14.pdf).
+With actor-critic as in DPG, DDPG avoids the optimization of action at every time step  
+to obtain a greedy policy as in Q-learning, which will make it infeasible in complex action spaces with large,  
+unconstrained function approximators like deep neural networks. To make the learning stable and robust,  
+similar to DQN, DDPQ deploys experience replay and an idea similar to target network, ”soft” target, which,  
+rather than copying the weights directly as in DQN, updates the soft target network weights θ′ slowly to track  
+the learned networks weights θ: θ′ ← τθ + (1 − τ)θ′, with τ<=1.  The authors adapted batch normalization  
+to handle the issue that the different components of the observation with different physical units.  
+As an off-policy algorithm, DDPG learns an actor policy from experiences from an exploration policy  
+by adding noise sampled from a noise process to the actor policy.
+
 There are original pseudo code for DDPG:
 ![img](resources/DDPG-Algorithm.png "DDPG-Algorithm")
 
 #### [Distributed DDPG Architecture](#algorithms)
-![img](resources/DDPG-Architecture.png "TBD DDPG-Architecture")
+![img](resources/D-DDPG-Architecture.png "DDPG-Architecture")
 
 **Environment (Client)** - each client connects to a particular Agent (Learner).
 
@@ -350,12 +364,14 @@ receive the global network weights at any time.
     the last ones to replace its own at the beginning of each batch collection step.  
     The new step will not start until the weights are updated.
     
-- _Choose Action_: it chooses an action with maximum `Q` value.  
+- _Define Action_: it chooses an action with maximum `Q` value.  
     Actions are summed up with some noise, which annealing through the training  
     or (it recommended) to use `Ornstein–Uhlenbeck` process to generate noise by  
     setting parameter `ou_noise` in config to `True`  
     ![img](http://latex.codecogs.com/svg.latex?a_%7Bt%7D%3D%5Cmu%5Cleft%28s_%7Bt%7D%5Cmid%5Ctheta%5E%7B%5Cmu%7D%5Cright%29%2BN_%7Bt%7D),
     where _N<sub>t</sub>_ is the noise process.
+
+- _Noise Process_: it generates `noise` to add it into action.
 
 - _Replay Buffer_: it holds a tuples `state | action | reward | next_state`  
     in a cyclic buffer with the size defined by parameter `buffer_size`.  
@@ -374,7 +390,7 @@ and sent the actual copy of its weights back to Agents to synchronize.
 
 - _Global Neural Networks_: neural networks weights is similar to Agent's one.
 
-- _Optimizers_: it holds two ADAM optimizers for `Actor` and `Critic` neural networks.  
+- _ADAM Optimizers_: it holds two ADAM optimizers for `Actor` and `Critic` neural networks.  
     Optimizer's states are global for all Agents and used to apply gradients from them.  
     It applies gradients only for `Actor` & `Critic` neural networks, not for `Target` ones.  
     Then soft update for `Targets` networks are performed wrt parameter `tau`:  
