@@ -1,5 +1,9 @@
 from __future__ import absolute_import
 
+import logging
+import numpy as np
+import tensorflow as tf
+
 from relaax.common.algorithms import subgraph
 from relaax.common.algorithms.lib import graph
 from relaax.common.algorithms.lib import layer
@@ -9,6 +13,10 @@ from relaax.common.algorithms.lib import utils
 
 from . import dppo_config
 
+from relaax.algorithms.trpo.trpo_model import GetVariablesFlatten, SetVariablesFlatten, Categorical, ProbType
+
+logger = logging.getLogger(__name__)
+
 
 class Network(subgraph.Subgraph):
     def build_graph(self):
@@ -16,14 +24,102 @@ class Network(subgraph.Subgraph):
 
         dense = layer.GenericLayers(layer.Flatten(input),
                                     [dict(type=layer.Dense, size=size, activation=layer.Activation.Relu)
-                                    for size in dppo_config.config.hidden_sizes])
+                                     for size in dppo_config.config.hidden_sizes])
 
         actor = layer.Dense(dense, dppo_config.config.output.action_size,
                             activation=layer.Activation.Softmax)
 
         self.state = input.ph_state
+        self.actor = actor
         self.weights = layer.Weights(input, dense, actor)
         return actor.node
+
+
+class PolicyModel(subgraph.Subgraph):
+    def build_graph(self):
+        sg_network = Network()
+
+        # Advantage node
+        ph_adv_n = graph.TfNode(tf.placeholder(tf.float32, name='adv_n'))
+
+        # Placeholder to store action probabilities under the old policy
+        sg_probtype = ProbType(dppo_config.config.output.action_size)
+        ph_oldprob_np = sg_probtype.ProbVariable()
+
+        sg_logp_n = sg_probtype.Loglikelihood(sg_network.actor)
+        sg_oldlogp_n = sg_probtype.Loglikelihood(ph_oldprob_np)
+
+        # PPO clipped surrogate loss
+        # likelihood ratio of old and new policy
+        r_theta = tf.exp(sg_logp_n.node - sg_oldlogp_n.node)
+        surr = r_theta * ph_adv_n.node
+        clip_e = dppo_config.config.clip_e
+        surr_clipped = tf.clip_by_value(r_theta, 1.0 - clip_e, 1.0 + clip_e) * ph_adv_n.node
+        sg_ppo_clip_loss = graph.TfNode(-tf.reduce_mean(tf.minimum(surr, surr_clipped)))
+
+        # Regular gradients
+        sg_ppo_clip_gradients = optimizer.Gradients(sg_network.weights,
+                                                    loss=sg_ppo_clip_loss)
+        self.op_compute_ppo_clip_gradients = self.Op(sg_ppo_clip_gradients.calculate,
+                                                     state=sg_network.state,
+                                                     sampled_variable=sg_probtype.ph_sampled_variable,
+                                                     adv_n=ph_adv_n,
+                                                     oldprob_np=ph_oldprob_np)
+
+        # Flattened gradients
+        sg_ppo_clip_gradients_flatten = GetVariablesFlatten(sg_ppo_clip_gradients.calculate)
+
+        # Weights get/set for updating the policy
+        sg_get_weights_flatten = GetVariablesFlatten(sg_network.weights)
+        sg_set_weights_flatten = SetVariablesFlatten(sg_network.weights)
+
+        self.op_get_weights = self.Op(sg_network.weights)
+        self.op_get_weights_flatten = self.Op(sg_get_weights_flatten)
+        self.op_set_weights_flatten = self.Op(sg_set_weights_flatten, value=sg_set_weights_flatten.ph_value)
+
+        # Init Op for all weights
+        sg_initialize = graph.Initialize()
+        self.op_initialize = self.Op(sg_initialize)
+
+
+class ValueNet(subgraph.Subgraph):
+    def build_graph(self):
+        input_size, = dppo_config.config.input.shape
+
+        # add one extra feature for timestep
+        ph_state = graph.Placeholder(np.float32, shape=(None, input_size + 1))
+
+        activation = layer.Activation.get_activation(dppo_config.config.activation)
+        descs = [dict(type=layer.Dense, size=size, activation=activation) for size
+                 in dppo_config.config.hidden_sizes]
+        descs.append(dict(type=layer.Dense, size=1))
+
+        value = layer.GenericLayers(ph_state, descs)
+
+        ph_ytarg_ny = graph.Placeholder(np.float32)
+        mse = graph.TfNode(tf.reduce_mean(tf.square(ph_ytarg_ny.node - value.node)))
+
+        weights = layer.Weights(value)
+
+        sg_get_weights_flatten = GetVariablesFlatten(weights)
+        sg_set_weights_flatten = SetVariablesFlatten(weights)
+
+        l2 = graph.TfNode(1e-3 * tf.add_n([tf.reduce_sum(tf.square(v)) for v in
+                                           utils.Utils.flatten(weights.node)]))
+        loss = graph.TfNode(l2.node + mse.node)
+
+        sg_gradients = optimizer.Gradients(weights, loss=loss)
+        sg_gradients_flatten = GetVariablesFlatten(sg_gradients.calculate)
+
+        self.op_value = self.Op(value, state=ph_state)
+
+        self.op_get_weights_flatten = self.Op(sg_get_weights_flatten)
+        self.op_set_weights_flatten = self.Op(sg_set_weights_flatten, value=sg_set_weights_flatten.ph_value)
+
+        self.op_compute_loss_and_gradient = self.Ops(loss, sg_gradients_flatten, state=ph_state,
+                                                     ytarg_ny=ph_ytarg_ny)
+
+        self.op_losses = self.Ops(loss, mse, l2, state=ph_state, ytarg_ny=ph_ytarg_ny)
 
 
 # Weights of the policy are shared across
@@ -45,24 +141,105 @@ class SharedParameters(subgraph.Subgraph):
                                            increment=sg_global_step.ph_increment)
         self.op_initialize = self.Op(sg_initialize)
 
+        # First come, first served gradient update
+        def func_fifo_gradient(session, new_gradient, step):
+            current_step = session.op_n_step()
+            logger.info("Gradient with step {} received from agent. Current step: {}".format(step, current_step))
+            session.op_apply_gradients(gradients=new_gradient, increment=1)
 
-# Policy run by Agent(s)
-class PolicyModel(subgraph.Subgraph):
-    def build_graph(self):
-        # Build graph
-        sg_network = Network()
+        # Accumulate gradients from many agents and average them
+        self.gradients = []
 
-        sg_loss = loss.PGLoss(action_size=dppo_config.config.output.action_size,
-                              network=sg_network)
-        sg_gradients = optimizer.Gradients(sg_network.weights, loss=sg_loss)
+        def func_average_gradient(session, new_gradient, step):
+            logger.info("received a gradient, number of gradients collected so far: {}".format(len(self.gradients)))
+            if step >= session.op_n_step():
+                logger.info("gradient is fresh, accepted")
+                self.gradients.append(new_gradient)
+            else:
+                logger.info("gradient is old, rejected")
 
-        # Expose public API
-        self.op_assign_weights = self.Op(sg_network.weights.assign,
-                                         weights=sg_network.weights.ph_weights)
-        self.op_get_action = self.Op(sg_network, state=sg_network.state)
-        self.op_compute_gradients = self.Op(sg_gradients.calculate,
-                                            state=sg_network.state, action=sg_loss.ph_action,
-                                            discounted_reward=sg_loss.ph_discounted_reward)
+            if len(self.gradients) >= dppo_config.config.num_gradients:
+                # we have collected enough gradients, no we can average them and make a step
+                logger.info("computing mean grad")
+                flat_grads = [Shaper.get_flat(g) for g in self.gradients]
+                mean_flat_grad = np.mean(np.stack(flat_grads), axis=0)
+
+                mean_grad = Shaper.reverse(mean_flat_grad, new_gradient)
+                session.op_apply_gradients(gradients=mean_grad, increment=1)
+                self.gradients = []
+
+        # Asynchronous Stochastic Gradient Descent with Delay Compensation, see https://arxiv.org/pdf/1609.08326.pdf
+        self.weights_history = {}
+
+        def init_weight_history(session):
+            self.weights_history[0] = session.op_get_weights_flatten()
+
+        self.op_init_weight_history = self.Call(init_weight_history)
+
+        def func_dc_gradient(session, new_gradient, step):
+            # Assume step to be global step number
+            current_step = session.op_n_step()
+            old_weights_f = self.weights_history[step]
+            current_weights_f = session.op_get_weights_flatten()
+            new_gradient_f = Shaper.get_flat(new_gradient)
+
+            # Compute new gradient
+            delta = dppo_config.config.dc_lambda * (
+            new_gradient_f * new_gradient_f * (current_weights_f - old_weights_f))
+            compensated_gradient_f = new_gradient_f + delta
+
+            compensated_gradient = Shaper.reverse(compensated_gradient_f, new_gradient)
+
+            session.op_apply_gradients(gradients=compensated_gradient, increment=1)
+            updated_weights = session.op_get_weights_flatten()
+            updated_step = session.op_n_step()
+            self.weights_history[updated_step] = updated_weights
+
+            # Cleanup history
+            for k in list(self.weights_history.keys()):
+                if k < updated_step - 20:
+                    try:
+                        del self.weights_history[k]
+                    except KeyError:
+                        pass
+
+        if dppo_config.config.combine_gradient == 'fifo':
+            self.op_submit_gradient = self.Call(func_fifo_gradient)
+        elif dppo_config.config.combine_gradient == 'average':
+            self.op_submit_gradient = self.Call(func_average_gradient)
+        elif dppo_config.config.combine_gradient == 'dc':
+            self.op_submit_gradient = self.Call(func_dc_gradient)
+        else:
+            logger.error("Unknown gradient combination mode: {}".format(dppo_config.config.combine_gradient))
+
+        logger.info("Gradient combination op created")
+
+        self.op_initialize = self.Op(sg_initialize)
+
+
+class Shaper():
+    @staticmethod
+    def numel(x):
+        return np.prod(np.shape(x))
+
+    @classmethod
+    def get_flat(cls, v):
+        tensor_list = list(utils.Utils.flatten(v))
+        u = np.concatenate([np.reshape(t, newshape=[cls.numel(t), ]) for t in tensor_list], axis=0)
+        return u
+
+    @staticmethod
+    def reverse(u, base_shape):
+        tensor_list = list(utils.Utils.flatten(base_shape))
+        shapes = map(np.shape, tensor_list)
+        v_flat = []
+        start = 0
+        for (shape, t) in zip(shapes, tensor_list):
+            size = np.prod(shape)
+            v_flat.append(np.reshape(u[start:start + size], shape))
+            start += size
+        v = utils.Utils.reconstruct(v_flat, base_shape)
+        return v
 
 
 if __name__ == '__main__':

@@ -225,7 +225,7 @@ class PolicyNet(subgraph.Subgraph):
                                                 adv_n=ph_adv_n, prob_variable=ph_oldprob_np)
 
         # PPO clipped surrogate loss
-        # likelihood ration of old and new policy
+        # likelihood ratio of old and new policy
         r_theta = tf.exp(sg_logp_n.node - sg_oldlogp_n.node)
         surr = r_theta * ph_adv_n.node
         clip_e = trpo_config.config.PPO.clip_e
