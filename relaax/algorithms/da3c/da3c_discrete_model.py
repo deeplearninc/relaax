@@ -27,8 +27,9 @@ class Network(subgraph.Subgraph):
             last_size = sizes[-1]
 
         if da3c_config.config.use_lstm:
-            lstm = layer.LSTM(graph.Expand(flattened_input, 0), size=last_size)
-            head = graph.Reshape(lstm, [-1, last_size])
+            n_units = 256
+            lstm = layer.LSTM(graph.Expand(flattened_input, 0), n_units=n_units)
+            head = graph.Reshape(lstm, [-1, n_units])
             layers.append(lstm)
 
             self.ph_lstm_state = lstm.ph_state
