@@ -4,6 +4,7 @@ import tensorflow as tf
 from relaax.common.algorithms import subgraph
 from relaax.common.algorithms.lib import graph
 from relaax.common.algorithms.lib import utils
+from relaax.algorithms.dqn.dqn_config import config as dqn_cfg
 
 
 class DA3CDiscreteLoss(subgraph.Subgraph):
@@ -36,6 +37,29 @@ class DA3CDiscreteLoss(subgraph.Subgraph):
 
         # gradient of policy and value are summed up
         return self.policy_loss + self.value_loss
+
+
+class DQNLoss(subgraph.Subgraph):
+    def build_graph(self, q_network):
+        self.ph_reward = tf.placeholder(tf.float32, [None])
+        self.ph_action = tf.placeholder(tf.int32, [None])
+        self.ph_terminal = tf.placeholder(tf.int32, [None])
+        self.ph_q_next_target = tf.placeholder(tf.float32, [None, dqn_cfg.output.action_size])
+        self.ph_q_next = tf.placeholder(tf.float32, [None, dqn_cfg.output.action_size])
+
+        action_one_hot = tf.one_hot(self.ph_action, dqn_cfg.output.action_size)
+        q_action = tf.reduce_sum(tf.multiply(q_network.node, action_one_hot), axis=1)
+
+        if dqn_cfg.double_dqn:
+            q_max = tf.reduce_sum(self.ph_q_next_target * tf.one_hot(tf.argmax(self.ph_q_next, axis=1),
+                                                                     dqn_cfg.output.action_size), axis=1)
+        else:
+            q_max = tf.reduce_max(self.ph_q_next_target, axis=1)
+
+        y = self.ph_reward + tf.cast(1 - self.ph_terminal, tf.float32) * tf.scalar_mul(dqn_cfg.rewards_gamma,
+                                                                                       q_max)
+
+        return tf.losses.absolute_difference(q_action, y)
 
 
 class DA3CNormContinuousLoss(subgraph.Subgraph):
