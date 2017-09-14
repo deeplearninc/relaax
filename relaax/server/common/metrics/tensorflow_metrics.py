@@ -11,7 +11,9 @@ class TensorflowMetrics(metrics.Metrics):
         self._histogram_summaries = {}
         self._graph = tf.Graph()
         self._writer = tf.summary.FileWriter(metrics_dir, self._graph)
-        self._session = tf.Session(graph=self._graph)
+        config = tf.ConfigProto()
+        config.gpu_options.allow_growth = True
+        self._session = tf.Session(config=config, graph=self._graph)
         self._x = x
 
     def summary(self, summary, x=None):
