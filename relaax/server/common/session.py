@@ -3,7 +3,11 @@ from builtins import object
 import itertools
 import tensorflow as tf
 
+from relaax.common import profiling
 from relaax.server.common.saver import tensorflow_checkpoint
+
+
+profiler = profiling.get_profiler(__name__)
 
 
 class Session(object):
@@ -46,5 +50,6 @@ class SessionMethod(object):
         # print('name', name)
         return SessionMethod(self.session, getattr(self.op_or_model, name))
 
+    @profiler.wrap
     def __call__(self, *args, **kwargs):
         return self.op_or_model(self.session, *args, **kwargs)
