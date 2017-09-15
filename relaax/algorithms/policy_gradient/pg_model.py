@@ -100,8 +100,10 @@ class SharedParameters(subgraph.Subgraph):
         def func_dc_gradient(session, gradients, step):
             # Assume step to be global step number
             current_step = session.op_n_step()
-            old_weights_f = self.weights_history[step]
             current_weights_f = session.op_get_weights_flatten()
+
+            old_weights_f = self.weights_history.get(step, current_weights_f)
+
             new_gradient_f = Shaper.get_flat(gradients)
 
             # Compute new gradient
