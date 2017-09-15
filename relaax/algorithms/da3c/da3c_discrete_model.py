@@ -23,14 +23,14 @@ class Network(subgraph.Subgraph):
         sizes = da3c_config.config.hidden_sizes
         layers = [input]
         flattened_input = layer.Flatten(input)
+
         last_size = flattened_input.node.shape.as_list()[-1]
         if len(sizes) > 0:
             last_size = sizes[-1]
 
         if da3c_config.config.use_lstm:
-            n_units = 256
-            lstm = layer.LSTM(graph.Expand(flattened_input, 0), n_units=n_units)
-            head = graph.Reshape(lstm, [-1, n_units])
+            lstm = layer.LSTM(graph.Expand(flattened_input, 0), n_units=last_size)
+            head = graph.Reshape(lstm, [-1, last_size])
             layers.append(lstm)
 
             self.ph_lstm_state = lstm.ph_state
@@ -65,7 +65,8 @@ class SharedParameters(subgraph.Subgraph):
         if da3c_config.config.optimizer == 'Adam':
             sg_optimizer = optimizer.AdamOptimizer(da3c_config.config.initial_learning_rate)
         else:
-            sg_learning_rate = da3c_graph.LearningRate(sg_global_step)
+            sg_learning_rate = da3c_graph.LearningRate(sg_global_step,
+                                                       da3c_config.config.initial_learning_rate)
             sg_optimizer = optimizer.RMSPropOptimizer(learning_rate=sg_learning_rate,
                                                       decay=da3c_config.config.RMSProp.decay, momentum=0.0,
                                                       epsilon=da3c_config.config.RMSProp.epsilon)
