@@ -7,7 +7,7 @@ log = logging.getLogger("relaax")
 
 
 CONTEXT_SETTINGS = dict(auto_envvar_prefix='RELAAX')
-ALGORITHMS = ['policy-gradient', 'da3c', 'trpo', 'ddpg']
+ALGORITHMS = ['policy-gradient', 'da3c', 'trpo', 'ddpg', 'dppo']
 ALGORITHMS_META = '|'.join(ALGORITHMS)
 ENVIRONMENTS = ['basic', 'openai-gym', 'deepmind-lab']
 ENVIRONMENTS_META = '|'.join(ENVIRONMENTS)

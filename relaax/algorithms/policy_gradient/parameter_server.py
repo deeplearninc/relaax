@@ -10,5 +10,7 @@ class ParameterServer(parameter_server_base.ParameterServerBase):
         self.session = session.Session(pg_model.SharedParameters())
         self.session.op_initialize()
 
+        self.session.op_init_weight_history()
+
     def n_step(self):
         return self.session.op_n_step()
