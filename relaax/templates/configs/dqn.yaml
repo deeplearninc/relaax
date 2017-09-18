@@ -1,5 +1,5 @@
 ---
-# generic DA3C configuration
+# DQN configuration for Open AI Gym CartPole-v0
 
 algorithm:
   name: dqn                             # short name for algorithm to load
@@ -10,7 +10,6 @@ algorithm:
     use_convolutions: false             # set to true to process input by convolution layers
 
   output:
-    continuous: false                   # set to true to switch to continuous action space
     action_size: 2                      # action size for the given environment
 
   double_dqn: true                      # use DoubleDQN if true
