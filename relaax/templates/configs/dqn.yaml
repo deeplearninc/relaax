@@ -20,9 +20,7 @@ algorithm:
 
   max_global_step: 150000               # amount of maximum global steps to pass through the training
   start_sample_step: 2000               # amount of steps before start training local Q-network
-  update_weights_interval: 100          # interval for receiving target Q-network weights from GlobalServer
-  update_target_weights_interval: 2000  # approximate number of steps for updating target Q-network on Agent
-  update_target_weights_min_steps: 500  # minimum number of steps for updating target Q-network after last update
+  update_target_weights_interval: 2000  # number of steps for updating target Q-network on Agent
 
   rewards_gamma: 1.0                    # rewards discount factor
 

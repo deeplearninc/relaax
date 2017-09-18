@@ -3,7 +3,6 @@ from __future__ import absolute_import
 from builtins import object
 
 import logging
-import random
 
 from relaax.common import profiling
 from relaax.server.common import session
@@ -42,18 +41,11 @@ class Trainer(object):
     @profiler.wrap
     def step(self, reward, state, terminal):
         self.local_step += 1
-        self.last_target_weights_update += 1
 
-        if not self._exploit and \
-                self.last_target_weights_update > dqn_config.config.update_target_weights_min_steps and \
-                random.random() < 1.0 / dqn_config.config.update_target_weights_interval:
-            weights = self.session.op_get_weights()
-            self.ps.session.op_assign_target_weights(target_weights=weights)
+        if self.local_step % dqn_config.config.update_target_weights_interval == 0:
+            self.session.op_update_target_weights()
 
-            self.last_target_weights_update = 0
-
-        if self.local_step % dqn_config.config.update_weights_interval == 0:
-            self.receive_experience()
+        self.receive_experience()
 
         if self.local_step > dqn_config.config.start_sample_step:
             self.update()
@@ -96,12 +88,12 @@ class Trainer(object):
         for i, g in enumerate(utils.Utils.flatten(gradients)):
             self.metrics.histogram('gradients_%d' % i, g)
 
-        self.session.op_apply_gradients(gradients=gradients)
+        self.ps.session.op_apply_gradients(gradients=gradients)
 
     @profiler.wrap
     def receive_experience(self):
-        target_weights = self.ps.session.op_get_target_weights()
-        self.session.op_assign_target_weights(target_weights=target_weights)
+        weights = self.ps.session.op_get_weights()
+        self.session.op_assign_weights(weights=weights)
 
     def push_experience(self, reward, state, terminal):
         assert not self.observation.is_none()
