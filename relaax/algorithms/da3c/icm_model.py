@@ -16,6 +16,7 @@ class ICM(subgraph.Subgraph):
 
         shape = [None] + [cfg.config.output.action_size]
         self.ph_probs = graph.Placeholder(np.float32, shape=shape, name='act_probs')
+        self.ph_taken = graph.Placeholder(np.int32, shape=(None,), name='act_taken')
 
         flattened_input = layer.Flatten(input)
         last_size = flattened_input.node.shape.as_list()[-1]
@@ -29,16 +30,18 @@ class ICM(subgraph.Subgraph):
 
         fc_size = cfg.config.hidden_sizes[-1]
         inv_fc1 = layer.Dense(inverse_inp, fc_size, layer.Activation.Relu)
-        inv_fc2 = layer.Dense(inv_fc1, shape[-1], layer.Activation.Softmax)
+        inv_fc2 = layer.Dense(inv_fc1, shape[-1])   # layer.Activation.Softmax
 
         fwd_fc1 = layer.Dense(forward_inp, fc_size, layer.Activation.Relu)
         fwd_fc2 = layer.Dense(fwd_fc1, last_size)
 
-        self.ph_state = input.ph_state  # should be even wrt to batch_size for now
-        self.inv_out = inv_fc2
+        inv_loss = graph.SparseSoftmaxCrossEntropyWithLogits(inv_fc2, self.ph_taken).op
+        fwd_loss = graph.L2loss(fwd_fc2.node - get_second.node).op
 
-        self.discrepancy = graph.L2loss(fwd_fc2.node - get_second.node).op
-        self.rew_out = graph.TfNode(cfg.config.icm.nu * self.discrepancy)
+        self.ph_state = input.ph_state  # should be even wrt to batch_size for now
+        self.rew_out = graph.TfNode(cfg.config.icm.nu * fwd_loss)
+
+        self.loss = graph.TfNode(cfg.config.icm.beta * fwd_loss + (1 - cfg.config.icm.beta) * inv_loss)
 
         layers = [input, inv_fc1, inv_fc2, fwd_fc1, fwd_fc2]
         self.weights = layer.Weights(*layers)

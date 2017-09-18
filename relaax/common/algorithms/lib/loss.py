@@ -4,6 +4,7 @@ import tensorflow as tf
 from relaax.common.algorithms import subgraph
 from relaax.common.algorithms.lib import graph
 from relaax.common.algorithms.lib import utils
+from relaax.algorithms.dqn.dqn_config import config as dqn_cfg
 
 
 class DA3CDiscreteLoss(subgraph.Subgraph):
@@ -27,8 +28,8 @@ class DA3CDiscreteLoss(subgraph.Subgraph):
 
         # policy loss (output)  (Adding minus, because the original paper's
         # objective function is for gradient ascent, but we use gradient descent optimizer)
-        self.policy_loss = (-tf.reduce_sum(tf.reduce_sum(log_pi * action_one_hot, axis=1) * td) +
-                            self.entropy * cfg.entropy_beta)
+        self.policy_loss = -(tf.reduce_sum(tf.reduce_sum(log_pi * action_one_hot, axis=1) * td) +
+                             self.entropy * cfg.entropy_beta)
 
         # value loss (output)
         # (Learning rate for Critic is half of Actor's, so it should be half of l2)
@@ -36,6 +37,29 @@ class DA3CDiscreteLoss(subgraph.Subgraph):
 
         # gradient of policy and value are summed up
         return self.policy_loss + self.value_loss
+
+
+class DQNLoss(subgraph.Subgraph):
+    def build_graph(self, q_network):
+        self.ph_reward = tf.placeholder(tf.float32, [None])
+        self.ph_action = tf.placeholder(tf.int32, [None])
+        self.ph_terminal = tf.placeholder(tf.int32, [None])
+        self.ph_q_next_target = tf.placeholder(tf.float32, [None, dqn_cfg.output.action_size])
+        self.ph_q_next = tf.placeholder(tf.float32, [None, dqn_cfg.output.action_size])
+
+        action_one_hot = tf.one_hot(self.ph_action, dqn_cfg.output.action_size)
+        q_action = tf.reduce_sum(tf.multiply(q_network.node, action_one_hot), axis=1)
+
+        if dqn_cfg.double_dqn:
+            q_max = tf.reduce_sum(self.ph_q_next_target * tf.one_hot(tf.argmax(self.ph_q_next, axis=1),
+                                                                     dqn_cfg.output.action_size), axis=1)
+        else:
+            q_max = tf.reduce_max(self.ph_q_next_target, axis=1)
+
+        y = self.ph_reward + tf.cast(1 - self.ph_terminal, tf.float32) * tf.scalar_mul(dqn_cfg.rewards_gamma,
+                                                                                       q_max)
+
+        return tf.losses.absolute_difference(q_action, y)
 
 
 class DA3CNormContinuousLoss(subgraph.Subgraph):
@@ -50,8 +74,8 @@ class DA3CNormContinuousLoss(subgraph.Subgraph):
         log_prob = normal_dist.log_prob(self.ph_action.node)
 
         self.entropy = tf.reduce_sum(normal_dist.entropy())
-        self.policy_loss = - (tf.reduce_sum(tf.reduce_sum(log_prob, axis=1) * td) +
-                              cfg.entropy_beta * self.entropy)
+        self.policy_loss = -(tf.reduce_sum(tf.reduce_sum(log_prob, axis=1) * td) +
+                             cfg.entropy_beta * self.entropy)
 
         # (Learning rate for Critic is half of Actor's, so it should be half of l2)
         self.value_loss = cfg.critic_scale * tf.nn.l2_loss(td)
@@ -166,23 +190,3 @@ class PGLoss(subgraph.Subgraph):
         log_like_op = tf.log(tf.reduce_sum(tf.one_hot(self.ph_action.node,
                                                       action_size) * network.node, axis=[1]))
         return -tf.reduce_sum(log_like_op * self.ph_discounted_reward.node)
-
-
-class ICMLoss(subgraph.Subgraph):  # pi_lambda=0.1 | beta=0.2
-    def build_graph(self, policy_actor, icm_nn, icm_cfg):
-        self.ph_action = graph.Placeholder(np.int32, (None,), name='action_from_policy')
-        self.ph_discounted_reward = graph.Placeholder(np.float32, (None,), name='edr')
-
-        action_one_hot = tf.one_hot(self.ph_action.node, policy_actor.action_size)
-        action_log_prob = tf.log(tf.maximum(policy_actor.node, 1e-20))
-
-        log_like = tf.reduce_sum(action_log_prob * action_one_hot, axis=1)
-        policy_loss = -tf.reduce_sum(log_like * self.ph_discounted_reward.node) * icm_cfg.pi_lambda
-
-        icm_action = tf.maximum(icm_nn.inv_out.node, 1e-20)
-        max_like_sum = tf.reduce_sum(icm_action * action_one_hot)
-        inv_loss = (1 - icm_cfg.beta) * max_like_sum
-
-        fwd_loss = icm_nn.discrepancy * icm_cfg.beta
-
-        return policy_loss + inv_loss + fwd_loss

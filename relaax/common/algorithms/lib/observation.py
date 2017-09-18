@@ -23,3 +23,9 @@ class Observation(object):
 
             # append latest observation to the end of the observation queue
             self.queue = np.append(self.queue, observation, axis=axis)
+
+    def get_state(self):
+        return self.queue
+
+    def is_none(self):
+        return self.queue is None

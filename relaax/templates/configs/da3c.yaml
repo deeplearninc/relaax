@@ -18,7 +18,7 @@ algorithm:
     scale: 1.0                    # multiplier to scale continuous output
 
   hidden_sizes: []                # list of dense layers sizes, for ex. [128, 64]
-  batch_size: 5                   # maximum batch size, which need to accumulate for one update
+  batch_size: 100                 # maximum batch size, which need to accumulate for one update
 
   use_icm: false                  # to use ICM, set to the True
   use_lstm: false                 # to use LSTM instead of FF, set to the True

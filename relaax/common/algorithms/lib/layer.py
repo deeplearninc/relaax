@@ -9,6 +9,19 @@ from relaax.common.algorithms.lib import utils
 
 
 class Activation(object):
+    @classmethod
+    def _make_map(cls):
+        map = {}
+        for name in ['Null', 'Relu', 'Elu', 'Sigmoid', 'Tanh', 'Softmax', 'Softplus']:
+            activation = getattr(cls, name)
+            map[name] = activation
+            map[name.lower()] = activation
+        return map
+
+    @classmethod
+    def get_activation(cls, name):
+        return cls._map[name]
+
     @staticmethod
     def Null(x):
         return x
@@ -40,6 +53,9 @@ class Activation(object):
     @staticmethod
     def Softplus(x):
         return tf.nn.softplus(x)
+
+
+Activation._map = Activation._make_map()
 
 
 class Border(object):
@@ -74,8 +90,8 @@ class Convolution(BaseLayer):
 
 class Dense(BaseLayer):
     def build_graph(self, x, size=1, activation=Activation.Null, init_var=None):
-        assert len(x.node.shape) == 2
-        shape = (x.node.shape.as_list()[1], size)
+        assert len(x.node.shape) >= 2
+        shape = (x.node.shape.as_list()[-1], size)
 
         def tr(x, W):
             return tf.matmul(x.node, W)
@@ -112,16 +128,16 @@ class DoubleDense(BaseLayer):
 
 
 class LSTM(subgraph.Subgraph):
-    def build_graph(self, x, batch_size=1, size=256):
-        self.phs = [graph.Placeholder(np.float32, [batch_size, size]) for _ in range(2)]
+    def build_graph(self, x, batch_size=1, n_units=256):
+        self.phs = [graph.Placeholder(np.float32, [batch_size, n_units]) for _ in range(2)]
         self.ph_state = graph.TfNode(tuple(ph.node for ph in self.phs))
         self.ph_state.checked = tuple(ph.checked for ph in self.phs)
 
-        self.zero_state = tuple(np.zeros([batch_size, size]) for _ in range(2))
+        self.zero_state = tuple(np.zeros([batch_size, n_units]) for _ in range(2))
 
         state = tf.contrib.rnn.LSTMStateTuple(*self.ph_state.checked)
 
-        lstm = tf.contrib.rnn.BasicLSTMCell(size, state_is_tuple=True)
+        lstm = tf.contrib.rnn.BasicLSTMCell(n_units, state_is_tuple=True)
 
         outputs, self.state = tf.nn.dynamic_rnn(lstm, x.node, initial_state=state,
                                                 sequence_length=tf.shape(x.node)[:1], time_major=False)

@@ -10,11 +10,11 @@ import six.moves.queue as queue
 from relaax.common import profiling
 from relaax.server.common import session
 from relaax.common.algorithms.lib import utils
+from relaax.common.algorithms.lib import observation
 
 from .lib.da3c_replay_buffer import DA3CReplayBuffer
 from . import da3c_config
 from . import da3c_model
-from .lib import da3c_observation
 
 
 logger = logging.getLogger(__name__)
@@ -46,25 +46,25 @@ class Agent(object):
 
     # environment is ready and
     # waiting for agent to initialize
-    def init(self, exploit=False, hogwild_update=True):
+    def init(self, exploit=False):
         self.exploit = exploit
         model = da3c_model.AgentModel()
         self.session = session.Session(model)
         if da3c_config.config.use_lstm:
             self.lstm_state = self.initial_lstm_state = self.lstm_zero_state = model.lstm_zero_state
 
-        self.observation = da3c_observation.DA3CObservation()
+        self.observation = observation.Observation(da3c_config.config.input.history)
         self.last_action = None
         self.last_value = None
         self.last_probs = None
-        if hogwild_update:
+        if da3c_config.config.hogwild and not da3c_config.config.use_icm:
             self.queue = queue.Queue(10)
             threading.Thread(target=self.execute_tasks).start()
             self.receive_experience()
         else:
             self.queue = None
         if da3c_config.config.use_icm:
-            self.icm_observation = da3c_observation.DA3CObservation()
+            self.icm_observation = observation.Observation(da3c_config.config.input.history)
 
         self.replay_buffer = DA3CReplayBuffer(self)
         return True
@@ -93,6 +93,10 @@ class Agent(object):
             if da3c_config.config.use_icm:
                 reward += self.get_intrinsic_reward(state)
             self.push_experience(reward, terminal)
+        else:
+            if da3c_config.config.use_icm:
+                self.icm_observation.add_state(None)
+                self.icm_observation.add_state(state)
 
         if terminal:
             self.observation.add_state(None)
@@ -234,7 +238,7 @@ class Agent(object):
         gamma = da3c_config.config.rewards_gamma
 
         # compute discounted rewards
-        self.discounted_reward = self.discount(np.asarray(reward + [r]), gamma)[:-1]
+        self.discounted_reward = self.discount(np.asarray(reward + [r], dtype=np.float32), gamma)[:-1]
 
         if da3c_config.config.use_gae:
             forward_values = np.asarray(experience['value'][1:] + [r]) * gamma
@@ -259,9 +263,10 @@ class Agent(object):
         states, icm_states = experience['state'], []
         for i in range(len(states) - 1):
             icm_states.extend((states[i], states[i + 1]))
-        return self.session.op_compute_icm_gradients(
-            state=icm_states, probs=experience['probs'], action=experience['action'],
-            discounted_reward=self.discounted_reward)
+        icm_states.extend((states[-1], self.icm_observation.queue))
+        return self.session.op_compute_icm_gradients(state=icm_states,
+                                                     action=experience['action'],
+                                                     probs=experience['probs'])
 
     def apply_gradients(self, gradients, experience_size):
         if M:
