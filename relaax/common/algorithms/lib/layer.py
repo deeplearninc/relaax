@@ -9,6 +9,19 @@ from relaax.common.algorithms.lib import utils
 
 
 class Activation(object):
+    @classmethod
+    def _make_map(cls):
+        map = {}
+        for name in ['Null', 'Relu', 'Elu', 'Sigmoid', 'Tanh', 'Softmax', 'Softplus']:
+            activation = getattr(cls, name)
+            map[name] = activation
+            map[name.lower()] = activation
+        return map
+
+    @classmethod
+    def get_activation(cls, name):
+        return cls._map[name]
+
     @staticmethod
     def Null(x):
         return x
@@ -40,6 +53,9 @@ class Activation(object):
     @staticmethod
     def Softplus(x):
         return tf.nn.softplus(x)
+
+
+Activation._map = Activation._make_map()
 
 
 class Border(object):
@@ -74,8 +90,8 @@ class Convolution(BaseLayer):
 
 class Dense(BaseLayer):
     def build_graph(self, x, size=1, activation=Activation.Null, init_var=None):
-        assert len(x.node.shape) == 2
-        shape = (x.node.shape.as_list()[1], size)
+        assert len(x.node.shape) >= 2
+        shape = (x.node.shape.as_list()[-1], size)
 
         def tr(x, W):
             return tf.matmul(x.node, W)

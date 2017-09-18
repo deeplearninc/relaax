@@ -25,10 +25,10 @@ class Session(object):
 
     def __getattr__(self, name):
         # print('name', name)
-        return SessionMethod(self.session, getattr(self.model, name))
+        return SessionMethod(self, getattr(self.model, name))
 
     def create_checkpoint(self):
-        return tensorflow_checkpoint.TensorflowCheckpoint(self.session)
+        return tensorflow_checkpoint.TensorflowCheckpoint(self.tf_session)
 
 
 class SuperModel(object):
