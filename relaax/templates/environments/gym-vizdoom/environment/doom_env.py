@@ -8,6 +8,7 @@ from builtins import object
 import os
 import sys
 import gym
+import time
 import random
 import logging
 import numpy as np
@@ -26,6 +27,7 @@ log = logging.getLogger(__name__)
 
 class DoomEnv(object):
     def __init__(self, level='ppaquette/DoomMyWayHome-v0'):
+        time.sleep(np.random.randint(100))
         env = gym.make(level)
 
         modewrapper = wrappers.SetPlayingMode('algo')

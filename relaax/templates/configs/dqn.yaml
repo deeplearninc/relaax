@@ -1,0 +1,42 @@
+---
+# generic DA3C configuration
+
+algorithm:
+  name: dqn                             # short name for algorithm to load
+
+  input:
+    shape: [4]                          # shape of input state
+    history: 1                          # number of consecutive states to stack
+    use_convolutions: false             # set to true to process input by convolution layers
+
+  output:
+    continuous: false                   # set to true to switch to continuous action space
+    action_size: 2                      # action size for the given environment
+
+  double_dqn: true                      # use DoubleDQN if true
+  dueling_dqn: true                     # use DuelingDQN if true
+
+  hidden_sizes: [64]                    # list of dense layers sizes, for ex. [128, 64]
+  batch_size: 32                        # maximum batch size, which need to accumulate for one update
+
+  max_global_step: 150000               # amount of maximum global steps to pass through the training
+  start_sample_step: 2000               # amount of steps before start training local Q-network
+  update_weights_interval: 100          # interval for receiving target Q-network weights from GlobalServer
+  update_target_weights_interval: 2000  # approximate number of steps for updating target Q-network on Agent
+  update_target_weights_min_steps: 500  # minimum number of steps for updating target Q-network after last update
+
+  rewards_gamma: 1.0                    # rewards discount factor
+
+  initial_learning_rate: 5e-4           # initial learning rate, which can be anneal by some procedure
+  gradients_norm_clipping: false        # gradients clipping by global norm, if false then it is ignored
+  optimizer: Adam                       # name of optimizer to use within training
+
+  replay_buffer_size: 50000             # maximum number of samples in replay buffer
+  alpha: 1.0                            # prioritization exponent. Larger values lead to more prioritization.
+
+  eps:
+    initial: 1.0                        # initial value for eps
+    end: 0.02                           # end value for epsilon
+    stochastic: False                   # use stochastic number of eps decay steps if true
+    decay_steps: 10000                  # number of decay steps or decay steps range if stochastic == true
+

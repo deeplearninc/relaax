@@ -88,7 +88,9 @@ class Trainer(object):
             self.cur_loop_cnt = 0
             self.ps.session.op_inc_episode_cnt(increment=1)
             self.observation.add_state(None)
-            print('Qmax: %.4f' % (self.max_q / float(self.step_cnt)))
+            Qmax = self.max_q / float(self.step_cnt)
+            print('Qmax: %.4f' % Qmax)
+            self.metrics.scalar('Qmax', Qmax, self.episode_cnt)
             self.max_q = self.step_cnt = 0
 
         assert self.last_action is None

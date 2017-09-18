@@ -14,7 +14,7 @@ class Gradients(subgraph.Subgraph):
                 gradients = [g / float(batch_size) for g in gradients]
 
             # store gradients global norm before clipping
-            self.global_norm = graph.TfNode(tf.global_norm(gradients))
+            self.global_norm = tf.global_norm(gradients)
 
             # clip gradients after global norm has been stored
             if norm:
@@ -32,6 +32,6 @@ class AdamOptimizer(subgraph.Subgraph):
 
 
 class RMSPropOptimizer(subgraph.Subgraph):
-    def build_graph(self, learning_rate, decay, momentum, epsilon):
+    def build_graph(self, learning_rate, decay=0.9, momentum=0.0, epsilon=1e-10):
         return tf.train.RMSPropOptimizer(learning_rate=learning_rate.node, decay=decay, momentum=momentum,
                                          epsilon=epsilon)
