@@ -12,6 +12,7 @@ profiler = profiling.get_profiler(__name__)
 
 class Session(object):
     def __init__(self, *args, **kwargs):
+        # Prevents TF from consuming all GPU RAM if running on GPU
         config = tf.ConfigProto()
         config.gpu_options.allow_growth = True
         self.session = tf.Session(config=config)
