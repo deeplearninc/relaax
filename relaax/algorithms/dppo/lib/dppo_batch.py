@@ -19,6 +19,7 @@ class DPPOBatch(object):
         self.exploit = exploit
         self.ps = parameter_server
         self.session = session.Session(dppo_model.PolicyModel())
+        self.value_session = session.Session(dppo_model.ValueModel())
         self.reset()
         self.last_state = None
         self.last_action = None
@@ -95,10 +96,11 @@ class DPPOBatch(object):
         return utils.choose_action_descrete(probabilities, self.exploit)
 
     def compute_gradients(self, experience):
-        discounted_reward = utils.discounted_reward(
-            experience['reward'],
-            dppo_config.config.GAMMA
-        )
+
+        #discounted_reward = utils.discounted_reward(
+        #    experience['reward'],
+        #    dppo_config.config.GAMMA
+        #)
         return self.session.op_compute_gradients(
             state=experience['state'],
             action=experience['action'],
