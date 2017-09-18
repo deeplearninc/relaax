@@ -1,12 +1,13 @@
 from __future__ import absolute_import
 
-from builtins import object
 import logging
 import numpy as np
 
-from . import pg_config
-from .lib import pg_batch
+from relaax.server.common import session
 
+from . import pg_config
+from . import pg_model
+from .trainer import Trainer
 
 logger = logging.getLogger(__name__)
 
@@ -19,31 +20,21 @@ class Agent(object):
     def __init__(self, parameter_server, metrics):
         self.ps = parameter_server
         self.metrics = metrics
+        self.session = None
+        self.trainer = None
 
     # environment is ready and
     # waiting for agent to initialize
     def init(self, exploit=False):
-        self.batch = pg_batch.PGBatch(self.ps, exploit)
-        self.batch.begin()
+        self.session = session.Session(pg_model.PolicyModel())
+        self.trainer = Trainer(self.session, exploit, self.ps, self.metrics)
         return True
 
     # environment generated new state and reward
     # and asking agent for an action for this state
     def update(self, reward, state, terminal):
         self.check_state_shape(state)
-
-        action = self.batch.step(reward, state, terminal)
-
-        if (len(self.batch.experience) == pg_config.config.batch_size) or terminal:
-            self.batch.end()
-            self.batch.begin()
-
-        return action
-
-    # environment is asking to reset agent
-    def reset(self):
-        self.batch.reset()
-        return True
+        return self.trainer.step(reward, state, terminal)
 
     @staticmethod
     def check_state_shape(state):
