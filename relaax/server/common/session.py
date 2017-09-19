@@ -29,7 +29,7 @@ class Session(object):
         return SessionMethod(self, getattr(self.model, name))
 
     def create_checkpoint(self):
-        return tensorflow_checkpoint.TensorflowCheckpoint(self.tf_session)
+        return tensorflow_checkpoint.TensorflowCheckpoint(self.session)
 
 
 class SuperModel(object):

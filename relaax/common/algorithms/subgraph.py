@@ -41,7 +41,7 @@ class Op(object):
         # for k, v in self.flatten_feed_dict(feed_dict).items():
         #     import numpy as np
         #     print(repr(k), repr(np.asarray(v).shape))
-        return self.reconstruct(session.tf_session.run(list(self.flatten(self.op)),
+        return self.reconstruct(session.session.run(list(self.flatten(self.op)),
                                 feed_dict=self.flatten_feed_dict(feed_dict)), self.op)
 
     @classmethod
