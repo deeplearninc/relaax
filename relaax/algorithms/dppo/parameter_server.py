@@ -20,6 +20,12 @@ class ParameterServer(parameter_server_base.ParameterServerBase):
 
         self.session = session.Session(policy=policy_shared, value_func=value_func_shared)
 
+        self.session.policy.op_initialize()
+        self.session.policy.op_init_weight_history()
+
+        self.session.value_func.op_initialize()
+        self.session.value_func.op_init_weight_history()
+
     def n_step(self):
         policy_step = self.session.policy.op_n_step()
         value_step = self.session.value_func.op_n_step()
