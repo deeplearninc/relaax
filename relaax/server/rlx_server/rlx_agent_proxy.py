@@ -18,7 +18,7 @@ class RLXAgentProxy(object):
     def __init__(self):
         ps = ps_bridge_connection.PsBridgeConnection(options.parameter_server)
         metrics_connection = metrics_bridge_connection.MetricsBridgeConnection(options)
-        metrics = x_metrics.XMetrics(ps.session.op_n_step, metrics_connection.metrics)
+        metrics = x_metrics.XMetrics(ps.n_step, metrics_connection.metrics)
         self.agent = options.Agent(ps, metrics)
         self.average = Average(100, lambda x: self.agent.metrics.scalar('average_reward', x))
 

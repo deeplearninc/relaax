@@ -190,6 +190,7 @@ class BridgeMessage(object):
             NoneMarshaller(bridge_pb2.Item.NONE, type(None)),
             ScalarMarshaller(bridge_pb2.Item.BOOL, bool, 'bool_value'),
             ScalarMarshaller(bridge_pb2.Item.INT, int, 'int_value'),
+            ScalarMarshaller(bridge_pb2.Item.LONG, long, 'int_value'),
             ScalarMarshaller(bridge_pb2.Item.NUMPY_INT_32, np.int32, 'int_value'),
             ScalarMarshaller(bridge_pb2.Item.NUMPY_INT_64, np.int64, 'int_value'),
             ScalarMarshaller(bridge_pb2.Item.FLOAT, float, 'float_value'),

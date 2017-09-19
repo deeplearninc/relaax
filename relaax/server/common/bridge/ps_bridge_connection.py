@@ -29,6 +29,9 @@ class PsBridgeConnection(object):
             self._init_ten_times()
         return self._stub
 
+    def n_step(self):
+        return self._stub.NStep(bridge_pb2.NullMessage()).value
+
     def _init_ten_times(self):
         message = bridge_pb2.NullMessage()
         for _ in range(9):
