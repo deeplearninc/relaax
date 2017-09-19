@@ -190,7 +190,6 @@ class BridgeMessage(object):
             NoneMarshaller(bridge_pb2.Item.NONE, type(None)),
             ScalarMarshaller(bridge_pb2.Item.BOOL, bool, 'bool_value'),
             ScalarMarshaller(bridge_pb2.Item.INT, int, 'int_value'),
-            ScalarMarshaller(bridge_pb2.Item.LONG, long, 'int_value'),
             ScalarMarshaller(bridge_pb2.Item.NUMPY_INT_32, np.int32, 'int_value'),
             ScalarMarshaller(bridge_pb2.Item.NUMPY_INT_64, np.int64, 'int_value'),
             ScalarMarshaller(bridge_pb2.Item.FLOAT, float, 'float_value'),
@@ -205,6 +204,8 @@ class BridgeMessage(object):
         # True for Python 3, False for Python 2
         if type('') != type(b''):
             marshallers.append(ScalarMarshaller(bridge_pb2.Item.STR, type(''), 'str_value'))
+        else:
+            marshallers.append(ScalarMarshaller(bridge_pb2.Item.LONG, long, 'int_value'))
 
         for marshaller in marshallers:
             assert marshaller.value_type not in cls.SERIALIZERS
