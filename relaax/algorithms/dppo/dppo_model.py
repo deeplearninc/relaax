@@ -44,8 +44,10 @@ class PolicyModel(subgraph.Subgraph):
         # Advantage node
         ph_adv_n = graph.TfNode(tf.placeholder(tf.float32, name='adv_n'))
 
-        # Placeholder to store action probabilities under the old policy
+        # Contains placeholder for the actual action made by the agent
         sg_probtype = ProbType(dppo_config.config.output.action_size)
+
+        # Placeholder to store action probabilities under the old policy
         ph_oldprob_np = sg_probtype.ProbVariable()
 
         sg_logp_n = sg_probtype.Loglikelihood(sg_network.actor)
@@ -64,9 +66,9 @@ class PolicyModel(subgraph.Subgraph):
                                                     loss=sg_ppo_clip_loss)
         self.op_compute_ppo_clip_gradients = self.Op(sg_ppo_clip_gradients.calculate,
                                                      state=sg_network.state,
-                                                     sampled_variable=sg_probtype.ph_sampled_variable,
-                                                     adv_n=ph_adv_n,
-                                                     oldprob_np=ph_oldprob_np)
+                                                     action=sg_probtype.ph_sampled_variable,
+                                                     advantage=ph_adv_n,
+                                                     old_prob=ph_oldprob_np)
 
         # Flattened gradients
         sg_ppo_clip_gradients_flatten = GetVariablesFlatten(sg_ppo_clip_gradients.calculate)
@@ -269,6 +271,7 @@ class SharedParameters(subgraph.Subgraph):
 
         self.policy = sg_policy_shared
         self.value_func = sg_value_func_shared
+
 
 class Shaper():
     @staticmethod

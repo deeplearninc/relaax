@@ -2,8 +2,8 @@ algorithm:
   name: dppo
 
   input:
-    shape: [0]
-    history: 0
+    shape: [4]
+    history: 1
     use_convolutions: false
 
   output:
