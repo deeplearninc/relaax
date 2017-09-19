@@ -10,7 +10,9 @@ class Session(object):
     def __init__(self, *args, **kwargs):
         config = tf.ConfigProto()
         config.gpu_options.allow_growth = True
-        self.tf_session = tf.Session(config=config)
+        self._parent_session = None
+        self._name = 'root_session'
+        self._tf_session = tf.Session(config=config)
         if len(args) == 0:
             assert len(kwargs) > 0
             self.model = SuperModel(kwargs)
@@ -20,11 +22,10 @@ class Session(object):
 
 
     def __getattr__(self, name):
-        # print('name', name)
-        return SessionMethod(self, getattr(self.model, name))
+        return SessionMethod(self, name, getattr(self.model, name))
 
     def create_checkpoint(self):
-        return tensorflow_checkpoint.TensorflowCheckpoint(self.tf_session)
+        return tensorflow_checkpoint.TensorflowCheckpoint(self._tf_session)
 
 
 class SuperModel(object):
@@ -38,13 +39,24 @@ class SuperModel(object):
 
 
 class SessionMethod(object):
-    def __init__(self, session, op_or_model):
-        self.session = session
-        self.op_or_model = op_or_model
+    def __init__(self, parent_session, name, op_or_model):
+        self._parent_session = parent_session
+        self._name = name
+        self._tf_session = parent_session._tf_session
+        self._op_or_model = op_or_model
 
     def __getattr__(self, name):
-        # print('name', name)
-        return SessionMethod(self.session, getattr(self.op_or_model, name))
+        return SessionMethod(self, name, getattr(self._op_or_model, name))
 
     def __call__(self, *args, **kwargs):
-        return self.op_or_model(self.session, *args, **kwargs)
+        return self._op_or_model(self._parent_session, *args, **kwargs)
+
+    def _full_path(self):
+        s = self
+        r = ''
+        while s is not None:
+            if r != '':
+                r = '.' + r
+            r = s._name + r
+            s = s._parent_session
+        return r
