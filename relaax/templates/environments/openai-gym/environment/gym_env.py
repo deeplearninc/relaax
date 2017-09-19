@@ -67,6 +67,8 @@ class GymEnv(object):
 
         shape = options.get('environment/shape', options.get('environment/image', (84, 84)))
         self._shape = shape[:2]
+        if len(self._shape) > 1:
+            self._channels = 0 if len(shape) == 2 else shape[-1]
 
         self._crop = options.get('environment/crop', True)
         self._process_state = self._process_all
@@ -91,15 +93,15 @@ class GymEnv(object):
             return space.shape[0]
         return space.n
 
+    def get_action_high(self):
+        return self.gym.action_space.high
+
     def act(self, action):
         if self._show_ui or self._record:
             self.gym.render()
 
         state, reward, terminal, info = self.gym.step(action)
-        if terminal:
-            state = None
-        else:
-            state = self._process_state(state)
+        state = self._process_state(state)
 
         return reward, state, terminal
 
@@ -120,18 +122,23 @@ class GymEnv(object):
         return state
 
     def _process_img(self, screen):
+        if self._channels < 2:
+            screen = np.dot(screen[..., :3], [0.299, 0.587, 0.114]).astype(np.uint8)
+
         if self._crop:
-            screen = screen[32:36 + 160, :160]
+            screen = screen[34:34 + 160, :160]
 
-        if self._shape[0] < 84:
-            screen = np.array(Image.fromarray(screen).resize(
-                (84, 84), resample=Image.BILINEAR), dtype=np.uint8)
+        if self._shape[0] < 80:
+            screen = np.array(Image.fromarray(screen).resize((80, 80), resample=Image.BILINEAR),
+                              dtype=np.uint8)
 
-        screen = RLXMessageImage(Image.fromarray(screen).resize(
-            self._shape, resample=Image.BILINEAR))
+        screen = RLXMessageImage(Image.fromarray(screen).resize(self._shape, resample=Image.BILINEAR))
 
         return screen
 
-    @staticmethod
-    def _process_all(state):
+    def _process_all(self, state):
+        if self._shape == (84, 84):
+            self._shape = state.shape
+        if state.shape != self._shape:
+            state = np.reshape(state, self._shape)
         return state

@@ -4,10 +4,13 @@ from __future__ import division
 
 from builtins import range
 from builtins import object
+
 import os
 import sys
 import gym
+import time
 import random
+import logging
 import numpy as np
 from collections import deque
 from PIL import Image
@@ -16,11 +19,15 @@ from gym.spaces import Box
 from gym.wrappers.frame_skipping import SkipWrapper
 from ppaquette_gym_doom import wrappers
 
-from relaax.client.rlx_client_config import options
+from relaax.environment.config import options
+
+gym.configuration.undo_logger_setup()
+log = logging.getLogger(__name__)
 
 
 class DoomEnv(object):
     def __init__(self, level='ppaquette/DoomMyWayHome-v0'):
+        time.sleep(np.random.randint(100))
         env = gym.make(level)
 
         modewrapper = wrappers.SetPlayingMode('algo')
@@ -53,10 +60,10 @@ class DoomEnv(object):
             env._max_episode_steps = limit
 
         shape = options.get('environment/shape', (42, 42))
-        self._shape = (shape[0], shape[1])
-        self._channels = 1 if len(shape) == 2 else 3
+        self._shape = shape[:2]
+        self._channels = 0 if len(shape) == 2 else shape[-1]
 
-        self.action_size = self._get_action_size()
+        self.action_size = self._get_action_size(env)
         if self.action_size != options.algorithm.output.action_size:
             print('Algorithm expects different action size (%d) from gym (%d). \n'
                   'Please set correct action size in you configuration yaml.' % (
@@ -72,8 +79,8 @@ class DoomEnv(object):
         self._scale = (1.0 / 255.0)
         self.reset()
 
-    def _get_action_size(self):
-        space = self.env.action_space
+    def _get_action_size(self, env):
+        space = env.action_space
         if isinstance(space, Box):
             return space.shape[0]
         return space.n
@@ -109,7 +116,7 @@ class DoomEnv(object):
         self._obs_buffer.append(screen)
         screen = np.max(np.stack(self._obs_buffer), axis=0)
 
-        if self._channels == 1:
+        if self._channels < 2:
             screen = np.dot(screen[..., :3], [0.299, 0.587, 0.114])
 
         screen = np.array(Image.fromarray(screen).resize(

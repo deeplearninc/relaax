@@ -5,6 +5,7 @@ import numpy as np
 from relaax.common.algorithms import subgraph
 from relaax.common.algorithms.lib import graph
 from relaax.common.algorithms.lib import layer
+from relaax.common.algorithms.lib import optimizer
 from relaax.common.algorithms.lib import utils
 
 from .lib import fun_graph
@@ -78,14 +79,14 @@ class GlobalManagerNetwork(subgraph.Subgraph):
         # tf.placeholder(tf.float32, [], name="manager_lr")
         sg_learning_rate = fun_graph.LearningRate(sg_global_step)
 
-        sg_optimizer = graph.RMSPropOptimizer(
+        sg_optimizer = optimizer.RMSPropOptimizer(
             learning_rate=sg_learning_rate,
             decay=cfg.RMSProp.decay,
             momentum=0.0,
             epsilon=cfg.RMSProp.epsilon
         )
 
-        sg_gradients = layer.Gradients(sg_weights, optimizer=sg_optimizer)
+        sg_gradients = optimizer.Gradients(sg_weights, optimizer=sg_optimizer)
         sg_initialize = graph.Initialize()
 
         # Expose public API
@@ -103,7 +104,7 @@ class LocalManagerNetwork(subgraph.Subgraph):
         self.sg_network = _ManagerNetwork()
 
         sg_loss = fun_graph.CosineLoss(self.sg_network.goal, self.sg_network.value)
-        sg_gradients = layer.Gradients(self.sg_network.weights, loss=sg_loss)
+        sg_gradients = optimizer.Gradients(self.sg_network.weights, loss=sg_loss)
 
         # Expose public API
         self.op_assign_weights = self.Op(self.sg_network.weights.assign,
@@ -201,14 +202,14 @@ class GlobalWorkerNetwork(subgraph.Subgraph):
         sg_global_step = graph.GlobalStep()
         sg_learning_rate = fun_graph.LearningRate(sg_global_step)
 
-        sg_optimizer = graph.RMSPropOptimizer(
+        sg_optimizer = optimizer.RMSPropOptimizer(
             learning_rate=sg_learning_rate,
             decay=cfg.RMSProp.decay,
             momentum=0.0,
             epsilon=cfg.RMSProp.epsilon
         )
 
-        sg_gradients = layer.Gradients(sg_weights, optimizer=sg_optimizer)
+        sg_gradients = optimizer.Gradients(sg_weights, optimizer=sg_optimizer)
         sg_initialize = graph.Initialize()
 
         # Expose public API
@@ -226,7 +227,7 @@ class LocalWorkerNetwork(subgraph.Subgraph):
         self.sg_network = _WorkerNetwork()
 
         sg_loss = fun_graph.A3CLoss(self.sg_network.pi, self.sg_network.vi, entropy=False)
-        sg_gradients = layer.Gradients(self.sg_network.weights, loss=sg_loss)
+        sg_gradients = optimizer.Gradients(self.sg_network.weights, loss=sg_loss)
 
         # Expose public API
         self.op_assign_weights = self.Op(self.sg_network.weights.assign,

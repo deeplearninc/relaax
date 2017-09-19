@@ -140,7 +140,7 @@ class ParameterServer(object):
 
     @staticmethod
     def metrics_factory(x):
-        connection = metrics_bridge_connection.MetricsBridgeConnection(options.metrics_server)
+        connection = metrics_bridge_connection.MetricsBridgeConnection(options)
         return x_metrics.XMetrics(x, connection.metrics)
 
     @staticmethod

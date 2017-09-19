@@ -62,21 +62,6 @@ class XavierInitializer(object):
         )
 
 
-class AdamOptimizer(subgraph.Subgraph):
-    def build_graph(self, learning_rate=0.001):
-        return tf.train.AdamOptimizer(learning_rate=learning_rate)
-
-
-class RMSPropOptimizer(subgraph.Subgraph):
-    def build_graph(self, learning_rate, decay, momentum, epsilon):
-        return tf.train.RMSPropOptimizer(
-            learning_rate=learning_rate.node,
-            decay=decay,
-            momentum=momentum,
-            epsilon=epsilon
-        )
-
-
 class L2loss(subgraph.Subgraph):
     """Computes half the L2 norm of a tensor without the sqrt."""
 
@@ -89,8 +74,32 @@ class L2loss(subgraph.Subgraph):
         Returns:
             A Tensor. Has the same type as t.
         """
+        self.op = tf.nn.l2_loss(t, name=name)
 
-        return tf.nn.l2_loss(t, name=name)
+
+class SparseSoftmaxCrossEntropyWithLogits(subgraph.Subgraph):
+    """Computes sparse softmax cross entropy between `logits` and `labels`."""
+
+    def build_graph(self, logits, labels, name=None):
+        """
+        Args:
+          logits: Unscaled log probabilities of rank `r` and shape
+            `[d_0, d_1, ..., d_{r-2}, num_classes]` with `float` dtype.
+          labels: `Tensor` of shape `[d_0, d_1, ..., d_{r-2}]` with `int` dtype.
+            Each entry in `labels` must be an index in `[0, num_classes)`.
+          name: A name for the operation (optional).
+
+        Returns:
+          A `Tensor` of the same shape as `labels` and of the same type as `logits`
+          with the softmax cross entropy loss.
+        """
+        self.op = tf.reduce_sum(
+            tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits.node, labels=labels.node), name=name)
+
+
+class ArgMax(subgraph.Subgraph):
+    def build_graph(self, input, axis=None, name=None):
+        self.op = tf.argmax(input.node, axis=axis, name=name)
 
 
 class Softmax(subgraph.Subgraph):
@@ -114,8 +123,8 @@ class Expand(subgraph.Subgraph):
 
 
 class Concat(subgraph.Subgraph):
-    def build_graph(self, concat_dim, values, name='concat'):
-        return tf.concat(concat_dim, [v.node for v in values], name=name)
+    def build_graph(self, values, axis, name='concat'):
+        return tf.concat([v.node for v in values], axis, name=name)
 
 
 class List(subgraph.Subgraph):
@@ -175,18 +184,20 @@ class Placeholder(subgraph.Subgraph):
         np.float32: tf.float32
     }
 
-    def build_graph(self, dtype, shape=None):
+    def build_graph(self, dtype, shape=None, name=None):
         """Assemble one placeholder.
 
         Args:
-            shape: placehoder shape
-            dtype: placeholder data type
+            shape: The shape of the tensor to be fed (optional). If the shape is not
+      specified, you can feed a tensor of any shape.
+            dtype: The type of elements in the placeholder to be fed.
+            name: A name for the placeholder (optional).
 
         Returns:
             placeholder of given shape and data type
         """
 
-        ph = tf.placeholder(self.DTYPE[dtype], shape=shape)
+        ph = tf.placeholder(self.DTYPE[dtype], shape=shape, name=name)
         if dtype not in [np.int32, np.int64]:
             self.checked = tf.check_numerics(ph, '')
         return ph
@@ -238,3 +249,14 @@ class Initialize(subgraph.Subgraph):
 class TfNode(subgraph.Subgraph):
     def build_graph(self, tf_tensor):
         return tf_tensor
+
+
+class AssignWeights(subgraph.Subgraph):
+    def build_graph(self, w1, w2, part=None):
+        if part is None:
+            self.op = TfNode([tf.assign(variable, value) for variable, value
+                              in utils.Utils.izip(w1.node, w2.node)])
+        else:
+            trap = 1. - part
+            self.op = TfNode([tf.assign(variable, trap * variable + part * value) for variable, value
+                              in utils.Utils.izip(w1.node, w2.node)])

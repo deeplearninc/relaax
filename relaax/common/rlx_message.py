@@ -1,17 +1,19 @@
 from builtins import object
-import sys
+
 import numpy as np
 from PIL import Image
-from struct import *
+from struct import pack, unpack_from
 
 V = False
+
 
 class RLXMessageImage(object):
     def __init__(self, image):
         self.image = image
 
+
 class RLXMessage(object):
-    #types: https://docs.python.org/3.5/library/struct.html#struct.pack_into
+    # types: https://docs.python.org/3.5/library/struct.html#struct.pack_into
     TYPE_NONE = 0
     TYPE_NULL = 1
     TYPE_INT4 = 2
@@ -26,25 +28,37 @@ class RLXMessage(object):
     TYPE_DICT = 11
 
     pack_info = {
-        type(None).__name__: {'id': TYPE_NULL, 'pack_func': lambda cls, *args:cls._pack_null(*args), 'unpack_func': lambda cls, *args:cls._unpack_null(*args)},
-        int.__name__: {'id': TYPE_INT4, 'pack_func': lambda cls, *args:cls._pack_int(*args), 'unpack_func': lambda cls, *args:cls._unpack_int(*args)},
-        'int32': {'id': TYPE_INT4, 'pack_func': lambda cls, *args:cls._pack_int(*args), 'unpack_func': lambda cls, *args:cls._unpack_int(*args)},
-        'int64': {'id': TYPE_INT64, 'pack_func': lambda cls, *args:cls._pack_int64(*args), 'unpack_func': lambda cls, *args:cls._unpack_int64(*args)},
-        str.__name__: {'id': TYPE_STRING_UTF8, 'pack_func': lambda cls, *args:cls._pack_string(*args), 'unpack_func': lambda cls,*args:cls._unpack_string(*args)},
-        float.__name__: {'id': TYPE_DOUBLE, 'pack_func': lambda cls, *args:cls._pack_double(*args), 'unpack_func': lambda cls,*args:cls._unpack_double(*args)},
-        'float64': {'id': TYPE_DOUBLE, 'pack_func': lambda cls, *args:cls._pack_double(*args), 'unpack_func': lambda cls,*args:cls._unpack_double(*args)},
-        bool.__name__: {'id': TYPE_BOOLEAN, 'pack_func': lambda cls, *args:cls._pack_bool(*args), 'unpack_func': lambda cls,*args:cls._unpack_bool(*args)},
-        RLXMessageImage.__name__: {'id': TYPE_IMAGE, 'pack_func': lambda cls, *args:cls._pack_image(*args), 'unpack_func': lambda cls,*args:cls._unpack_image(*args)},
-        np.ndarray.__name__: {'id': TYPE_NDARRAY, 'pack_func': lambda cls, *args:cls._pack_ndarray(*args), 'unpack_func': lambda cls,*args:cls._unpack_ndarray(*args)},
-        list.__name__: {'id': TYPE_LIST, 'pack_func': lambda cls, *args:cls._pack_list(*args), 'unpack_func': lambda cls,*args:cls._unpack_list(*args)},
-        dict.__name__: {'id': TYPE_DICT, 'pack_func': lambda cls, *args:cls._pack_dict(*args), 'unpack_func': lambda cls,*args:cls._unpack_dict(*args)},
-
+        type(None).__name__: {'id': TYPE_NULL, 'pack_func': lambda cls, *args: cls._pack_null(*args),
+                              'unpack_func': lambda cls, *args: cls._unpack_null(*args)},
+        int.__name__: {'id': TYPE_INT4, 'pack_func': lambda cls, *args: cls._pack_int(*args),
+                       'unpack_func': lambda cls, *args: cls._unpack_int(*args)},
+        'int32': {'id': TYPE_INT4, 'pack_func': lambda cls, *args: cls._pack_int(*args),
+                  'unpack_func': lambda cls, *args: cls._unpack_int(*args)},
+        'int64': {'id': TYPE_INT64, 'pack_func': lambda cls, *args: cls._pack_int64(*args),
+                  'unpack_func': lambda cls, *args: cls._unpack_int64(*args)},
+        str.__name__: {'id': TYPE_STRING_UTF8, 'pack_func': lambda cls, *args: cls._pack_string(*args),
+                       'unpack_func': lambda cls, *args: cls._unpack_string(*args)},
+        float.__name__: {'id': TYPE_DOUBLE, 'pack_func': lambda cls, *args: cls._pack_double(*args),
+                         'unpack_func': lambda cls, *args: cls._unpack_double(*args)},
+        'float64': {'id': TYPE_DOUBLE, 'pack_func': lambda cls, *args: cls._pack_double(*args),
+                    'unpack_func': lambda cls, *args: cls._unpack_double(*args)},
+        bool.__name__: {'id': TYPE_BOOLEAN, 'pack_func': lambda cls, *args: cls._pack_bool(*args),
+                        'unpack_func': lambda cls, *args: cls._unpack_bool(*args)},
+        RLXMessageImage.__name__: {'id': TYPE_IMAGE, 'pack_func': lambda cls, *args: cls._pack_image(*args),
+                                   'unpack_func': lambda cls, *args: cls._unpack_image(*args)},
+        np.ndarray.__name__: {'id': TYPE_NDARRAY, 'pack_func': lambda cls, *args: cls._pack_ndarray(*args),
+                              'unpack_func': lambda cls, *args: cls._unpack_ndarray(*args)},
+        list.__name__: {'id': TYPE_LIST, 'pack_func': lambda cls, *args: cls._pack_list(*args),
+                        'unpack_func': lambda cls, *args: cls._unpack_list(*args)},
+        dict.__name__: {'id': TYPE_DICT, 'pack_func': lambda cls, *args: cls._pack_dict(*args),
+                        'unpack_func': lambda cls, *args: cls._unpack_dict(*args)}
     }
 
     @classmethod
     def _pack_type(cls, type_id, buf, pack_type=True):
         if pack_type:
             buf += pack("B", type_id)
+
     @classmethod
     def _unpack_type(cls, buf, offset):
         return unpack_from("B", buf, offset)[0], offset+1
@@ -52,6 +66,7 @@ class RLXMessage(object):
     @classmethod
     def _pack_null(cls, value, buf, pack_type=True):
         cls._pack_type(cls.TYPE_NULL, buf, pack_type)
+
     @classmethod
     def _unpack_null(cls, buf, offset):
         return None, offset
@@ -63,6 +78,7 @@ class RLXMessage(object):
         bval = bytearray(str(value).encode('UTF-8'))
         buf += pack("I", len(bval))
         buf += bval
+
     @classmethod
     def _unpack_string(cls, buf, offset):
         reslen = unpack_from("I", buf, offset)[0]
@@ -76,6 +92,7 @@ class RLXMessage(object):
     def _pack_int(cls, value, buf, pack_type=True):
         cls._pack_type(cls.TYPE_INT4, buf, pack_type)
         buf += pack("i", value)
+
     @classmethod
     def _unpack_int(cls, buf, offset):
         res = unpack_from("i", buf, offset)[0]
@@ -86,6 +103,7 @@ class RLXMessage(object):
     def _pack_int64(cls, value, buf, pack_type=True):
         cls._pack_type(cls.TYPE_INT64, buf, pack_type)
         buf += pack("q", value)
+
     @classmethod
     def _unpack_int64(cls, buf, offset):
         res = unpack_from("q", buf, offset)[0]
@@ -96,6 +114,7 @@ class RLXMessage(object):
     def _pack_double(cls, value, buf, pack_type=True):
         cls._pack_type(cls.TYPE_DOUBLE, buf, pack_type)
         buf += pack("d", value)
+
     @classmethod
     def _unpack_double(cls, buf, offset):
         res = unpack_from("d", buf, offset)[0]
@@ -106,6 +125,7 @@ class RLXMessage(object):
     def _pack_bool(cls, value, buf, pack_type=True):
         cls._pack_type(cls.TYPE_BOOLEAN, buf, pack_type)
         buf += pack("B", 1 if value else 0)
+
     @classmethod
     def _unpack_bool(cls, buf, offset):
         res = unpack_from("B", buf, offset)[0]
@@ -123,6 +143,7 @@ class RLXMessage(object):
         bval = value.image.tobytes()
         buf += pack("I", len(bval))
         buf += bval
+
     @classmethod
     def _unpack_image(cls, buf, offset):
         mode, offset = cls._unpack_string(buf, offset)
@@ -133,13 +154,13 @@ class RLXMessage(object):
 
         reslen = unpack_from("I", buf, offset)[0]
         offset += 4
-        img = Image.frombytes(mode, (x, y), bytes(buf[offset:offset+reslen]))#.convert("RGB")
+        img = Image.frombytes(mode, (x, y), bytes(buf[offset:offset+reslen]))  # .convert("RGB")
         res = np.asarray(img)
-        if img.mode == "L" or img.mode == "RGB" or img.mode == "RGBA" or img.mode == "CMYK" or img.mode == "YCbCr" or img.mode == "LAB" or img.mode == "HSV":
+        if img.mode in ["L", "RGB", "RGBA", "CMYK", "YCbCr", "LAB", "HSV"]:
             res = res.astype(np.float32) * (1.0 / 255.0)
 
-        #print(res.shape)
-        #res = np.reshape(res, (x, y, 1))
+        # print(res.shape)
+        # res = np.reshape(res, (x, y, 1))
         offset += reslen
         return res, offset
 
@@ -154,6 +175,7 @@ class RLXMessage(object):
         bval = value.tobytes()
         buf += pack("I", len(bval))
         buf += bval
+
     @classmethod
     def _unpack_ndarray(cls, buf, offset):
         dtype, offset = cls._unpack_string(buf, offset)
@@ -178,6 +200,7 @@ class RLXMessage(object):
         buf += pack("I", len(value))
         for item in value:
             cls._pack_value(item, buf)
+
     @classmethod
     def _unpack_list(cls, buf, offset):
         reslen = unpack_from("I", buf, offset)[0]
@@ -196,6 +219,7 @@ class RLXMessage(object):
         for key in value:
             cls._pack_string(key, buf, False)
             cls._pack_value(value[key], buf)
+
     @classmethod
     def _unpack_dict(cls, buf, offset):
         reslen = unpack_from("I", buf, offset)[0]
@@ -204,7 +228,7 @@ class RLXMessage(object):
         for i in range(0, reslen):
             (field_name, offset) = cls._unpack_string(buf, offset)
             (item, offset) = cls._unpack_value(buf, offset)
-            res[field_name]=item
+            res[field_name] = item
         return res, offset
 
     @classmethod
@@ -231,7 +255,7 @@ class RLXMessage(object):
             buf += pack("I", 1)
 
         for key in data:
-            #print((key, type(data[key]).__name__))
+            # print((key, type(data[key]).__name__))
             cls._pack_string(key, buf, False)
             cls._pack_value(data[key], buf)
 
@@ -242,7 +266,7 @@ class RLXMessage(object):
         res = {}
         offset = 0
         if V:
-            #read version
+            # read version
             unpack_from("I", data, offset)[0]
             offset += 4
 

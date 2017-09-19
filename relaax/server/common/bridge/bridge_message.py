@@ -186,7 +186,7 @@ class BridgeMessage(object):
         cls.SERIALIZERS = {}
         cls.DESERIALIZERS = {}
 
-        for marshaller in [
+        marshallers = [
             NoneMarshaller(bridge_pb2.Item.NONE, type(None)),
             ScalarMarshaller(bridge_pb2.Item.BOOL, bool, 'bool_value'),
             ScalarMarshaller(bridge_pb2.Item.INT, int, 'int_value'),
@@ -195,12 +195,17 @@ class BridgeMessage(object):
             ScalarMarshaller(bridge_pb2.Item.FLOAT, float, 'float_value'),
             ScalarMarshaller(bridge_pb2.Item.FLOAT_32, np.float32, 'float_value'),
             ScalarMarshaller(bridge_pb2.Item.FLOAT_64, np.float64, 'float_value'),
-            ScalarMarshaller(bridge_pb2.Item.STR, type(''), 'str_value'),
+            ScalarMarshaller(bridge_pb2.Item.BYTES, type(b''), 'bytes_value'),
             NdarrayMarshaller(bridge_pb2.Item.NUMPY_ARRAY, np.ndarray),
             ListMarshaller(bridge_pb2.Item.LIST_OPEN, list, bridge_pb2.Item.LIST_CLOSE),
             TupleMarshaller(bridge_pb2.Item.TUPLE_OPEN, tuple, bridge_pb2.Item.TUPLE_CLOSE),
             DictMarshaller(bridge_pb2.Item.DICT_OPEN, dict, bridge_pb2.Item.DICT_CLOSE)
-        ]:
+        ]
+        # True for Python 3, False for Python 2
+        if type('') != type(b''):
+            marshallers.append(ScalarMarshaller(bridge_pb2.Item.STR, type(''), 'str_value'))
+
+        for marshaller in marshallers:
             assert marshaller.value_type not in cls.SERIALIZERS
             cls.SERIALIZERS[marshaller.value_type] = marshaller.serialize
             assert marshaller.item_type not in cls.DESERIALIZERS

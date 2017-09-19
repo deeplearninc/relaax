@@ -5,9 +5,12 @@ from . import metrics
 
 class EnabledMetrics(metrics.Metrics):
     def __init__(self, options, metrics):
-        self._default = options.get('enable_unknown_metrics', False)
-        self._options = options.get('metrics', {})
+        self._default = options.get('relaax_metrics_server/enable_unknown_metrics', False)
+        self._options = options.get('relaax_metrics_server/metrics', {})
         self._metrics = metrics
+
+    def summary(self, summary, x=None):
+        self._metrics.summary(summary, x)
 
     def scalar(self, name, y, x=None):
         if self._enabled(name):
