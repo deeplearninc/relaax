@@ -34,6 +34,7 @@ class DPPOBatch(object):
 
     def begin(self):
         self.load_shared_policy_parameters()
+        self.load_shared_value_func_parameters()
         self.episode.begin()
 
     def step(self, reward, state, terminal):
@@ -56,7 +57,18 @@ class DPPOBatch(object):
     def end(self):
         experience = self.episode.end()
         if not self.exploit:
-            self.apply_gradients(self.compute_gradients(experience), len(experience))
+            #self.apply_policy_gradients(self.compute_policy_gradients(experience), len(experience))
+
+            # Send PPO policy gradient M times and value function gradient B times
+            # from https://arxiv.org/abs/1707.02286
+
+            #for i in range(10):
+            #    self.apply_policy_gradients(self.compute_policy_gradients(experience), len(experience))
+            logger.info('Policy update finished')
+            for i in range(10):
+                self.apply_value_func_gradients(self.compute_value_func_gradients(experience), len(experience))
+            logger.info('Value function update finished')
+
 
     def reset(self):
         self.episode = episode.Episode('reward', 'state', 'action', 'old_prob')
@@ -109,9 +121,9 @@ class DPPOBatch(object):
     def load_shared_value_func_parameters(self):
         # Load value function parameters from server if they are fresh
         new_value_func_weights, new_value_func_step = self.ps.session.value_func.op_get_weights_signed()
-        msg = "Current value func weights: {}, received weights: {}".format(self.value_step, new_value_func_weights)
+        msg = "Current value func weights: {}, received weights: {}".format(self.value_step, new_value_func_step)
 
-        if (self.policy_step is None) or (new_value_func_step > self.policy_step):
+        if (self.value_step is None) or (new_value_func_step > self.value_step):
             logger.debug(msg + ", updating weights")
             self.session.value_func.op_assign_weights(weights=new_value_func_weights)
             self.value_step = new_value_func_step
@@ -120,24 +132,64 @@ class DPPOBatch(object):
 
     def action_and_prob_from_policy(self, state):
         assert state is not None
-        logger.debug("afp action: {}".format(state))
+        #logger.debug("afp action: {}".format(state))
         state = np.asarray(state)
         state = np.reshape(state, (1,) + state.shape)
         probabilities, = self.session.policy.op_get_action(state=state)
         return utils.choose_action_descrete(probabilities, self.exploit), probabilities
 
-    def compute_gradients(self, experience):
+    def compute_policy_gradients(self, experience):
 
-        discounted_reward = utils.discounted_reward(
-           experience['reward'],
-           dppo_config.config.gamma
-        )
+        #print(experience['state'])
+        values = self.compute_state_values(experience['state'])
+        advantages = MniAdvantage(experience['reward'], values, 0, dppo_config.config.gamma)
+
         return self.session.policy.op_compute_ppo_clip_gradients(
             state=experience['state'],
             action=experience['action'],
-            advantage=discounted_reward,
+            advantage=advantages,
             old_prob=experience['old_prob']
         )
 
-    def apply_gradients(self, gradients, size):
+    def apply_policy_gradients(self, gradients, size):
         self.ps.session.policy.op_submit_gradients(gradients=gradients, step=self.policy_step)
+
+    def compute_state_values(self, states):
+        return self.session.value_func.op_value(state=states)
+
+    def compute_value_func_gradients(self, experience):
+        # Hack to compute observed values for value function
+        rwd = experience['reward']
+        obs_values = MniAdvantage(rwd, np.zeros(len(rwd)), 0, dppo_config.config.gamma)
+
+        return self.session.value_func.op_compute_gradients(state=experience['state'], ytarg_ny=obs_values)
+
+    def apply_value_func_gradients(self, gradients, size):
+        self.ps.session.value_func.op_submit_gradients(gradients=gradients, step=self.value_step)
+
+# Compute advantage estimates using rewards and value function predictions
+# Mni et al, 2016
+# For formula, see https://arxiv.org/pdf/1707.06347.pdf
+def MniAdvantage(rewards, values, final_value, gamma):
+    adv = np.zeros(len(rewards))
+    rwd = rewards + [final_value]
+
+    # TODO: optimize
+    for i in range(len(adv)):
+        adv[i] = -values[i]
+        for j in range(i, len(rwd)):
+            adv[i] += rwd[j] * np.power(gamma, j)
+
+    return adv
+
+
+# Advantage estimation using sub-segments of [0..T] interval
+# See Appendix of https://arxiv.org/abs/1707.02286
+def kStepReward(rewards, gamma, k):
+    new_rewards = np.zeros(len(rewards))
+
+    # TODO: optimize
+    for i in range(len(rewards) // k):
+        for j in range(k):
+            idx = i * k + j
+            new_rewards[idx] = rewards[idx] * np.pow(gamma, j)

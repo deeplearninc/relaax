@@ -91,23 +91,23 @@ class PolicyModel(subgraph.Subgraph):
 
 class ValueNet(subgraph.Subgraph):
     def build_graph(self):
-        input_size, = dppo_config.config.input.shape
 
-        # add one extra feature for timestep
-        ph_state = graph.Placeholder(np.float32, shape=(None, input_size + 1))
+        input = layer.Input(dppo_config.config.input)
 
         activation = layer.Activation.get_activation(dppo_config.config.activation)
         descs = [dict(type=layer.Dense, size=size, activation=activation) for size
-                 in dppo_config.config.hidden_sizes]
+                 in dppo_config.config.hidden_sizes + [2, 3, 4]]
         descs.append(dict(type=layer.Dense, size=1))
 
-        value = layer.GenericLayers(ph_state, descs)
+        value = layer.GenericLayers(layer.Flatten(input), descs)
 
-        weights = layer.Weights(value)
+        weights = layer.Weights(input, value)
 
-        self.ph_state = ph_state
+        self.ph_state = input.ph_state
         self.weights = weights
         self.value = value
+
+        return value.node
 
 
 # Value function model used by agents to estimate advantage
@@ -135,14 +135,18 @@ class ValueModel(subgraph.Subgraph):
         # Op to compute value of a state
         self.op_value = self.Op(sg_value_net.value, state=sg_value_net.ph_state)
 
+        self.op_get_weights = self.Op(sg_value_net.weights)
+        self.op_assign_weights = self.Op(sg_value_net.weights.assign,
+                                         weights=sg_value_net.weights.ph_weights)
+
         sg_get_weights_flatten = GetVariablesFlatten(sg_value_net.weights)
         sg_set_weights_flatten = SetVariablesFlatten(sg_value_net.weights)
 
         self.op_get_weights_flatten = self.Op(sg_get_weights_flatten)
         self.op_set_weights_flatten = self.Op(sg_set_weights_flatten, value=sg_set_weights_flatten.ph_value)
 
-        self.op_compute_gradient = self.Ops(sg_gradients.calculate, state=sg_value_net.ph_state,
-                                            ytarg_ny=ph_ytarg_ny)
+        self.op_compute_gradients = self.Ops(sg_gradients.calculate, state=sg_value_net.ph_state,
+                                             ytarg_ny=ph_ytarg_ny)
 
         self.op_compute_loss_and_gradient_flatten = self.Ops(loss, sg_gradients_flatten, state=sg_value_net.ph_state,
                                                              ytarg_ny=ph_ytarg_ny)
@@ -219,6 +223,7 @@ class SharedWeights(subgraph.Subgraph):
         self.op_init_weight_history = self.Call(init_weight_history)
 
         def func_dc_gradient(session, gradients, step):
+            logger.debug("session = {}, {}".format(session._name, session._full_path()))
             # Assume step to be global step number
             current_step = session.op_n_step()
             current_weights_f = session.op_get_weights_flatten()

@@ -1,5 +1,6 @@
 from builtins import object
 import tensorflow as tf
+import re
 
 
 class Subgraph(object):
@@ -97,12 +98,20 @@ class Op(object):
         v1 = cls.cast(v1)
         if isinstance(v1, (tuple, list)):
             assert isinstance(v2, (tuple, list))
+            print("v1 = {}, v2 = {}".format(len(v1), len(v2)))
+            if len(v1) != len(v2):
+                print("v1 = {}, v2 = {}".format(v1, v2))
+                print("v1 = {}, v2 = {}".format(only_brackets(repr(v1)), only_brackets(repr(v2))))
             assert len(v1) == len(v2)
             for vv1, vv2 in zip(v1, v2):
                 for vvv1, vvv2 in cls.izip2(vv1, vv2):
                     yield vvv1, vvv2
         elif isinstance(v1, dict):
             assert isinstance(v2, dict)
+            print("v1 = {}, v2 = {}".format(len(v1), len(v2)))
+            if len(v1) != len(v2):
+                print("v1 = {}, v2 = {}".format(v1, v2))
+                print("v1 = {}, v2 = {}".format(only_brackets(repr(v1)), only_brackets(repr(v2))))
             assert len(v1) == len(v2)
             for k1, vv1 in v1.items():
                 vv2 = v2[k1]
@@ -116,3 +125,9 @@ class Op(object):
         if isinstance(v, Subgraph):
             return v.node
         return v
+
+
+def only_brackets(s):
+    s1 = re.sub("[^\[\]]+", "", s)
+    s2 = s1.replace("][", "], [")
+    return s2
