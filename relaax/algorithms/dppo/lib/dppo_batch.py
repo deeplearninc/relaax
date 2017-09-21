@@ -41,7 +41,7 @@ class DPPOBatch(object):
         if reward is not None:
             self.push_experience(reward)
         if terminal and state is not None:
-            logger.warning('PGBatch.step ignores state in case of terminal.')
+            logger.debug('PGBatch.step ignores state in case of terminal.')
             state = None
         else:
             assert state is not None
