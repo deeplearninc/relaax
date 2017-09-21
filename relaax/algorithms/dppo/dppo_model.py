@@ -96,7 +96,7 @@ class ValueNet(subgraph.Subgraph):
 
         activation = layer.Activation.get_activation(dppo_config.config.activation)
         descs = [dict(type=layer.Dense, size=size, activation=activation) for size
-                 in dppo_config.config.hidden_sizes + [2, 3, 4]]
+                 in dppo_config.config.hidden_sizes]
         descs.append(dict(type=layer.Dense, size=1))
 
         value = layer.GenericLayers(layer.Flatten(input), descs)
