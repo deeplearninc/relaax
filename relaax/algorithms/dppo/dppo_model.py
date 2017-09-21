@@ -145,7 +145,7 @@ class ValueModel(subgraph.Subgraph):
         self.op_get_weights_flatten = self.Op(sg_get_weights_flatten)
         self.op_set_weights_flatten = self.Op(sg_set_weights_flatten, value=sg_set_weights_flatten.ph_value)
 
-        self.op_compute_gradients = self.Ops(sg_gradients.calculate, state=sg_value_net.ph_state,
+        self.op_compute_gradients = self.Op(sg_gradients.calculate, state=sg_value_net.ph_state,
                                              ytarg_ny=ph_ytarg_ny)
 
         self.op_compute_loss_and_gradient_flatten = self.Ops(loss, sg_gradients_flatten, state=sg_value_net.ph_state,
@@ -223,9 +223,11 @@ class SharedWeights(subgraph.Subgraph):
         self.op_init_weight_history = self.Call(init_weight_history)
 
         def func_dc_gradient(session, gradients, step):
-            logger.debug("session = {}, {}".format(session._name, session._full_path()))
+            #logger.debug("session = {}, {}".format(session._name, session._full_path()))
             # Assume step to be global step number
-            current_step = session.op_n_step()
+            #current_step = session.op_n_step()
+
+            #current_weights = session.op_get_weights()
             current_weights_f = session.op_get_weights_flatten()
 
             old_weights_f = self.weights_history.get(step, current_weights_f)

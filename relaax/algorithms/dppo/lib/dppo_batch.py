@@ -62,12 +62,12 @@ class DPPOBatch(object):
             # Send PPO policy gradient M times and value function gradient B times
             # from https://arxiv.org/abs/1707.02286
 
-            #for i in range(10):
-            #    self.apply_policy_gradients(self.compute_policy_gradients(experience), len(experience))
-            logger.info('Policy update finished')
+            for i in range(10):
+                self.apply_policy_gradients(self.compute_policy_gradients(experience), len(experience))
+            logger.debug('Policy update finished')
             for i in range(10):
                 self.apply_value_func_gradients(self.compute_value_func_gradients(experience), len(experience))
-            logger.info('Value function update finished')
+            logger.debug('Value function update finished')
 
 
     def reset(self):
