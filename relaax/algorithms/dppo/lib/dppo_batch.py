@@ -64,9 +64,11 @@ class DPPOBatch(object):
 
             for i in range(10):
                 self.apply_policy_gradients(self.compute_policy_gradients(experience), len(experience))
+                self.load_shared_policy_parameters()
             logger.debug('Policy update finished')
             for i in range(10):
                 self.apply_value_func_gradients(self.compute_value_func_gradients(experience), len(experience))
+                self.load_shared_value_func_parameters()
             logger.debug('Value function update finished')
 
 

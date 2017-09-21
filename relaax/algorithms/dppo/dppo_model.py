@@ -190,23 +190,23 @@ class SharedWeights(subgraph.Subgraph):
         # First come, first served gradient update
         def func_fifo_gradient(session, gradients, step):
             current_step = session.op_n_step()
-            logger.info("Gradient with step {} received from agent. Current step: {}".format(step, current_step))
+            logger.debug("Gradient with step {} received from agent. Current step: {}".format(step, current_step))
             session.op_apply_gradients(gradients=gradients, increment=1)
 
         # Accumulate gradients from many agents and average them
         self.gradients = []
 
         def func_average_gradient(session, gradients, step):
-            logger.info("received a gradient, number of gradients collected so far: {}".format(len(self.gradients)))
+            logger.debug("received a gradient, number of gradients collected so far: {}".format(len(self.gradients)))
             if step >= session.op_n_step():
-                logger.info("gradient is fresh, accepted")
+                logger.debug("gradient is fresh, accepted")
                 self.gradients.append(gradients)
             else:
-                logger.info("gradient is old, rejected")
+                logger.debug("gradient is old, rejected")
 
             if len(self.gradients) >= dppo_config.config.num_gradients:
                 # we have collected enough gradients, no we can average them and make a step
-                logger.info("computing mean grad")
+                logger.debug("computing mean grad")
                 flat_grads = [Shaper.get_flat(g) for g in self.gradients]
                 mean_flat_grad = np.mean(np.stack(flat_grads), axis=0)
 
