@@ -117,8 +117,8 @@ class DiagGauss(subgraph.Subgraph):
         return lambda prob: self.EntropySubgraph(prob, self._d)
 
 
-def ProbType(*args):
-    if trpo_config.config.output.continuous:
+def ProbType(*args, continuous=False):
+    if continuous:
         return DiagGauss(*args)
     return Categorical(*args)
 
@@ -185,7 +185,7 @@ class PolicyNet(subgraph.Subgraph):
 
         ph_adv_n = graph.TfNode(tf.placeholder(tf.float32, name='adv_n'))
 
-        sg_probtype = ProbType(trpo_config.config.output.action_size)
+        sg_probtype = ProbType(trpo_config.config.output.action_size, continuous=trpo_config.config.output.continuous)
 
         ph_oldprob_np = sg_probtype.ProbVariable()
 

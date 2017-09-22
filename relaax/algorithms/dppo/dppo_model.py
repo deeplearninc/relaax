@@ -13,7 +13,7 @@ from relaax.common.algorithms.lib import utils
 
 from . import dppo_config
 
-from relaax.algorithms.trpo.trpo_model import GetVariablesFlatten, SetVariablesFlatten, Categorical, ProbType
+from relaax.algorithms.trpo.trpo_model import GetVariablesFlatten, SetVariablesFlatten, Categorical, ProbType, ConcatFixedStd
 
 logger = logging.getLogger(__name__)
 
@@ -22,16 +22,24 @@ class Network(subgraph.Subgraph):
     def build_graph(self):
         input = layer.Input(dppo_config.config.input)
 
-        dense = layer.GenericLayers(layer.Flatten(input),
-                                    [dict(type=layer.Dense, size=size, activation=layer.Activation.Relu)
-                                     for size in dppo_config.config.hidden_sizes])
+        activation = layer.Activation.get_activation(dppo_config.config.activation)
+        head = layer.GenericLayers(layer.Flatten(input),
+                                   [dict(type=layer.Dense, size=size, activation=activation)
+                                    for size in dppo_config.config.hidden_sizes])
 
-        actor = layer.Dense(dense, dppo_config.config.output.action_size,
-                            activation=layer.Activation.Softmax)
+        if dppo_config.config.output.continuous:
+            output = layer.Dense(head, dppo_config.config.output.action_size)
+            actor = ConcatFixedStd(output)
+            actor_layers = [output, actor]
+        else:
+            actor = layer.Dense(head, dppo_config.config.output.action_size,
+                                activation=layer.Activation.Softmax)
+            actor_layers = [actor]
 
-        self.state = input.ph_state
+        self.ph_state = input.ph_state
         self.actor = actor
-        self.weights = layer.Weights(input, dense, actor)
+        self.weights = layer.Weights(*([input, head] + actor_layers))
+
         return actor.node
 
 
@@ -39,13 +47,13 @@ class PolicyModel(subgraph.Subgraph):
     def build_graph(self):
         sg_network = Network()
 
-        self.op_get_action = self.Op(sg_network, state=sg_network.state)
+        self.op_get_action = self.Op(sg_network, state=sg_network.ph_state)
 
         # Advantage node
         ph_adv_n = graph.TfNode(tf.placeholder(tf.float32, name='adv_n'))
 
         # Contains placeholder for the actual action made by the agent
-        sg_probtype = ProbType(dppo_config.config.output.action_size)
+        sg_probtype = ProbType(dppo_config.config.output.action_size, continuous=dppo_config.config.output.continuous)
 
         # Placeholder to store action probabilities under the old policy
         ph_oldprob_np = sg_probtype.ProbVariable()
@@ -65,7 +73,7 @@ class PolicyModel(subgraph.Subgraph):
         sg_ppo_clip_gradients = optimizer.Gradients(sg_network.weights,
                                                     loss=sg_ppo_clip_loss)
         self.op_compute_ppo_clip_gradients = self.Op(sg_ppo_clip_gradients.calculate,
-                                                     state=sg_network.state,
+                                                     state=sg_network.ph_state,
                                                      action=sg_probtype.ph_sampled_variable,
                                                      advantage=ph_adv_n,
                                                      old_prob=ph_oldprob_np)
