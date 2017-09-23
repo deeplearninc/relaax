@@ -140,7 +140,7 @@ class LSTM(subgraph.Subgraph):
         lstm = tf.contrib.rnn.BasicLSTMCell(n_units, state_is_tuple=True)
 
         outputs, self.state = tf.nn.dynamic_rnn(lstm, x.node, initial_state=state,
-                                                sequence_length=tf.shape(x.node)[:1], time_major=False)
+                                                sequence_length=tf.shape(x.node)[1:2], time_major=False)
 
         self.state = graph.TfNode(self.state)
         self.weight = graph.TfNode(tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,
