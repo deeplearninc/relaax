@@ -19,23 +19,21 @@ class DA3CDiscreteLoss(subgraph.Subgraph):
 
         action_one_hot = tf.one_hot(self.ph_action.node, actor.action_size)
 
-        # avoid NaN with getting the maximum with small value
+        # avoid NaN
         log_pi = tf.log(tf.maximum(actor.node, 1e-20))
 
         # policy entropy
         self.entropy = -tf.reduce_sum(actor.node * log_pi)
 
-        # policy loss (output)  (Adding minus, because the original paper's
-        # objective function is for gradient ascent, but we use gradient descent optimizer)
+        # policy loss
         self.policy_loss = -(tf.reduce_sum(tf.reduce_sum(log_pi * action_one_hot, axis=1) * td) +
                              self.entropy * cfg.entropy_beta)
 
-        # value loss (output)
-        # (Learning rate for Critic is half of Actor's, so it should be half of l2)
-        self.value_loss = cfg.critic_scale * tf.nn.l2_loss(self.ph_discounted_reward.node - critic.node)
+        # value loss
+        self.value_loss = tf.reduce_sum(tf.square(self.ph_discounted_reward.node - critic.node))
 
         # gradient of policy and value are summed up
-        return self.policy_loss + self.value_loss
+        return self.policy_loss + cfg.critic_scale * self.value_loss
 
 
 class DQNLoss(subgraph.Subgraph):
@@ -76,7 +74,7 @@ class DA3CNormContinuousLoss(subgraph.Subgraph):
         self.policy_loss = -(tf.reduce_sum(tf.reduce_sum(log_prob, axis=1) * td) +
                              cfg.entropy_beta * self.entropy)
 
-        # (Learning rate for Critic is half of Actor's, so it should be half of l2)
+        # (Learning rate for the Critic is half of Actor's, so it should be half of l2)
         self.value_loss = cfg.critic_scale * tf.nn.l2_loss(td)
 
 
