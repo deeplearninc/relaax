@@ -17,19 +17,23 @@ class Head(subgraph.Subgraph):
         conv_layer = dict(type=layer.Convolution, activation=layer.Activation.Elu,
                           n_filters=32, filter_size=[3, 3], stride=[2, 2],
                           border=layer.Border.Same)
-        input_layers = None if da3c_config.config.input.universe else [dict(conv_layer)] * 4
+        input_layers = [dict(conv_layer)] * 4 if da3c_config.config.input.universe else None
         input = layer.Input(da3c_config.config.input, descs=input_layers, input_placeholder=input_placeholder)
 
         sizes = da3c_config.config.hidden_sizes
         layers = [input]
         flattened_input = layer.Flatten(input)
 
-        last_size = flattened_input.node.shape.as_list()[-1]
+        fc_layers = layer.GenericLayers(flattened_input, [dict(type=layer.Dense, size=size,
+                                        activation=layer.Activation.Relu6) for size in sizes[:-1]])
+        layers.append(fc_layers)
+
+        last_size = fc_layers.node.shape.as_list()[-1]
         if len(sizes) > 0:
             last_size = sizes[-1]
 
         if da3c_config.config.use_lstm:
-            lstm = layer.LSTM(graph.Expand(flattened_input, 0), n_units=last_size)
+            lstm = layer.LSTM(graph.Expand(fc_layers, 0), n_units=last_size)
             head = graph.Reshape(lstm, [-1, last_size])
             layers.append(lstm)
 
@@ -37,9 +41,7 @@ class Head(subgraph.Subgraph):
             self.lstm_zero_state = lstm.zero_state
             self.lstm_state = lstm.state
         else:
-            head = layer.GenericLayers(flattened_input,
-                                       [dict(type=layer.Dense, size=size,
-                                             activation=layer.Activation.Relu6) for size in sizes])
+            head = layer.Dense(fc_layers, last_size)
             layers.append(head)
 
         self.ph_state = input.ph_state
@@ -65,9 +67,7 @@ class Network(subgraph.Subgraph):
         actor = layer.Actor(actor_head, da3c_config.config.output)
 
         critic_head = Head(input_placeholder)
-        # TODO: not consistent wrt original paper, it uses only 200 units in mid layer for simple tasks
-        c1 = layer.Dense(critic_head, 200, activation=layer.Activation.Relu6)
-        critic = layer.Dense(c1, 1)
+        critic = layer.Dense(critic_head, 1)
 
         self.ph_state = input_placeholder.ph_state
 
@@ -78,7 +78,7 @@ class Network(subgraph.Subgraph):
                               lstm_state=actor_head.lstm_state))
         self.actor = Subnet(**feeds)
 
-        feeds = dict(head=graph.Flatten(critic), weights=layer.Weights(critic_head, c1, critic))
+        feeds = dict(head=graph.Flatten(critic), weights=layer.Weights(critic_head, critic))
         if da3c_config.config.use_lstm:
             feeds.update(dict(ph_lstm_state=critic_head.ph_lstm_state,
                               lstm_zero_state=critic_head.lstm_zero_state,
