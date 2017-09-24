@@ -247,7 +247,8 @@ generalized advantage estimation (`GAE`) and curiosity model (`ICM`) with `16` A
 Performance of `Vanilla A3C` on classic `Atari` environments from [original paper](https://arxiv.org/pdf/1602.01783v2.pdf#page.19)
 (`1` day = `80` millions of steps)
 
-`DA3C-LSTM-GAE-8` with [Universe A3C architecture](https://github.com/openai/universe-starter-agent/blob/master/model.py) on Gym's Atari Pong: 
+`DA3C-LSTM-GAE-8` with [Universe A3C architecture](https://github.com/openai/universe-starter-agent/blob/master/model.py) on Gym's Atari Pong
+(see universe-starter-agent [result](https://github.com/4SkyNet/universe-starter-agent/tree/maze#atari-pong) to compare): 
 ![img](resources/DA3C-LSTM-GAE-8_Universe.png "DA3C on Atari Pong")  
 `DA3C-FF-8` with [Vanilla A3C architecture](https://arxiv.org/pdf/1602.01783v2.pdf#page.12) on Gym's Atari Boxing:
 ![img](resources/DA3C-FF-8_Vanilla.png "DA3C on Atari Boxing")  
