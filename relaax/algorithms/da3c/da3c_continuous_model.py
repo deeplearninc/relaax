@@ -41,7 +41,7 @@ class Head(subgraph.Subgraph):
             self.lstm_zero_state = lstm.zero_state
             self.lstm_state = lstm.state
         else:
-            head = layer.Dense(fc_layers, last_size)
+            head = layer.Dense(fc_layers, last_size, activation=layer.Activation.Relu6)
             layers.append(head)
 
         self.ph_state = input.ph_state
