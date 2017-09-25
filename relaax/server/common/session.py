@@ -8,7 +8,7 @@ from relaax.server.common.saver import tensorflow_checkpoint
 
 class Session(object):
     def __init__(self, *args, **kwargs):
-        config = tf.ConfigProto()
+        config = tf.ConfigProto(intra_op_parallelism_threads=1, inter_op_parallelism_threads=1)
         config.gpu_options.allow_growth = True
         self._parent_session = None
         self._name = 'root_session'
