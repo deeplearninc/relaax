@@ -7,6 +7,8 @@ from relaax.server.common import session
 from relaax.common.algorithms.lib import episode
 from relaax.common.algorithms.lib import utils
 
+from relaax.algorithms.trpo.lib.core import ProbType, Categorical, DiagGauss
+
 from .. import dppo_config
 from .. import dppo_model
 
@@ -27,6 +29,12 @@ class DPPOBatch(object):
 
         self.policy_step = None
         self.value_step = None
+
+        if dppo_config.config.output.continuous:
+            self.prob_type = DiagGauss(dppo_config.config.output.action_size)
+        else:
+            self.prob_type = Categorical(dppo_config.config.output.action_size)
+
 
     @property
     def experience(self):
@@ -137,8 +145,10 @@ class DPPOBatch(object):
         #logger.debug("afp action: {}".format(state))
         state = np.asarray(state)
         state = np.reshape(state, (1,) + state.shape)
-        probabilities, = self.session.policy.op_get_action(state=state)
-        return utils.choose_action_descrete(probabilities, self.exploit), probabilities
+        probabilities = self.session.policy.op_get_action(state=state)
+        #logger.debug("probs: {}".format(probabilities))
+        #return utils.choose_action_descrete(probabilities, self.exploit), probabilities
+        return self.prob_type.sample(probabilities)[0], probabilities[0]
 
     def compute_policy_gradients(self, experience):
 
