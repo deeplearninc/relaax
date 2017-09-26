@@ -185,7 +185,7 @@ class AgentModel(subgraph.Subgraph):
                                                    sg_network.critic.weights.ph_weights))
 
         feeds = dict(state=sg_network.ph_state, action=sg_loss.ph_action,
-                     discounted_reward=sg_loss.ph_discounted_reward)
+                     value=sg_loss.ph_value, discounted_reward=sg_loss.ph_discounted_reward)
 
         if da3c_config.config.use_gae:
             feeds.update(dict(advantage=sg_loss.ph_advantage))
