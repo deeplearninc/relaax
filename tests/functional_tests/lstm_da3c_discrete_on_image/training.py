@@ -19,80 +19,168 @@ logger = logging.getLogger(__name__)
 class Training(TrainingBase):
     def __init__(self):
         super(Training, self).__init__()
-        self.env = CustomEnv()
+        self.env = MazeEnv(env='level_2')
 
     def episode(self, number):
+        n_episode = 1
         while True:
-            episode_size = 200
             episode_reward = 0
             state = self.env.reset()
             action = self.agent.update(reward=None, state=state)
-            for step in range(episode_size):
-                # old_speed = self.env.speed
+            terminal = False
+            while not terminal:
                 state, reward, terminal, info = self.env.step(action)
                 episode_reward += reward
-                if step == episode_size - 1:
-                    terminal = True
-                # print('old speed %s, new speed %s, reward %f' % (old_speed, self.env.speed, reward))
                 action = self.agent.update(reward=reward, state=state, terminal=terminal)
-            print('episode reward is %f' % episode_reward)
+            print('Episode %d, reward %f' % (n_episode, episode_reward))
+            n_episode += 1
 
 
-class CustomEnv(object):
-    def __init__(self):
-        self.place = 0
-        self.speed = 4
-        self.ball = Ball()
+class MazeEnv(object):
+    moves = [np.array([-1, 0]),  # go up
+             np.array([0, -1]),  # go left
+             np.array([1, 0]),   # go down
+             np.array([0, 1])]   # go right
+    actions = ['^', '<', 'v', '>']
+    step_cost = .01
+    goal_cost = 1.0
+    max_steps = 100
+
+    def __init__(self, env='level_1', shape=(7, 7), no_op_max=0):
+        self.env = env
+        self._level = self._read_level(env)
+        self._no_op_max = no_op_max
+
+        self.shape = list(shape + (3,))
+        assert len(self.shape) == 3, "You should provide shape as [x, y]"
+        self.range = [int((self.shape[0]-1)/2), int((self.shape[1]-1)/2)]
+
+        self.action_size = len(MazeEnv.actions)
+        self.timestep_limit = MazeEnv.max_steps
+
+        self._maze, self._step_count = None, None
+        self._goal_pos, self._player_pos = None, None
+        self._episode_reward = 0
+
+        if env[-1] == '1':
+            self._init_maze = self._init_random_maze
+        else:
+            self._spawns, self._goal = self._read_spawns(env)
+            self._init_maze = self._init_spawn_maze
+        self.reset()
+
+    def step(self, action):
+        reward, terminal = self._step(action)
+        state = self._process_state()
+        self._episode_reward += reward
+
+        if terminal:
+            info = {'episode_reward': self._episode_reward}
+        else:
+            info = {}
+        return state, reward, terminal, info
 
     def reset(self):
-        return self.state()
+        while True:
+            self._init_maze()
+            terminal = False
 
-    # state, reward, terminal, info = env.step(action.argmax())
-    def step(self, action):
-        old_speed = self.speed
-        assert 0 <= action <= 2
-        # self.speed = max(1, min(self.speed + (action - 1), 7))
-        # reward = self.reward()
-        if self.speed <= 4:
-            reward = 1 if action == 1 else 0
+            if self._no_op_max != 0:
+                no_op = np.random.randint(0, self._no_op_max)
+                for _ in range(no_op):
+                    reward, terminal = self._step(np.random.randint(0, self.action_size))
+
+            if not terminal:
+                state = self._process_state()
+                break
+
+        self._step_count = 0
+        self._episode_reward = 0
+        return state
+
+    def _step(self, action):
+        new_pos = self._player_pos + MazeEnv.moves[action]
+
+        if new_pos[0] == self._goal_pos[0] and new_pos[1] == self._goal_pos[1]:
+            return MazeEnv.goal_cost, True
         else:
-            reward = 1 if action == 0 else 0
+            self._step_count += 1
+            if self._maze[new_pos[0], new_pos[1], 0] != 1:
+                self._maze[self._player_pos[0], self._player_pos[1], 2] = 0
+                self._player_pos = new_pos
+                self._maze[self._player_pos[0], self._player_pos[1], 2] = 1
+            return -MazeEnv.step_cost, self._step_count >= MazeEnv.max_steps
 
-        #print('old speed %s, new speed %s, reward %f' % (old_speed, self.speed, reward))
-        self.speed = max(1, min(self.speed + random.randint(-1, 1), 7))
-        assert 1 <= self.speed <= 7
-        self.place += self.speed
-        state = self.state()
-        return state, reward, False, None
+    def _process_state(self):
+        region = self._maze[self._player_pos[0]-self.range[0]:1+self._player_pos[0]+self.range[0],
+                            self._player_pos[1]-self.range[1]:1+self._player_pos[1]+self.range[1],
+                            ...]
+        state = np.copy(region)
+        return state
 
-    def state(self):
-        return self.ball.paint(self.place * math.pi / 29)
+    @staticmethod
+    def _read_level(level_name):
+        lvl_read = []
+        with open('maps/' + level_name + '.txt', 'r') as lvl_file:
+            for i, line in enumerate(lvl_file):
+                lvl_read.append([])
+                for j in line[:-1]:
+                    if j in ('0', '1'):
+                        lvl_read[i].append(int(j))
+                    else:
+                        logger.error("You map file should be defined with '0' and '1'!")
+                        sys.exit(-1)
+        return np.asarray(lvl_read)
 
-    def reward(self):
-        if self.speed in [1, 7]:
-            return 0
-        if self.speed in [2, 3, 5, 6]:
-            return 0.5
-        return 1
+    def _init_random_maze(self):
+        # init goal position
+        goal = np.zeros_like(self._level)
+        while True:
+            row_idx = np.random.randint(0, self._level.shape[0])
+            col_idx = np.random.randint(0, self._level.shape[1])
+            if self._level[row_idx, col_idx] == 0:
+                goal[row_idx, col_idx] = 1
+                self._goal_pos = np.array([row_idx, col_idx])
+                break
 
-    def render(self):
-        pass
+        # init player position
+        player = np.zeros_like(self._level)
+        while True:
+            row_idx = np.random.randint(0, self._level.shape[0])
+            col_idx = np.random.randint(0, self._level.shape[1])
+            if self._level[row_idx, col_idx] == 0 and goal[row_idx, col_idx] == 0:
+                player[row_idx, col_idx] = 1
+                self._player_pos = np.array([row_idx, col_idx])
+                break
 
+        # stack all together in depth (along third axis)
+        self._maze = np.dstack((self._level, goal, player))
 
-class Ball(object):
-    SIZE = 84
-    R1 = 30
-    R2 = 5
+    def _init_spawn_maze(self):
+        # init player position
+        player = np.zeros_like(self._level)
 
-    def paint(self, alpha):
-        image = Image.new('L', (self.SIZE, self.SIZE))
-        draw = ImageDraw.Draw(image)
-        # fill image background with black
-        draw.rectangle((0, 0, self.SIZE, self.SIZE), fill = 'black', outline ='black')
-        x = self.SIZE / 2 + self.R1 * math.cos(alpha)
-        y = self.SIZE / 2 - self.R1 * math.sin(alpha)
-        draw.ellipse((x - self.R2, y - self.R2, x + self.R2, y + self.R2), fill = 'white', outline ='white')
-        return RLXMessageImage(image)
+        idx = np.random.randint(0, self._spawns.shape[0])
+        self._player_pos = self._spawns[idx]
+        player[self._player_pos[0], self._player_pos[1]] = 1
+
+        # stack all together in depth (along third axis)
+        self._maze = np.dstack((self._level, self._goal, player))
+
+    def _read_spawns(self, env):
+        spawn_read = []
+        with open('maps/spawn_' + env[-1] + '.txt', 'r') as spawn_file:
+            for line in spawn_file:
+                row, col = line.split()
+                spawn_read.append([int(row), int(col)])
+
+        self._goal_pos = np.array(spawn_read[-1])
+        del spawn_read[-1]
+
+        goal = np.zeros_like(self._level)
+        goal[self._goal_pos[0], self._goal_pos[1]] = 1
+
+        return np.asarray(spawn_read), goal
 
 
 if __name__ == '__main__':

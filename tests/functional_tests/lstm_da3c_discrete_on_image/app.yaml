@@ -38,14 +38,14 @@ algorithm:
   name: da3c                      # short name for algorithm to load
 
   input:
-    shape: [84, 84]               # shape of input state
+    shape: [7, 7, 3]              # shape of input state
     history: 1                    # number of consecutive states to stack
     use_convolutions: true        # set to true to process input by convolution layers
 
   output:
     continuous: false             # set to true to switch to continuous action space
     loss_type: Normal             # choose loss_type by name for continuous action space
-    action_size: 3                # action size for the given environment
+    action_size: 4                # action size for the given environment
     action_low: []
     action_high: []
     scale: 1.0                    # multiplier to scale continuous output
