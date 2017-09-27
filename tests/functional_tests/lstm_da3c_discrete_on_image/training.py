@@ -89,9 +89,13 @@ class Ball(object):
         draw = ImageDraw.Draw(image)
         # fill image background with black
         draw.rectangle((0, 0, self.SIZE, self.SIZE), fill = 'black', outline ='black')
-        x = self.SIZE / 2 + self.R1 * math.cos(alpha)
-        y = self.SIZE / 2 - self.R1 * math.sin(alpha)
-        draw.ellipse((x - self.R2, y - self.R2, x + self.R2, y + self.R2), fill = 'white', outline ='white')
+        x0 = self.SIZE / 2
+        y0 = self.SIZE / 2
+        x = x0 + self.R1 * math.cos(alpha)
+        y = y0 - self.R1 * math.sin(alpha)
+        # draw.ellipse((x0 - self.R2, y0 - self.R2, x0 + self.R2, y0 + self.R2), fill = 'gray', outline ='gray')
+        # draw.ellipse((x - self.R2, y - self.R2, x + self.R2, y + self.R2), fill = 'white', outline ='white')
+        draw.line(((x0, y0), (x, y)), fill='white', width=self.R2)
         return RLXMessageImage(image)
 
 
