@@ -1,5 +1,6 @@
 from __future__ import division
 from builtins import object
+import collections
 import numpy as np
 import tensorflow as tf
 
@@ -9,19 +10,6 @@ from relaax.common.algorithms.lib import utils
 
 
 class Activation(object):
-    @classmethod
-    def _make_map(cls):
-        map = {}
-        for name in ['Null', 'Relu', 'Elu', 'Sigmoid', 'Tanh', 'Softmax', 'Softplus']:
-            activation = getattr(cls, name)
-            map[name] = activation
-            map[name.lower()] = activation
-        return map
-
-    @classmethod
-    def get_activation(cls, name):
-        return cls._map[name]
-
     @staticmethod
     def Null(x):
         return x
@@ -54,13 +42,26 @@ class Activation(object):
     def Softplus(x):
         return tf.nn.softplus(x)
 
+    # dict comprehension has its own locals. dict comprehension does not see class context.
+    # This is why class locals are passed as lambda argument
+    _MAP = (lambda locals_: {k.lower(): v for k, v in locals_.items() if not k.startswith('_')})(locals())
 
-Activation._map = Activation._make_map()
+    @classmethod
+    def get_activation(cls, name):
+        return cls._MAP[name.lower()]
 
 
 class Border(object):
     Valid = 'VALID'
     Same = 'SAME'
+
+    # dict comprehension has its own locals. dict comprehension does not see class context.
+    # This is why class locals are passed as lambda argument
+    _MAP = (lambda locals_: {k.lower(): v for k, v in locals_.items() if not k.startswith('_')})(locals())
+
+    @classmethod
+    def get_border(cls, name):
+        return cls._MAP[name.lower()]
 
 
 class BaseLayer(subgraph.Subgraph):
@@ -78,8 +79,8 @@ class BaseLayer(subgraph.Subgraph):
 
 
 class Convolution(BaseLayer):
-    def build_graph(self, x, n_filters, filter_size, stride,
-                    border=Border.Valid, activation=Activation.Null):
+    def build_graph(self, x, n_filters=32, filter_size=[3, 3], stride=[2, 2], border=Border.Same,
+            activation=Activation.Elu):
         shape = filter_size + [x.node.shape.as_list()[-1], n_filters]
 
         def tr(x, W):
@@ -246,6 +247,43 @@ class Input(subgraph.Subgraph):
 
         self.weight = layers.weight
         return layers.node
+
+
+class Type(object):
+    _MAP = {name.lower(): globals()[name] for name in ['Convolution', 'Dense', 'Flatten']}
+
+    @classmethod
+    def get_type(cls, name):
+        return cls._MAP[name.lower()]
+
+
+class ConfiguredInput(subgraph.Subgraph):
+    _MAP = collections.defaultdict(lambda: lambda x: x, type=Type.get_type,
+                                   activation=Activation.get_activation, border=Border.get_border)
+
+    def build_graph(self, input, input_placeholder=None):
+        if hasattr(input, 'layers'):
+            input_layers = self.read_layers(input.layers)
+        else:
+            if input.universe:
+                conv_layer = dict(type=Convolution, activation=Activation.Elu, n_filters=32,
+                                  filter_size=[3, 3], stride=[2, 2], border=Border.Same)
+                input_layers = [dict(conv_layer)] * 4
+            else:
+                input_layers = [dict(type=Convolution, n_filters=16, filter_size=[8, 8], stride=[4, 4],
+                                     activation=Activation.Relu),
+                                dict(type=Convolution, n_filters=32, filter_size=[4, 4], stride=[2, 2],
+                                     activation=Activation.Relu)]
+
+        input = layer.Input(input, descs=input_layers, input_placeholder=input_placeholder)
+        self.weight = input.weight
+        return input.node
+
+    def read_layers(self, layers):
+        return [self.read_layer(layer) for layer in layers]
+
+    def read_layer(self, layer):
+        return {k: self._MAP[k](v) for k, v in layer}
 
 
 class Weights(subgraph.Subgraph):
