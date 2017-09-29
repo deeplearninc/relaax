@@ -41,10 +41,11 @@ class PpoUpdater(object):
 
         d = dataset.Dataset(dict(state=state, sampled_variable=action_na, adv_n=advantage_n, oldprob_np=prob_np))
 
-        self.policy_model.op_ppo_reset_optimizer()
+        if trpo_config.config.PPO.reset_optimizer:
+            self.policy_model.op_ppo_reset_optimizer()
 
         for i in range(trpo_config.config.PPO.n_epochs):
-            for batch in d.iterate_once(64):
+            for batch in d.iterate_once(trpo_config.config.PPO.minibatch_size):
                 self.policy_model.op_ppo_optimize(state=batch['state'],
                                                   sampled_variable=batch['sampled_variable'],
                                                   adv_n=batch['adv_n'],
