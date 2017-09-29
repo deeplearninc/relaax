@@ -5,7 +5,7 @@ environment:
   max_episodes: 1
   infinite_run: false
   log_level: INFO
-  profile_dir: logs/profile
+  # profile_dir: logs/profile
 
 enable_unknown_metrics: false
 metrics:
@@ -21,18 +21,18 @@ relaax_metrics_server:
   metrics_dir: logs/metrics
   log_metrics: false
   log_level: INFO
-  profile_dir: logs/profile
+  # profile_dir: logs/profile
 
 relaax_parameter_server:
   bind: localhost:7000
   log_level: INFO
-  profile_dir: logs/profile
+  # profile_dir: logs/profile
   checkpoint_dir: logs/checkpoints
 
 relaax_rlx_server:
   bind: localhost:7001
   log_level: INFO
-  profile_dir: logs/profile
+  # profile_dir: logs/profile
 
 algorithm:
   name: da3c                      # short name for algorithm to load
