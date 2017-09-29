@@ -254,8 +254,8 @@ Performance of `Vanilla A3C` on classic `Atari` environments from [original pape
 ![img](resources/DA3C-FF-8_Vanilla.png "DA3C on Atari Boxing")  
 
 #### [Performance on some Continuous Control Tasks](#algorithms)
-`Continuous DA3C-LSTM-16` on BipedalWalker:
-![img](resources/None.png "TBD BipedalWalker")
+`Continuous DA3C-LSTM` on BipedalWalker:
+![img](resources/DA3C-LSTM_Walker.png "DA3C BipedalWalker")
 
 ##### [Compute Performance with different amount of clients and node types (AWS)](#algorithms)
 
