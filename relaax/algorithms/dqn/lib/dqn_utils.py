@@ -14,15 +14,15 @@ class ReplayBuffer(object):
         self._replay_memory = deque(maxlen=max_len)
         self._alpha = alpha
 
-        weights = np.power(np.arange(1, self._replay_memory.maxlen + 1), self._alpha)
-        self._weights = weights / np.sum(weights)
+        self._weights = np.power(np.arange(1, self._replay_memory.maxlen + 1), self._alpha)
 
     def sample(self, size):
         if self._alpha is None or self._alpha == 0.0:
             return np.random.choice(self._replay_memory, size, False)
         else:
+            weights = self._weights[:len(self._replay_memory)]
             return np.random.choice(self._replay_memory, size, False,
-                                    p=self._weights[:len(self._replay_memory)])
+                                    p=weights / np.sum(weights))
 
     def append(self, value):
         self._replay_memory.append(value)
