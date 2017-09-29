@@ -28,7 +28,17 @@ class Gradients(subgraph.Subgraph):
 
 class AdamOptimizer(subgraph.Subgraph):
     def build_graph(self, learning_rate=0.001):
-        return tf.train.AdamOptimizer(learning_rate=learning_rate)
+        sg_optimizer = graph.TfNode(tf.train.AdamOptimizer(learning_rate=learning_rate))
+
+        # Here we use the fact that Subgraph creates a new tf.variable_scope for each instance
+        vs = tf.get_variable_scope()
+        optimizer_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=vs.name)
+        init_optimizer = tf.initialize_variables(optimizer_vars)
+
+        self.optimizer = sg_optimizer
+        self.reset_optimizer = graph.TfNode(init_optimizer)
+
+        return sg_optimizer.node
 
 
 class RMSPropOptimizer(subgraph.Subgraph):

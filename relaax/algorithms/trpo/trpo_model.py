@@ -232,11 +232,15 @@ class PolicyNet(subgraph.Subgraph):
         surr_clipped = tf.clip_by_value(r_theta, 1.0 - clip_e,  1.0 + clip_e) * ph_adv_n.node
         sg_ppo_loss = graph.TfNode(-tf.reduce_mean(tf.minimum(surr, surr_clipped)))
 
-        sg_minimize = graph.TfNode(tf.train.AdamOptimizer(
-                learning_rate=trpo_config.config.PPO.learning_rate).minimize(sg_ppo_loss.node))
+        sg_adam_optimizer = optimizer.AdamOptimizer(learning_rate=trpo_config.config.PPO.learning_rate)
+        sg_minimize = graph.TfNode(sg_adam_optimizer.node.minimize(sg_ppo_loss.node))
         self.op_ppo_optimize = self.Op(sg_minimize, state=sg_network.ph_state,
                                        sampled_variable=sg_probtype.ph_sampled_variable, adv_n=ph_adv_n,
                                        oldprob_np=ph_oldprob_np)
+
+        self.op_ppo_reset_optimizer = self.Op(sg_adam_optimizer.reset_optimizer)
+
+
 
 
 class ValueNet(subgraph.Subgraph):

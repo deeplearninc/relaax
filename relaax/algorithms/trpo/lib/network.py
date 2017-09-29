@@ -42,6 +42,8 @@ class PpoUpdater(object):
         action_na = np.concatenate([path['action'] for path in paths])
         advantage_n = np.concatenate([path['advantage'] for path in paths])
 
+        self.policy_model.op_ppo_reset_optimizer()
+
         for i in range(trpo_config.config.PPO.n_epochs):
             self.policy_model.op_ppo_optimize(state=state, sampled_variable=action_na, adv_n=advantage_n,
                                               oldprob_np=prob_np)
