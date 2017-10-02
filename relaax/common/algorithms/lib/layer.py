@@ -44,11 +44,11 @@ class Activation(object):
 
     # dict comprehension has its own locals. dict comprehension does not see class context.
     # This is why class locals are passed as lambda argument
-    _MAP = (lambda locals_: {k.lower(): v for k, v in locals_.items() if not k.startswith('_')})(locals())
+    _MAP = (lambda locals_: {k.lower(): k for k in locals_.keys() if not k.startswith('_')})(locals())
 
     @classmethod
     def get_activation(cls, name):
-        return cls._MAP[name.lower()]
+        return getattr(cls, cls._MAP[name.lower()])
 
 
 class Border(object):
@@ -57,11 +57,11 @@ class Border(object):
 
     # dict comprehension has its own locals. dict comprehension does not see class context.
     # This is why class locals are passed as lambda argument
-    _MAP = (lambda locals_: {k.lower(): v for k, v in locals_.items() if not k.startswith('_')})(locals())
+    _MAP = (lambda locals_: {k.lower(): k for k in locals_.keys() if not k.startswith('_')})(locals())
 
     @classmethod
     def get_border(cls, name):
-        return cls._MAP[name.lower()]
+        return getattr(cls, cls._MAP[name.lower()])
 
 
 class BaseLayer(subgraph.Subgraph):
@@ -215,7 +215,7 @@ class InputPlaceholder(subgraph.Subgraph):
         shape = [None] + input_shape + [input.history]
         self.ph_state = graph.Placeholder(np.float32, shape=shape)
 
-        if not input.use_convolutions or len(shape) <= 4:
+        if len(shape) <= 4:
             state_input = self.ph_state.checked
         else:
             # move channels after history
@@ -235,14 +235,15 @@ class Input(subgraph.Subgraph):
             input_placeholder = InputPlaceholder(input)
         self.ph_state = input_placeholder.ph_state
 
-        if input.use_convolutions and descs is None:
-            # applying vanilla A3C convolution layers
-            descs = [dict(type=Convolution, n_filters=16, filter_size=[8, 8], stride=[4, 4],
-                          activation=Activation.Relu),
-                     dict(type=Convolution, n_filters=32, filter_size=[4, 4], stride=[2, 2],
-                          activation=Activation.Relu)]
-
-        descs = [] if not input.use_convolutions else descs
+        if descs is None:
+            if input.use_convolutions:
+                # applying vanilla A3C convolution layers
+                descs = [dict(type=Convolution, n_filters=16, filter_size=[8, 8], stride=[4, 4],
+                              activation=Activation.Relu),
+                         dict(type=Convolution, n_filters=32, filter_size=[4, 4], stride=[2, 2],
+                              activation=Activation.Relu)]
+            else:
+                descs = []
         layers = GenericLayers(input_placeholder, descs)
 
         self.weight = layers.weight
@@ -263,19 +264,20 @@ class ConfiguredInput(subgraph.Subgraph):
 
     def build_graph(self, input, input_placeholder=None):
         if hasattr(input, 'layers'):
-            input_layers = self.read_layers(input.layers)
+            descs = self.read_layers(input.layers)
         else:
             if input.universe:
                 conv_layer = dict(type=Convolution, activation=Activation.Elu, n_filters=32,
                                   filter_size=[3, 3], stride=[2, 2], border=Border.Same)
-                input_layers = [dict(conv_layer)] * 4
+                descs = [conv_layer] * 4
             else:
-                input_layers = [dict(type=Convolution, n_filters=16, filter_size=[8, 8], stride=[4, 4],
-                                     activation=Activation.Relu),
-                                dict(type=Convolution, n_filters=32, filter_size=[4, 4], stride=[2, 2],
-                                     activation=Activation.Relu)]
+                descs = [dict(type=Convolution, n_filters=16, filter_size=[8, 8], stride=[4, 4],
+                              activation=Activation.Relu),
+                         dict(type=Convolution, n_filters=32, filter_size=[4, 4], stride=[2, 2],
+                              activation=Activation.Relu)]
 
-        input = layer.Input(input, descs=input_layers, input_placeholder=input_placeholder)
+        input = Input(input, descs=descs, input_placeholder=input_placeholder)
+        self.ph_state = input.ph_state
         self.weight = input.weight
         return input.node
 
@@ -283,7 +285,7 @@ class ConfiguredInput(subgraph.Subgraph):
         return [self.read_layer(layer) for layer in layers]
 
     def read_layer(self, layer):
-        return {k: self._MAP[k](v) for k, v in layer}
+        return {k: self._MAP[k](v) for k, v in layer.items()}
 
 
 class Weights(subgraph.Subgraph):
