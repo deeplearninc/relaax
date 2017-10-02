@@ -95,7 +95,7 @@ class AgentModel(subgraph.Subgraph):
         sg_loss = loss.DQNLoss(sg_network.output, config)
         sg_gradients_calc = optimizer.Gradients(sg_network.weights, loss=sg_loss)
 
-        sg_update_target_weights = graph.AssignWeights(sg_target_network.weights, sg_network.weights)
+        sg_update_target_weights = graph.AssignWeights(sg_target_network.weights, sg_network.weights).op
 
         # Expose public API
         self.op_assign_weights = self.Op(sg_network.weights.assign,

@@ -4,6 +4,8 @@
 algorithm:
   name: trpo
 
+  subtype: ppo
+
   input:
     shape: [4]
     history: 1
@@ -28,3 +30,8 @@ algorithm:
   TRPO:
     cg_damping: 0.1               # multiple of the identity to Fisher matrix during CG
     max_kl: 0.01                  # KL divergence between old and new policy
+
+  PPO:
+    clip_e: 0.2                   # clipping parameter for PPO loss function
+    learning_rate: 0.001          # learning rate for Adam optimizer used with PPO loss
+    n_epochs: 10                  # number of epochs to run on each batch
