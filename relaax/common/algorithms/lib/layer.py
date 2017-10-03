@@ -184,7 +184,7 @@ class ContinuousActor(subgraph.Subgraph):
         self.weight = graph.Variables(self.mu.weight, self.sigma2.weight)
         self.action_size = action_size
         self.continuous = True
-        return self.mu.node * output.scale, self.sigma2.node + 1e-4
+        return self.mu.node * output.scale, self.sigma2.node + tf.constant(1e-8)
 
 
 def Actor(head, output):
