@@ -43,6 +43,7 @@ class Agent(object):
         self.replay_buffer = None
         self.terminal = False
         self.discounted_reward = None
+        self.filter = None
 
     # environment is ready and
     # waiting for agent to initialize
@@ -66,6 +67,8 @@ class Agent(object):
         if da3c_config.config.use_icm:
             self.icm_observation = observation.Observation(da3c_config.config.input.history)
 
+        if da3c_config.config.use_filter:
+            self.filter = utils.ZFilter(da3c_config.config.input.shape)
         self.replay_buffer = DA3CReplayBuffer(self)
         return True
 
@@ -88,6 +91,8 @@ class Agent(object):
 
     @profiler.wrap
     def step(self, reward, state, terminal):
+        if da3c_config.config.use_filter:
+            state = self.filter(state)
         if reward is not None:
             reward = np.tanh(reward)
             if da3c_config.config.use_icm:

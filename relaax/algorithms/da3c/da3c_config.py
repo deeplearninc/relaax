@@ -11,6 +11,7 @@ config.output.scale = options.get('algorithm/output/scale', 1.0)
 config.critic_scale = options.get('algorithm/critic_scale', 1.0)
 
 config.output.loss_type = options.get('algorithm/output/loss_type', 'Normal')
+config.use_filter = options.get('algorithm/use_filter', False)
 config.optimizer = options.get('algorithm/optimizer', 'Adam')
 
 config.hogwild = options.get('algorithm/hogwild', False)
