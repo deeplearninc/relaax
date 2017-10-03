@@ -80,7 +80,9 @@ class GlobalServer(subgraph.Subgraph):
         self.op_assign_weights = self.Op(sg_network.weights.assign,
                                          weights=sg_network.weights.ph_weights)
 
-        self.op_apply_gradients = self.Op(sg_gradients_apply.apply, gradients=sg_gradients_apply.ph_gradients)
+        self.op_apply_gradients = self.Ops(sg_gradients_apply.apply, sg_global_step.increment,
+                                           gradients=sg_gradients_apply.ph_gradients,
+                                           n_steps=sg_global_step.ph_increment)
 
         self.op_initialize = self.Op(sg_initialize)
 

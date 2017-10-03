@@ -88,7 +88,7 @@ class Trainer(object):
         for i, g in enumerate(utils.Utils.flatten(gradients)):
             self.metrics.histogram('gradients_%d' % i, g)
 
-        self.ps.session.op_apply_gradients(gradients=gradients)
+        self.ps.session.op_apply_gradients(gradients=gradients, n_steps=len(experience))
 
     @profiler.wrap
     def receive_experience(self):
