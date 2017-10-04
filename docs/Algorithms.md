@@ -17,6 +17,7 @@
     - [Distributed Policy Gradient Architecture](#distributed-policy-gradient-architecture)
     - [Distributed Policy Gradient Config](#distributed-policy-gradient-config)
     - [Performance on some Classic Control Tasks](#performance-on-some-classic-control-tasks)
+- [Distributed DQN](#distributed-dqn)
 - [Other Algorithms](#other-algorithms)
 
 ### [Distributed A3C](#algorithms)
@@ -302,9 +303,9 @@ and [DPG](http://proceedings.mlr.press/v32/silver14.pdf).
 With actor-critic as in DPG, DDPG avoids the optimization of action at every time step  
 to obtain a greedy policy as in Q-learning, which will make it infeasible in complex action spaces with large,  
 unconstrained function approximators like deep neural networks. To make the learning stable and robust,  
-similar to DQN, DDPQ deploys experience replay and an idea similar to target network, ”soft” target, which,  
-rather than copying the weights directly as in DQN, updates the soft target network weights θ′ slowly to track  
-the learned networks weights θ: θ′ ← τθ + (1 − τ)θ′, with τ<=1.  The authors adapted batch normalization  
+similar to DQN, DDPQ deploys experience replay and an idea similar to target network, ?soft? target, which,  
+rather than copying the weights directly as in DQN, updates the soft target network weights ?? slowly to track  
+the learned networks weights ?: ?? ? ?? + (1 ? ?)??, with ?<=1.  The authors adapted batch normalization  
 to handle the issue that the different components of the observation with different physical units.  
 As an off-policy algorithm, DDPG learns an actor policy from experiences from an exploration policy  
 by adding noise sampled from a noise process to the actor policy.
@@ -369,7 +370,7 @@ receive the global network weights at any time.
     
 - _Define Action_: it chooses an action with maximum `Q` value.  
     Actions are summed up with some noise, which annealing through the training  
-    or (it recommended) to use `Ornstein–Uhlenbeck` process to generate noise by  
+    or (it recommended) to use `Ornstein?Uhlenbeck` process to generate noise by  
     setting parameter `ou_noise` in config to `True`  
     ![img](http://latex.codecogs.com/svg.latex?a_%7Bt%7D%3D%5Cmu%5Cleft%28s_%7Bt%7D%5Cmid%5Ctheta%5E%7B%5Cmu%7D%5Cright%29%2BN_%7Bt%7D),
     where _N<sub>t</sub>_ is the noise process.
@@ -426,9 +427,9 @@ You must specify the parameters for the algorithm in the corresponding `app.yaml
 
     l2: true                        # set to True to add l2 regularization loss for the Critic
     l2_decay: 0.01                  # regularization constant multiplier for l2 loss for Critic
-    ou_noise: true                  # set to True to use Ornstein–Uhlenbeck process for the noise
+    ou_noise: true                  # set to True to use Ornstein?Uhlenbeck process for the noise
 
-    exploration:                    # exploration parameters wrt Ornstein–Uhlenbeck process
+    exploration:                    # exploration parameters wrt Ornstein?Uhlenbeck process
         ou_mu: 0.0
         ou_theta: 0.15
         ou_sigma: 0.20
@@ -453,7 +454,7 @@ Policy Gradient (or `PG`) maintains a policy ![img](http://latex.codecogs.com/sv
 and similar to `DA3C` being updated with _n_-step returns in the forward view, after every _t_<sub>_max_</sub>
 actions or reaching a terminal state, similar to using minibatches.
 
-It is updating _θ_ in the direction of:
+It is updating _?_ in the direction of:
 ![img](http://latex.codecogs.com/svg.latex?%5Cbigtriangledown_%5Ctheta%5C%2Clog%5C%2C%5Cpi%5Cleft%28a_%7Bt%7D%5Cmid%5C%5Cs_%7Bt%7D%3B%5C%2C%7B%5Ctheta%5Cright%29R_%7Bt),  
 where ![img](http://latex.codecogs.com/svg.latex?R_%7Bt%7D%3D%5Csum_%7Bi%3D0%7D%5E%7Bk-1%7D%5Cgamma%5E%7Bi%7Dr_%7Bt%2Bi)
 with _k_ upbounded by _t_<sub>_max_</sub>.
@@ -548,6 +549,95 @@ You must specify the parameters for the algorithm in the corresponding `app.yaml
 ![img](resources/D-PG-a4-b200.png "Distributed Policy Gradient on CartPole")  
 <br><br>
 
+### [Distributed DQN](#algorithms)
+Inspired by original [paper](https://arxiv.org/pdf/1507.04296.pdf) - *Massively Parallel Methods for Deep Reinforcement Learning* from DeepMind
+
+It is one of the first application of deep learning models to reinforcement learning. It uses deep neural network to approximate future reward, which is trained with a variant of Q-learning algorithm, with stochastic gradient descent to update the weights. To alleviate the problems of correlated data and non-stationary distributions an experience replay mechanism is involved. It is implemented as a memory buffer, which stores only N last samples. DQN is model-free, i.e. it solves the reinforcement learning task directly using samples from the emulator. It is also off-policy: it learns about the greedy strategy ![](http://latex.codecogs.com/svg.latex?a%3D%5Cmax%5Climits_%7Ba%27%7DQ%28s%2Ca%3B%5Ctheta%29), while following a behavior distribution that ensures adequate exploration of the state space, which is implemented by eps-greedy strategy. In order to improve stability of training process and preventing it from divergence a separate (target) Q-network is introduced. It is used for generating the targets ![](http://latex.codecogs.com/svg.latex?y_j) in the Q-learning update and synchronizes with online Q-network every `update_target_weights_interval` updates.
+
+Here is the original pseudo-code for DQN:
+![img](resources/dqn_pseudocode.PNG "DQN-pseudocode")
+
+#### Distributed DQN Architecture
+
+![img](resources/dist_dqn.PNG "DQN-architecture")
+
+**Environment (Client)** - each client connects to a particular Agent (Learner).
+
+The main role of any client is feeding data to an Agent by transferring: state, reward and terminal signals (for episodic tasks if episode ends). Client updates these signals at each time step by receiving the action signal from an Agent and then sends updated values back.
+
+Process State: each state could be pass through some filtering procedure before transferring (if you defined). It could be some color, edge or blob transformations (for image input) or more complex pyramidal, Kalman's and spline filters.
+
+**Agent (Parallel Learner)** - each Agent connects to the Parameter Server.
+
+The main role of any agent is to perform a main training loop. Agent synchronize their neural network weights with the global network by copying the last one weights at the beginning of each update procedure. Agent executes `1` step (TBD `N` steps) of Client's signals receiving and sending actions back, then it stores this interaction tuple `(state, action, reward, next_state, terminal)` in the Replay Buffer. These N steps is similar to batch collection. If `ReplayBuffer` has enough samples to retrieve a batch of size, defined by config parameter `batch_size`, Agent computes the loss (wrt collected data) and pass it to the Optimizer. It uses `Adam` optimizer (by default) which computes gradients and sends them to the Parameter Server for update of its neural network weights. All Agents works absolutely independent in asynchronous way and can update or receive the global network weights at any time.
+
+*Agent's Neural Networks*: `2` identical neural networks named `Network` and `Target Network` with weights ![](http://latex.codecogs.com/svg.latex?%5Ctheta) and ![](http://latex.codecogs.com/svg.latex?%5Ctheta%5E-) respectively.
+
+ * *Input*: input with shape consistent to pass through 2D convolutions or to fully connected layers.
+ * *Convolution Layers* : defined by relevant dictionary or use default.
+ * *Fully connected Layers*: set of layers defined by parameter `hidden_sizes` and `ReLU` activation (by default).
+ * *Network*: fully connected layer with number of units equals to `action_size` and no activation (by default). It outputs an 1-D array, which represents Q values over all possible actions for the given state.
+   * *DuelingDQN Network*: fully connected layer with 2 outputs for advantage ![](http://latex.codecogs.com/svg.latex?A%28s%2Ca%29) and value ![](http://latex.codecogs.com/svg.latex?V%28s%29) functions of size `action_size` and `1` respectively. The result output will be ![](http://latex.codecogs.com/svg.latex?Q%28s%2Ca%29%3DV%28s%29%2B%5BA%28s%2Ca%29-%5Cfrac%7B1%7D%7B%7C%5Cmathcal%7BA%7D%7C%7D%5Csum%5Climits_%7Ba%27%7DA%28s%2Ca%27%29%5D) where `+` is broadcasted `actions_size` times.
+ * *Loss*: Let ![](http://latex.codecogs.com/svg.latex?y_j%3Dr_j) if ![](http://latex.codecogs.com/svg.latex?s_j) is `terminal` and ![](http://latex.codecogs.com/svg.latex?y_j%3Dr_j%2B%5Cgamma%5Cmax%5Climits_%7Ba%7DQ%28s_%7Bj%2B1%7D%2Ca%3B%5Ctheta%5E-%29) otherwise. Then ![](http://latex.codecogs.com/svg.latex?%5Cmathcal%7BL%7D%28s_j%2Ca_j%2Cr_j%2Cs_%7Bj%2B1%7D%5Cmid%5Ctheta%2C%5Ctheta%5E-%29%3D%28y_j-Q%28s_j%2Ca_j%5Cmid%5Ctheta%29%29).
+   * *DoubleDQN Loss*: It remains the same but ![](http://latex.codecogs.com/svg.latex?y_j%3Dr_j%2B%7B%5Cgamma%7DQ%28s_%7Bj%2B1%7D%2C%5Carg%5Cmax%5Climits_%7Ba%7DQ%28s_%7Bj%2B1%7D%2Ca%5Cmid%5Ctheta%29%3B%5Ctheta%5E-%29).
+ * *Compute Gradients*: it computes the gradients wrt neural network weights and relevant loss. Gradients are computed only for `Network` only.
+ * *Define Action*: it chooses an action according to `?`-greedy policy, i.e. random action with probability `?` or action with maximum Q value otherwise. Each agent starts with `?` equals to `eps.initial` value, which linearly decreases to `eps.end` value during `eps.decay_steps` training steps. If `eps.stochastic` is True, `eps.decay_steps` should be a pair `[eps_min, eps_max]` instead, and actual number of steps will be chosen randomly from that range.
+ * *Replay Buffer*: it holds a tuples `(state, action, reward, next_state, terminal)` in a cyclic buffer with the size defined by parameter `max_len`. Samples are randomly retrieved from this buffer to perform an update with the size defined by parameter `batch_size`. The choice of samples can be prioritized to more recent ones by increasing `alpha` parameter.
+ * *Adam Optimizer*: it holds Adam optimizer for `Network`. Each Agent has its own optimizer which is used to calculate gradients.
+
+**Parameter Server (Global)** - one for the whole algorithm (training process).
+
+The main role of the Parameter Server is to synchronize neural networks weights between Agents.
+It holds the shared (global) neural networks weights, which is updated by the Agents
+and sent the actual copy of its weights back to Agents to synchronize.
+
+ * *Global Neural Network*: single neural network identical to Agent's `Netowrk` with weights ![](http://latex.codecogs.com/svg.latex?%5Ctheta%5E%2B)
+ * *Adam Optimizer*: it holds optimizer's state. It is one for all Agents and used to apply gradients from them.
+
+ #### Distributed DQN Config:
+ You must specify the parameters for the algorithm in the corresponding `app.yaml` file to run:
+
+```
+algorithm:
+  name: dqn                             # short name for algorithm to load
+
+  input:
+    shape: [4]                          # shape of input state
+    history: 1                          # number of consecutive states to stack
+    use_convolutions: false             # set to true to process input by convolution layers
+
+  output:
+    action_size: 2                      # action size for the given environment
+
+  double_dqn: true                      # use DoubleDQN if true
+  dueling_dqn: true                     # use DuelingDQN if true
+
+  hidden_sizes: [64]                    # list of dense layers sizes, for ex. [128, 64]
+  batch_size: 32                        # maximum batch size, which need to accumulate for one update
+
+  max_global_step: 150000               # amount of maximum global steps to pass through the training
+  start_sample_step: 2000               # amount of steps before start training local Q-network
+  update_weights_interval: 100          # interval for receiving target Q-network weights from GlobalServer
+  update_target_weights_interval: 2000  # approximate number of steps for updating target Q-network on Agent
+  update_target_weights_min_steps: 500  # minimum number of steps for updating target Q-network after last update
+
+  rewards_gamma: 1.0                    # rewards discount factor
+
+  initial_learning_rate: 5e-4           # initial learning rate, which can be anneal by some procedure
+  gradients_norm_clipping: false        # gradients clipping by global norm, if false then it is ignored
+  optimizer: Adam                       # name of optimizer to use within training
+
+  replay_buffer_size: 50000             # maximum number of samples in replay buffer
+  alpha: 1.0                            # prioritization exponent. Larger values lead to more prioritization.
+
+  eps:
+    initial: 1.0                        # initial value for epsilon
+    end: 0.02                           # end value for epsilon
+    stochastic: False                   # use stochastic number of epsilon decay steps if true
+    decay_steps: 10000                  # number of decay steps or decay steps range if stochastic == true
+```
+
+
 ### [Other Algorithms](#algorithms)
 These other algorithms we are working on and planning to make them run on RELAAX server:
 
@@ -558,10 +648,6 @@ Inspired by:
 * UNREAL
 Inspired by:
     - [Reinforcement Learning with Unsupervised Auxiliary Tasks](https://arxiv.org/abs/1611.05397)
-
-* Distributed DQN (Gorila)
-Inspired by:
-    - [Massively Parallel Methods for Deep Reinforcement Learning](https://arxiv.org/abs/1507.04296)
 
 * PPO with L-BFGS (similar to TRPO)
 Inspired by:

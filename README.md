@@ -43,6 +43,7 @@ The components of RELAAX include:
         - [Performance on gym's Walker](docs/Algorithms.md#performance-on-gyms-walker)
     - [Distributed TRPO with GAE](docs/Algorithms.md#distributed-trpo-with-gae)
         - [Performance on gym's BipedalWalker](docs/Algorithms.md#performance-on-gyms-bipedalwalker)
+    - [Distributed DQN](docs/Algorithms.md#distributed-dqn)
     - [Other Algorithms](docs/Algorithms.md#other-algorithms)
 
 
