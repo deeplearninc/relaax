@@ -50,6 +50,9 @@ class Trainer(object):
         else:
             self.queue = None
 
+        if cfg.config.use_filter:
+            self.filter = utils.ZFilter(cfg.config.input.shape)
+
         if cfg.config.no_ps:
             self.session.op_initialize()
             self.session.op_init_target_weights()
@@ -69,6 +72,9 @@ class Trainer(object):
 
     @profiler.wrap
     def step(self, reward, state, terminal):
+        if cfg.config.use_filter:
+            state = self.filter(state)
+
         self.step_cnt += 1
         if self.cur_loop_cnt == cfg.config.loop_size:
             self.update()

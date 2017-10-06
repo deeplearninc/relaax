@@ -99,8 +99,8 @@ receive the global network weights at any time.
 
 - _Total Loss_ _`= Policy_Loss + critic_scale * Value_Loss`_  
     It uses `critic_scale` parameter to set a `critic learning rate` relative to `policy learning rate`  
-    It's set to `0.5` by default, i.e. the `critic learning rate` is `2` times smaller than `policy learning rate`
-    
+    It's set to `1.0` by default, i.e. the `critic learning rate` is `4` times larger than `policy learning rate`
+
     - _Value Loss_: sum (over all batch samples) of squared difference between
     expected discounted reward `(R)` and a value of the current sample state - `V(s)`,
     i.e. expected discounted return from this state.  
@@ -184,7 +184,7 @@ also with another `Actor` type, `Policy Loss`, `Choose Action` procedure  and ad
 #### [Intrinsic Curiosity Model for DA3C](#algorithms)
 
 `DA3C` algorithm can also be extended with additional models.  
-By default it can use a [ICM](https://arxiv.org/abs/1705.05363) by setting `use_gae` parameter to `True`.
+By default it can use a [ICM](https://arxiv.org/abs/1705.05363) by setting `use_icm` parameter to `True`.
 
 `ICM` helps Agent to discover an environment out of curiosity when extrinsic rewards are spare
 or not present at all. This model proposed an intrinsic reward which is learned jointly with Agent's policy
@@ -215,7 +215,6 @@ You must specify the parameters for the algorithm in the corresponding `app.yaml
     hidden_sizes: [256]             # list to define layers sizes after convolutions
 
     use_icm: true                   # set to True to use ICM module
-    use_gae: true                   # set to True to use generalized advantage estimation
     gae_lambda: 1.00                # discount lambda for generalized advantage estimation
 
     use_lstm: true                  # set to True to use LSTM instead of Fully-Connected layers
@@ -223,6 +222,10 @@ You must specify the parameters for the algorithm in the corresponding `app.yaml
 
     optimizer: Adam
     initial_learning_rate: 1e-4     # initial learning rate which linear annealing through training
+    
+    RMSProp:                        # use only for RMSProp optimizer if you don't use Adam
+        decay: 0.99
+        epsilon: 0.1
 
     entropy_beta: 0.01              # entropy regularization constant
     rewards_gamma: 0.99             # rewards discount factor
@@ -237,8 +240,8 @@ It allows to omit parameters that don't have sense for current setup
 (it retrieves some from [default](https://github.com/deeplearninc/relaax/blob/641668e3b1b4a3c152b2c9fde83557a6c2f4e60a/relaax/algorithms/da3c/da3c_config.py)).  
 It also could be helpful to use some notations to outline different versions of the `DA3C`.  
 Therefore `DA3C-LSTM` is referred to architecture with `LSTM` layers and `DA3C-FF` otherwise.  
-`Discrete DA3C-FF-GAE-ICM-16` outlines feedforward architecture with `discrete` actor,   
-generalized advantage estimation (`GAE`) and curiosity model (`ICM`) with `16` Agents. 
+`Discrete DA3C-FF-ICM-16` outlines feedforward architecture with `discrete` actor,   
+and curiosity model (`ICM`) with `16` Agents. 
 
 **DA3C Graph sample from Tensorboard**
 
@@ -248,7 +251,7 @@ generalized advantage estimation (`GAE`) and curiosity model (`ICM`) with `16` A
 Performance of `Vanilla A3C` on classic `Atari` environments from [original paper](https://arxiv.org/pdf/1602.01783v2.pdf#page.19)
 (`1` day = `80` millions of steps)
 
-`DA3C-LSTM-GAE-8` with [Universe A3C architecture](https://github.com/openai/universe-starter-agent/blob/master/model.py) on Gym's Atari Pong
+`DA3C-LSTM-8` with [Universe A3C architecture](https://github.com/openai/universe-starter-agent/blob/master/model.py) on Gym's Atari Pong
 (see universe-starter-agent [result](https://github.com/4SkyNet/universe-starter-agent/tree/maze#atari-pong) to compare): 
 ![img](resources/DA3C-LSTM-GAE-8_Universe.png "DA3C on Atari Pong")  
 `DA3C-FF-8` with [Vanilla A3C architecture](https://arxiv.org/pdf/1602.01783v2.pdf#page.12) on Gym's Atari Boxing:
@@ -303,9 +306,9 @@ and [DPG](http://proceedings.mlr.press/v32/silver14.pdf).
 With actor-critic as in DPG, DDPG avoids the optimization of action at every time step  
 to obtain a greedy policy as in Q-learning, which will make it infeasible in complex action spaces with large,  
 unconstrained function approximators like deep neural networks. To make the learning stable and robust,  
-similar to DQN, DDPQ deploys experience replay and an idea similar to target network, ?soft? target, which,  
-rather than copying the weights directly as in DQN, updates the soft target network weights ?? slowly to track  
-the learned networks weights ?: ?? ? ?? + (1 ? ?)??, with ?<=1.  The authors adapted batch normalization  
+similar to DQN, DDPQ deploys experience replay and an idea similar to target network, "soft" target, which,
+rather than copying the weights directly as in DQN, updates the soft target network weights  ![](http://latex.codecogs.com/svg.latex?%5Ctheta%27) slowly to track
+the learned networks weights  ![](http://latex.codecogs.com/svg.latex?%5Ctheta%5Ccolon%5Ctheta%27%5Cleftarrow%5Ctau%5Ctheta%2B%281-%5Ctau%29%5Ctheta%27), with ![](http://latex.codecogs.com/svg.latex?%5Ctau%5Cleq1).  The authors adapted batch normalization
 to handle the issue that the different components of the observation with different physical units.  
 As an off-policy algorithm, DDPG learns an actor policy from experiences from an exploration policy  
 by adding noise sampled from a noise process to the actor policy.
@@ -370,7 +373,7 @@ receive the global network weights at any time.
     
 - _Define Action_: it chooses an action with maximum `Q` value.  
     Actions are summed up with some noise, which annealing through the training  
-    or (it recommended) to use `Ornstein?Uhlenbeck` process to generate noise by  
+    or (it recommended) to use `Ornstein-Uhlenbeck` process to generate noise by
     setting parameter `ou_noise` in config to `True`  
     ![img](http://latex.codecogs.com/svg.latex?a_%7Bt%7D%3D%5Cmu%5Cleft%28s_%7Bt%7D%5Cmid%5Ctheta%5E%7B%5Cmu%7D%5Cright%29%2BN_%7Bt%7D),
     where _N<sub>t</sub>_ is the noise process.
@@ -427,9 +430,9 @@ You must specify the parameters for the algorithm in the corresponding `app.yaml
 
     l2: true                        # set to True to add l2 regularization loss for the Critic
     l2_decay: 0.01                  # regularization constant multiplier for l2 loss for Critic
-    ou_noise: true                  # set to True to use Ornstein?Uhlenbeck process for the noise
+    ou_noise: true                  # set to True to use Ornstein-Uhlenbeck process for the noise
 
-    exploration:                    # exploration parameters wrt Ornstein?Uhlenbeck process
+    exploration:                    # exploration parameters wrt Ornstein-Uhlenbeck process
         ou_mu: 0.0
         ou_theta: 0.15
         ou_sigma: 0.20
@@ -454,7 +457,7 @@ Policy Gradient (or `PG`) maintains a policy ![img](http://latex.codecogs.com/sv
 and similar to `DA3C` being updated with _n_-step returns in the forward view, after every _t_<sub>_max_</sub>
 actions or reaching a terminal state, similar to using minibatches.
 
-It is updating _?_ in the direction of:
+It is updating  ![](http://latex.codecogs.com/svg.latex?%5Ctheta) in the direction of:
 ![img](http://latex.codecogs.com/svg.latex?%5Cbigtriangledown_%5Ctheta%5C%2Clog%5C%2C%5Cpi%5Cleft%28a_%7Bt%7D%5Cmid%5C%5Cs_%7Bt%7D%3B%5C%2C%7B%5Ctheta%5Cright%29R_%7Bt),  
 where ![img](http://latex.codecogs.com/svg.latex?R_%7Bt%7D%3D%5Csum_%7Bi%3D0%7D%5E%7Bk-1%7D%5Cgamma%5E%7Bi%7Dr_%7Bt%2Bi)
 with _k_ upbounded by _t_<sub>_max_</sub>.
