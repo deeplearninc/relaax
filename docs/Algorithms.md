@@ -99,8 +99,8 @@ receive the global network weights at any time.
 
 - _Total Loss_ _`= Policy_Loss + critic_scale * Value_Loss`_  
     It uses `critic_scale` parameter to set a `critic learning rate` relative to `policy learning rate`  
-    It's set to `0.5` by default, i.e. the `critic learning rate` is `2` times smaller than `policy learning rate`
-    
+    It's set to `1.0` by default, i.e. the `critic learning rate` is `4` times larger than `policy learning rate`
+
     - _Value Loss_: sum (over all batch samples) of squared difference between
     expected discounted reward `(R)` and a value of the current sample state - `V(s)`,
     i.e. expected discounted return from this state.  
@@ -184,7 +184,7 @@ also with another `Actor` type, `Policy Loss`, `Choose Action` procedure  and ad
 #### [Intrinsic Curiosity Model for DA3C](#algorithms)
 
 `DA3C` algorithm can also be extended with additional models.  
-By default it can use a [ICM](https://arxiv.org/abs/1705.05363) by setting `use_gae` parameter to `True`.
+By default it can use a [ICM](https://arxiv.org/abs/1705.05363) by setting `use_icm` parameter to `True`.
 
 `ICM` helps Agent to discover an environment out of curiosity when extrinsic rewards are spare
 or not present at all. This model proposed an intrinsic reward which is learned jointly with Agent's policy
@@ -215,7 +215,6 @@ You must specify the parameters for the algorithm in the corresponding `app.yaml
     hidden_sizes: [256]             # list to define layers sizes after convolutions
 
     use_icm: true                   # set to True to use ICM module
-    use_gae: true                   # set to True to use generalized advantage estimation
     gae_lambda: 1.00                # discount lambda for generalized advantage estimation
 
     use_lstm: true                  # set to True to use LSTM instead of Fully-Connected layers
@@ -223,6 +222,10 @@ You must specify the parameters for the algorithm in the corresponding `app.yaml
 
     optimizer: Adam
     initial_learning_rate: 1e-4     # initial learning rate which linear annealing through training
+    
+    RMSProp:                        # use only for RMSProp optimizer if you don't use Adam
+        decay: 0.99
+        epsilon: 0.1
 
     entropy_beta: 0.01              # entropy regularization constant
     rewards_gamma: 0.99             # rewards discount factor
@@ -237,8 +240,8 @@ It allows to omit parameters that don't have sense for current setup
 (it retrieves some from [default](https://github.com/deeplearninc/relaax/blob/641668e3b1b4a3c152b2c9fde83557a6c2f4e60a/relaax/algorithms/da3c/da3c_config.py)).  
 It also could be helpful to use some notations to outline different versions of the `DA3C`.  
 Therefore `DA3C-LSTM` is referred to architecture with `LSTM` layers and `DA3C-FF` otherwise.  
-`Discrete DA3C-FF-GAE-ICM-16` outlines feedforward architecture with `discrete` actor,   
-generalized advantage estimation (`GAE`) and curiosity model (`ICM`) with `16` Agents. 
+`Discrete DA3C-FF-ICM-16` outlines feedforward architecture with `discrete` actor,   
+and curiosity model (`ICM`) with `16` Agents. 
 
 **DA3C Graph sample from Tensorboard**
 
@@ -248,7 +251,7 @@ generalized advantage estimation (`GAE`) and curiosity model (`ICM`) with `16` A
 Performance of `Vanilla A3C` on classic `Atari` environments from [original paper](https://arxiv.org/pdf/1602.01783v2.pdf#page.19)
 (`1` day = `80` millions of steps)
 
-`DA3C-LSTM-GAE-8` with [Universe A3C architecture](https://github.com/openai/universe-starter-agent/blob/master/model.py) on Gym's Atari Pong
+`DA3C-LSTM-8` with [Universe A3C architecture](https://github.com/openai/universe-starter-agent/blob/master/model.py) on Gym's Atari Pong
 (see universe-starter-agent [result](https://github.com/4SkyNet/universe-starter-agent/tree/maze#atari-pong) to compare): 
 ![img](resources/DA3C-LSTM-GAE-8_Universe.png "DA3C on Atari Pong")  
 `DA3C-FF-8` with [Vanilla A3C architecture](https://arxiv.org/pdf/1602.01783v2.pdf#page.12) on Gym's Atari Boxing:
