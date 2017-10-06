@@ -94,9 +94,11 @@ class Agent(object):
         if da3c_config.config.use_filter:
             state = self.filter(state)
         if reward is not None:
-            reward = np.tanh(reward)
             if da3c_config.config.use_icm:
-                reward += self.get_intrinsic_reward(state)
+                int_reward = self.get_intrinsic_reward(state)
+                self.metrics.scalar('intrinsic_reward', int_reward)
+                reward += int_reward
+            reward = np.tanh(reward)
             self.push_experience(reward, terminal)
         else:
             if da3c_config.config.use_icm:
