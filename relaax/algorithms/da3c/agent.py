@@ -126,6 +126,9 @@ class Agent(object):
     @profiler.wrap
     def update(self, reward, state, terminal):
         self.check_state_shape(state)
+        # replace empty state with constant one
+        if list(np.asarray(state).shape) == [0]:
+            state = [0]
         self.step(reward, state, terminal)
         return self.last_action
 
