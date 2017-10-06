@@ -245,20 +245,17 @@ class Agent(object):
         # compute discounted rewards
         self.discounted_reward = self.discount(np.asarray(reward + [r], dtype=np.float32), gamma)[:-1]
 
-        if da3c_config.config.use_gae:
-            forward_values = np.asarray(experience['value'][1:] + [r]) * gamma
-            rewards = np.asarray(reward) + forward_values - np.asarray(experience['value'])
+        # compute advantage wrt rewards and critic values
+        forward_values = np.asarray(experience['value'][1:] + [r]) * gamma
+        rewards = np.asarray(reward) + forward_values - np.asarray(experience['value'])
 
-            gae_gamma = da3c_config.config.rewards_gamma * da3c_config.config.gae_lambda
-            advantage = self.discount(rewards, gae_gamma)
+        advantage = self.discount(rewards, gamma * da3c_config.config.gae_lambda)
 
         feeds = dict(state=experience['state'], action=experience['action'],
-                     value=experience['value'], discounted_reward=self.discounted_reward)
+                     advantage=advantage, discounted_reward=self.discounted_reward)
 
         if da3c_config.config.use_lstm:
             feeds.update(dict(lstm_state=self.initial_lstm_state, lstm_step=[len(reward)]))
-        if da3c_config.config.use_gae:
-            feeds.update(dict(advantage=advantage))
 
         gradients, summaries = self.session.op_compute_gradients_and_summaries(**feeds)
         self.metrics.summary(summaries)

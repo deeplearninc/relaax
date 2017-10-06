@@ -131,10 +131,7 @@ class AgentModel(subgraph.Subgraph):
         self.op_assign_weights = self.Op(sg_network.weights.assign, weights=sg_network.weights.ph_weights)
 
         feeds = dict(state=sg_network.ph_state, action=sg_loss.ph_action,
-                     value=sg_loss.ph_value, discounted_reward=sg_loss.ph_discounted_reward)
-
-        if da3c_config.config.use_gae:
-            feeds.update(dict(advantage=sg_loss.ph_advantage))
+                     advantage=sg_loss.ph_advantage, discounted_reward=sg_loss.ph_discounted_reward)
 
         if da3c_config.config.use_lstm:
             feeds.update(dict(lstm_state=sg_network.ph_lstm_state))
