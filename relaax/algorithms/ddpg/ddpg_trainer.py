@@ -51,7 +51,11 @@ class Trainer(object):
             self.queue = None
 
         if cfg.config.use_filter:
-            self.filter = utils.ZFilter(cfg.config.input.shape)
+            shape = cfg.config.input.shape
+            if shape == [0]:
+                shape = [1]
+
+            self.filter = utils.ZFilter(shape)
 
         if cfg.config.no_ps:
             self.session.op_initialize()
