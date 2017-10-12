@@ -31,6 +31,9 @@ class Agent(object):
     # and asking agent for an action for this state
     @profiler.wrap
     def update(self, reward, state, terminal):
+        # replace empty state with constant one
+        if list(np.asarray(state).shape) == [0]:
+            state = [0]
         self.episode.step(reward, state, terminal)
 
         if terminal:
