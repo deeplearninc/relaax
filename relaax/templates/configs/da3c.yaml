@@ -5,14 +5,14 @@ algorithm:
   name: da3c                      # short name for algorithm to load
 
   input:
-    shape: [4]                    # shape of input state
+    shape: [0]                    # shape of input state, [0] means empty state (bandit env)
     history: 1                    # number of consecutive states to stack
     use_convolutions: false       # set to true to process input by convolution layers
 
   output:
     continuous: false             # set to true to switch to continuous action space
     loss_type: Normal             # choose loss_type by name for continuous action space
-    action_size: 2                # action size for the given environment
+    action_size: 4                # action size for the given environment
     action_high: []               # upper boundary for clipping continuous action
     action_low: []                # lower boundary for clipping continuous action
     scale: 1.0                    # multiplier to scale continuous output

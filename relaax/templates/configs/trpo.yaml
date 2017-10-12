@@ -7,13 +7,13 @@ algorithm:
   subtype: ppo
 
   input:
-    shape: [4]
+    shape: [0]
     history: 1
     use_convolutions: false
 
   output:
     continuous: false
-    action_size: 2                # action size for the given environment
+    action_size: 4                # action size for the given environment
 
   hidden_sizes: [64, 64]
   activation: tanh                # activation function for MLP
