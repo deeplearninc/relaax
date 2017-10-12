@@ -16,10 +16,10 @@ Each call to any method stores (argument, value) pair under given metric name. E
 
 ### Available metrics
 
-  episode_reward
-  server_latency
-  client_latency
-  action (mu, sigma2) weights, gradients?
-  critic
-  log_prob (gaussian_nll)
-  entropy
+- episode_reward
+- server_latency
+- client_latency
+- action (mu, sigma2) weights, gradients?
+- critic
+- log_prob (gaussian_nll)
+- entropy
