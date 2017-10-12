@@ -4,7 +4,7 @@ import numpy as np
 from PIL import Image
 from struct import pack, unpack_from
 
-V = False
+V = True
 
 
 class RLXMessageImage(object):

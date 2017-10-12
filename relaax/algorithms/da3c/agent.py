@@ -91,10 +91,10 @@ class Agent(object):
 
     @profiler.wrap
     def step(self, reward, state, terminal):
-        if da3c_config.config.use_filter:
+        if da3c_config.config.use_filter and not terminal:
             state = self.filter(state)
         if reward is not None:
-            if da3c_config.config.use_icm:
+            if da3c_config.config.use_icm and not terminal:
                 int_reward = self.get_intrinsic_reward(state)
                 self.metrics.scalar('intrinsic_reward', int_reward)
                 reward += int_reward
