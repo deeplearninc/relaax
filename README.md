@@ -36,6 +36,7 @@ The components of RELAAX include:
 - [RELAAX Server](#relaax-servers)
     - [RLX Server](#rlx-server)
     - [Parameter Server](#parameter-server)
+    - [Metrics Server](docs/Metrics.md)
 - [Algorithms](docs/Algorithms.md#algorithms)
     - [Distributed A3C](docs/Algorithms.md#distributed-a3c)
         - [Distributed A3C Architecture](docs/Algorithms.md#distributed-a3c-architecture)
@@ -188,7 +189,8 @@ Available `from relaax.environment.agent_proxy import AgentProxy, AgentProxyExce
 * `init(expoit=False)` - send `init` command to the Agent to give it time to load model and do any other required initialization steps; you may use `exploit` flag to switch off exploration and traing of the model for the given Agent. Agent would copy latest trained weights from parameter server (PS) and do inferring, but wouldnt update model weights on PS.     
 * `update(reward=None, state=None, terminal=False)` - send `update` to the Agent with state and reward and indication if this is terminal state or not 
 * `reset()` - send `reset` command to the Agent
-* `metrics.scalar` - send scalar to parameter server to add to the tensorboard metrics 
+* `metrics.scalar` - send scalar to metrics server
+* `metrics.histogram` - send tensor histogram to metrics server
 
 Agent Proxy is simple but requires certain amout of code to iitialize Agent, connection and reconnect to the Agents, handle exceptions, etc. To simplify all that even further, you may use `TrainingBase` class, which wrapps all details of the Agent Proxy operations. 
 
@@ -307,4 +309,3 @@ def init(self):
 ```
 * `close(self)` - called before PS is stopped to close session.
 * `create_checkpoint(self)` - called by PS to create check point of the Model. 
-
