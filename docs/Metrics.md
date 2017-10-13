@@ -2,7 +2,7 @@
 > click on title to go to contents
 - [Metrics API](#metrics_api)
 - [Available metrics](#available_metrics)
-- [How to use metrics](#how_to use_metrics)
+- [How to use metrics](#how_to_use_metrics)
 
 <a href="#metrics_api"></a>
 ### Metrics API
