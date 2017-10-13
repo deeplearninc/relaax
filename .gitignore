@@ -1,11 +1,29 @@
-**/*_pb2.py
-**/*_pb2_grpc.py
-**/aws-keys.yaml
-Session.vim
-tags
-relaax.egg-info
 *.pyc
+*.pyo
+*.py~
+*.egg*
+.DS_Store
+.idea
+metastore_db
 
+# Testing artifacts
+**/__pycache__/*
+coverage/*
+/.cache
+/.coverage
+/.env
+/.tox
+
+# Development artifacts
 training/metrics*
 training/checkpoint*
+**/aws-keys.yaml
 **/logs/*
+**/log/*
+Session.vim
+tags
+sample/log
+
+# Setuptools distribution and build folders
+/dist/
+/build

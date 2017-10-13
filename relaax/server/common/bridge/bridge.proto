@@ -1,0 +1,54 @@
+
+syntax = "proto3";
+
+message NullMessage {
+}
+
+message X {
+    double x = 2;
+}
+
+message Item {
+    enum ItemType {
+        TUPLE_OPEN = 0;
+        TUPLE_CLOSE = 1;
+        LIST_OPEN = 2;
+        LIST_CLOSE = 3;
+        DICT_OPEN = 4;
+        DICT_CLOSE = 5;
+        NONE = 6;
+        BOOL = 7;
+        INT = 8;
+        NUMPY_INT_32 = 9;
+        NUMPY_INT_64 = 10;
+        FLOAT = 11;
+        FLOAT_32 = 12;
+        FLOAT_64 = 13;
+        STR = 14;
+        BYTES = 15;
+        NUMPY_ARRAY = 16;
+    }
+
+    message NumpyArray {
+        bool last = 1;
+        string dtype = 2;
+        repeated uint32 shape = 3;
+        bytes data = 4;
+    }
+
+    ItemType   item_type         = 1;
+    string     dict_key          = 2; // for dictionary items only
+    bool       bool_value        = 3; // for bool items only
+    sint64     int_value         = 4; // for int items only
+    double     float_value       = 5; // for float items only
+    string     str_value         = 6; // for str items only
+    bytes      bytes_value       = 7; // for bytes items only
+    NumpyArray numpy_array_value = 8; // for numpy array items only
+}
+
+service Bridge {
+    rpc Init(NullMessage) returns (NullMessage) {}
+    rpc Run(stream Item) returns (stream Item) {}
+    rpc SetX(X) returns (NullMessage) {}
+    rpc StoreMetric(stream Item) returns (NullMessage) {}
+}

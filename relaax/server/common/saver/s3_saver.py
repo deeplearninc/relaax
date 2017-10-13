@@ -1,89 +1,89 @@
-from __future__ import print_function
-
+from __future__ import absolute_import
 import boto3
 import botocore
 import contextlib
+import logging
 import os
 import re
 import shutil
 import tempfile
 import tensorflow
 
-import saver
+from . import saver
+
+
+_logger = logging.getLogger(__name__)
 
 
 class S3Saver(saver.Saver):
-    def __init__(self, bucket, key, aws_access_key=None, aws_secret_key=None):
+    def __init__(self, checkpoint, bucket_key, aws_access_key=None, aws_secret_key=None):
         super(S3Saver, self).__init__()
-        self._bucket = bucket
-        self._key = key
+        self._checkpoint = checkpoint
+        match = re.match('^([^/]+)/(.+)$', bucket_key)
+        self._bucket = match.group(1)
+        self._key = match.group(2)
         self._aws_access_key = aws_access_key
         self._aws_secret_key = aws_secret_key
 
-    def restore_latest_checkpoint(self, session):
+    def checkpoint_ids(self):
+        return self._checkpoint.checkpoint_ids(self._listdir())
+
+    def remove_checkpoint(self, checkpoint_id):
+        removed = False
+        for name in self._checkpoint.checkpoint_names(self._listdir(), checkpoint_id):
+            self._remove(name)
+            removed = True
+        if removed:
+            _logger.info('checkpoint {} was removed from {} bucket {} key'.format(checkpoint_id, self._bucket, self._key))
+
+    def restore_checkpoint(self, checkpoint_id):
         with _temp_dir() as dir:
-            lf_path = self._download(dir, self._LATEST_FILENAME)
-            if lf_path is None:
-                return False
-            cp_name = self._latest_cp_name(dir)
-            self._download(dir, '%s.meta' % cp_name)
-            cp_path = self._download(dir, cp_name)
-            if cp_path is None:
-                return False
-            self._get_saver().restore(session, cp_path)
-        return True
+            for name in self._checkpoint.checkpoint_names(self._listdir(), checkpoint_id):
+                self._download(dir, name)
+            self._checkpoint.restore_checkpoint(dir, checkpoint_id)
+        _logger.info('checkpoint {} was restored from {} bucket {} key'.format(checkpoint_id, self._bucket, self._key))
 
-    def save_checkpoint(self, session, global_step):
+    def save_checkpoint(self, checkpoint_id):
         with _temp_dir() as dir:
-            self._save(dir, session, global_step)
+            self._checkpoint.save_checkpoint(dir, checkpoint_id)
+            for name in os.listdir(dir):
+                self._upload(dir, name)
+        _logger.info('checkpoint {} was saved to {} bucket {} key'.format(checkpoint_id, self._bucket, self._key))
 
-            cp_name = self._latest_cp_name(dir)
-            if cp_name.startswith('%s/' % dir):
-                cp_name = cp_name[len(dir) + 1:]
-                with open('%s/%s' % (dir, self._LATEST_FILENAME), 'w') as f:
-                    print('model_checkpoint_path: "%s"' % cp_name, file=f)
-                    print('all_model_checkpoint_paths: "%s"' % cp_name, file=f)
-
-            cp_name = self._latest_cp_name(dir)
-            self._upload(dir, cp_name)
-            self._upload(dir, '%s.meta' % cp_name)
-            self._upload(dir, self._LATEST_FILENAME)
-
-    def location(self):
-        return "'%s' bucket '%s' key" % (self._bucket, self._key)
-
-    def _latest_cp_name(self, dir):
-        cp_name = None
-        with open('%s/%s' % (dir, self._LATEST_FILENAME), 'r') as f:
-            for line in f:
-                match = re.match('^model_checkpoint_path:\s*"(.*)"\s*$', line)
-                if match is not None:
-                    cp_name = match.group(1)
-        return cp_name
+    def _listdir(self):
+        prefix = '%s/' % self._key
+        for obj in self._s3().Bucket(self._bucket).objects.filter(Prefix=prefix):
+            assert obj.key.startswith(prefix)
+            yield obj.key[len(self._key) + 1:]
 
     def _download(self, dir, name):
         if not self._bucket_exists():
-            return None
+            return
         path = '%s/%s' % (dir, name)
         try:
             self._s3().meta.client.download_file(
-                self._bucket,
-                '%s/%s' % (self._key, name),
-                path
+                Bucket=self._bucket,
+                Key='%s/%s' % (self._key, name),
+                Filename=path
             )
         except botocore.exceptions.ClientError as e:
             if int(e.response['Error']['Code']) == 404:
-                return None 
+                return
             raise
-        return path
 
     def _upload(self, dir, name):
         if not self._bucket_exists():
             self._create_bucket()
         self._s3().meta.client.upload_file(
-            '%s/%s' % (dir, name),
-            self._bucket,
-            '%s/%s' % (self._key, name)
+            Filename='%s/%s' % (dir, name),
+            Bucket=self._bucket,
+            Key='%s/%s' % (self._key, name)
+        )
+
+    def _remove(self, name):
+        self._s3().meta.client.delete_object(
+            Bucket=self._bucket,
+            Key='%s/%s' % (self._key, name)
         )
 
     def _bucket_exists(self):

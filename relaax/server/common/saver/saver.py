@@ -1,34 +1,16 @@
 from __future__ import print_function
 
-import tensorflow
 
-
+from builtins import object
 class Saver(object):
-    _CHECKPOINT_PREFIX = 'cp'
-    _LATEST_FILENAME = 'latest'
+    def checkpoint_ids(self):
+        raise NotImplementedError
 
-    def __init__(self):
-        self._saver = None
+    def remove_checkpoint(self, checkpoint_id):
+        raise NotImplementedError
 
-    def _restore(self, dir, session):
-        cp_path = self._latest_cp_path(dir)
-        if cp_path is not None:
-            self._get_saver().restore(session, cp_path)
-            return True
-        return False
+    def restore_checkpoint(self, checkpoint_id):
+        raise NotImplementedError
 
-    def _save(self, dir, session, global_step):
-        self._get_saver().save(
-            session,
-            '%s/%s' % (dir, self._CHECKPOINT_PREFIX),
-            global_step=global_step,
-            latest_filename=self._LATEST_FILENAME
-        )
-
-    def _latest_cp_path(self, dir):
-        return tensorflow.train.latest_checkpoint(dir, latest_filename=self._LATEST_FILENAME)
-
-    def _get_saver(self):
-        if self._saver is None:
-            self._saver = tensorflow.train.Saver()
-        return self._saver
+    def save_checkpoint(self, checkpoint_id):
+        raise NotImplementedError

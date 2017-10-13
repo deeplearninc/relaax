@@ -1,0 +1,13 @@
+#! /usr/bin/env python
+
+import os
+import webbrowser
+
+module_path = os.path.dirname(os.path.abspath(__file__))
+print(module_path)
+url = 'file://%s/index.html' % module_path
+webbrowser.open(url, new=2)  # open in new tab
+
+print("Press [CTRL+C] to stop..")
+while True:
+    pass
