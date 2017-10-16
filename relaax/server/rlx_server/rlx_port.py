@@ -44,9 +44,8 @@ class RLXPort(object):
                 except socket.error as e:
                     if cls.handle_accept_socket_exeption(e):
                         continue
-                    if cls.stopped_server:
+                    if sys.platform == 'win32' and cls.stopped_server:
                         break
-                            
                     raise
                 except KeyboardInterrupt:
                     # Swallow KeyboardInterrupt
