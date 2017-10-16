@@ -4,10 +4,7 @@ import numpy as np
 
 from .. import trpo_config
 from . import core
-
-
-PPO = False
-D2 = True
+from . import dataset
 
 
 def make_filter(config):
@@ -42,9 +39,14 @@ class PpoUpdater(object):
         action_na = np.concatenate([path['action'] for path in paths])
         advantage_n = np.concatenate([path['advantage'] for path in paths])
 
+        d = dataset.Dataset(dict(state=state, sampled_variable=action_na, adv_n=advantage_n, oldprob_np=prob_np))
+
         for i in range(trpo_config.config.PPO.n_epochs):
-            self.policy_model.op_ppo_optimize(state=state, sampled_variable=action_na, adv_n=advantage_n,
-                                              oldprob_np=prob_np)
+            for batch in d.iterate_once(trpo_config.config.PPO.minibatch_size):
+                self.policy_model.op_ppo_optimize(state=batch['state'],
+                                                  sampled_variable=batch['sampled_variable'],
+                                                  adv_n=batch['adv_n'],
+                                                  oldprob_np=batch['oldprob_np'])
         # TODO: add KL new/old for debug
 
 
