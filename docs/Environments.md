@@ -36,7 +36,7 @@ environment:
                         # default_value is used if there are no entry at app.yaml 
 
 relaax-rlx-server:
-  --bind: localhost:7001  # sets address, where environment sends states, rewards (terminals) and receives actions
+  bind: localhost:7001  # sets address, where environment sends states, rewards (terminals) and receives actions
 ```
 
 It allows to integrate any application of your own choice (see [customized](#customized) section).
