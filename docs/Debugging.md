@@ -1,4 +1,4 @@
-## [Debugging](../README.md#contents)
+## [Profiling & Debugging](../README.md#contents)
 > click on title to go to contents
 - [Debugging](#debbuging)
 - [Profiling](#profiling)
