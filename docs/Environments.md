@@ -23,13 +23,18 @@ Options:
 ``` 
 
 It is necessary to provide some `app.yaml` to each application, where all necessary configs is setup.
+There are two important sections, which is responsible for appropriate options. 
 ```yaml
 environment:
   run: executable       # path to script (wrapper), which is launch an environment or directly to some executable 
   max_episodes: 10000   # amount of episodes to pass in through the training
   infinite_run: false   # if it set to True, then environment is rollout infinitely
+
   ...                   # some other additional args, which is relevant to the environment or some run options
-  
+  steps: 200            # it's just for example, get it from an environment or wrapper by
+                        # options.get('environment/steps', default_value)
+                        # default_value is used if there are no entry at app.yaml 
+
 relaax-rlx-server:
   --bind: localhost:7001  # sets address, where environment sends states, rewards (terminals) and receives actions
 ```
