@@ -1,10 +1,11 @@
 ### [Supported Environments](../README.md#contents)
 > click on title to go to contents
-- [ALE](#arcade-learning-environment)
+- [Basic](#basic)
 - [OpenAI Gym](#openai-gym)
 - [DeepMind Lab](#deepmind-lab)
+- [Customized](#customized)
 
-#### [Arcade-Learning-Environment](#supported-environments)
+#### [Basic](#supported-environments)
 
 The [Arcade Learning Environment (ALE)](http://www.arcadelearningenvironment.org/)
 is a framework that allows to develop AI agents for Atari 2600 games.
@@ -427,3 +428,6 @@ $ cd path_to_relaax_repo/environments/DeepMind_Lab
 
 $ docker build -f Dockerfile -t relaax-lab-vnc ../..
 ```
+<br><br>
+
+#### [Customized](#supported-environments)
