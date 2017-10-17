@@ -5,6 +5,28 @@
 - [DeepMind Lab](#deepmind-lab)
 - [Customized](#customized)
 
+RELAAX allows to **generate** some types of predefined apps by `relaax new` command.  
+The set of possible options and usage is displayed by `relaax new --help`:  
+```bash
+Usage: relaax new [OPTIONS] APP_NAME
+
+  Create new RELAAX application.
+
+Options:
+  -a, --algorithm     [policy-gradient|da3c|trpo|ddpg|dqn]
+                      Algorithm to use
+                      with this application. [default: policy-gradient]
+  -e, --environment   [basic|openai-gym|deepmind-lab] 
+                      Environment to base
+                      application on.  [default: basic]
+  --help              Show this message and exit.
+``` 
+
+It also allows to integrate any application of your own choice.  
+(see [customized](#customized) section)
+
+Some variants of applications provided in specific [relaax_sample_apps](https://github.com/deeplearninc/relaax_sample_apps) repo.
+
 #### [Basic](#supported-environments)
 
 The [Arcade Learning Environment (ALE)](http://www.arcadelearningenvironment.org/)
