@@ -98,7 +98,7 @@ environment:
   steps: 300                           # additional parameter to control the episode length
 ```
 <br><br>
-s
+
 #### [OpenAI Gym](#supported-environments)
 
 [OpenAI Gym](https://gym.openai.com/) is an open-source library, which provides a collection of
