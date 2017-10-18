@@ -357,3 +357,37 @@ end
 ```
 
 #### [Customized](#supported-environments)
+
+It allows to use any other application with custom arguments, which supports our protocol. 
+
+Detailed information about used protocol located there:
+- [RELAAX Agent Proxy](../README.md#relaax-agent-proxy)
+    - [Reinforcement Learning eXchange protocol](../README.md#reinforcement-learning-exchange-protocol)
+    - [Reinforcement Learning eXchange protocol definition](../README.md#reinforcement-learning-exchange-protocol-definition)
+
+For example, there are some `app.yaml` file for the app:
+```yaml
+environment:
+  run: python start
+  steps: 1000
+  infinite_run: true
+  
+  batchmode: true
+  use_graphics: false
+```
+
+It is provided some additional args as `batchmode` and `use_graphics` with the manual pythor wrapper `start`,
+which could be looks like as follows:
+```python
+import subprocess
+from relaax.environment.config import options
+
+args = []
+if options.get('environment/mode', false):
+    args.append(options.get('environment/batchmode', false))
+if not options.get('environment/mode', true):
+    args.append(options.get('environment/use_graphics', true))
+
+cmd = ["./Default Linux desktop 64-bit.x86_64"]
+subprocess.call(cmd + args)
+``` 
