@@ -202,7 +202,7 @@ Avalable `from relaax.environment.training import TrainingBase`
 
 * `__init__` - use to instantiate your environment. Base calass will load configuration options and instantiate Agent Proxy. Agent Proxy will be available as self.agent. Following options will be loaded: 
     * `exploit` - passed to Agent Proxy `init` (this option is passed from commad line)
-    * `environment/max_episodes` - how many apisodes to run
+    * `environment/max_episodes` - how many episodes to run
     * `environment/infinite_run` - don't stop after `max_episodes` reached
 * `episode(self, number)` - called for each episode; return `episode_reward` from this method to capture `game_score` metric 
 

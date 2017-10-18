@@ -39,6 +39,11 @@ relaax-rlx-server:
   bind: localhost:7001  # sets address, where environment sends states, rewards (terminals) and receives actions
 ```
 
+Detailed information about used protocol located there:
+- [RELAAX Agent Proxy](../README.md#relaax-agent-proxy)
+    - [Reinforcement Learning eXchange protocol](../README.md#reinforcement-learning-exchange-protocol)
+    - [Reinforcement Learning eXchange protocol definition](../README.md#reinforcement-learning-exchange-protocol-definition)
+
 It allows to integrate any application of your own choice (see [customized](#customized) section).
 
 Some variants of applications provided in specific [relaax_sample_apps](https://github.com/deeplearninc/relaax_sample_apps) repo.
@@ -82,8 +87,18 @@ class Training(TrainingBase):
             action = self.agent.update(reward=reward, state=[])
             log.info('step: %s, action: %s' % (step, action))
 ``` 
-<br><br>
 
+There are only one additional parameter `step` in default `app.yaml` file,
+which controls the amount of steps within one episode:
+```yaml
+environment:
+  run: python environment/training.py  # path to python exchange adapter
+  max_episodes: 100                    # how many episodes to run
+  infinite_run: false                  # if True, it doesn't stop after `max_episodes` reached
+  steps: 300                           # additional parameter to control the episode length
+```
+<br><br>
+s
 #### [OpenAI Gym](#supported-environments)
 
 [OpenAI Gym](https://gym.openai.com/) is an open-source library, which provides a collection of
