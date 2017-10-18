@@ -8,7 +8,7 @@ RELAAX is a framework designed to:
 
 3. Ease deployment of Agents and Environments for training and exploitation of the trained Agents at scale on popular cloud platforms
 
-Please find some samples demostrating RELAAX abilities in [relaax_sample_apps](../../../relaax_sample_apps/blob/master/README.md) repository.
+Please find some samples demostrating RELAAX abilities in [relaax_sample_apps](../../../relaax_sample_apps/blob/master) repository.
 
 The components of RELAAX include:
 
