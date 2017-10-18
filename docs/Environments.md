@@ -51,7 +51,7 @@ Some variants of applications provided in specific [relaax_sample_apps](https://
 #### [Basic](#supported-environments)
 
 ```bash
-$ relaax new -e basic -a [policy-gradient|da3c|trpo|ddpg|dqn] APP_NAME
+$ relaax new [-e basic -a policy-gradient|da3c|trpo|ddpg|dqn] APP_NAME
 ```
 
 Basic app is provided as some ground sample to test and modify on.
@@ -105,10 +105,10 @@ environment:
 test problems environments, that you can use to work out your reinforcement learning algorithms.
 
 ```bash
-$ relaax new -e openai-gym -a [policy-gradient|da3c|trpo|ddpg|dqn] APP_NAME
+$ relaax new -e openai-gym [-a policy-gradient|da3c|trpo|ddpg|dqn] APP_NAME
 ```
 
-And operates with the agents trough adapter `APP_NAME/environment/training.py`, which looks as follows:
+It operates with the agents trough python adapter `APP_NAME/environment/training.py`, which looks as follows:
 ```python
 from gym_env import GymEnv
 
@@ -131,7 +131,6 @@ class Training(TrainingBase):
 
 It also use specific wrapper for any Gym environment, which is located there `APP_NAME/environment/gym_env.py`  
 It allows to setup given Gym environment by some options at your `app.yaml` file:
-Please find sample of configuration to run experiments with OpenAI Gym there:
 ```yaml
 environment:
   run: python environment/training.py  # path to gym's wrapper to run
@@ -144,7 +143,7 @@ environment:
                                        # 4 is default one for most Atari games
   record: False                        # if True, it uses the default gym's monitor to record
   out_dir: /tmp/pong                   # folder to store monitor's files 
-  no_op_max: 30                        # maximum number of random actions before take the control
+  no_op_max: 30                        # maximum number of actions before take the control
   stochastic_reset: False              # if False, it uses 0-th action for no_op_max, instead ramdomly
   show_ui: False                       # set to True to see the environment's UI
   limit: 100000                        # number of steps to pass trough one episode, uses gym's defaults instead
@@ -199,17 +198,61 @@ It provides a suite of challenging 3D navigation and puzzle-solving tasks
 for learning agents especially with deep reinforcement learning.
 
 ```bash
-$ relaax new -e deepmind-lab -a [policy-gradient|da3c|trpo|ddpg|dqn] APP_NAME
+$ relaax new -e deepmind-lab [-a policy-gradient|da3c|trpo|ddpg|dqn] APP_NAME
 ```
 
-Please find sample of configuration to perform experiments with DeepMind Lab there:
+It operates with the agents trough python adapter `APP_NAME/environment/training.py`, which looks as follows:
+```python
+from lab import LabEnv
 
-`relaax/config/da3c_lab_demo.yaml`
+class Training(TrainingBase):
+    def __init__(self):
+        super(Training, self).__init__()
+        self.lab = LabEnv()
 
-`action_size` and `state_size` parameters for this configuration is equal to:
+    def episode(self, number):
+        state = self.lab.reset()
+        reward, episode_reward, terminal = None, 0, False
+        action = self.agent.update(reward, state, terminal)
+
+        while not terminal:
+            reward, state, terminal = self.lab.act(action)
+            action = self.agent.update(reward, state, terminal)
+            episode_reward += reward
+
+        log.info('*********************************\n'
+                 '*** Episode: %s * reward: %s \n'
+                 '*********************************\n' %
+                 (number, episode_reward))
+
+        return episode_reward
+```
+
+It uses DeepMind Lab build/run script (using bazel) to start Lab instance.
+To avoid changing Lab build scripts we replace random-agent target .py file with our entry point.  
+
+In order to run multiple instances of the DeepMind Lab it runs them inside docker containers (see start-container.py).
+This allow to execute number of bazel instances in parallel.
+
+You may decide to run Lab directly on the Host.
+For that you may replace start-container on start-lab in the app.yaml.
+This will start single instance of bazel.  
+
+The set of possible options for some DeepMind Lab environment looks as follows:
 ```yaml
-action_size: 3                  # the small action size for the lab's environment
-state_size: [84, 84]            # dimensions of the environment's input screen
+environment:
+  run: python environment/start-container.py  # path to wrapper to run
+  lab_path: /lab                              # path to lab installation folder
+  max_episodes: 10000                         # number of episodes to run
+  infinite_run: True                          # if True, it doesn't stop after `max_episodes` reached
+  run_in_container: false                     # set to True to run via docker
+  
+  level_script: custom-map/custom_map         # path to custom map, it uses `nav_maze_static_01` by default
+  shape: [42, 42]                             # output shape of the environment's state
+  action_size: medium                         # set the action size for the environment, see table below
+  fps: 20                                     # frames per second rate within environment
+  show_ui: false                              # set to True to see the environment's UI
+  no_op_max: 9                                # maximum number of random actions before take the control
 ```
 
 The full set for `action_size` consists of 11-types of interactions.
@@ -235,5 +278,82 @@ It allows to define number of desired actions by the 4th parameter.
 
 `f` or `full` (`b` or `big`) to set full `action_size`
 <br><br>
+
+**Use custom maps**
+
+By default, it runs Lab with maps set up for `random_agent` build target.
+You can see the full set of provided maps via lab (`nav_maze_static_01` by default)
+or use your own one. See `environment/custom-map` folder as an example.
+
+To use custom map, set `level_script` in `environment` section of the `app.yaml` to use custom level maps:
+```yaml
+environment:
+  level_script: environment/custom-map/custom_map
+```
+
+**Example map**
+
+See `custom-map/t_maze`. This map has three pickups:
+- `P`: respawn location
+- `A`: -1 reward == `negative_one`
+- `G`: +1 reward == `positive_one`
+    
+There are `2 custom` pickups: `negative_one` & `positive_one`
+    
+**Pickups script**
+
+To add some `custom` pickups we have to define them in our `pickups.lua` file.
+
+Custom pickups may look like as these:
+```lua
+pickups.defaults = {
+  negative_one = {
+      name = 'Lemon',
+      class_name = 'lemon_reward',
+      model_name = 'models/lemon.md3',
+      quantity = -1,
+      type = pickups.type.kGoal
+  },
+  positive_one = {
+      name = 'Goal',
+      class_name = 'goal',
+      model_name = 'models/goal_object_02.md3',
+      quantity = 1,
+      type = pickups.type.kGoal
+  }
+}
+```
+
+**make_map script**
+
+This scripts creates your own map from `txt` description and locates your pickups.
+
+```lua
+local map_maker = require 'dmlab.system.map_maker'
+
+local pickups = {
+    A = 'negative_one',
+    G = 'positive_one',
+    P = 'info_player_start'
+}
+
+function make_map.makeMap(mapName, mapEntityLayer, mapVariationsLayer)
+  os.execute('mkdir -p ' .. LEVEL_DATA .. '/baselab')
+  assert(mapName)
+  print('mapEntityLayer: \n' .. mapEntityLayer)
+  map_maker:mapFromTextLevel{
+      entityLayer = mapEntityLayer,
+      variationsLayer = mapVariationsLayer,
+      outputDir = LEVEL_DATA .. '/baselab',
+      mapName = mapName,
+      callback = function(i, j, c, maker)
+        if pickups[c] then
+          return maker:makeEntity(i, j, pickups[c])
+        end
+      end
+  }
+  return mapName
+end
+```
 
 #### [Customized](#supported-environments)
