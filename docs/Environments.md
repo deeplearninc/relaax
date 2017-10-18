@@ -127,9 +127,23 @@ state_size: [24]                # array of dimensions for the input observation
 You should check / change these parameter if you want to use another environment.
 <br><br>
 
-**How to check action & state sizes by environment name**
+**How to check action & state sizes by Gym's environment name**
 
-Run the `get_info.py` script from `/relaax/environments/OpenAI_Gym`, for example:
+It necessary to know the `size` of `actions & states` for the given environment.  
+There are some simple script to check these information:  
+(it's assumed that the `gym` is already installed) 
+```python
+import sys
+import gym
+
+env = gym.make(sys.argv[1])
+
+print('\nAction Space:', env.action_space)
+print('Observation Space:', env.observation_space)
+print('Timestep Limit:', env.spec.timestep_limit, '\n')
+```
+
+Just run this script from terminal and it should output something like this:
 ```bash
 $ python get_info.py Boxing-v0
 
@@ -143,11 +157,12 @@ Action Space: Box(4,)
 Observation Space: Box(24,)
 Timestep Limit: 1600
 ```
-`Timestep Limit` is necessary argument for `trpo-gae` algorithm.
+`Timestep Limit` is necessary argument for `trpo` algorithm.
 
 `state_size` for Atari games is equal to `[210, 160, 3]`, which represents an 3-channel
-RGB image with `210x160` pixels, but it automatically converts to `[84, 84]`
-(1-channel grayscale image of square size) wrt DeepMind's articles.
+RGB image with `210x160` pixels, but it could be converted to any shape.
+For example, if at `app.yaml` file the shape is set to `[84, 84]` (environment/shape).
+It automatically converts the source RGB to 1-channel grayscale image of defined size.
 <br><br>
 
 #### [DeepMind Lab](#supported-environments)
