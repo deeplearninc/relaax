@@ -70,7 +70,7 @@ class Bandit(object):
             return -1
 ```
 
-And operates with the agents trough simple python adapter 'APP_NAME/environment/training.py':
+And operates with the agents trough simple python adapter `APP_NAME/environment/training.py`:
 ```python
 class Training(TrainingBase):
     def __init__(self):
@@ -108,23 +108,49 @@ test problems environments, that you can use to work out your reinforcement lear
 $ relaax new -e openai-gym -a [policy-gradient|da3c|trpo|ddpg|dqn] APP_NAME
 ```
 
+And operates with the agents trough adapter `APP_NAME/environment/training.py`, which looks as follows:
+```python
+from gym_env import GymEnv
+
+class Training(TrainingBase):
+    def __init__(self):
+        super(Training, self).__init__()
+        self.gym = GymEnv(env=options.get('environment/name', 'CartPole-v0'))
+
+    def episode(self, number):
+        state = self.gym.reset()
+        reward, episode_reward, terminal = None, 0, False
+        action = self.agent.update(reward, state, terminal)
+        while not terminal:
+            reward, state, terminal = self.gym.act(action)
+            action = self.agent.update(reward, state, terminal)
+            episode_reward += reward
+        log.info('Episode %d reward %d' % (number, episode_reward))
+        return episode_reward
+```
+
+It also use specific wrapper for any Gym environment, which is located there `APP_NAME/environment/gym_env.py`  
+It allows to setup given Gym environment by some options at your `app.yaml` file:
 Please find sample of configuration to run experiments with OpenAI Gym there:
-
-`relaax/config/da3cc_gym_walker.yaml`
-
-This sample is setup for `BipedalWalker-v2` environment, which operates with continuous action space.
-Therefore you may use continuous version of our `Distributed A3C` or set another algorithm there:
 ```yaml
-algorithm:
-  path: ../relaax/algorithms/trpo_gae
-```
+environment:
+  run: python environment/training.py  # path to gym's wrapper to run
+  name: PongDeterministic-v4           # gym's environment name 
+  shape: [42, 42]                      # output shape of the environment's state
+  max_episodes: 10000                  # number of episodes to run
+  infinite_run: True                   # if True, it doesn't stop after `max_episodes` reached
 
-`action_size` and `state_size` parameters for `BipedalWalker-v2` is equal to:
-```yaml
-action_size: 4                  # action size for the given environment
-state_size: [24]                # array of dimensions for the input observation
+  frame_skip: 4                        # number of frames to skip between consecutive states,
+                                       # 4 is default one for most Atari games
+  record: False                        # if True, it uses the default gym's monitor to record
+  out_dir: /tmp/pong                   # folder to store monitor's files 
+  no_op_max: 30                        # maximum number of random actions before take the control
+  stochastic_reset: False              # if False, it uses 0-th action for no_op_max, instead ramdomly
+  show_ui: False                       # set to True to see the environment's UI
+  limit: 100000                        # number of steps to pass trough one episode, uses gym's defaults instead
+  crop: True                           # use screen cropping for Atari games to restrict the game area
 ```
-You should check / change these parameter if you want to use another environment.
+All options can be omitted (except `run`) and it uses the default ones instead.
 <br><br>
 
 **How to check action & state sizes by Gym's environment name**
@@ -157,10 +183,10 @@ Action Space: Box(4,)
 Observation Space: Box(24,)
 Timestep Limit: 1600
 ```
-`Timestep Limit` is necessary argument for `trpo` algorithm.
+`Timestep Limit` is necessary argument for `trpo` algorithm, but it allows to set any one by `limit` parameter.
 
 `state_size` for Atari games is equal to `[210, 160, 3]`, which represents an 3-channel
-RGB image with `210x160` pixels, but it could be converted to any shape.
+RGB image with `210x160` pixels, but it could be converted to any shape wrt `app.yaml`.
 For example, if at `app.yaml` file the shape is set to `[84, 84]` (environment/shape).
 It automatically converts the source RGB to 1-channel grayscale image of defined size.
 <br><br>
