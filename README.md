@@ -48,7 +48,7 @@ The components of RELAAX include:
         - [Performance on gym's BipedalWalker](docs/Algorithms.md#performance-on-gyms-bipedalwalker)
     - [Distributed DQN](docs/Algorithms.md#distributed-dqn)
     - [Other Algorithms](docs/Algorithms.md#other-algorithms)
-- [Debugging](docs/Debugging.md)
+- [Profiling & Debugging](docs/Debugging.md)
 
 
 ## [Quick start](#quick-start)
