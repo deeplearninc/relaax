@@ -84,7 +84,7 @@ class DA3CExpContinuousLoss(subgraph.Subgraph):
         sigma2 += tf.constant(1e-8)
 
         log_std_dev = tf.log(sigma2)
-        self.entropy = tf.reduce_mean(log_std_dev + tf.constant(0.5 * np.log(2. * np.pi * np.e), tf.float32), axis=0)
+        self.entropy = tf.reduce_mean(log_std_dev + tf.constant(0.5 * np.log(2. * np.pi * np.e), tf.float32))
 
         l2_dist = tf.square(self.ph_action.node - mu)
         sqr_std_dev = tf.constant(2.) * tf.square(sigma2) + tf.constant(1e-6)
@@ -108,8 +108,8 @@ class DA3CExtContinuousLoss(subgraph.Subgraph):
         sigma2 += tf.constant(1e-8)
 
         # policy entropy
-        self.entropy = -tf.reduce_mean(0.5 * (tf.log(2. * np.pi * sigma2) + 1.), axis=1)
-
+        self.entropy = -tf.reduce_mean(0.5 * (tf.log(2. * np.pi * sigma2) + 1.))
+        print(self.entropy.get_shape())
         # policy loss (calculation)
         b_size = tf.to_float(tf.size(self.ph_action.node) / actor.action_size)
         log_pi = tf.log(sigma2)
