@@ -1,268 +1,174 @@
 ### [Supported Environments](../README.md#contents)
 > click on title to go to contents
-- [ALE](#arcade-learning-environment)
+- [Basic](#basic)
 - [OpenAI Gym](#openai-gym)
 - [DeepMind Lab](#deepmind-lab)
+- [Customized](#customized)
 
-#### [Arcade-Learning-Environment](#supported-environments)
-
-The [Arcade Learning Environment (ALE)](http://www.arcadelearningenvironment.org/)
-is a framework that allows to develop AI agents for Atari 2600 games.
-It is built on top of the Atari 2600 emulator [Stella](http://stella.sourceforge.net/)
-and separates the details of emulation from agent design. Additional information
-about ALE and Atari games you can find in official [Google group.](https://groups.google.com/forum/#!forum/arcade-learning-environment)
-
-1. Pull the Docker Image:
-
-    ```bash
-    $ docker pull deeplearninc/relaax-ale:v0.2.0
-    ```
-
-2. Run the Server:
-
-    Open new terminal window, navigate to training directory and run `honcho`:
-    ```bash
-    $ honcho -f ../relaax/config/da3c_ale_boxing.Procfile start
-    ```
-    It is assumed that the training directory located next to `relaax` repository
-    at the same level. It also allows to create it anywhere and it needs
-    to write the right path to the appropriate `*.Procfile` within `relaax` repo.
-
-3. Run a Client:
-
-    It provides some run-cases for the pulled docker image:
-    ```bash
-    # For example, the first one case
-
-    $ docker run --rm -ti \
-        -v /path_to_atari_roms_folder:/roms \
-        --name ale deeplearninc/relaax-ale:v0.2.0 \
-        --rlx-server SERVER_IP:PORT --env boxing
-    ```
-    It runs the docker in interactive mode by `-ti` and automatically removes this
-    container when it stops with `--rm`. It also has `--name ale` for convenience.
-
-    You have to provide shared folder on your computer, where atari game roms are
-    stored by `-v` parameter.
-
-    Use `ifconfig` command to find IP of your relaax SERVER, which is run by `honcho`
-
-    It launches one sample of the game environment within the docker, which is defined
-    by the last parameter `boxing` (it launches the `Atari Boxing` game)
-
-    ```bash
-    # For example, another run-case
-
-    $ docker run --rm -ti \
-        -v /path_to_atari_roms_folder:/roms \
-        --name ale deeplearninc/relaax-ale:v0.2.0 \
-        --rlx-server SERVER_IP:PORT --env boxing -n 4
-    ```
-    It adds the third parameter `-n` which is equal to `4` since it allows to
-    define number of games to launch within the docker for parallel training.
-
-    ```bash
-    # Use-case with dispaly mode
-
-    $ docker run --rm -ti \
-        -p IP:PORT:5900 \
-        -v /path_to_atari_roms_folder:/roms \
-        --name ale deeplearninc/relaax-ale:v0.2.0 \
-        --rlx-server SERVER_IP:PORT --env boxing --display
-    ```
-    It passes the last argument as `display` to run game in display mode, therefore
-    it maps some ports on your computer to use `VNC` connection for visual session.
-
-    For example, the full command to run the clients and a server on
-    a single machine (under the NAT) should looks like as follows:
-    ```bash
-    $ docker run --rm -d \
-        -p 192.168.2.103:15900:5900 \
-        -v /opt/atari-game-roms:/roms \
-        --name ale deeplearninc/relaax-ale:v0.2.0 \
-        -x 192.168.2.103:7001 -e boxing -d
-    ```
-    It runs docker in a background mode by `-d` instead of interactive.
-    It also uses short names such as `-x`, `-e` and `-d` which replaces
-    `--rlx-server`, `--env` and `--display` respectively.
-
-    You can connect to client's visual output via your VNC client with:
-    ```
-    For example:
-    ---
-    Server: 192.168.2.103:15900
-    Passwd: relaax
-    Color depth: True color (24 bit)
-    ```
-
-    You also can launch docker directly in `localhost` mode on a single PC:
-    ```bash
-    It works for *nix OS:
-    ---
-    $ docker run --rm -d \
-        --net host \
-        --name ale deeplearninc/relaax-ale:v0.2.0 \
-        --rlx-server localhost:7001 \
-        --env breakout --display
-    ```
-    It allows to set the server in your VNC client as `localhost:5900`
-
-Please find sample of configuration to perform experiments with ALE there:
-
-`relaax/config/da3c_ale_boxing.yaml`
-
-This sample is setup for `Atari Boxing` game, which has a discrete set of actions.
-Therefore you may use discrete version of our `Distributed A3C` or set another algorithm there:
-```yml
-algorithm:
-  path: ../relaax/algorithms/da3c
-```
-
-`action_size` and `state_size` parameters for `Atari Boxing` is equal to:
-```yml
-action_size: 18                 # action size for given game rom (18 fits ale boxing)
-state_size: [84, 84]            # dimensions of input screen frame of an Atari game
-```
-You should check / change these parameter if you want to use another environment.
-<br><br>
-
-**How to build your own Docker Image**
-
-* Navigate to the ALE's folder within `relaax` repo
+RELAAX allows to **generate** some types of predefined apps by `relaax new` command.  
+The set of possible options and usage is displayed by `relaax new --help`:  
 ```bash
-$ cd path_to_relaax_repo/environments/ALE
+Usage: relaax new [OPTIONS] APP_NAME
+
+  Create new RELAAX application.
+
+Options:
+  -a, --algorithm     [policy-gradient|da3c|trpo|ddpg|dqn]
+                      Algorithm to use
+                      with this application. [default: policy-gradient]
+  -e, --environment   [basic|openai-gym|deepmind-lab] 
+                      Environment to base
+                      application on.  [default: basic]
+  --help              Show this message and exit.
+``` 
+
+It is necessary to provide some `app.yaml` to each application, where all necessary configs is setup.
+There are two important sections, which is responsible for appropriate options. 
+```yaml
+environment:
+  run: executable       # path to script (wrapper), which is launch an environment or directly to some executable 
+  max_episodes: 10000   # amount of episodes to pass in through the training
+  infinite_run: false   # if it set to True, then environment is rollout infinitely
+
+  ...                   # some other additional args, which is relevant to the environment or some run options
+  steps: 200            # it's just for example, get it from an environment or wrapper by
+                        # options.get('environment/steps', default_value)
+                        # default_value is used if there are no entry at app.yaml 
+
+relaax-rlx-server:
+  bind: localhost:7001  # sets address, where environment sends states, rewards (terminals) and receives actions
 ```
 
-* Build the docker image by the following commands
-```bash
-# docker build -f Dockerfile -t your_docker_hub_name/image_name ../..
-# or you can build without your docker hub username, for example:
+Detailed information about used protocol located there:
+- [RELAAX Agent Proxy](../README.md#relaax-agent-proxy)
+    - [Reinforcement Learning eXchange protocol](../README.md#reinforcement-learning-exchange-protocol)
+    - [Reinforcement Learning eXchange protocol definition](../README.md#reinforcement-learning-exchange-protocol-definition)
 
-$ docker build -f Dockerfile -t relaax-ale-vnc ../..
+It allows to integrate any application of your own choice (see [customized](#customized) section).
+
+Some variants of applications provided in specific [relaax_sample_apps](https://github.com/deeplearninc/relaax_sample_apps) repo.
+
+#### [Basic](#supported-environments)
+
+```bash
+$ relaax new [-e basic -a policy-gradient|da3c|trpo|ddpg|dqn] APP_NAME
+```
+
+Basic app is provided as some ground sample to test and modify on.
+
+It creates a simple `bandit` app with 4 static predefined slots 'APP_NAME/environment/bandit.py':
+```python
+class Bandit(object):
+    def __init__(self):
+        self.slots = [0.2, 0, -0.2, -0.5]
+
+    def pull(self, action):
+        result = np.random.randn(1)
+        if result > self.slots[action]:
+            return 1
+        else:
+            return -1
+```
+
+And operates with the agents trough simple python adapter `APP_NAME/environment/training.py`:
+```python
+class Training(TrainingBase):
+    def __init__(self):
+        super(Training, self).__init__()
+        self.steps = options.get('environment/steps', 1000)
+        self.bandit = Bandit()
+
+    def episode(self, number):
+        # get first action from agent
+        action = self.agent.update(reward=None, state=[])
+        # update agent with state and reward
+        for step in range(self.steps):
+            reward = self.bandit.pull(action)
+            action = self.agent.update(reward=reward, state=[])
+            log.info('step: %s, action: %s' % (step, action))
+``` 
+
+There are only one additional parameter `step` in default `app.yaml` file,
+which controls the amount of steps within one episode:
+```yaml
+environment:
+  run: python environment/training.py  # path to python exchange adapter
+  max_episodes: 100                    # how many episodes to run
+  infinite_run: false                  # if True, it doesn't stop after `max_episodes` reached
+  steps: 300                           # additional parameter to control the episode length
 ```
 <br><br>
 
 #### [OpenAI Gym](#supported-environments)
 
-[OpenAI Gym](https://gym.openai.com/) is open-source library: a collection of test problems environments,
-that you can use to work out your reinforcement learning algorithms.
+[OpenAI Gym](https://gym.openai.com/) is an open-source library, which provides a collection of
+test problems environments, that you can use to work out your reinforcement learning algorithms.
 
-1. Pull the Docker Image:
-
-    ```bash
-    $ docker pull deeplearninc/relaax-gym:v0.2.0
-    ```
-
-2. Run the Server:
-
-    Open new terminal window, navigate to training directory and run `honcho`:
-    ```bash
-    $ honcho -f ../relaax/config/trpo_gym_walker.Procfile start
-    ```
-    It is assumed that the training directory located next to `relaax` repository
-    at the same level. It also allows to create it anywhere and it needs
-    to write the right path to the appropriate `*.Procfile` within `relaax` repo.
-
-3. Run a Client:
-
-    Let's explain some run-cases for the pulled docker image:
-    ```bash
-    # For example, the first one case
-
-    $ docker run --rm -ti \
-        --name gym deeplearninc/relaax-gym:v0.2.0 \
-        --rlx-server SERVER_IP:PORT --env BipedalWalker-v2
-    ```
-    It launches one sample of the environment within the docker, which is defined
-    by the last parameter `--env` with name `BipedalWalker-v2`
-    You can find more environment names [there](https://gym.openai.com/envs)
-
-    The command above runs the docker in interactive mode by `-ti` and automatically removes
-    this container when it stops with `--rm`. It also has `--name gym` for convenience.
-    You can stop the docker by pressing `Ctrl+C` in docker's cmd at any time.
-
-    But I recommend to use `-d` parameter instead of `-ti` which allows to launch
-    docker is a background mode. You can stop the docker further by:
-    ```bash
-    $ docker stop gym
-    ```
-
-    Use `ifconfig` command to find IP of your relaax SERVER, which is run by `honcho`
-
-    ```bash
-    # One more run-case
-
-    $ docker run --rm -ti \
-        --name gym deeplearninc/relaax-gym:v0.2.0 \
-        --rlx-server SERVER_IP:PORT --env BipedalWalker-v2 -n 4
-    ```
-    It adds the third parameter `-n` which is equal to `4` since it allows to define
-    number of environments to launch within the docker for parallel training.
-
-    ```bash
-    # Use-case with visual output
-
-    $ docker run --rm -ti \
-        -p IP:PORT:5900 \
-        --name gym deeplearninc/relaax-gym:v0.2.0 \
-        --rlx-server SERVER_IP:PORT --env BipedalWalker-v2 --display
-    ```
-    It passes the last argument `--display` to run environment in a display mode, therefore
-    it maps some ports on your computer to use `VNC` connection for visual session.
-
-    For example, the full command to run the clients and a server on
-    a single machine (under the NAT) should looks like as follows:
-    ```bash
-    $ docker run --rm -ti \
-        -p 192.168.2.103:15900:5900 \
-        --name gym deeplearninc/relaax-gym:v0.2.0 \
-        --rlx-server 192.168.2.103:7001 \
-        --env BipedalWalker-v2 --display
-    ```
-
-    You can connect to client's visual output via your VNC client with:
-    ```
-    For example:
-    ---
-    Server: 192.168.2.103:15900
-    Passwd: relaax
-    Color depth: True color (24 bit)
-    ```
-
-    You also can launch docker directly in `localhost` mode for single PC:
-    ```bash
-    It works for *nix OS:
-    ---
-    $ docker run --rm -d \
-        --net host \
-        --name gym deeplearninc/relaax-gym:v0.2.0 \
-        --rlx-server localhost:7001 \
-        --env BipedalWalker-v2 --display
-    ```
-    It allows to set the server in your VNC client as `localhost:5900`
-
-Please find sample of configuration to run experiments with OpenAI Gym there:
-
-`relaax/config/da3cc_gym_walker.yaml`
-
-This sample is setup for `BipedalWalker-v2` environment, which operates with continuous action space.
-Therefore you may use continuous version of our `Distributed A3C` or set another algorithm there:
-```yml
-algorithm:
-  path: ../relaax/algorithms/trpo_gae
+```bash
+$ relaax new -e openai-gym [-a policy-gradient|da3c|trpo|ddpg|dqn] APP_NAME
 ```
 
-`action_size` and `state_size` parameters for `BipedalWalker-v2` is equal to:
-```yml
-action_size: 4                  # action size for the given environment
-state_size: [24]                # array of dimensions for the input observation
+It operates with the agents trough python adapter `APP_NAME/environment/training.py`, which looks as follows:
+```python
+from gym_env import GymEnv
+
+class Training(TrainingBase):
+    def __init__(self):
+        super(Training, self).__init__()
+        self.gym = GymEnv(env=options.get('environment/name', 'CartPole-v0'))
+
+    def episode(self, number):
+        state = self.gym.reset()
+        reward, episode_reward, terminal = None, 0, False
+        action = self.agent.update(reward, state, terminal)
+        while not terminal:
+            reward, state, terminal = self.gym.act(action)
+            action = self.agent.update(reward, state, terminal)
+            episode_reward += reward
+        log.info('Episode %d reward %d' % (number, episode_reward))
+        return episode_reward
 ```
-You should check / change these parameter if you want to use another environment.
+
+It also use specific wrapper for any Gym environment, which is located there `APP_NAME/environment/gym_env.py`  
+It allows to setup given Gym environment by some options at your `app.yaml` file:
+```yaml
+environment:
+  run: python environment/training.py  # path to gym's wrapper to run
+  name: PongDeterministic-v4           # gym's environment name 
+  shape: [42, 42]                      # output shape of the environment's state
+  max_episodes: 10000                  # number of episodes to run
+  infinite_run: True                   # if True, it doesn't stop after `max_episodes` reached
+
+  frame_skip: 4                        # number of frames to skip between consecutive states,
+                                       # 4 is default one for most Atari games
+  record: False                        # if True, it uses the default gym's monitor to record
+  out_dir: /tmp/pong                   # folder to store monitor's files 
+  no_op_max: 30                        # maximum number of actions before take the control
+  stochastic_reset: False              # if False, it uses 0-th action for no_op_max, instead ramdomly
+  show_ui: False                       # set to True to see the environment's UI
+  limit: 100000                        # number of steps to pass trough one episode, uses gym's defaults instead
+  crop: True                           # use screen cropping for Atari games to restrict the game area
+```
+All options can be omitted (except `run`) and it uses the default ones instead.
 <br><br>
 
-**How to check action & state sizes by environment name**
+**How to check action & state sizes by Gym's environment name**
 
-Run the `get_info.py` script from `/relaax/environments/OpenAI_Gym`, for example:
+It necessary to know the `size` of `actions & states` for the given environment.  
+There are some simple script to check these information:  
+(it's assumed that the `gym` is already installed) 
+```python
+import sys
+import gym
+
+env = gym.make(sys.argv[1])
+
+print('\nAction Space:', env.action_space)
+print('Observation Space:', env.observation_space)
+print('Timestep Limit:', env.spec.timestep_limit, '\n')
+```
+
+Just run this script from terminal and it should output something like this:
 ```bash
 $ python get_info.py Boxing-v0
 
@@ -276,27 +182,12 @@ Action Space: Box(4,)
 Observation Space: Box(24,)
 Timestep Limit: 1600
 ```
-`Timestep Limit` is necessary argument for `trpo-gae` algorithm.
+`Timestep Limit` is necessary argument for `trpo` algorithm, but it allows to set any one by `limit` parameter.
 
 `state_size` for Atari games is equal to `[210, 160, 3]`, which represents an 3-channel
-RGB image with `210x160` pixels, but it automatically converts to `[84, 84]`
-(1-channel grayscale image of square size) wrt DeepMind's articles.
-<br><br>
-
-**How to build your own Docker Image**
-
-* Navigate to the OpenAI Gym's folder within `relaax` repo
-```bash
-$ cd path_to_relaax_repo/environments/OpenAI_Gym
-```
-
-* Build the docker image by the following commands
-```bash
-# docker build -f Dockerfile -t your_docker_hub_name/image_name ../..
-# or you can build without your docker hub username, for example:
-
-$ docker build -f Dockerfile -t relaax-gym-vnc ../..
-```
+RGB image with `210x160` pixels, but it could be converted to any shape wrt `app.yaml`.
+For example, if at `app.yaml` file the shape is set to `[84, 84]` (environment/shape).
+It automatically converts the source RGB to 1-channel grayscale image of defined size.
 <br><br>
 
 #### [DeepMind Lab](#supported-environments)
@@ -306,87 +197,62 @@ id Software's [Quake III Arena](https://github.com/id-Software/Quake-III-Arena).
 It provides a suite of challenging 3D navigation and puzzle-solving tasks
 for learning agents especially with deep reinforcement learning.
 
-1. Pull the Docker Image:
+```bash
+$ relaax new -e deepmind-lab [-a policy-gradient|da3c|trpo|ddpg|dqn] APP_NAME
+```
 
-    ```bash
-    $ docker pull deeplearninc/relaax-lab:v0.2.0
-    ```
+It operates with the agents trough python adapter `APP_NAME/environment/training.py`, which looks as follows:
+```python
+from lab import LabEnv
 
-2. Run the Server:
+class Training(TrainingBase):
+    def __init__(self):
+        super(Training, self).__init__()
+        self.lab = LabEnv()
 
-    Open new terminal window, navigate to training directory and run `honcho`:
-    ```bash
-    $ honcho -f ../relaax/config/da3c_lab_demo.Procfile start
-    ```
-    It is assumed that the training directory located next to `relaax` repository
-    at the same level. It also allows to create it anywhere and it needs
-    to write the right path to the appropriate `*.Procfile` within `relaax` repo.
+    def episode(self, number):
+        state = self.lab.reset()
+        reward, episode_reward, terminal = None, 0, False
+        action = self.agent.update(reward, state, terminal)
 
-3. Run a Client:
+        while not terminal:
+            reward, state, terminal = self.lab.act(action)
+            action = self.agent.update(reward, state, terminal)
+            episode_reward += reward
 
-    It provides 3 predefined run-cases for the pulled docker image:
-    ```bash
-    # For example, the first one case
+        log.info('*********************************\n'
+                 '*** Episode: %s * reward: %s \n'
+                 '*********************************\n' %
+                 (number, episode_reward))
 
-    $ docker run --rm -ti \
-        --name lab deeplearninc/relaax-lab:v0.2.0 \
-        SERVER_IP:PORT
-    ```
-    It runs the docker in interactive mode by `-ti` and automatically removes this
-    container when it stops with `--rm`. It also has `--name lab` for convenience.
+        return episode_reward
+```
 
-    Use `ifconfig` command to find IP of your relaax SERVER, which is run by `honcho`
+It uses DeepMind Lab build/run script (using bazel) to start Lab instance.
+To avoid changing Lab build scripts we replace random-agent target .py file with our entry point.  
 
-    It launches one sample of the lab's environment within the docker with a `nav_maze_static_01` map
-    which is predefined by default (list of the default lab's [maps](https://github.com/deepmind/lab/tree/master/assets/maps))
+In order to run multiple instances of the DeepMind Lab it runs them inside docker containers (see start-container.py).
+This allow to execute number of bazel instances in parallel.
 
-    ```bash
-    # For example, the second run-case
+You may decide to run Lab directly on the Host.
+For that you may replace start-container on start-lab in the app.yaml.
+This will start single instance of bazel.  
 
-    $ docker run --rm -ti \
-        --name lab deeplearninc/relaax-lab:v0.2.0 \
-        SERVER_IP:PORT 4 nav_maze_static_02 full
-    ```
-    It adds the second parameter which is equal to `4` since it allows to define
-    number of environments to launch within the docker for parallel training.
-
-    It also allows to define a `map` by the third parameter or it uses `nav_maze_static_01` by default;
-    and an `action size`, which set to `full` in this case (see explanation below, `m` by default).
-
-    ```bash
-    # And the third one use-case
-
-    $ docker run --rm -ti \
-        -p IP:PORT:6080 \
-        --name lab deeplearninc/relaax-lab:v0.2.0 \
-        SERVER_IP:PORT display
-    ```
-    It passes the last argument as `display` to run environment in display mode, therefore
-    it maps some ports on your computer to use `VNC` connection for visual session.
-
-    It also allows to define a `map` and `action size` by the 3rd and 4th parameter respectively.
-
-    For example, the full command to run the clients and a server on
-    a single machine (under the NAT) should looks like as follows:
-    ```bash
-    $ docker run --rm -ti \
-        -p 6080:6080 \
-        --name lab deeplearninc/relaax-lab:v0.2.0 \
-        192.168.2.103:7001 display nav_maze_static_03 s
-    ```
-
-    You can connect to client's visual output via your browser by opening http://127.0.0.1:6080/vnc.html URL.
-    You will see web form to enter your credentials. Leave all fields intact and press `'Connect'`.
-    You will see a running game.
-
-Please find sample of configuration to perform experiments with DeepMind Lab there:
-
-`relaax/config/da3c_lab_demo.yaml`
-
-`action_size` and `state_size` parameters for this configuration is equal to:
-```yml
-action_size: 3                  # the small action size for the lab's environment
-state_size: [84, 84]            # dimensions of the environment's input screen
+The set of possible options for some DeepMind Lab environment looks as follows:
+```yaml
+environment:
+  run: python environment/start-container.py  # path to wrapper to run
+  lab_path: /lab                              # path to lab installation folder
+  max_episodes: 10000                         # number of episodes to run
+  infinite_run: True                          # if True, it doesn't stop after `max_episodes` reached
+  run_in_container: false                     # set to True to run via docker
+  
+  level_script: custom-map/custom_map         # path to custom map, it uses `nav_maze_static_01` by default
+  shape: [42, 42]                             # output shape of the environment's state
+  action_size: medium                         # set the action size for the environment, see table below
+  fps: 20                                     # frames per second rate within environment
+  show_ui: false                              # set to True to see the environment's UI
+  no_op_max: 9                                # maximum number of random actions before take the control
 ```
 
 The full set for `action_size` consists of 11-types of interactions.
@@ -413,17 +279,115 @@ It allows to define number of desired actions by the 4th parameter.
 `f` or `full` (`b` or `big`) to set full `action_size`
 <br><br>
 
-**How to build your own Docker Image**
+**Use custom maps**
 
-* Navigate to the DeepMind Lab's folder within `relaax` repo
-```bash
-$ cd path_to_relaax_repo/environments/DeepMind_Lab
+By default, it runs Lab with maps set up for `random_agent` build target.
+You can see the full set of provided maps via lab (`nav_maze_static_01` by default)
+or use your own one. See `environment/custom-map` folder as an example.
+
+To use custom map, set `level_script` in `environment` section of the `app.yaml` to use custom level maps:
+```yaml
+environment:
+  level_script: environment/custom-map/custom_map
 ```
 
-* Build the docker image by the following commands
-```bash
-# docker build -f Dockerfile -t your_docker_hub_name/image_name ../..
-# or you can build without your docker hub username, for example:
+**Example map**
 
-$ docker build -f Dockerfile -t relaax-lab-vnc ../..
+See `custom-map/t_maze`. This map has three pickups:
+- `P`: respawn location
+- `A`: -1 reward == `negative_one`
+- `G`: +1 reward == `positive_one`
+    
+There are `2 custom` pickups: `negative_one` & `positive_one`
+    
+**Pickups script**
+
+To add some `custom` pickups we have to define them in our `pickups.lua` file.
+
+Custom pickups may look like as these:
+```lua
+pickups.defaults = {
+  negative_one = {
+      name = 'Lemon',
+      class_name = 'lemon_reward',
+      model_name = 'models/lemon.md3',
+      quantity = -1,
+      type = pickups.type.kGoal
+  },
+  positive_one = {
+      name = 'Goal',
+      class_name = 'goal',
+      model_name = 'models/goal_object_02.md3',
+      quantity = 1,
+      type = pickups.type.kGoal
+  }
+}
 ```
+
+**make_map script**
+
+This scripts creates your own map from `txt` description and locates your pickups.
+
+```lua
+local map_maker = require 'dmlab.system.map_maker'
+
+local pickups = {
+    A = 'negative_one',
+    G = 'positive_one',
+    P = 'info_player_start'
+}
+
+function make_map.makeMap(mapName, mapEntityLayer, mapVariationsLayer)
+  os.execute('mkdir -p ' .. LEVEL_DATA .. '/baselab')
+  assert(mapName)
+  print('mapEntityLayer: \n' .. mapEntityLayer)
+  map_maker:mapFromTextLevel{
+      entityLayer = mapEntityLayer,
+      variationsLayer = mapVariationsLayer,
+      outputDir = LEVEL_DATA .. '/baselab',
+      mapName = mapName,
+      callback = function(i, j, c, maker)
+        if pickups[c] then
+          return maker:makeEntity(i, j, pickups[c])
+        end
+      end
+  }
+  return mapName
+end
+```
+
+#### [Customized](#supported-environments)
+
+It allows to use any other application with custom arguments, which supports our protocol. 
+
+Detailed information about used protocol located there:
+- [RELAAX Agent Proxy](../README.md#relaax-agent-proxy)
+    - [Reinforcement Learning eXchange protocol](../README.md#reinforcement-learning-exchange-protocol)
+    - [Reinforcement Learning eXchange protocol definition](../README.md#reinforcement-learning-exchange-protocol-definition)
+
+For example, there are some `app.yaml` file for the app:
+```yaml
+environment:
+  run: python start
+  steps: 1000
+  infinite_run: true
+  
+  batchmode: true
+  use_graphics: false
+```
+
+It is provided some additional args as `batchmode` and `use_graphics` with the manual pythor wrapper `start`,
+which could be looks like as follows:
+```python
+import subprocess
+from relaax.environment.config import options
+
+args = []
+if options.get('environment/mode', false):
+    args.append(options.get('environment/batchmode', false))
+if not options.get('environment/mode', true):
+    args.append(options.get('environment/use_graphics', true))
+
+cmd = ["./Default Linux desktop 64-bit.x86_64"]
+subprocess.call(cmd + args)
+``` 

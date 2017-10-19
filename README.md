@@ -30,9 +30,10 @@ The components of RELAAX include:
     - [Reinforcement Learning eXchange protocol](#reinforcement-learning-exchange-protocol)
     - [Reinforcement Learning eXchange protocol definition](#reinforcement-learning-exchange-protocol-definition)
     - [Supported Environments](docs/Environments.md#supported-environments)
-        - [ALE](docs/Environments.md#arcade-learning-environment)
+        - [Basic](docs/Environments.md#basic)
         - [OpenAI Gym](docs/Environments.md#openai-gym)
         - [DeepMind Lab](docs/Environments.md#deepmind-lab)
+        - [Customized](docs/Environments.md#customized)
 - [RELAAX Server](#relaax-servers)
     - [RLX Server](#rlx-server)
     - [Parameter Server](#parameter-server)
@@ -201,7 +202,7 @@ Avalable `from relaax.environment.training import TrainingBase`
 
 * `__init__` - use to instantiate your environment. Base calass will load configuration options and instantiate Agent Proxy. Agent Proxy will be available as self.agent. Following options will be loaded: 
     * `exploit` - passed to Agent Proxy `init` (this option is passed from commad line)
-    * `environment/max_episodes` - how many apisodes to run
+    * `environment/max_episodes` - how many episodes to run
     * `environment/infinite_run` - don't stop after `max_episodes` reached
 * `episode(self, number)` - called for each episode; return `episode_reward` from this method to capture `game_score` metric 
 
