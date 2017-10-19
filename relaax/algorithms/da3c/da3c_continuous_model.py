@@ -172,7 +172,7 @@ class AgentModel(subgraph.Subgraph):
 
         summaries = tf.summary.merge([
             tf.summary.scalar('policy_loss', sg_loss.policy_loss),
-            tf.summary.scalar('value_loss', sg_loss.value_loss / batch_size),
+            tf.summary.scalar('value_loss', sg_loss.value_loss),
             tf.summary.scalar('entropy', sg_loss.entropy),
             tf.summary.scalar('actor_gradients_global_norm', sg_actor_gradients.global_norm),
             tf.summary.scalar('critic_gradients_global_norm', sg_critic_gradients.global_norm),

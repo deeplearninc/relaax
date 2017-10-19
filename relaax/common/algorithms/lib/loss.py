@@ -71,7 +71,7 @@ class DA3CNormContinuousLoss(subgraph.Subgraph):
                              + cfg.entropy_beta * self.entropy)
 
         # Learning rate for the Critic is sized by critic_scale parameter
-        self.value_loss = cfg.critic_scale * tf.reduce_sum(tf.square(self.ph_discounted_reward.node - critic.node))
+        self.value_loss = cfg.critic_scale * tf.reduce_mean(tf.square(self.ph_discounted_reward.node - critic.node))
 
 
 class DA3CExpContinuousLoss(subgraph.Subgraph):
