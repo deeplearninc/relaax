@@ -109,7 +109,7 @@ class DA3CExtContinuousLoss(subgraph.Subgraph):
 
         # policy entropy
         self.entropy = -tf.reduce_mean(0.5 * (tf.log(2. * np.pi * sigma2) + 1.))
-        print(self.entropy.get_shape())
+
         # policy loss (calculation)
         b_size = tf.to_float(tf.size(self.ph_action.node) / actor.action_size)
         log_pi = tf.log(sigma2)
