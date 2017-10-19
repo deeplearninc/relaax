@@ -14,7 +14,7 @@ config.hidden_sizes = options.get('algorithm/hidden_sizes', [400, 300])  # needs
 config.actor_learning_rate = options.get('algorithm/actor_learning_rate', 1e-4)
 config.critic_learning_rate = options.get('algorithm/critic_learning_rate', 1e-3)
 config.tau = options.get('algorithm/tau', 1e-3)
-config.use_filter = options.get('algorithm/use_filter', True)
+config.use_filter = options.get('algorithm/use_filter', False)
 
 config.l2 = options.get('algorithm/l2', True)
 config.l2_decay = options.get('algorithm/l2_decay', 1e-2)
