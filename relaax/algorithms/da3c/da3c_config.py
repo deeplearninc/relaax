@@ -21,6 +21,9 @@ config.use_filter = options.get('algorithm/use_filter', False)
 config.output.action_high = options.get('algorithm/output/action_high', [])
 config.output.action_low = options.get('algorithm/output/action_low', [])
 
+config.policy_clip = options.get('algorithm/policy_clip', False)
+config.critic_clip = options.get('algorithm/critic_clip', False)
+
 config.gradients_norm_clipping = options.get('algorithm/gradients_norm_clipping', False)
 config.input.universe = options.get('algorithm/input/universe', True)
 
