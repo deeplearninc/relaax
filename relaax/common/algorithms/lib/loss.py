@@ -71,7 +71,7 @@ class DA3CNormContinuousLoss(subgraph.Subgraph):
         elif cfg.entropy_type == 'Origin':
             self.entropy = tf.reduce_mean(-0.5 * (tf.log(2 * np.pi * sigma2) + 1.0))
         else:
-            assert True, 'You should provide entropy type from 2 variants: Gauss or Origin'
+            assert False, 'You should provide entropy type from 2 variants: Gauss or Origin'
 
         self.policy_loss = -(tf.reduce_mean(tf.reduce_sum(log_prob, axis=1) * self.ph_advantage.node)
                              + cfg.entropy_beta * self.entropy)
