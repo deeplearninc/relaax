@@ -228,8 +228,11 @@ You must specify the parameters for the algorithm in the corresponding `app.yaml
         epsilon: 0.1
 
     entropy_beta: 0.01              # entropy regularization constant
+    entropy_type: Origin            # choice within Normal `Gauss` and `Origin` A3C entropy
     rewards_gamma: 0.99             # rewards discount factor
     gradients_norm_clipping: 40.    # value for gradients norm clipping
+    policy_clip: false              # false or value (ex.: 5.0) to clip policy loss within range [-value, +value]
+    critic_clip: 2.0                # false or value (ex.: 2.0) to clip value loss within range [-value, +value]
 
     icm:                            # ICM relevant parameters
         nu: 0.01                    # prediction bonus multiplier for intrinsic reward
