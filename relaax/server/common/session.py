@@ -13,7 +13,8 @@ profiler = profiling.get_profiler(__name__)
 class Session(object):
     def __init__(self, *args, **kwargs):
         # Prevents TF from consuming all GPU RAM if running on GPU
-        config = tf.ConfigProto(intra_op_parallelism_threads=1, inter_op_parallelism_threads=1)
+        config = tf.ConfigProto()
+        # TODO: parallelism cfg = tf.ConfigProto(intra_op_parallelism_threads=1, inter_op_parallelism_threads=1)
         config.gpu_options.allow_growth = True
         self._parent_session = None
         self._name = 'root_session'
