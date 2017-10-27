@@ -11,7 +11,7 @@ class TensorflowMetrics(metrics.Metrics):
         self._histogram_summaries = {}
         self._graph = tf.Graph()
         self._writer = tf.summary.FileWriter(metrics_dir, self._graph)
-        config = tf.ConfigProto()
+        config = tf.ConfigProto(intra_op_parallelism_threads=1, inter_op_parallelism_threads=1)
         config.gpu_options.allow_growth = True
         self._session = tf.Session(config=config, graph=self._graph)
         self._x = x

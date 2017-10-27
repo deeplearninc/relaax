@@ -1,0 +1,28 @@
+algorithm:
+  name: dppo
+
+  input:
+    shape: [4]
+    history: 1
+    use_convolutions: false
+
+  output:
+    continuous: false
+    action_size: 4
+
+  hidden_sizes: [10]
+  activation: relu
+
+  batch_size: 5
+  batch_steps: 10
+  batch_sequences: 2
+
+  gamma: 0.97
+
+  clip_e: 0.2
+  learning_rate: 0.001
+
+  combine_gradient: dc
+  num_gradients: 4
+  dc_lambda: 0.05
+

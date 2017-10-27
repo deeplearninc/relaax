@@ -22,15 +22,15 @@ class BridgeStub(object):
         request_serializer=bridge__pb2.Item.SerializeToString,
         response_deserializer=bridge__pb2.Item.FromString,
         )
-    self.SetX = channel.unary_unary(
-        '/Bridge/SetX',
-        request_serializer=bridge__pb2.X.SerializeToString,
-        response_deserializer=bridge__pb2.NullMessage.FromString,
-        )
     self.StoreMetric = channel.stream_unary(
         '/Bridge/StoreMetric',
         request_serializer=bridge__pb2.Item.SerializeToString,
         response_deserializer=bridge__pb2.NullMessage.FromString,
+        )
+    self.NStep = channel.unary_unary(
+        '/Bridge/NStep',
+        request_serializer=bridge__pb2.NullMessage.SerializeToString,
+        response_deserializer=bridge__pb2.Step.FromString,
         )
 
 
@@ -46,12 +46,12 @@ class BridgeServicer(object):
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
-  def SetX(self, request, context):
+  def StoreMetric(self, request_iterator, context):
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
-  def StoreMetric(self, request_iterator, context):
+  def NStep(self, request, context):
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
@@ -69,15 +69,15 @@ def add_BridgeServicer_to_server(servicer, server):
           request_deserializer=bridge__pb2.Item.FromString,
           response_serializer=bridge__pb2.Item.SerializeToString,
       ),
-      'SetX': grpc.unary_unary_rpc_method_handler(
-          servicer.SetX,
-          request_deserializer=bridge__pb2.X.FromString,
-          response_serializer=bridge__pb2.NullMessage.SerializeToString,
-      ),
       'StoreMetric': grpc.stream_unary_rpc_method_handler(
           servicer.StoreMetric,
           request_deserializer=bridge__pb2.Item.FromString,
           response_serializer=bridge__pb2.NullMessage.SerializeToString,
+      ),
+      'NStep': grpc.unary_unary_rpc_method_handler(
+          servicer.NStep,
+          request_deserializer=bridge__pb2.NullMessage.FromString,
+          response_serializer=bridge__pb2.Step.SerializeToString,
       ),
   }
   generic_handler = grpc.method_handlers_generic_handler(

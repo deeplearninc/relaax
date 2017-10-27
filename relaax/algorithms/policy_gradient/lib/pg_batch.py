@@ -23,6 +23,9 @@ class PGBatch(object):
         self.last_state = None
         self.last_action = None
 
+        # Track global weights step
+        self.global_step = None
+
     @property
     def experience(self):
         return self.episode.experience
@@ -85,7 +88,15 @@ class PGBatch(object):
         self.last_action = action
 
     def load_shared_parameters(self):
-        self.session.op_assign_weights(weights=self.ps.session.op_get_weights())
+        # Load parameters from server if they are fresh
+        new_weights, new_step = self.ps.session.op_get_weights_signed()
+
+        if (self.global_step is None) or (new_step > self.global_step):
+            logger.debug("Current weights: {}, new weights: {}, updating".format(self.global_step, new_step))
+            self.session.op_assign_weights(weights=new_weights)
+            self.global_step = new_step
+        else:
+            logger.debug("Current weights: {}, new weights: {}, keep old weights".format(self.global_step, new_step))
 
     def action_from_policy(self, state):
         assert state is not None
@@ -106,4 +117,5 @@ class PGBatch(object):
         )
 
     def apply_gradients(self, gradients, size):
-        self.ps.session.op_apply_gradients(gradients=gradients, increment=size)
+        #self.ps.session.op_apply_gradients(gradients=gradients, increment=size)
+        self.ps.session.op_submit_gradients(gradients=gradients, step=self.global_step)

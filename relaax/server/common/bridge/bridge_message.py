@@ -204,6 +204,8 @@ class BridgeMessage(object):
         # True for Python 3, False for Python 2
         if type('') != type(b''):
             marshallers.append(ScalarMarshaller(bridge_pb2.Item.STR, type(''), 'str_value'))
+        else:
+            marshallers.append(ScalarMarshaller(bridge_pb2.Item.LONG, long, 'int_value'))
 
         for marshaller in marshallers:
             assert marshaller.value_type not in cls.SERIALIZERS
