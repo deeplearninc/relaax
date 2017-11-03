@@ -33,8 +33,8 @@ class Servicer(bridge_pb2.BridgeServicer):
         result = last(*args, **kwargs)
         return bridge_message.BridgeMessage.serialize(result)
 
-    def NStep(self, request, context):
-        return bridge_pb2.Step(value=self.ps.n_step())
+    def GetX(self, request, context):
+        return bridge_pb2.X(value=self.ps.n_step())
 
     def StoreMetric(self, request_iterator, context):
         data = bridge_message.BridgeMessage.deserialize(request_iterator)

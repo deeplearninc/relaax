@@ -4,7 +4,7 @@ syntax = "proto3";
 message NullMessage {
 }
 
-message Step {
+message X {
     uint64 value = 1;
 }
 
@@ -51,5 +51,6 @@ service Bridge {
     rpc Init(NullMessage) returns (NullMessage) {}
     rpc Run(stream Item) returns (stream Item) {}
     rpc StoreMetric(stream Item) returns (NullMessage) {}
-    rpc NStep(NullMessage) returns (Step) {}
+    rpc SetX(X) returns (NullMessage) {}
+    rpc GetX(NullMessage) returns (X) {}
 }

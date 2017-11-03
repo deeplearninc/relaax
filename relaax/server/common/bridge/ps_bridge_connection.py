@@ -30,7 +30,7 @@ class PsBridgeConnection(object):
         return self._stub
 
     def n_step(self):
-        return self._stub.NStep(bridge_pb2.NullMessage()).value
+        return self._stub.GetX(bridge_pb2.NullMessage()).value
 
     def _init_ten_times(self):
         message = bridge_pb2.NullMessage()
