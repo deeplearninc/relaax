@@ -17,7 +17,6 @@ class Session(object):
         # TODO: parallelism cfg = tf.ConfigProto(intra_op_parallelism_threads=1, inter_op_parallelism_threads=1)
         config.gpu_options.allow_growth = True
         self._parent_session = None
-        self._name = 'root_session'
         self._tf_session = tf.Session(config=config)
         if len(args) == 0:
             assert len(kwargs) > 0
@@ -47,7 +46,6 @@ class SuperModel(object):
 class SessionMethod(object):
     def __init__(self, parent_session, name, op_or_model):
         self._parent_session = parent_session
-        self._name = name
         self._tf_session = parent_session._tf_session
         self._op_or_model = op_or_model
 
@@ -57,13 +55,3 @@ class SessionMethod(object):
     @profiler.wrap
     def __call__(self, *args, **kwargs):
         return self._op_or_model(self._parent_session, *args, **kwargs)
-
-    def _full_path(self):
-        s = self
-        r = ''
-        while s is not None:
-            if r != '':
-                r = '.' + r
-            r = s._name + r
-            s = s._parent_session
-        return r

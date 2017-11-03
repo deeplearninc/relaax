@@ -231,7 +231,6 @@ class SharedWeights(subgraph.Subgraph):
         self.op_init_weight_history = self.Call(init_weight_history)
 
         def func_dc_gradient(session, gradients, step):
-            #logger.debug("session = {}, {}".format(session._name, session._full_path()))
             # Assume step to be global step number
             #current_step = session.op_n_step()
 

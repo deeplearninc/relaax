@@ -8,7 +8,7 @@ RELAAX is a framework designed to:
 
 3. Ease deployment of Agents and Environments for training and exploitation of the trained Agents at scale on popular cloud platforms
 
-Please find some samples demostrating RELAAX abilities in [relaax_sample_apps](../../../relaax_sample_apps/blob/master/README.md) repository.
+Please find some samples demostrating RELAAX abilities in [relaax_sample_apps](../../../relaax_sample_apps) repository.
 
 The components of RELAAX include:
 
@@ -49,7 +49,7 @@ The components of RELAAX include:
         - [Performance on gym's BipedalWalker](docs/Algorithms.md#performance-on-gyms-bipedalwalker)
     - [Distributed DQN](docs/Algorithms.md#distributed-dqn)
     - [Other Algorithms](docs/Algorithms.md#other-algorithms)
-- [Debugging](docs/Debugging.md)
+- [Profiling & Debugging](docs/Debugging.md)
 
 
 ## [Quick start](#quick-start)

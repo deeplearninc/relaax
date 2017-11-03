@@ -19,7 +19,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   name='bridge.proto',
   package='',
   syntax='proto3',
-  serialized_pb=_b('\n\x0c\x62ridge.proto\"\r\n\x0bNullMessage\"\x15\n\x04Step\x12\r\n\x05value\x18\x01 \x01(\x04\"\x97\x04\n\x04Item\x12!\n\titem_type\x18\x01 \x01(\x0e\x32\x0e.Item.ItemType\x12\x10\n\x08\x64ict_key\x18\x02 \x01(\t\x12\x12\n\nbool_value\x18\x03 \x01(\x08\x12\x11\n\tint_value\x18\x04 \x01(\x12\x12\x13\n\x0b\x66loat_value\x18\x05 \x01(\x01\x12\x11\n\tstr_value\x18\x06 \x01(\t\x12\x13\n\x0b\x62ytes_value\x18\x07 \x01(\x0c\x12+\n\x11numpy_array_value\x18\x08 \x01(\x0b\x32\x10.Item.NumpyArray\x1a\x46\n\nNumpyArray\x12\x0c\n\x04last\x18\x01 \x01(\x08\x12\r\n\x05\x64type\x18\x02 \x01(\t\x12\r\n\x05shape\x18\x03 \x03(\r\x12\x0c\n\x04\x64\x61ta\x18\x04 \x01(\x0c\"\x80\x02\n\x08ItemType\x12\x0e\n\nTUPLE_OPEN\x10\x00\x12\x0f\n\x0bTUPLE_CLOSE\x10\x01\x12\r\n\tLIST_OPEN\x10\x02\x12\x0e\n\nLIST_CLOSE\x10\x03\x12\r\n\tDICT_OPEN\x10\x04\x12\x0e\n\nDICT_CLOSE\x10\x05\x12\x08\n\x04NONE\x10\x06\x12\x08\n\x04\x42OOL\x10\x07\x12\x07\n\x03INT\x10\x08\x12\x10\n\x0cNUMPY_INT_32\x10\t\x12\x10\n\x0cNUMPY_INT_64\x10\n\x12\x08\n\x04LONG\x10\x0b\x12\t\n\x05\x46LOAT\x10\x0c\x12\x0c\n\x08\x46LOAT_32\x10\r\x12\x0c\n\x08\x46LOAT_64\x10\x0e\x12\x07\n\x03STR\x10\x0f\x12\t\n\x05\x42YTES\x10\x10\x12\x0f\n\x0bNUMPY_ARRAY\x10\x11\x32\x91\x01\n\x06\x42ridge\x12$\n\x04Init\x12\x0c.NullMessage\x1a\x0c.NullMessage\"\x00\x12\x19\n\x03Run\x12\x05.Item\x1a\x05.Item\"\x00(\x01\x30\x01\x12&\n\x0bStoreMetric\x12\x05.Item\x1a\x0c.NullMessage\"\x00(\x01\x12\x1e\n\x05NStep\x12\x0c.NullMessage\x1a\x05.Step\"\x00\x62\x06proto3')
+  serialized_pb=_b('\n\x0c\x62ridge.proto\"\r\n\x0bNullMessage\"\x12\n\x01X\x12\r\n\x05value\x18\x01 \x01(\x04\"\x97\x04\n\x04Item\x12!\n\titem_type\x18\x01 \x01(\x0e\x32\x0e.Item.ItemType\x12\x10\n\x08\x64ict_key\x18\x02 \x01(\t\x12\x12\n\nbool_value\x18\x03 \x01(\x08\x12\x11\n\tint_value\x18\x04 \x01(\x12\x12\x13\n\x0b\x66loat_value\x18\x05 \x01(\x01\x12\x11\n\tstr_value\x18\x06 \x01(\t\x12\x13\n\x0b\x62ytes_value\x18\x07 \x01(\x0c\x12+\n\x11numpy_array_value\x18\x08 \x01(\x0b\x32\x10.Item.NumpyArray\x1a\x46\n\nNumpyArray\x12\x0c\n\x04last\x18\x01 \x01(\x08\x12\r\n\x05\x64type\x18\x02 \x01(\t\x12\r\n\x05shape\x18\x03 \x03(\r\x12\x0c\n\x04\x64\x61ta\x18\x04 \x01(\x0c\"\x80\x02\n\x08ItemType\x12\x0e\n\nTUPLE_OPEN\x10\x00\x12\x0f\n\x0bTUPLE_CLOSE\x10\x01\x12\r\n\tLIST_OPEN\x10\x02\x12\x0e\n\nLIST_CLOSE\x10\x03\x12\r\n\tDICT_OPEN\x10\x04\x12\x0e\n\nDICT_CLOSE\x10\x05\x12\x08\n\x04NONE\x10\x06\x12\x08\n\x04\x42OOL\x10\x07\x12\x07\n\x03INT\x10\x08\x12\x10\n\x0cNUMPY_INT_32\x10\t\x12\x10\n\x0cNUMPY_INT_64\x10\n\x12\x08\n\x04LONG\x10\x0b\x12\t\n\x05\x46LOAT\x10\x0c\x12\x0c\n\x08\x46LOAT_32\x10\r\x12\x0c\n\x08\x46LOAT_64\x10\x0e\x12\x07\n\x03STR\x10\x0f\x12\t\n\x05\x42YTES\x10\x10\x12\x0f\n\x0bNUMPY_ARRAY\x10\x11\x32\xa9\x01\n\x06\x42ridge\x12$\n\x04Init\x12\x0c.NullMessage\x1a\x0c.NullMessage\"\x00\x12\x19\n\x03Run\x12\x05.Item\x1a\x05.Item\"\x00(\x01\x30\x01\x12&\n\x0bStoreMetric\x12\x05.Item\x1a\x0c.NullMessage\"\x00(\x01\x12\x1a\n\x04SetX\x12\x02.X\x1a\x0c.NullMessage\"\x00\x12\x1a\n\x04GetX\x12\x0c.NullMessage\x1a\x02.X\"\x00\x62\x06proto3')
 )
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
@@ -106,8 +106,8 @@ _ITEM_ITEMTYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=334,
-  serialized_end=590,
+  serialized_start=331,
+  serialized_end=587,
 )
 _sym_db.RegisterEnumDescriptor(_ITEM_ITEMTYPE)
 
@@ -136,15 +136,15 @@ _NULLMESSAGE = _descriptor.Descriptor(
 )
 
 
-_STEP = _descriptor.Descriptor(
-  name='Step',
-  full_name='Step',
+_X = _descriptor.Descriptor(
+  name='X',
+  full_name='X',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='value', full_name='Step.value', index=0,
+      name='value', full_name='X.value', index=0,
       number=1, type=4, cpp_type=4, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
@@ -163,7 +163,7 @@ _STEP = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=31,
-  serialized_end=52,
+  serialized_end=49,
 )
 
 
@@ -214,8 +214,8 @@ _ITEM_NUMPYARRAY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=261,
-  serialized_end=331,
+  serialized_start=258,
+  serialized_end=328,
 )
 
 _ITEM = _descriptor.Descriptor(
@@ -294,8 +294,8 @@ _ITEM = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=55,
-  serialized_end=590,
+  serialized_start=52,
+  serialized_end=587,
 )
 
 _ITEM_NUMPYARRAY.containing_type = _ITEM
@@ -303,7 +303,7 @@ _ITEM.fields_by_name['item_type'].enum_type = _ITEM_ITEMTYPE
 _ITEM.fields_by_name['numpy_array_value'].message_type = _ITEM_NUMPYARRAY
 _ITEM_ITEMTYPE.containing_type = _ITEM
 DESCRIPTOR.message_types_by_name['NullMessage'] = _NULLMESSAGE
-DESCRIPTOR.message_types_by_name['Step'] = _STEP
+DESCRIPTOR.message_types_by_name['X'] = _X
 DESCRIPTOR.message_types_by_name['Item'] = _ITEM
 
 NullMessage = _reflection.GeneratedProtocolMessageType('NullMessage', (_message.Message,), dict(
@@ -313,12 +313,12 @@ NullMessage = _reflection.GeneratedProtocolMessageType('NullMessage', (_message.
   ))
 _sym_db.RegisterMessage(NullMessage)
 
-Step = _reflection.GeneratedProtocolMessageType('Step', (_message.Message,), dict(
-  DESCRIPTOR = _STEP,
+X = _reflection.GeneratedProtocolMessageType('X', (_message.Message,), dict(
+  DESCRIPTOR = _X,
   __module__ = 'bridge_pb2'
-  # @@protoc_insertion_point(class_scope:Step)
+  # @@protoc_insertion_point(class_scope:X)
   ))
-_sym_db.RegisterMessage(Step)
+_sym_db.RegisterMessage(X)
 
 Item = _reflection.GeneratedProtocolMessageType('Item', (_message.Message,), dict(
 
@@ -369,10 +369,15 @@ try:
           request_serializer=Item.SerializeToString,
           response_deserializer=NullMessage.FromString,
           )
-      self.NStep = channel.unary_unary(
-          '/Bridge/NStep',
+      self.SetX = channel.unary_unary(
+          '/Bridge/SetX',
+          request_serializer=X.SerializeToString,
+          response_deserializer=NullMessage.FromString,
+          )
+      self.GetX = channel.unary_unary(
+          '/Bridge/GetX',
           request_serializer=NullMessage.SerializeToString,
-          response_deserializer=Step.FromString,
+          response_deserializer=X.FromString,
           )
 
 
@@ -393,7 +398,12 @@ try:
       context.set_details('Method not implemented!')
       raise NotImplementedError('Method not implemented!')
 
-    def NStep(self, request, context):
+    def SetX(self, request, context):
+      context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+      context.set_details('Method not implemented!')
+      raise NotImplementedError('Method not implemented!')
+
+    def GetX(self, request, context):
       context.set_code(grpc.StatusCode.UNIMPLEMENTED)
       context.set_details('Method not implemented!')
       raise NotImplementedError('Method not implemented!')
@@ -416,10 +426,15 @@ try:
             request_deserializer=Item.FromString,
             response_serializer=NullMessage.SerializeToString,
         ),
-        'NStep': grpc.unary_unary_rpc_method_handler(
-            servicer.NStep,
+        'SetX': grpc.unary_unary_rpc_method_handler(
+            servicer.SetX,
+            request_deserializer=X.FromString,
+            response_serializer=NullMessage.SerializeToString,
+        ),
+        'GetX': grpc.unary_unary_rpc_method_handler(
+            servicer.GetX,
             request_deserializer=NullMessage.FromString,
-            response_serializer=Step.SerializeToString,
+            response_serializer=X.SerializeToString,
         ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -439,7 +454,9 @@ try:
       context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
     def StoreMetric(self, request_iterator, context):
       context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
-    def NStep(self, request, context):
+    def SetX(self, request, context):
+      context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
+    def GetX(self, request, context):
       context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
 
 
@@ -457,9 +474,12 @@ try:
     def StoreMetric(self, request_iterator, timeout, metadata=None, with_call=False, protocol_options=None):
       raise NotImplementedError()
     StoreMetric.future = None
-    def NStep(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
+    def SetX(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
       raise NotImplementedError()
-    NStep.future = None
+    SetX.future = None
+    def GetX(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
+      raise NotImplementedError()
+    GetX.future = None
 
 
   def beta_create_Bridge_server(servicer, pool=None, pool_size=None, default_timeout=None, maximum_timeout=None):
@@ -469,21 +489,24 @@ try:
     file not marked beta) for all further purposes. This function was
     generated only to ease transition from grpcio<0.15.0 to grpcio>=0.15.0"""
     request_deserializers = {
+      ('Bridge', 'GetX'): NullMessage.FromString,
       ('Bridge', 'Init'): NullMessage.FromString,
-      ('Bridge', 'NStep'): NullMessage.FromString,
       ('Bridge', 'Run'): Item.FromString,
+      ('Bridge', 'SetX'): X.FromString,
       ('Bridge', 'StoreMetric'): Item.FromString,
     }
     response_serializers = {
+      ('Bridge', 'GetX'): X.SerializeToString,
       ('Bridge', 'Init'): NullMessage.SerializeToString,
-      ('Bridge', 'NStep'): Step.SerializeToString,
       ('Bridge', 'Run'): Item.SerializeToString,
+      ('Bridge', 'SetX'): NullMessage.SerializeToString,
       ('Bridge', 'StoreMetric'): NullMessage.SerializeToString,
     }
     method_implementations = {
+      ('Bridge', 'GetX'): face_utilities.unary_unary_inline(servicer.GetX),
       ('Bridge', 'Init'): face_utilities.unary_unary_inline(servicer.Init),
-      ('Bridge', 'NStep'): face_utilities.unary_unary_inline(servicer.NStep),
       ('Bridge', 'Run'): face_utilities.stream_stream_inline(servicer.Run),
+      ('Bridge', 'SetX'): face_utilities.unary_unary_inline(servicer.SetX),
       ('Bridge', 'StoreMetric'): face_utilities.stream_unary_inline(servicer.StoreMetric),
     }
     server_options = beta_implementations.server_options(request_deserializers=request_deserializers, response_serializers=response_serializers, thread_pool=pool, thread_pool_size=pool_size, default_timeout=default_timeout, maximum_timeout=maximum_timeout)
@@ -497,21 +520,24 @@ try:
     file not marked beta) for all further purposes. This function was
     generated only to ease transition from grpcio<0.15.0 to grpcio>=0.15.0"""
     request_serializers = {
+      ('Bridge', 'GetX'): NullMessage.SerializeToString,
       ('Bridge', 'Init'): NullMessage.SerializeToString,
-      ('Bridge', 'NStep'): NullMessage.SerializeToString,
       ('Bridge', 'Run'): Item.SerializeToString,
+      ('Bridge', 'SetX'): X.SerializeToString,
       ('Bridge', 'StoreMetric'): Item.SerializeToString,
     }
     response_deserializers = {
+      ('Bridge', 'GetX'): X.FromString,
       ('Bridge', 'Init'): NullMessage.FromString,
-      ('Bridge', 'NStep'): Step.FromString,
       ('Bridge', 'Run'): Item.FromString,
+      ('Bridge', 'SetX'): NullMessage.FromString,
       ('Bridge', 'StoreMetric'): NullMessage.FromString,
     }
     cardinalities = {
+      'GetX': cardinality.Cardinality.UNARY_UNARY,
       'Init': cardinality.Cardinality.UNARY_UNARY,
-      'NStep': cardinality.Cardinality.UNARY_UNARY,
       'Run': cardinality.Cardinality.STREAM_STREAM,
+      'SetX': cardinality.Cardinality.UNARY_UNARY,
       'StoreMetric': cardinality.Cardinality.STREAM_UNARY,
     }
     stub_options = beta_implementations.stub_options(host=host, metadata_transformer=metadata_transformer, request_serializers=request_serializers, response_deserializers=response_deserializers, thread_pool=pool, thread_pool_size=pool_size)
