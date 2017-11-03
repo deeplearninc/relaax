@@ -46,7 +46,7 @@ def find_cuda():
 
 # Build-specific dependencies.
 extras = {
-    'keras': ['keras==1.2.1'],
+    'keras': ['keras>=2.0.0'],
     'wsproxy': ['autobahn==0.17.2', 'Twisted==17.1.0'],
     'testing': ['pytest', 'pytest-cov', 'pytest-xdist', 'flake8', 'mock']
 }
