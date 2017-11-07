@@ -19,35 +19,100 @@ logger = logging.getLogger(__name__)
 
 
 class Network(subgraph.Subgraph):
-    def build_graph(self):
-        input = layer.Input(dppo_config.config.input)
+    def build_graph(self, input_placeholder):
+        conv_layer = dict(type=layer.Convolution, activation=layer.Activation.Elu,
+                          n_filters=32, filter_size=[3, 3], stride=[2, 2],
+                          border=layer.Border.Same)
+        input_layers = [dict(conv_layer)] * 4 if dppo_config.config.input.universe else None
+        input = layer.Input(dppo_config.config.input, descs=input_layers, input_placeholder=input_placeholder)
+        layers = [input]
 
+        sizes = dppo_config.config.hidden_sizes
         activation = layer.Activation.get_activation(dppo_config.config.activation)
-        head = layer.GenericLayers(layer.Flatten(input),
-                                   [dict(type=layer.Dense, size=size, activation=activation)
-                                    for size in dppo_config.config.hidden_sizes])
+        fc_layers = layer.GenericLayers(layer.Flatten(input),
+                                        [dict(type=layer.Dense, size=size, activation=activation)
+                                        for size in sizes[:-1]])
+        layers.append(fc_layers)
 
+        last_size = fc_layers.node.shape.as_list()[-1]
+        if len(sizes) > 0:
+            last_size = sizes[-1]
+
+        if dppo_config.config.use_lstm:
+            lstm = layer.LSTM(graph.Expand(fc_layers, 0), n_units=last_size)
+            head = graph.Reshape(lstm, [-1, last_size])
+            layers.append(lstm)
+
+            self.ph_lstm_state = lstm.ph_state
+            self.lstm_zero_state = lstm.zero_state
+            self.lstm_state = lstm.state
+        else:
+            head = layer.Dense(fc_layers, last_size, activation=activation)
+            layers.append(head)
+
+        self.ph_state = input.ph_state
+        self.weight = layer.Weights(*layers)
+        return head.node
+
+
+class Subnet(object):
+    def __init__(self, head, weights, ph_state, ph_lstm_state=None, lstm_zero_state=None, lstm_state=None):
+        self.head = head
+        self.weights = weights
+        self.ph_state = ph_state
+        if dppo_config.config.use_lstm:
+            self.ph_lstm_state = ph_lstm_state
+            self.lstm_zero_state = lstm_zero_state
+            self.lstm_state = lstm_state
+
+
+class Model(subgraph.Subgraph):
+    def build_graph(self, assemble_model=False):
+        input_placeholder = layer.InputPlaceholder(dppo_config.config.input)
+
+        policy_head = Network(input_placeholder)
         if dppo_config.config.output.continuous:
-            output = layer.Dense(head, dppo_config.config.output.action_size)
+            output = layer.Dense(policy_head, dppo_config.config.output.action_size)
             actor = ConcatFixedStd(output)
             actor_layers = [output, actor]
         else:
-            actor = layer.Dense(head, dppo_config.config.output.action_size,
+            actor = layer.Dense(policy_head, dppo_config.config.output.action_size,
                                 activation=layer.Activation.Softmax)
             actor_layers = [actor]
 
-        self.ph_state = input.ph_state
-        self.actor = actor
-        self.weights = layer.Weights(*([input, head] + actor_layers))
+        value_head = Network(input_placeholder)
+        critic = layer.Dense(value_head, 1)
 
-        return actor.node
+        feeds = dict(head=actor, weights=layer.Weights(policy_head, *actor_layers), ph_state=input_placeholder.ph_state)
+        if dppo_config.config.use_lstm:
+            feeds.update(dict(ph_lstm_state=policy_head.ph_lstm_state,
+                              lstm_zero_state=policy_head.lstm_zero_state,
+                              lstm_state=policy_head.lstm_state))
+        self.actor = Subnet(**feeds)
+
+        feeds = dict(head=critic, weights=layer.Weights(value_head, critic), ph_state=input_placeholder.ph_state)
+        if dppo_config.config.use_lstm:
+            feeds.update(dict(ph_lstm_state=value_head.ph_lstm_state,
+                              lstm_zero_state=value_head.lstm_zero_state,
+                              lstm_state=value_head.lstm_state))
+        self.critic = Subnet(**feeds)
+
+        if assemble_model:
+            self.policy = PolicyModel(self.actor)
+            self.value_func = ValueModel(self.critic)
+
+            if dppo_config.config.use_lstm:
+                self.lstm_zero_state = [self.actor.lstm_zero_state, self.critic.lstm_zero_state]
 
 
 class PolicyModel(subgraph.Subgraph):
-    def build_graph(self):
-        sg_network = Network()
-
-        self.op_get_action = self.Op(sg_network, state=sg_network.ph_state)
+    def build_graph(self, sg_network):
+        if dppo_config.config.use_lstm:
+            self.op_get_action = self.Ops(sg_network.head, sg_network.lstm_state,
+                                          state=sg_network.ph_state, lstm_state=sg_network.ph_lstm_state)
+            self.op_lstm_zero_state = sg_network.lstm_zero_state
+        else:
+            self.op_get_action = self.Op(sg_network.head, state=sg_network.ph_state)
 
         # Advantage node
         ph_adv_n = graph.TfNode(tf.placeholder(tf.float32, name='adv_n'))
@@ -58,7 +123,7 @@ class PolicyModel(subgraph.Subgraph):
         # Placeholder to store action probabilities under the old policy
         ph_oldprob_np = sg_probtype.ProbVariable()
 
-        sg_logp_n = sg_probtype.Loglikelihood(sg_network.actor)
+        sg_logp_n = sg_probtype.Loglikelihood(sg_network.head)
         sg_oldlogp_n = sg_probtype.Loglikelihood(ph_oldprob_np)
 
         # PPO clipped surrogate loss
@@ -72,11 +137,11 @@ class PolicyModel(subgraph.Subgraph):
         # Regular gradients
         sg_ppo_clip_gradients = optimizer.Gradients(sg_network.weights,
                                                     loss=sg_ppo_clip_loss)
-        self.op_compute_ppo_clip_gradients = self.Op(sg_ppo_clip_gradients.calculate,
-                                                     state=sg_network.ph_state,
-                                                     action=sg_probtype.ph_sampled_variable,
-                                                     advantage=ph_adv_n,
-                                                     old_prob=ph_oldprob_np)
+        feeds = dict(state=sg_network.ph_state, action=sg_probtype.ph_sampled_variable,
+                     advantage=ph_adv_n, old_prob=ph_oldprob_np)
+        if dppo_config.config.use_lstm:
+            feeds.update(dict(lstm_state=sg_network.ph_lstm_state))
+        self.op_compute_ppo_clip_gradients = self.Op(sg_ppo_clip_gradients.calculate, **feeds)
 
         # Flattened gradients
         sg_ppo_clip_gradients_flatten = GetVariablesFlatten(sg_ppo_clip_gradients.calculate)
@@ -97,43 +162,20 @@ class PolicyModel(subgraph.Subgraph):
         self.op_initialize = self.Op(sg_initialize)
 
 
-class ValueNet(subgraph.Subgraph):
-    def build_graph(self):
-
-        input = layer.Input(dppo_config.config.input)
-
-        activation = layer.Activation.get_activation(dppo_config.config.activation)
-        descs = [dict(type=layer.Dense, size=size, activation=activation) for size
-                 in dppo_config.config.hidden_sizes]
-        descs.append(dict(type=layer.Dense, size=1))
-
-        value = layer.GenericLayers(layer.Flatten(input), descs)
-
-        weights = layer.Weights(input, value)
-
-        self.ph_state = input.ph_state
-        self.weights = weights
-        self.value = value
-
-        return value.node
-
-
 # Value function model used by agents to estimate advantage
 class ValueModel(subgraph.Subgraph):
-    def build_graph(self):
-        sg_value_net = ValueNet()
-
+    def build_graph(self, sg_value_net):
         # 'Observed' value of a state = discounted reward
         ph_ytarg_ny = graph.Placeholder(np.float32)
 
-        mse = graph.TfNode(tf.reduce_mean(tf.square(ph_ytarg_ny.node - sg_value_net.value.node)))
+        mse = graph.TfNode(tf.reduce_mean(tf.square(ph_ytarg_ny.node - sg_value_net.head.node)))
 
-        logger.info("ValueModel | mse={}".format(mse.node))
+        logger.debug("ValueModel | mse={}".format(mse.node))
 
         l2 = graph.TfNode(1e-3 * tf.add_n([tf.reduce_sum(tf.square(v)) for v in
                                            utils.Utils.flatten(sg_value_net.weights.node)]))
 
-        logger.info("ValueModel | l2={}".format(l2.node))
+        logger.debug("ValueModel | l2={}".format(l2.node))
 
         loss = graph.TfNode(l2.node + mse.node)
 
@@ -141,7 +183,12 @@ class ValueModel(subgraph.Subgraph):
         sg_gradients_flatten = GetVariablesFlatten(sg_gradients.calculate)
 
         # Op to compute value of a state
-        self.op_value = self.Op(sg_value_net.value, state=sg_value_net.ph_state)
+        if dppo_config.config.use_lstm:
+            self.op_value = self.Ops(sg_value_net.head, sg_value_net.lstm_state,
+                                     state=sg_value_net.ph_state, lstm_state=sg_value_net.ph_lstm_state)
+            self.op_lstm_zero_state = sg_value_net.lstm_zero_state
+        else:
+            self.op_value = self.Op(sg_value_net.head, state=sg_value_net.ph_state)
 
         self.op_get_weights = self.Op(sg_value_net.weights)
         self.op_assign_weights = self.Op(sg_value_net.weights.assign,
@@ -153,13 +200,13 @@ class ValueModel(subgraph.Subgraph):
         self.op_get_weights_flatten = self.Op(sg_get_weights_flatten)
         self.op_set_weights_flatten = self.Op(sg_set_weights_flatten, value=sg_set_weights_flatten.ph_value)
 
-        self.op_compute_gradients = self.Op(sg_gradients.calculate, state=sg_value_net.ph_state,
-                                             ytarg_ny=ph_ytarg_ny)
+        feeds = dict(state=sg_value_net.ph_state, ytarg_ny=ph_ytarg_ny)
+        if dppo_config.config.use_lstm:
+            feeds.update(dict(lstm_state=sg_value_net.ph_lstm_state))
 
-        self.op_compute_loss_and_gradient_flatten = self.Ops(loss, sg_gradients_flatten, state=sg_value_net.ph_state,
-                                                             ytarg_ny=ph_ytarg_ny)
-
-        self.op_losses = self.Ops(loss, mse, l2, state=sg_value_net.ph_state, ytarg_ny=ph_ytarg_ny)
+        self.op_compute_gradients = self.Op(sg_gradients.calculate, **feeds)
+        self.op_compute_loss_and_gradient_flatten = self.Ops(loss, sg_gradients_flatten, **feeds)
+        self.op_losses = self.Ops(loss, mse, l2, **feeds)
 
 
 # A generic subgraph to handle distributed weights updates
@@ -232,9 +279,7 @@ class SharedWeights(subgraph.Subgraph):
 
         def func_dc_gradient(session, gradients, step):
             # Assume step to be global step number
-            #current_step = session.op_n_step()
-
-            #current_weights = session.op_get_weights()
+            # current_step = session.op_n_step()
             current_weights_f = session.op_get_weights_flatten()
 
             old_weights_f = self.weights_history.get(step, current_weights_f)
@@ -277,11 +322,10 @@ class SharedWeights(subgraph.Subgraph):
 # all agents and stored on the parameter server
 class SharedParameters(subgraph.Subgraph):
     def build_graph(self):
-        sg_policy = Network()
-        sg_value_func = ValueNet()
+        sg_model = Model()
 
-        sg_policy_shared = SharedWeights(sg_policy.weights)
-        sg_value_func_shared = SharedWeights(sg_value_func.weights)
+        sg_policy_shared = SharedWeights(sg_model.actor.weights)
+        sg_value_func_shared = SharedWeights(sg_model.critic.weights)
 
         self.policy = sg_policy_shared
         self.value_func = sg_value_func_shared
@@ -313,4 +357,4 @@ class Shaper():
 
 
 if __name__ == '__main__':
-    utils.assemble_and_show_graphs(SharedParameters, PolicyModel)
+    utils.assemble_and_show_graphs(SharedParameters, Model)
