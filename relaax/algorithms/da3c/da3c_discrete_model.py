@@ -33,9 +33,10 @@ class Network(subgraph.Subgraph):
             self.lstm_zero_state = lstm.zero_state
             self.lstm_state = lstm.state
         else:
+            activation = layer.Activation.get_activation(da3c_config.config.activation)
             head = layer.GenericLayers(flattened_input,
                                        [dict(type=layer.Dense, size=size,
-                                             activation=layer.Activation.Relu) for size in sizes])
+                                             activation=activation) for size in sizes])
             layers.append(head)
 
         actor = layer.Actor(head, da3c_config.config.output)

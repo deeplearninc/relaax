@@ -19,11 +19,7 @@ logger = logging.getLogger(__name__)
 
 class Network(subgraph.Subgraph):
     def build_graph(self, input_placeholder):
-        conv_layer = dict(type=layer.Convolution, activation=layer.Activation.Elu,
-                          n_filters=32, filter_size=[3, 3], stride=[2, 2],
-                          border=layer.Border.Same)
-        input_layers = [dict(conv_layer)] * 4 if dppo_config.config.input.universe else None
-        input = layer.Input(dppo_config.config.input, descs=input_layers, input_placeholder=input_placeholder)
+        input = layer.ConfiguredInput(dppo_config.config.input, input_placeholder=input_placeholder)
         layers = [input]
 
         sizes = dppo_config.config.hidden_sizes

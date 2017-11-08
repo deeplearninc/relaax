@@ -5,6 +5,7 @@ from argparse import Namespace
 config = options.get('algorithm')
 
 config.input.universe = options.get('algorithm/input/universe', True)
+config.activation = options.get('algorithm/activation', 'tanh')
 
 config.use_lstm = options.get('algorithm/use_lstm', False)
 config.use_icm = options.get('algorithm/use_icm', False)
