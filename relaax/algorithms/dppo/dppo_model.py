@@ -8,12 +8,11 @@ from relaax.common.algorithms import subgraph
 from relaax.common.algorithms.lib import graph
 from relaax.common.algorithms.lib import layer
 from relaax.common.algorithms.lib import optimizer
-from relaax.common.algorithms.lib import loss
 from relaax.common.algorithms.lib import utils
 
 from . import dppo_config
 
-from relaax.algorithms.trpo.trpo_model import GetVariablesFlatten, SetVariablesFlatten, Categorical, ProbType, ConcatFixedStd
+from relaax.algorithms.trpo.trpo_model import GetVariablesFlatten, SetVariablesFlatten, ProbType, ConcatFixedStd
 
 logger = logging.getLogger(__name__)
 
@@ -357,4 +356,4 @@ class Shaper():
 
 
 if __name__ == '__main__':
-    utils.assemble_and_show_graphs(SharedParameters, Model)
+    utils.assemble_and_show_graphs(SharedParameters, Model(assemble_model=True))

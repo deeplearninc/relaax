@@ -117,10 +117,10 @@ class DiagGauss(subgraph.Subgraph):
         return lambda prob: self.EntropySubgraph(prob, self._d)
 
 
-def ProbType(*args, continuous=False):
+def ProbType(action_size, continuous=False):
     if continuous:
-        return DiagGauss(*args)
-    return Categorical(*args)
+        return DiagGauss(action_size)
+    return Categorical(action_size)
 
 
 class ConcatFixedStd(subgraph.Subgraph):
