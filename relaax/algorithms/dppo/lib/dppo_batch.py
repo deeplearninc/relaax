@@ -26,10 +26,12 @@ class DPPOBatch(object):
         if dppo_config.config.use_lstm:
             self.initial_lstm_state = self.lstm_state = self.lstm_zero_state = model.lstm_zero_state
         self.reset()
+        self.terminal = False
 
         self.last_state = None
         self.last_action = None
         self.last_prob = None
+        self.last_value = None
 
         self.policy_step = None
         self.value_step = None
@@ -51,6 +53,7 @@ class DPPOBatch(object):
         self.episode.begin()
 
     def step(self, reward, state, terminal):
+        self.terminal = terminal
         if reward is not None:
             self.push_experience(reward)
         if terminal and state is not None:
@@ -162,8 +165,8 @@ class DPPOBatch(object):
         return self.prob_type.sample(probabilities)[0], probabilities[0]
 
     def compute_policy_gradients(self, experience):
-        values = self.compute_state_values(experience['state'])
-        advantages = MniAdvantage(experience['reward'], values, 0, dppo_config.config.gamma)
+        values, self.last_value = self.compute_state_values(experience['state'])
+        advantages = MniAdvantage(experience['reward'], values, self.last_value, dppo_config.config.gamma)
 
         feeds = dict(state=experience['state'], action=experience['action'],
                      advantage=advantages, old_prob=experience['old_prob'])
@@ -181,14 +184,24 @@ class DPPOBatch(object):
             values, self.lstm_state[1] = self.session.value_func.op_value(state=states,
                                                                           lstm_state=self.initial_lstm_state[1],
                                                                           lstm_step=[len(states)])
+            if not self.terminal:
+                last_state = np.reshape(self.last_state, (1,) + self.last_state.shape)
+                l_value, = self.session.value_func.op_value(state=last_state,
+                                                               lstm_state=self.lstm_state[1],
+                                                               lstm_step=[1])
         else:
             values = self.session.value_func.op_value(state=states)
-        return values
+            if not self.terminal:
+                last_state = np.reshape(self.last_state, (1,) + self.last_state.shape)
+                l_value = self.session.value_func.op_value(state=last_state)
+
+        last_value = 0 if self.terminal else l_value[0][0]
+        return values, last_value
 
     def compute_value_func_gradients(self, experience):
         # Hack to compute observed values for value function
         rwd = experience['reward']
-        obs_values = MniAdvantage(rwd, np.zeros(len(rwd)), 0, dppo_config.config.gamma)
+        obs_values = MniAdvantage(rwd, np.zeros(len(rwd)), self.last_value, dppo_config.config.gamma)
 
         feeds = dict(state=experience['state'], ytarg_ny=obs_values)
         if dppo_config.config.use_lstm:
@@ -203,9 +216,9 @@ class DPPOBatch(object):
 # Compute advantage estimates using rewards and value function predictions
 # Mni et al, 2016
 # For formula, see https://arxiv.org/pdf/1707.06347.pdf
-def MniAdvantage(rewards, values, final_value, gamma):
+def MniAdvantage(rewards, values, last_value, gamma):
     adv = np.zeros(len(rewards))
-    rwd = rewards + [final_value]
+    rwd = rewards + [last_value]
 
     # TODO: optimize
     for i in range(len(adv)):
