@@ -4,10 +4,9 @@ import logging
 import numpy as np
 
 from relaax.server.common import session
-from relaax.common.algorithms.lib import episode
-from relaax.common.algorithms.lib import utils
+from relaax.common.algorithms.lib import episode    # dataset
 
-from relaax.algorithms.trpo.lib.core import ProbType, Categorical, DiagGauss
+from relaax.algorithms.trpo.lib.core import Categorical, DiagGauss
 
 from .. import dppo_config
 from .. import dppo_model
