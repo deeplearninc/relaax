@@ -15,7 +15,7 @@ from .lib.dqn_utils import Actor
 
 class Network(subgraph.Subgraph):
     def build_graph(self):
-        input = layer.Input(config.input)
+        input = layer.ConfiguredInput(config.input)
 
         hidden = layer.GenericLayers(layer.Flatten(input),
                                      [dict(type=layer.Dense, size=size, activation=layer.Activation.Tanh)

@@ -108,7 +108,7 @@ class Trainer(object):
 
     @profiler.wrap
     def update(self):
-        if self.episode.experience._len > cfg.config.batch_size:
+        if self.episode.size > cfg.config.batch_size:
             experience = self.episode.sample(cfg.config.batch_size)
             if not self.exploit:
                 self.do_task(lambda: self.send_experience(experience))

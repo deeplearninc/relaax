@@ -136,7 +136,7 @@ class ConcatFixedStd(subgraph.Subgraph):
 
 class Network(subgraph.Subgraph):
     def build_graph(self):
-        input = layer.Input(trpo_config.config.input)
+        input = layer.ConfiguredInput(trpo_config.config.input)
 
         head = layer.GenericLayers(layer.Flatten(input),
                                    [dict(type=layer.Dense, size=size, activation=layer.Activation.Tanh)

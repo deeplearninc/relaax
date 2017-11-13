@@ -13,7 +13,7 @@ from . import ddpg_config as cfg
 
 class ActorNetwork(subgraph.Subgraph):
     def build_graph(self):
-        input = layer.Input(cfg.config.input)
+        input = layer.ConfiguredInput(cfg.config.input)
 
         dense = layer.GenericLayers(layer.Flatten(input),
                                     [dict(type=layer.Dense, size=size, activation=layer.Activation.Relu)
@@ -28,7 +28,7 @@ class ActorNetwork(subgraph.Subgraph):
 
 class CriticNetwork(subgraph.Subgraph):
     def build_graph(self):
-        input = layer.Input(cfg.config.input)
+        input = layer.ConfiguredInput(cfg.config.input)
         self.ph_action = graph.Placeholder(np.float32, (None, cfg.config.output.action_size))
 
         sizes = cfg.config.hidden_sizes
