@@ -24,3 +24,6 @@ config.icm.lr = options.get('algorithm/icm/lr', 1e-3)
 if not hasattr(config, 'optimizer'):
     config.optimizer = options.get('algorithm/optimizer', Namespace())
 config.optimizer.epsilon = options.get('algorithm/optimizer/epsilon', 1e-5)
+
+config.schedule = options.get('algorithm/schedule', 'linear')
+config.max_global_step = options.get('algorithm/max_global_step', 1e7)

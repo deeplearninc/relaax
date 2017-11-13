@@ -9,6 +9,7 @@ from relaax.common.algorithms.lib import graph
 from relaax.common.algorithms.lib import layer
 from relaax.common.algorithms.lib import optimizer
 from relaax.common.algorithms.lib import utils
+from relaax.common.algorithms.lib import lr_schedule
 
 from . import dppo_config
 
@@ -215,8 +216,15 @@ class SharedWeights(subgraph.Subgraph):
         # Build graph
         sg_global_step = graph.GlobalStep()
         sg_weights = weights
-        sg_optimizer = optimizer.AdamOptimizer(dppo_config.config.learning_rate,
-                                               epsilon=dppo_config.config.optimizer.epsilon)
+
+        if dppo_config.config.schedule == 'linear':
+            sg_learning_rate = lr_schedule.Linear(sg_global_step,
+                                                  dppo_config.config.learning_rate,
+                                                  dppo_config.config.max_global_step)
+        else:
+            sg_learning_rate = dppo_config.config.learning_rate
+
+        sg_optimizer = optimizer.AdamOptimizer(sg_learning_rate, epsilon=dppo_config.config.optimizer.epsilon)
         sg_gradients = optimizer.Gradients(sg_weights, optimizer=sg_optimizer)
         sg_initialize = graph.Initialize()
 

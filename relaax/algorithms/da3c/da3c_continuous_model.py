@@ -7,7 +7,7 @@ from relaax.common.algorithms.lib import graph
 from relaax.common.algorithms.lib import layer
 from relaax.common.algorithms.lib import loss
 from relaax.common.algorithms.lib import optimizer
-from .lib import da3c_graph
+from relaax.common.algorithms.lib import lr_schedule
 from . import da3c_config
 from . import icm_model
 
@@ -99,8 +99,9 @@ class SharedParameters(subgraph.Subgraph):
             sg_actor_optimizer = optimizer.AdamOptimizer(da3c_config.config.initial_learning_rate)
             sg_critic_optimizer = optimizer.AdamOptimizer(da3c_config.config.initial_learning_rate)
         else:
-            sg_learning_rate = da3c_graph.LearningRate(sg_global_step,
-                                                       da3c_config.config.initial_learning_rate)
+            sg_learning_rate = lr_schedule.Linear(sg_global_step,
+                                                  da3c_config.config.initial_learning_rate,
+                                                  da3c_config.config.max_global_step)
             sg_actor_optimizer = optimizer.RMSPropOptimizer(learning_rate=sg_learning_rate,
                                                             decay=da3c_config.config.RMSProp.decay, momentum=0.0,
                                                             epsilon=da3c_config.config.RMSProp.epsilon)
