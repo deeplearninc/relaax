@@ -19,3 +19,8 @@ if not hasattr(config, 'icm'):
 config.icm.nu = options.get('algorithm/icm/nu', 0.8)
 config.icm.beta = options.get('algorithm/icm/beta', 0.2)
 config.icm.lr = options.get('algorithm/icm/lr', 1e-3)
+
+# Adam parameters
+if not hasattr(config, 'optimizer'):
+    config.optimizer = options.get('algorithm/optimizer', Namespace())
+config.optimizer.epsilon = options.get('algorithm/optimizer/epsilon', 1e-5)
