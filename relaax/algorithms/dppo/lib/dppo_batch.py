@@ -74,16 +74,30 @@ class DPPOBatch(object):
         if not self.exploit:
             # Send PPO policy gradient M times and value function gradient B times
             # from https://arxiv.org/abs/1707.02286
+            iterations = min(dppo_config.config.policy_iterations, dppo_config.config.value_func_iterations)
 
-            for i in range(dppo_config.config.policy_iterations):
-                self.apply_policy_gradients(self.compute_policy_gradients(experience), len(experience))
-                self.load_shared_policy_parameters()
-            logger.debug('Policy update finished')
+            for i in range(iterations):
+                self.update_policy(experience)
+                self.update_value_func(experience)
 
-            for i in range(dppo_config.config.value_func_iterations):
-                self.apply_value_func_gradients(self.compute_value_func_gradients(experience), len(experience))
-                self.load_shared_value_func_parameters()
-            logger.debug('Value function update finished')
+            iterations = abs(dppo_config.config.policy_iterations - dppo_config.config.value_func_iterations)
+
+            if dppo_config.config.policy_iterations > dppo_config.config.value_func_iterations:
+                logger.debug('Value function update finished')
+                for i in range(iterations):
+                    self.update_policy(experience)
+            else:
+                logger.debug('Policy update finished')
+                for i in range(iterations):
+                    self.update_value_func(experience)
+
+    def update_policy(self, experience):
+        self.apply_policy_gradients(self.compute_policy_gradients(experience), len(experience))
+        self.load_shared_policy_parameters()
+
+    def update_value_func(self, experience):
+        self.apply_value_func_gradients(self.compute_value_func_gradients(experience), len(experience))
+        self.load_shared_value_func_parameters()
 
     def reset(self):
         self.episode = episode.Episode('reward', 'state', 'action', 'old_prob')
@@ -185,9 +199,9 @@ class DPPOBatch(object):
                                                                           lstm_step=[len(states)])
             if not self.terminal:
                 last_state = np.reshape(self.last_state, (1,) + self.last_state.shape)
-                l_value, = self.session.value_func.op_value(state=last_state,
-                                                               lstm_state=self.lstm_state[1],
-                                                               lstm_step=[1])
+                l_value, tmp = self.session.value_func.op_value(state=last_state,
+                                                                lstm_state=self.lstm_state[1],
+                                                                lstm_step=[1])
         else:
             values = self.session.value_func.op_value(state=states)
             if not self.terminal:
