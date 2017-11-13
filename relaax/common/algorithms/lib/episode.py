@@ -55,7 +55,8 @@ class Dataset(Episode):
 
     def subset(self, num_elements=1, stochastic=True, indices=None):
         assert self.size > 0, 'Source dataset is empty'
-        d = Dataset(*self.keys)
+        d = Dataset(*self.keys, shuffle=stochastic)
+        # num_elements could be a tuple: (begin_index, end_index)
 
         if indices is not None:
             assert len(indices) <= self.size, 'Requesting size of the new dataset is larger than current'
