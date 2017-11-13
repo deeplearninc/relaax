@@ -53,24 +53,21 @@ class Dataset(Episode):
         self.do_shuffle = shuffle
         self._next_id = 0
 
-    def subset(self, num_elements=1, stochastic=True, indices=None):
+    def subset(self, elements=1, stochastic=True):
         assert self.size > 0, 'Source dataset is empty'
         d = Dataset(*self.keys, shuffle=stochastic)
-        # num_elements could be a tuple: (begin_index, end_index)
-
-        if indices is not None:
-            assert len(indices) <= self.size, 'Requesting size of the new dataset is larger than current'
-            d.experience._lists = _fill(self.experience, indices)
-            return d
-
-        assert num_elements <= self.size, 'Requesting size of the new dataset is larger than current'
+        # elements could be
+        # - integer: [:elements] or random subset with the same number of elements if stochastic=True
+        # - tuple of integers: elements=(begin_index, end_index)
+        # - 1-D numpy array with indices: elements=array([1, 4, 2, 0, 3])
 
         if stochastic:
-            indices = np.random.choice(self.size, num_elements, replace=False)
-            d.experience._lists = _fill(self.experience, indices)
+            assert type(elements) is int, 'Elements should be pass as single int for a random (stochastic=True) subset'
+            idx = np.random.choice(self.size, elements, replace=False)
+            d.experience._lists = _fill(self.experience, idx)
             return d
 
-        d.experience._lists = _fill(self.experience, num_elements)
+        d.experience._lists = _fill(self.experience, elements)
         return d
 
     def shuffle(self):
@@ -103,12 +100,15 @@ class Dataset(Episode):
 def _fill(src, idx):
     dst = {k: [] for k in src._lists}
     if type(idx) is int:
+        assert idx <= len(src), 'Requesting size of the new data is larger than the current one'
         for k, v in dst.items():
             v.extend(src[k][:idx])
     elif type(idx) is tuple:
+        assert idx[1] <= len(src), 'Requesting size of the new data is larger than the current one'
         for k, v in dst.items():
             v.extend(src[k][idx[0]:idx[1]])
     else:
+        assert len(idx) <= len(src), 'Requesting size of the new data is larger than the current one'
         for k, v in dst.items():
             v.extend(np.asarray(src[k])[idx])
     return dst
