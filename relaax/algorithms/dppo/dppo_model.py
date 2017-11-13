@@ -215,7 +215,8 @@ class SharedWeights(subgraph.Subgraph):
         # Build graph
         sg_global_step = graph.GlobalStep()
         sg_weights = weights
-        sg_optimizer = optimizer.AdamOptimizer(dppo_config.config.learning_rate)
+        sg_optimizer = optimizer.AdamOptimizer(dppo_config.config.learning_rate,
+                                               epsilon=dppo_config.config.Adam.epsilon)
         sg_gradients = optimizer.Gradients(sg_weights, optimizer=sg_optimizer)
         sg_initialize = graph.Initialize()
 
