@@ -73,9 +73,7 @@ class Dataset(Episode):
     def shuffle(self):
         indices = np.random.choice(self.size, self.size, replace=False)
 
-        for key in self.experience._lists:
-            self.experience[key] = np.asarray(self.experience[key])[indices]
-
+        self.experience._lists = _fill(self.experience, indices)
         self._next_id = 0
 
     def next_batch(self, batch_size):
