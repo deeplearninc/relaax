@@ -3,6 +3,7 @@ from builtins import range
 from builtins import object
 import logging
 import numpy as np
+import scipy.signal
 import tensorflow as tf
 
 from relaax.common.python.config.loaded_config import options
@@ -197,3 +198,7 @@ class RunningStat(object):
     @property
     def shape(self):
         return self._M.shape
+
+
+def discount(x, gamma):
+    return scipy.signal.lfilter([1], [1, -gamma], x[::-1], axis=0)[::-1]
