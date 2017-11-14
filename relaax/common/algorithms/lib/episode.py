@@ -17,6 +17,10 @@ class Episode(object):
         assert self.experience is not None
         self.experience.push_record(**kwargs)
 
+    def extend(self, **kwargs):
+        assert self.experience is not None
+        self.experience.push_records(**kwargs)
+
     def end(self):
         assert self.experience is not None
         experience = self.experience
@@ -55,10 +59,10 @@ class Dataset(Episode):
 
     def subset(self, elements=1, stochastic=True, keys=None):
         assert self.size > 0, 'Source dataset is empty'
-        if keys is None:
-            d = Dataset(*self.keys, shuffle=stochastic)
-        else:
-            d = Dataset(*keys, shuffle=stochastic)
+        cur_keys = self.keys
+        if keys is not None:
+            cur_keys = keys
+        d = Dataset(*cur_keys, shuffle=stochastic)
         d.begin()
         # elements could be
         # - integer: [:elements] or random subset with the same number of elements if stochastic=True
@@ -68,10 +72,10 @@ class Dataset(Episode):
         if stochastic:
             assert type(elements) is int, 'Elements should be pass as single int for a random (stochastic=True) subset'
             idx = np.random.choice(self.size, elements, replace=False)
-            d.experience._lists = _fill(self.experience, idx)
+            d.experience._lists = _fill(self.experience, idx, keys=cur_keys)
             return d
 
-        d.experience._lists = _fill(self.experience, elements)
+        d.experience._lists = _fill(self.experience, elements, keys=cur_keys)
         return d
 
     def shuffle(self):
@@ -99,8 +103,11 @@ class Dataset(Episode):
         self._next_id = 0
 
 
-def _fill(src, idx):
-    dst = {k: [] for k in src._lists}
+def _fill(src, idx, keys=None):
+    if keys is None:
+        dst = {k: [] for k in src._lists}
+    else:
+        dst = {k: [] for k in keys}
     if type(idx) is int:
         assert idx <= len(src), 'Requesting size of the new data is larger than the current one'
         for k, v in dst.items():
