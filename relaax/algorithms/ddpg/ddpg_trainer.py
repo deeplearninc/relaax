@@ -29,8 +29,8 @@ class Trainer(object):
         self.session = session.Session(model)
 
         self.episode = episode.ReplayBuffer(cfg.config.buffer_size,
-                                            cfg.config.exploration.rnd_seed,
-                                            'state', 'action', 'reward', 'terminal', 'next_state')
+                                            'state', 'action', 'reward', 'terminal', 'next_state',
+                                            seed=cfg.config.exploration.rnd_seed)
         self.episode.begin()
         self.observation = observation.Observation(cfg.config.input.history)
         self.last_action = self.noise_epsilon = None

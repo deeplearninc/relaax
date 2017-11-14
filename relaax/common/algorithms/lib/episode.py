@@ -29,7 +29,7 @@ class Episode(object):
 
 
 class ReplayBuffer(Episode):
-    def __init__(self, buffer_size, seed=None, *args):
+    def __init__(self, buffer_size, *args, seed=None):
         super(ReplayBuffer, self).__init__(*args)
         assert buffer_size > 0, 'You have to provide positive buffer size'
         self.buffer_size = buffer_size
@@ -48,14 +48,18 @@ class ReplayBuffer(Episode):
 
 
 class Dataset(Episode):
-    def __init__(self, shuffle=True, *args):
+    def __init__(self, *args, shuffle=True):
         super(Dataset, self).__init__(*args)
         self.do_shuffle = shuffle
         self._next_id = 0
 
-    def subset(self, elements=1, stochastic=True):
+    def subset(self, elements=1, stochastic=True, keys=None):
         assert self.size > 0, 'Source dataset is empty'
-        d = Dataset(*self.keys, shuffle=stochastic)
+        if keys is None:
+            d = Dataset(*self.keys, shuffle=stochastic)
+        else:
+            d = Dataset(*keys, shuffle=stochastic)
+        d.begin()
         # elements could be
         # - integer: [:elements] or random subset with the same number of elements if stochastic=True
         # - tuple of integers: elements=(begin_index, end_index)
