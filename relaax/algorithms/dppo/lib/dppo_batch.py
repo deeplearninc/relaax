@@ -103,6 +103,17 @@ class DPPOBatch(object):
                                     stochastic=not dppo_config.config.use_lstm,
                                     keys=['state', 'action', 'old_prob'])
         experience = self.episode.end()
+
+        values, self.final_value = self.compute_state_values(experience['state'])
+        values = np.append(values, np.asarray([self.final_value]))
+
+        terminals = experience['terminal']
+        terminals.append(self.terminal)
+
+        adv, vtarg = compute_adv_and_vtarg(experience['reward'], values, terminals)
+        batch.extend(adv=adv, vtarg=vtarg)
+        if not dppo_config.config.use_lstm:
+            batch.shuffle()
         return experience
 
     def update_policy(self, experience):
@@ -268,3 +279,17 @@ def kStepReward(rewards, gamma, k):
         for j in range(k):
             idx = i * k + j
             new_rewards[idx] = rewards[idx] * np.pow(gamma, j)
+
+
+def compute_adv_and_vtarg(rewards, values, terminals):
+    exp_size = len(rewards)
+    adv = np.empty(exp_size, 'float32')
+    gamma = dppo_config.config.gamma
+    lam = dppo_config.config.lam
+    lastgaelam = 0
+    for t in reversed(range(exp_size)):
+        non_terminal = 1 - terminals[t + 1]
+        delta = rewards[t] + gamma * values[t + 1] * non_terminal - values[t]
+        adv[t] = lastgaelam = delta + gamma * lam * non_terminal * lastgaelam
+    vtarg = adv + values[:-1]
+    return adv, vtarg

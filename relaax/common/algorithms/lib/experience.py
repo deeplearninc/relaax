@@ -19,11 +19,14 @@ class Experience(object):
 
     def push_records(self, **kwargs):
         for k in kwargs.keys():
+            if k not in self._lists.keys():
+                self._lists[k] = []
             self._lists[k].extend(kwargs[k])
         lengths = [len(v) for v in self._lists.values()]
         if lengths[1:] != lengths[:-1]:
             print('Lengths of values is not equal, experience size is set to maximum one')
         self._len = max(lengths)
+        return tuple(self._lists.keys())
 
     def del_record(self, size=1):
         for k, v in self._lists.items():

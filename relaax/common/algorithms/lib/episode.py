@@ -19,7 +19,7 @@ class Episode(object):
 
     def extend(self, **kwargs):
         assert self.experience is not None
-        self.experience.push_records(**kwargs)
+        self.keys = self.experience.push_records(**kwargs)
 
     def end(self):
         assert self.experience is not None
