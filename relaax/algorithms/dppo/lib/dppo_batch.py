@@ -53,7 +53,7 @@ class DPPOBatch(object):
         if dppo_config.config.use_lstm:
             self.initial_lstm_state = self.lstm_state
 
-        self.episode = episode.Dataset('reward', 'state', 'action', 'old_prob')
+        self.episode = episode.Dataset('reward', 'state', 'action', 'old_prob', 'terminal')
         self.episode.begin()
 
     def step(self, reward, state, terminal):
@@ -77,8 +77,8 @@ class DPPOBatch(object):
         return action
 
     def end(self):
-        experience = self.episode.end()
         if not self.exploit:
+            experience = self.get_batch()
             # Send PPO policy gradient M times and value function gradient B times
             # from https://arxiv.org/abs/1707.02286
             iterations = min(dppo_config.config.policy_iterations, dppo_config.config.value_func_iterations)
@@ -98,6 +98,13 @@ class DPPOBatch(object):
                 for i in range(iterations):
                     self.update_value_func(experience)
 
+    def get_batch(self):
+        batch = self.episode.subset(elements=self.episode.size,
+                                    stochastic=not dppo_config.config.use_lstm,
+                                    keys=['state', 'action', 'old_prob'])
+        experience = self.episode.end()
+        return experience
+
     def update_policy(self, experience):
         self.apply_policy_gradients(self.compute_policy_gradients(experience), len(experience))
         self.load_shared_policy_parameters()
@@ -116,16 +123,19 @@ class DPPOBatch(object):
         assert self.last_state is not None
         assert self.last_action is not None
         assert self.last_prob is not None
+        assert self.last_terminal is not None
 
         self.episode.step(
             reward=reward,
             state=self.last_state,
             action=self.last_action,
-            old_prob=self.last_prob
+            old_prob=self.last_prob,
+            terminal=self.last_terminal
         )
         self.last_state = None
         self.last_action = None
         self.last_prob = None
+        self.last_terminal = None
 
     def get_action_and_prob(self, state):
         if state is None:
