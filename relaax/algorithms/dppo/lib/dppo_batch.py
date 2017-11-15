@@ -38,6 +38,10 @@ class DPPOBatch(object):
         self.policy_step = None
         self.value_step = None
 
+        self.mini_batch_size = dppo_config.config.batch_size
+        if dppo_config.config.mini_batch is not None:
+            self.mini_batch_size = dppo_config.config.mini_batch
+
         if dppo_config.config.output.continuous:
             self.prob_type = DiagGauss(dppo_config.config.output.action_size)
         else:
@@ -78,25 +82,28 @@ class DPPOBatch(object):
 
     def end(self):
         if not self.exploit:
-            experience = self.get_batch()
+            batch = self.get_batch()
             # Send PPO policy gradient M times and value function gradient B times
             # from https://arxiv.org/abs/1707.02286
             iterations = min(dppo_config.config.policy_iterations, dppo_config.config.value_func_iterations)
 
             for i in range(iterations):
-                self.update_policy(experience)
-                self.update_value_func(experience)
+                for mini_batch in batch.iterate_once(self.mini_batch_size):
+                    self.update_policy(mini_batch)
+                    self.update_value_func(mini_batch)
 
             iterations = abs(dppo_config.config.policy_iterations - dppo_config.config.value_func_iterations)
 
             if dppo_config.config.policy_iterations > dppo_config.config.value_func_iterations:
                 logger.debug('Value function update finished')
                 for i in range(iterations):
-                    self.update_policy(experience)
+                    for mini_batch in batch.iterate_once(self.mini_batch_size):
+                        self.update_policy(mini_batch)
             else:
                 logger.debug('Policy update finished')
                 for i in range(iterations):
-                    self.update_value_func(experience)
+                    for mini_batch in batch.iterate_once(self.mini_batch_size):
+                        self.update_value_func(mini_batch)
 
     def get_batch(self):
         batch = self.episode.subset(elements=self.episode.size,
@@ -112,16 +119,17 @@ class DPPOBatch(object):
 
         adv, vtarg = compute_adv_and_vtarg(experience['reward'], values, terminals)
         batch.extend(adv=adv, vtarg=vtarg)
+
         if not dppo_config.config.use_lstm:
             batch.shuffle()
-        return experience
+        return batch
 
     def update_policy(self, experience):
-        self.apply_policy_gradients(self.compute_policy_gradients(experience), len(experience))
+        self.apply_policy_gradients(self.compute_policy_gradients(experience))
         self.load_shared_policy_parameters()
 
     def update_value_func(self, experience):
-        self.apply_value_func_gradients(self.compute_value_func_gradients(experience), len(experience))
+        self.apply_value_func_gradients(self.compute_value_func_gradients(experience))
         self.load_shared_value_func_parameters()
 
     def reset(self):
@@ -205,17 +213,14 @@ class DPPOBatch(object):
         return self.prob_type.sample(probabilities)[0], probabilities[0]
 
     def compute_policy_gradients(self, experience):
-        values, self.final_value = self.compute_state_values(experience['state'])
-        advantages = MniAdvantage(experience['reward'], values, self.final_value, dppo_config.config.gamma)
-
         feeds = dict(state=experience['state'], action=experience['action'],
-                     advantage=advantages, old_prob=experience['old_prob'])
+                     advantage=experience['adv'], old_prob=experience['old_prob'])
         if dppo_config.config.use_lstm:
             # 0 <- actor's lstm state & critic's lstm state -> 1
             feeds.update(dict(lstm_state=self.initial_lstm_state[0], lstm_step=[len(experience['state'])]))
         return self.session.policy.op_compute_ppo_clip_gradients(**feeds)
 
-    def apply_policy_gradients(self, gradients, size):
+    def apply_policy_gradients(self, gradients):
         self.ps.session.policy.op_submit_gradients(gradients=gradients, step=self.policy_step)
 
     def compute_state_values(self, states):
@@ -239,46 +244,14 @@ class DPPOBatch(object):
         return values, last_value
 
     def compute_value_func_gradients(self, experience):
-        # Hack to compute observed values for value function
-        rwd = experience['reward']
-        obs_values = MniAdvantage(rwd, np.zeros(len(rwd)), self.final_value, dppo_config.config.gamma)
-
-        feeds = dict(state=experience['state'], ytarg_ny=obs_values)
+        feeds = dict(state=experience['state'], ytarg_ny=experience['vtarg'])
         if dppo_config.config.use_lstm:
             # 0 <- actor's lstm state & critic's lstm state -> 1
-            feeds.update(dict(lstm_state=self.initial_lstm_state[1], lstm_step=[len(rwd)]))
+            feeds.update(dict(lstm_state=self.initial_lstm_state[1], lstm_step=[len(experience['state'])]))
         return self.session.value_func.op_compute_gradients(**feeds)
 
-    def apply_value_func_gradients(self, gradients, size):
+    def apply_value_func_gradients(self, gradients):
         self.ps.session.value_func.op_submit_gradients(gradients=gradients, step=self.value_step)
-
-
-# Compute advantage estimates using rewards and value function predictions
-# Mni et al, 2016
-# For formula, see https://arxiv.org/pdf/1707.06347.pdf
-def MniAdvantage(rewards, values, last_value, gamma):
-    adv = np.zeros(len(rewards))
-    rwd = rewards + [last_value]
-
-    # TODO: optimize
-    for i in range(len(adv)):
-        adv[i] = -values[i]
-        for j in range(i, len(rwd)):
-            adv[i] += rwd[j] * np.power(gamma, j)
-
-    return adv
-
-
-# Advantage estimation using sub-segments of [0..T] interval
-# See Appendix of https://arxiv.org/abs/1707.02286
-def kStepReward(rewards, gamma, k):
-    new_rewards = np.zeros(len(rewards))
-
-    # TODO: optimize
-    for i in range(len(rewards) // k):
-        for j in range(k):
-            idx = i * k + j
-            new_rewards[idx] = rewards[idx] * np.pow(gamma, j)
 
 
 def compute_adv_and_vtarg(rewards, values, terminals):

@@ -13,6 +13,7 @@ config.use_icm = options.get('algorithm/use_icm', False)
 
 config.policy_iterations = options.get('algorithm/policy_iterations', 5)
 config.value_func_iterations = options.get('algorithm/value_func_iterations', 5)
+config.mini_batch = options.get('algorithm/mini_batch', None)
 
 # ICM parameters
 if not hasattr(config, 'icm'):
