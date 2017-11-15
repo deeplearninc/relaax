@@ -19,6 +19,7 @@ class Agent(object):
     def __init__(self, parameter_server, metrics):
         self.ps = parameter_server
         self.metrics = metrics
+        self.batch = None
 
     # environment is ready and
     # waiting for agent to initialize
@@ -34,7 +35,7 @@ class Agent(object):
 
         action = self.batch.step(reward, state, terminal)
 
-        if (len(self.batch.experience) == dppo_config.config.batch_size) or terminal:
+        if self.batch.size >= dppo_config.config.batch_size:
             self.batch.end()
             self.batch.begin()
 

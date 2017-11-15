@@ -30,7 +30,10 @@ class DPPOBatch(object):
         self.last_state = None
         self.last_action = None
         self.last_prob = None
-        self.last_value = None
+        self.last_terminal = None
+
+        self.final_state = None
+        self.final_value = None
 
         self.policy_step = None
         self.value_step = None
@@ -41,22 +44,25 @@ class DPPOBatch(object):
             self.prob_type = Categorical(dppo_config.config.output.action_size)
 
     @property
-    def experience(self):
-        return self.episode.experience
+    def size(self):
+        return self.episode.size
 
     def begin(self):
         self.load_shared_policy_parameters()
         self.load_shared_value_func_parameters()
         if dppo_config.config.use_lstm:
             self.initial_lstm_state = self.lstm_state
+
+        self.episode = episode.Dataset('reward', 'state', 'action', 'old_prob')
         self.episode.begin()
 
     def step(self, reward, state, terminal):
         self.terminal = terminal
+        self.final_state = state
         if reward is not None:
             self.push_experience(reward)
         if terminal and state is not None:
-            logger.debug('PGBatch.step ignores state in case of terminal.')
+            logger.debug("DPPOBatch.step doesn't act in case of terminal.")
             state = None
         else:
             assert state is not None
@@ -67,6 +73,7 @@ class DPPOBatch(object):
             state = np.reshape(state, state.shape + (1,))
         action, prob = self.get_action_and_prob(state)
         self.keep_state_action_prob(state, action, prob)
+        self.last_terminal = terminal
         return action
 
     def end(self):
@@ -100,7 +107,6 @@ class DPPOBatch(object):
         self.load_shared_value_func_parameters()
 
     def reset(self):
-        self.episode = episode.Episode('reward', 'state', 'action', 'old_prob')
         if dppo_config.config.use_lstm:
             self.initial_lstm_state = self.lstm_state = self.lstm_zero_state
 
@@ -178,8 +184,8 @@ class DPPOBatch(object):
         return self.prob_type.sample(probabilities)[0], probabilities[0]
 
     def compute_policy_gradients(self, experience):
-        values, self.last_value = self.compute_state_values(experience['state'])
-        advantages = MniAdvantage(experience['reward'], values, self.last_value, dppo_config.config.gamma)
+        values, self.final_value = self.compute_state_values(experience['state'])
+        advantages = MniAdvantage(experience['reward'], values, self.final_value, dppo_config.config.gamma)
 
         feeds = dict(state=experience['state'], action=experience['action'],
                      advantage=advantages, old_prob=experience['old_prob'])
@@ -198,15 +204,15 @@ class DPPOBatch(object):
                                                                           lstm_state=self.initial_lstm_state[1],
                                                                           lstm_step=[len(states)])
             if not self.terminal:
-                last_state = np.reshape(self.last_state, (1,) + self.last_state.shape)
-                l_value, tmp = self.session.value_func.op_value(state=last_state,
+                final_state = np.reshape(self.final_state, (1,) + self.final_state.shape + (1,))
+                l_value, tmp = self.session.value_func.op_value(state=final_state,
                                                                 lstm_state=self.lstm_state[1],
                                                                 lstm_step=[1])
         else:
             values = self.session.value_func.op_value(state=states)
             if not self.terminal:
-                last_state = np.reshape(self.last_state, (1,) + self.last_state.shape)
-                l_value = self.session.value_func.op_value(state=last_state)
+                final_state = np.reshape(self.final_state, (1,) + self.final_state.shape + (1,))
+                l_value = self.session.value_func.op_value(state=final_state)
 
         last_value = 0 if self.terminal else l_value[0][0]
         return values, last_value
@@ -214,7 +220,7 @@ class DPPOBatch(object):
     def compute_value_func_gradients(self, experience):
         # Hack to compute observed values for value function
         rwd = experience['reward']
-        obs_values = MniAdvantage(rwd, np.zeros(len(rwd)), self.last_value, dppo_config.config.gamma)
+        obs_values = MniAdvantage(rwd, np.zeros(len(rwd)), self.final_value, dppo_config.config.gamma)
 
         feeds = dict(state=experience['state'], ytarg_ny=obs_values)
         if dppo_config.config.use_lstm:
