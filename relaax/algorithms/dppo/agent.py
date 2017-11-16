@@ -39,6 +39,9 @@ class Agent(object):
             self.batch.end()
             self.batch.begin()
 
+        if terminal:
+            self.batch.reset()
+
         return action
 
     # environment is asking to reset agent

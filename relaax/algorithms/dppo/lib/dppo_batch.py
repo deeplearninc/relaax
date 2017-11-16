@@ -21,10 +21,10 @@ class DPPOBatch(object):
         model = dppo_model.Model(assemble_model=True)
         self.session = session.Session(policy=model.policy, value_func=model.value_func)
         self.episode = None
+        self.steps = 0
 
         if dppo_config.config.use_lstm:
             self.initial_lstm_state = self.lstm_state = self.lstm_zero_state = model.lstm_zero_state
-        self.reset()
         self.terminal = False
 
         self.last_state = None
@@ -55,7 +55,7 @@ class DPPOBatch(object):
         self.load_shared_policy_parameters()
         self.load_shared_value_func_parameters()
         if dppo_config.config.use_lstm:
-            self.initial_lstm_state = self.lstm_state
+            self.initial_lstm_state = self.lstm_zero_state
 
         self.episode = episode.Dataset('reward', 'state', 'action', 'old_prob', 'terminal')
         self.episode.begin()
@@ -63,6 +63,7 @@ class DPPOBatch(object):
     def step(self, reward, state, terminal):
         self.terminal = terminal
         self.final_state = state
+        self.steps += 1
         if reward is not None:
             self.push_experience(reward)
         if terminal and state is not None:
@@ -133,8 +134,10 @@ class DPPOBatch(object):
         self.load_shared_value_func_parameters()
 
     def reset(self):
+        logger.debug('Environment terminated within {} steps.'.format(self.steps))
+        self.steps = 0
         if dppo_config.config.use_lstm:
-            self.initial_lstm_state = self.lstm_state = self.lstm_zero_state
+            self.lstm_state = self.lstm_zero_state
 
     # Helper methods
 
