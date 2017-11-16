@@ -65,14 +65,16 @@ class SharedParameters(subgraph.Subgraph):
         # First come, first served gradient update
         def func_fifo_gradient(session, gradients, step):
             current_step = session.op_n_step()
-            logger.info("Gradient with step {} received from agent. Current step: {}".format(step, current_step))
+            logger.info("Gradient with step {} received from agent. Current step: {}".format(step,
+                                                                                             current_step))
             session.op_apply_gradients(gradients=gradients, increment=1)
 
         # Accumulate gradients from many agents and average them
         self.gradients = []
 
         def func_average_gradient(session, gradients, step):
-            logger.info("received a gradient, number of gradients collected so far: {}".format(len(self.gradients)))
+            logger.info("received a gradient, number of gradients collected so far: {}".
+                        format(len(self.gradients)))
             if step >= session.op_n_step():
                 logger.info("gradient is fresh, accepted")
                 self.gradients.append(gradients)
@@ -89,7 +91,8 @@ class SharedParameters(subgraph.Subgraph):
                 session.op_apply_gradients(gradients=mean_grad, increment=1)
                 self.gradients = []
 
-        # Asynchronous Stochastic Gradient Descent with Delay Compensation, see https://arxiv.org/pdf/1609.08326.pdf
+        # Asynchronous Stochastic Gradient Descent with Delay Compensation,
+        # see https://arxiv.org/pdf/1609.08326.pdf
         self.weights_history = {}
 
         def init_weight_history(session):
@@ -99,7 +102,6 @@ class SharedParameters(subgraph.Subgraph):
 
         def func_dc_gradient(session, gradients, step):
             # Assume step to be global step number
-            current_step = session.op_n_step()
             current_weights_f = session.op_get_weights_flatten()
 
             old_weights_f = self.weights_history.get(step, current_weights_f)
@@ -180,6 +182,7 @@ class Shaper():
             start += size
         v = utils.Utils.reconstruct(v_flat, base_shape)
         return v
+
 
 if __name__ == '__main__':
     utils.assemble_and_show_graphs(SharedParameters, PolicyModel)
