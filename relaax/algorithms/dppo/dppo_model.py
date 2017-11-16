@@ -137,7 +137,11 @@ class PolicyModel(subgraph.Subgraph):
                      advantage=ph_adv_n, old_prob=ph_oldprob_np)
         if dppo_config.config.use_lstm:
             feeds.update(dict(lstm_state=sg_network.ph_lstm_state))
+
         self.op_compute_ppo_clip_gradients = self.Op(sg_ppo_clip_gradients.calculate, **feeds)
+        if dppo_config.config.use_lstm:
+            self.op_compute_ppo_clip_gradients = self.Ops(sg_ppo_clip_gradients.calculate,
+                                                          sg_network.lstm_state, **feeds)
 
         # Flattened gradients
         sg_ppo_clip_gradients_flatten = GetVariablesFlatten(sg_ppo_clip_gradients.calculate)
@@ -201,6 +205,9 @@ class ValueModel(subgraph.Subgraph):
             feeds.update(dict(lstm_state=sg_value_net.ph_lstm_state))
 
         self.op_compute_gradients = self.Op(sg_gradients.calculate, **feeds)
+        if dppo_config.config.use_lstm:
+            self.op_compute_gradients = self.Ops(sg_gradients.calculate, sg_value_net.lstm_state, **feeds)
+
         self.op_compute_loss_and_gradient_flatten = self.Ops(loss, sg_gradients_flatten, **feeds)
         self.op_losses = self.Ops(loss, mse, l2, **feeds)
 

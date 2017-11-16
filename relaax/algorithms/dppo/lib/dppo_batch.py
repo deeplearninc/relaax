@@ -25,6 +25,7 @@ class DPPOBatch(object):
 
         if dppo_config.config.use_lstm:
             self.initial_lstm_state = self.lstm_state = self.lstm_zero_state = model.lstm_zero_state
+            self.mini_batch_lstm_state = None
         self.terminal = False
 
         self.last_state = None
@@ -89,6 +90,8 @@ class DPPOBatch(object):
             iterations = min(dppo_config.config.policy_iterations, dppo_config.config.value_func_iterations)
 
             for i in range(iterations):
+                if dppo_config.config.use_lstm:
+                    self.mini_batch_lstm_state = self.initial_lstm_state
                 for mini_batch in batch.iterate_once(self.mini_batch_size):
                     self.update_policy(mini_batch)
                     self.update_value_func(mini_batch)
@@ -98,11 +101,15 @@ class DPPOBatch(object):
             if dppo_config.config.policy_iterations > dppo_config.config.value_func_iterations:
                 logger.debug('Value function update finished')
                 for i in range(iterations):
+                    if dppo_config.config.use_lstm:
+                        self.mini_batch_lstm_state = self.initial_lstm_state
                     for mini_batch in batch.iterate_once(self.mini_batch_size):
                         self.update_policy(mini_batch)
             else:
                 logger.debug('Policy update finished')
                 for i in range(iterations):
+                    if dppo_config.config.use_lstm:
+                        self.mini_batch_lstm_state = self.initial_lstm_state
                     for mini_batch in batch.iterate_once(self.mini_batch_size):
                         self.update_value_func(mini_batch)
 
@@ -220,8 +227,12 @@ class DPPOBatch(object):
                      advantage=experience['adv'], old_prob=experience['old_prob'])
         if dppo_config.config.use_lstm:
             # 0 <- actor's lstm state & critic's lstm state -> 1
-            feeds.update(dict(lstm_state=self.initial_lstm_state[0], lstm_step=[len(experience['state'])]))
-        return self.session.policy.op_compute_ppo_clip_gradients(**feeds)
+            feeds.update(dict(lstm_state=self.mini_batch_lstm_state[0], lstm_step=[len(experience['state'])]))
+
+        gradients = self.session.policy.op_compute_ppo_clip_gradients(**feeds)
+        if dppo_config.config.use_lstm:
+            gradients, self.mini_batch_lstm_state[0] = gradients
+        return gradients
 
     def apply_policy_gradients(self, gradients):
         self.ps.session.policy.op_submit_gradients(gradients=gradients, step=self.policy_step)
@@ -250,8 +261,12 @@ class DPPOBatch(object):
         feeds = dict(state=experience['state'], ytarg_ny=experience['vtarg'])
         if dppo_config.config.use_lstm:
             # 0 <- actor's lstm state & critic's lstm state -> 1
-            feeds.update(dict(lstm_state=self.initial_lstm_state[1], lstm_step=[len(experience['state'])]))
-        return self.session.value_func.op_compute_gradients(**feeds)
+            feeds.update(dict(lstm_state=self.mini_batch_lstm_state[1], lstm_step=[len(experience['state'])]))
+
+        gradients = self.session.value_func.op_compute_gradients(**feeds)
+        if dppo_config.config.use_lstm:
+            gradients, self.mini_batch_lstm_state[1] = gradients
+        return gradients
 
     def apply_value_func_gradients(self, gradients):
         self.ps.session.value_func.op_submit_gradients(gradients=gradients, step=self.value_step)
