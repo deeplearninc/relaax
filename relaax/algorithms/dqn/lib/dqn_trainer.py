@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from builtins import object
 
+import numpy as np
 import logging
 
 from relaax.common import profiling
@@ -103,8 +104,13 @@ class Trainer(object):
         if state is not None:
             self.observation.add_state(state)
 
+        if dqn_config.config.output.q_values:
+            action = np.squeeze(np.argmax(self.last_action)).astype(np.int32)
+        else:
+            action = self.last_action
+
         self.replay_buffer.append(dict(state=old_state,
-                                       action=self.last_action,
+                                       action=action,
                                        reward=reward,
                                        terminal=terminal,
                                        next_state=self.observation.get_state()))

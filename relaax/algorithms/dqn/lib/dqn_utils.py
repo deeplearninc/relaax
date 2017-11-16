@@ -43,6 +43,11 @@ class Actor(subgraph.Subgraph):
                                         decay_steps,
                                         dqn_config.config.eps.end)
 
-        return tf.cond(tf.less(tf.random_uniform([]), eps),
-                       lambda: tf.random_uniform([], 0, dqn_config.config.output.action_size, dtype=tf.int32),
-                       lambda: tf.cast(tf.squeeze(tf.argmax(self.ph_q_value, axis=1)), tf.int32))
+        if dqn_config.config.output.q_values:
+            return tf.cond(tf.less(tf.random_uniform([]), eps),
+                           lambda: tf.random_uniform([dqn_config.config.output.action_size]),
+                           lambda: tf.squeeze(self.ph_q_value))
+        else:
+            return tf.cond(tf.less(tf.random_uniform([]), eps),
+                           lambda: tf.random_uniform([], 0, dqn_config.config.output.action_size, dtype=tf.int32),
+                           lambda: tf.cast(tf.squeeze(tf.argmax(self.ph_q_value, axis=1)), tf.int32))
