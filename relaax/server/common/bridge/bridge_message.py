@@ -4,7 +4,7 @@ from builtins import str
 from builtins import range
 from builtins import object
 import numpy as np
-import types
+import sys
 from . import bridge_pb2
 
 from relaax.common import profiling
@@ -202,9 +202,14 @@ class BridgeMessage(object):
             DictMarshaller(bridge_pb2.Item.DICT_OPEN, dict, bridge_pb2.Item.DICT_CLOSE)
         ]
         # True for Python 3, False for Python 2
-        if type('') != type(b''):
+        if sys.version_info >= (3, 0):
             marshallers.append(ScalarMarshaller(bridge_pb2.Item.STR, type(''), 'str_value'))
         else:
+            # the code guarded with if has no chance to be executed (see another one if above)
+            # so this if statement is useless and can be removed
+            # but if it is removed then flake8 under python 3 complains on F821 undefined name 'long'
+            if sys.version_info >= (3, 0):
+                long = int
             marshallers.append(ScalarMarshaller(bridge_pb2.Item.LONG, long, 'int_value'))
 
         for marshaller in marshallers:
