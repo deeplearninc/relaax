@@ -87,7 +87,7 @@ class CmdConfig(object):
                         if comment_tokens:
                             output = [comment.value for comment in comment_tokens]
                             ctx.log(''.join(output).rstrip())
-                except:
+                except Exception:
                     ctx.log('No description provided')
         ctx.log('\nRun "relaax config --help" to see how to apply these configurations.\n')
 

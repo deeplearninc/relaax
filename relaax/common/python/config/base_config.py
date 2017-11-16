@@ -61,7 +61,7 @@ class BaseConfig(ConfigYaml):
             if self.config:
                 self.load_from_file(self.config)
             self.process_after_loaded()
-        except:
+        except Exception:
             logger.critical("Can't load configuration file")
             raise
 
