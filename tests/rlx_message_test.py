@@ -18,18 +18,17 @@ class TestRLXMessage(object):
         imageJPG = Image.open("./tests/fixtures/testimage.jpg")
         imageBMP = Image.open("./tests/fixtures/testimage.bmp")
 
-        data = {'arg1': 1, 'arg_1': -1, "args": "test1", "argn": -234, "argd": 0.067, "argbt": True, "argbf": False, "argnone": None,
-                "array_empty": [], 'array': [4.02, 5.2, 6.006],
-                'nparray1': npar1, 'nparray2': npar2, 'nparray1empty': npar1empty, 'nparray2empty': npar2empty,
-                'npint32': np.int32(555), 'npint64': np.int64(5559999),
-                'image_jpg': RLXMessageImage(imageJPG), 'image_bmp': RLXMessageImage(imageBMP)
-                }
+        data = {'arg1': 1, 'arg_1': -1, "args": "test1", "argn": -234, "argd": 0.067, "argbt": True,
+                "argbf": False, "argnone": None, "array_empty": [], 'array': [4.02, 5.2, 6.006],
+                'nparray1': npar1, 'nparray2': npar2, 'nparray1empty': npar1empty,
+                'nparray2empty': npar2empty, 'npint32': np.int32(555), 'npint64': np.int64(5559999),
+                'image_jpg': RLXMessageImage(imageJPG), 'image_bmp': RLXMessageImage(imageBMP)}
         wire = RLXMessage.to_wire(data)
         back = RLXMessage.from_wire(wire)
         assert len(data) == len(back)
         for key in data:
             if isinstance(data[key], np.ndarray):
-                assert type(data[key]) == type(back[key])
+                assert isinstance(back[key], np.ndarray)
                 npt.assert_allclose(data[key], back[key])
             elif isinstance(data[key], RLXMessageImage):
                 assert isinstance(back[key], np.ndarray)
@@ -37,13 +36,14 @@ class TestRLXMessage(object):
                 ndimage = ndimage.astype(np.float32) * (1.0 / 255.0)
                 npt.assert_allclose(ndimage, back[key])
             elif isinstance(data[key], np.int32):
-                assert int == type(back[key])
+                assert isinstance(back[key], int)
                 assert data[key] == back[key]
             elif isinstance(data[key], np.int64):
-                assert int == type(back[key])
+                assert isinstance(back[key], int)
                 assert data[key] == back[key]
             else:
-                assert type(data[key]) == type(back[key])
+                assert isinstance(data[key], type(back[key]))
+                assert isinstance(back[key], type(data[key]))
                 assert data[key] == back[key]
 
     def test_hash_to_wire_and_back(self):
@@ -57,8 +57,9 @@ class TestRLXMessage(object):
 
         wire = RLXMessage.to_wire(data)
         back = RLXMessage.from_wire(wire)
-        #print(back)
+        # print(back)
         assert len(data) == len(back)
         for key in data:
-            assert type(data[key]) == type(back[key])
+            assert isinstance(data[key], type(back[key]))
+            assert isinstance(back[key], type(data[key]))
             assert data[key] == back[key]
