@@ -36,3 +36,4 @@ algorithm:
     learning_rate: 0.001          # learning rate for Adam optimizer used with PPO loss
     n_epochs: 5                   # number of epochs to run on each batch
     minibatch_size: 64
+    
