@@ -97,6 +97,7 @@ class LabEnv(object):
 def _action(*entries):
     return np.array(entries, dtype=np.intc)
 
+
 FULL_ACTIONS = {
     'look_left': _action(-20, 0, 0, 0, 0, 0, 0),
     'look_right': _action(20, 0, 0, 0, 0, 0, 0),

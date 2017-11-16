@@ -1,4 +1,6 @@
 from builtins import object
+
+
 class Watch(object):
     def __init__(self, ps, *intervals):
         self.ps = ps

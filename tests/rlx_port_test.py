@@ -25,7 +25,7 @@ class TestRLXPort(object):
 
     def setup_method(self, method):
         self.socket = MockSocket.create()
-        
+
     def test_socket_error_on_accept(self, monkeypatch):
         if sys.platform != 'win32':
             monkeypatch.setattr(os, 'fork', lambda: 0)
@@ -37,7 +37,7 @@ class TestRLXPort(object):
             assert False
         except Exception as e:
             assert str(e) == '[Errno %d] error message' % errno.ECONNABORTED
-            
+
     def test_socket_error_on_accept2(self, monkeypatch):
         def error(*args):
             called.times += 1
@@ -75,7 +75,7 @@ class TestRLXPort(object):
         except Exception as e:
             traceback.format_exc()
             assert str(e) == '[Errno %d] fatal error message' % errno.ENOBUFS
-            
+
     def test_fork_error(self, monkeypatch):
         def critical(*args):
             called.times += 1
@@ -101,7 +101,7 @@ class TestRLXPort(object):
                 assert called.args == ("Can't start child process ('some-address', 7000): can't fork",)
                 assert called.times == 1
             assert str(e) == '[Errno %d] fatal error message' % errno.EMFILE
-            
+
     def test_listen_accept_and_fork(self, monkeypatch):
         if sys.platform != 'win32':
             def worker_run(*args):
@@ -117,7 +117,7 @@ class TestRLXPort(object):
 
             RLXPort.listen(('localhost', 7000))
             assert called.times == 1
-        
+
     def test_keyboard_interrupt_on_accept(self, monkeypatch):
         if sys.platform != 'win32':
             monkeypatch.setattr(os, 'fork', lambda: 0)
@@ -128,4 +128,3 @@ class TestRLXPort(object):
                 assert True  # no exception, ctrl-c was handled
             except Exception as e:
                 assert False
-            

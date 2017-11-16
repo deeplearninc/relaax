@@ -185,7 +185,8 @@ class PolicyNet(subgraph.Subgraph):
 
         ph_adv_n = graph.TfNode(tf.placeholder(tf.float32, name='adv_n'))
 
-        sg_probtype = ProbType(trpo_config.config.output.action_size, continuous=trpo_config.config.output.continuous)
+        sg_probtype = ProbType(trpo_config.config.output.action_size,
+                               continuous=trpo_config.config.output.continuous)
 
         ph_oldprob_np = sg_probtype.ProbVariable()
 

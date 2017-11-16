@@ -91,6 +91,7 @@ class CmdConfig(object):
                     ctx.log('No description provided')
         ctx.log('\nRun "relaax config --help" to see how to apply these configurations.\n')
 
+
 CONFIGURATIONS = CmdConfig.configurations()
 
 

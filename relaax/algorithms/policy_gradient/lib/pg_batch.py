@@ -96,7 +96,8 @@ class PGBatch(object):
             self.session.op_assign_weights(weights=new_weights)
             self.global_step = new_step
         else:
-            logger.debug("Current weights: {}, new weights: {}, keep old weights".format(self.global_step, new_step))
+            logger.debug("Current weights: {}, new weights: {}, keep old weights".format(self.global_step,
+                                                                                         new_step))
 
     def action_from_policy(self, state):
         assert state is not None
@@ -117,5 +118,5 @@ class PGBatch(object):
         )
 
     def apply_gradients(self, gradients, size):
-        #self.ps.session.op_apply_gradients(gradients=gradients, increment=size)
+        # self.ps.session.op_apply_gradients(gradients=gradients, increment=size)
         self.ps.session.op_submit_gradients(gradients=gradients, step=self.global_step)

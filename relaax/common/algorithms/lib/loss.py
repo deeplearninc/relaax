@@ -21,8 +21,8 @@ class DA3CDiscreteLoss(subgraph.Subgraph):
         self.entropy = -tf.reduce_sum(actor.node * log_pi)
 
         # policy loss
-        self.policy_loss = -(tf.reduce_sum(tf.reduce_sum(log_pi * action_one_hot, axis=1) * self.ph_advantage.node)
-                             + self.entropy * cfg.entropy_beta)
+        self.policy_loss = -(tf.reduce_sum(tf.reduce_sum(log_pi * action_one_hot, axis=1) *
+                             self.ph_advantage.node) + self.entropy * cfg.entropy_beta)
 
         # value loss
         self.value_loss = tf.reduce_sum(tf.square(self.ph_discounted_reward.node - critic.node))
@@ -49,7 +49,8 @@ class DQNLoss(subgraph.Subgraph):
         else:
             q_max = tf.reduce_max(self.ph_q_next_target, axis=1)
 
-        y = self.ph_reward + tf.cast(1 - self.ph_terminal, tf.float32) * tf.scalar_mul(config.rewards_gamma, q_max)
+        y = self.ph_reward + tf.cast(1 - self.ph_terminal, tf.float32) * tf.scalar_mul(config.rewards_gamma,
+                                                                                       q_max)
 
         return tf.losses.absolute_difference(q_action, y)
 
@@ -76,12 +77,15 @@ class DA3CNormContinuousLoss(subgraph.Subgraph):
         self.policy_loss = -(tf.reduce_mean(tf.reduce_sum(log_prob, axis=1) * self.ph_advantage.node)
                              + cfg.entropy_beta * self.entropy)
         if cfg.policy_clip:
-            self.policy_loss = tf.clip_by_value(self.policy_loss, -tf.abs(cfg.policy_clip), tf.abs(cfg.policy_clip))
+            self.policy_loss = tf.clip_by_value(self.policy_loss, -tf.abs(cfg.policy_clip),
+                                                tf.abs(cfg.policy_clip))
 
         # Learning rate for the Critic is sized by critic_scale parameter
-        self.value_loss = cfg.critic_scale * tf.reduce_mean(tf.square(self.ph_discounted_reward.node - critic.node))
+        self.value_loss = cfg.critic_scale * tf.reduce_mean(tf.square(self.ph_discounted_reward.node -
+                                                                      critic.node))
         if cfg.critic_clip:
-            self.value_loss = tf.clip_by_value(self.value_loss, -tf.abs(cfg.critic_clip), tf.abs(cfg.critic_clip))
+            self.value_loss = tf.clip_by_value(self.value_loss, -tf.abs(cfg.critic_clip),
+                                               tf.abs(cfg.critic_clip))
 
 
 class DA3CExpContinuousLoss(subgraph.Subgraph):
@@ -105,7 +109,8 @@ class DA3CExpContinuousLoss(subgraph.Subgraph):
                              + cfg.entropy_beta * self.entropy)
 
         # Learning rate for the Critic is sized by critic_scale parameter
-        self.value_loss = cfg.critic_scale * tf.reduce_mean(tf.square(self.ph_discounted_reward.node - critic.node))
+        self.value_loss = cfg.critic_scale * tf.reduce_mean(tf.square(self.ph_discounted_reward.node -
+                                                                      critic.node))
 
 
 class DA3CExtContinuousLoss(subgraph.Subgraph):
@@ -129,11 +134,13 @@ class DA3CExtContinuousLoss(subgraph.Subgraph):
         gaussian_nll = (tf.reduce_sum(log_pi, axis=1)
                         + b_size * tf.log(2. * np.pi)) / 2. - tf.reduce_sum(x_power, axis=1)
 
-        self.policy_loss = -(tf.reduce_mean(gaussian_nll * self.ph_advantage.node) + cfg.entropy_beta * self.entropy)
+        self.policy_loss = -(tf.reduce_mean(gaussian_nll * self.ph_advantage.node) + cfg.entropy_beta *
+                             self.entropy)
 
         # value loss
         # (Learning rate for the Critic is sized by critic_scale parameter)
-        self.value_loss = cfg.critic_scale * tf.reduce_mean(tf.square(self.ph_discounted_reward.node - critic.node))
+        self.value_loss = cfg.critic_scale * tf.reduce_mean(tf.square(self.ph_discounted_reward.node -
+                                                                      critic.node))
 
 
 def DA3CContinuousLoss(cfg):

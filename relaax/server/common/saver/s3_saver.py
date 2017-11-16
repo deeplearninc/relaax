@@ -7,7 +7,6 @@ import os
 import re
 import shutil
 import tempfile
-import tensorflow
 
 from . import saver
 
@@ -34,21 +33,24 @@ class S3Saver(saver.Saver):
             self._remove(name)
             removed = True
         if removed:
-            _logger.info('checkpoint {} was removed from {} bucket {} key'.format(checkpoint_id, self._bucket, self._key))
+            _logger.info('checkpoint {} was removed from {} bucket {} key'.format(checkpoint_id,
+                                                                                  self._bucket, self._key))
 
     def restore_checkpoint(self, checkpoint_id):
         with _temp_dir() as dir:
             for name in self._checkpoint.checkpoint_names(self._listdir(), checkpoint_id):
                 self._download(dir, name)
             self._checkpoint.restore_checkpoint(dir, checkpoint_id)
-        _logger.info('checkpoint {} was restored from {} bucket {} key'.format(checkpoint_id, self._bucket, self._key))
+        _logger.info('checkpoint {} was restored from {} bucket {} key'.format(checkpoint_id, self._bucket,
+                                                                               self._key))
 
     def save_checkpoint(self, checkpoint_id):
         with _temp_dir() as dir:
             self._checkpoint.save_checkpoint(dir, checkpoint_id)
             for name in os.listdir(dir):
                 self._upload(dir, name)
-        _logger.info('checkpoint {} was saved to {} bucket {} key'.format(checkpoint_id, self._bucket, self._key))
+        _logger.info('checkpoint {} was saved to {} bucket {} key'.format(checkpoint_id, self._bucket,
+                                                                          self._key))
 
     def _listdir(self):
         prefix = '%s/' % self._key
@@ -94,7 +96,7 @@ class S3Saver(saver.Saver):
             # If a client error is thrown, then check that it was a 404 error.
             # If it was a 404 error, then the bucket does not exist.
             if int(e.response['Error']['Code']) == 404:
-                return False 
+                return False
         return True
 
     def _create_bucket(self):

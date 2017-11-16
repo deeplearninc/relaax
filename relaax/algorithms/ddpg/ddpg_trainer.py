@@ -175,8 +175,8 @@ class Trainer(object):
             norm_critic_grads = self.session.op_compute_norm_critic_gradients(state=experience['state'],
                                                                               action=experience['action'],
                                                                               predicted=np.vstack(y))
-            norm_action_grads = self.session.op_compute_norm_critic_action_gradients(state=experience['state'],
-                                                                                     action=scaled_out)
+            norm_action_grads = self.session.op_compute_norm_critic_action_gradients(
+                    state=experience['state'], action=scaled_out)
             norm_actor_grads = self.session.op_compute_norm_actor_gradients(state=experience['state'],
                                                                             grad_ys=action_grads)
             self.metrics.scalar('grads_norm_critic', norm_critic_grads)

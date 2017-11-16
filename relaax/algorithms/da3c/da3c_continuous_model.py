@@ -106,10 +106,12 @@ class SharedParameters(subgraph.Subgraph):
             sg_learning_rate = da3c_graph.LearningRate(sg_global_step,
                                                        da3c_config.config.initial_learning_rate)
             sg_actor_optimizer = optimizer.RMSPropOptimizer(learning_rate=sg_learning_rate,
-                                                            decay=da3c_config.config.RMSProp.decay, momentum=0.0,
+                                                            decay=da3c_config.config.RMSProp.decay,
+                                                            momentum=0.0,
                                                             epsilon=da3c_config.config.RMSProp.epsilon)
             sg_critic_optimizer = optimizer.RMSPropOptimizer(learning_rate=sg_learning_rate,
-                                                             decay=da3c_config.config.RMSProp.decay, momentum=0.0,
+                                                             decay=da3c_config.config.RMSProp.decay,
+                                                             momentum=0.0,
                                                              epsilon=da3c_config.config.RMSProp.epsilon)
         sg_actor_gradients = optimizer.Gradients(self.actor.weights, optimizer=sg_actor_optimizer)
         sg_critic_gradients = optimizer.Gradients(self.critic.weights, optimizer=sg_critic_optimizer)

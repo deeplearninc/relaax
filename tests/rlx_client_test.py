@@ -43,9 +43,10 @@ class TestAgentProxy(object):
             AgentProxy('localhost:7000').connect()
             assert False
         except AgentProxyException as e:
-            if sys.platform == 'win32': 
-                assert str(e) == '[WinError %d] No connection could be made because the target machine actively refused it' % errno.ECONNREFUSED
-            else:            
+            if sys.platform == 'win32':
+                assert str(e) == ('[WinError %d] No connection could be made' +
+                                  'because the target machine actively refused it') % errno.ECONNREFUSED
+            else:
                 assert str(e) == '[Errno %d] Connection refused' % errno.ECONNREFUSED
 
     def test_some_unknown_exception_in_netstring_constructor(self, monkeypatch):

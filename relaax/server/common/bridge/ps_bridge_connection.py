@@ -67,6 +67,7 @@ class PsBridgeSessionMethod(object):
         except KeyboardInterrupt:
             pass
 
+
 class PsBridgeMetrics(metrics.Metrics):
     def __init__(self, connection):
         self.connection = connection

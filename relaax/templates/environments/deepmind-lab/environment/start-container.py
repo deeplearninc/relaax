@@ -17,6 +17,8 @@ def signal_handler(signal, frame):
     log.info('stopping %s' % CONTAINER_NAME)
     subprocess.call('docker stop %s' % CONTAINER_NAME, shell=True)
     sys.exit(0)
+
+
 signal.signal(signal.SIGTERM, signal_handler)
 
 
