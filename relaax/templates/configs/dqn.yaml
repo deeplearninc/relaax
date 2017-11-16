@@ -5,12 +5,12 @@ algorithm:
   name: dqn                             # short name for algorithm to load
 
   input:
-    shape: [4]                          # shape of input state
+    shape: [0]                          # shape of input state
     history: 1                          # number of consecutive states to stack
     use_convolutions: false             # set to true to process input by convolution layers
 
   output:
-    action_size: 2                      # action size for the given environment
+    action_size: 4                      # action size for the given environment
     q_values: False                     # return Q values for all action
 
   double_dqn: true                      # use DoubleDQN if true
