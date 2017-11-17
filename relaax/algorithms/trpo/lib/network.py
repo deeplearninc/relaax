@@ -39,7 +39,8 @@ class PpoUpdater(object):
         action_na = np.concatenate([path['action'] for path in paths])
         advantage_n = np.concatenate([path['advantage'] for path in paths])
 
-        d = dataset.Dataset(dict(state=state, sampled_variable=action_na, adv_n=advantage_n, oldprob_np=prob_np))
+        d = dataset.Dataset(dict(state=state, sampled_variable=action_na, adv_n=advantage_n,
+                                 oldprob_np=prob_np))
 
         for i in range(trpo_config.config.PPO.n_epochs):
             for batch in d.iterate_once(trpo_config.config.PPO.minibatch_size):
