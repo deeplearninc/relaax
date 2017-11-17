@@ -123,8 +123,4 @@ class TestRLXPort(object):
             monkeypatch.setattr(os, 'fork', lambda: 0)
             monkeypatch.setattr(socket, 'socket', lambda af, st: self.socket)
             self.socket.accept = lambda: os.kill(os.getpid(), signal.SIGINT)
-            try:
-                RLXPort.listen(('localhost', 7000))
-                assert True  # no exception, ctrl-c was handled
-            except Exception as e:
-                assert False
+            RLXPort.listen(('localhost', 7000))
