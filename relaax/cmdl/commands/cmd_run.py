@@ -114,7 +114,7 @@ class CmdlRun(object):
 
         try:
             manager.loop()
-        except InterruptedError:
+        except InterruptedError:  # noqa: F821
             pass
 
         sys.exit(manager.returncode)
