@@ -1,0 +1,22 @@
+version: 2
+jobs:
+  build:
+    working_directory: ~/relaax
+    docker:
+      - image: circleci/python
+    steps:
+      - checkout
+      - restore_cache:
+          key: relaax-{{ arch }}-{{ .Branch }}-{{ checksum "setup.py" }}-{{ checksum "tox.ini" }}
+      - run:
+          command: |
+            sudo apt-get -qq update
+            sudo apt-get -qq -y install python-dev
+      - run:
+          command: sudo pip install tox
+      - run:
+          command: tox
+      - save_cache:
+          key: relaax-{{ arch }}-{{ .Branch }}-{{ checksum "setup.py" }}-{{ checksum "tox.ini" }}
+          paths:
+            - ".tox"
