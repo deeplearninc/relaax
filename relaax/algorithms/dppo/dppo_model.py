@@ -80,14 +80,16 @@ class Model(subgraph.Subgraph):
         value_head = Network(input_placeholder)
         critic = layer.Dense(value_head, 1)
 
-        feeds = dict(head=actor, weights=layer.Weights(policy_head, *actor_layers), ph_state=input_placeholder.ph_state)
+        feeds = dict(head=actor, weights=layer.Weights(policy_head, *actor_layers),
+                     ph_state=input_placeholder.ph_state)
         if dppo_config.config.use_lstm:
             feeds.update(dict(ph_lstm_state=policy_head.ph_lstm_state,
                               lstm_zero_state=policy_head.lstm_zero_state,
                               lstm_state=policy_head.lstm_state))
         self.actor = Subnet(**feeds)
 
-        feeds = dict(head=critic, weights=layer.Weights(value_head, critic), ph_state=input_placeholder.ph_state)
+        feeds = dict(head=critic, weights=layer.Weights(value_head, critic),
+                     ph_state=input_placeholder.ph_state)
         if dppo_config.config.use_lstm:
             feeds.update(dict(ph_lstm_state=value_head.ph_lstm_state,
                               lstm_zero_state=value_head.lstm_zero_state,
