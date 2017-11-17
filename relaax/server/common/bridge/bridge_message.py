@@ -205,12 +205,7 @@ class BridgeMessage(object):
         if sys.version_info >= (3, 0):
             marshallers.append(ScalarMarshaller(bridge_pb2.Item.STR, type(''), 'str_value'))
         else:
-            # the code guarded with if has no chance to be executed (see another one if above)
-            # so this if statement is useless and can be removed
-            # but if it is removed then flake8 under python 3 complains on F821 undefined name 'long'
-            if sys.version_info >= (3, 0):
-                long = int
-            marshallers.append(ScalarMarshaller(bridge_pb2.Item.LONG, long, 'int_value'))
+            marshallers.append(ScalarMarshaller(bridge_pb2.Item.LONG, long, 'int_value'))  # noqa: F821
 
         for marshaller in marshallers:
             assert marshaller.value_type not in cls.SERIALIZERS
