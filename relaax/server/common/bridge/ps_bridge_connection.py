@@ -37,7 +37,7 @@ class PsBridgeConnection(object):
         for _ in range(9):
             try:
                 return self._stub.Init(message)
-            except grpc.RpcError as e:
+            except grpc.RpcError:
                 pass
         return self._stub.Init(message)
 
