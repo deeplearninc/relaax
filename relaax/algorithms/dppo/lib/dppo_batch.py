@@ -214,9 +214,8 @@ class DPPOBatch(object):
 
         if dppo_config.config.use_lstm:
             # 0 <- actor's lstm state & critic's lstm state -> 1
-            probabilities, self.lstm_state[0] = self.session.policy.op_get_action(state=state,
-                                                                                  lstm_state=self.lstm_state[0],
-                                                                                  lstm_step=[1])
+            probabilities, self.lstm_state[0] = \
+                self.session.policy.op_get_action(state=state, lstm_state=self.lstm_state[0], lstm_step=[1])
         else:
             probabilities = self.session.policy.op_get_action(state=state)
 
@@ -241,9 +240,9 @@ class DPPOBatch(object):
     def compute_state_values(self, states):
         if dppo_config.config.use_lstm:
             # 0 <- actor's lstm state & critic's lstm state -> 1
-            values, self.lstm_state[1] = self.session.value_func.op_value(state=states,
-                                                                          lstm_state=self.initial_lstm_state[1],
-                                                                          lstm_step=[len(states)])
+            values, self.lstm_state[1] = \
+                self.session.value_func.op_value(state=states, lstm_state=self.initial_lstm_state[1],
+                                                 lstm_step=[len(states)])
             if not self.terminal:
                 final_state = np.reshape(self.final_state, (1,) + self.final_state.shape + (1,))
                 l_value, tmp = self.session.value_func.op_value(state=final_state,
