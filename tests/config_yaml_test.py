@@ -20,15 +20,11 @@ class TestConfigYaml(object):
             assert False
         except ValueError as e:
             assert str(e) == 'please provide yaml file name'
-        except:
-            assert False
         try:
             self.yaml.load_from_file('')
             assert False
         except ValueError as e:
             assert str(e) == 'please provide yaml file name'
-        except:
-            assert False
 
     def test_merge_namespace(self):
         ns = Namespace()
