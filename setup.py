@@ -49,7 +49,7 @@ def find_cuda():
 extras = {
     'keras': ['keras>=2.0.0'],
     'wsproxy': ['autobahn==0.17.2', 'Twisted==17.1.0'],
-    'testing': ['pytest', 'pytest-cov', 'pytest-xdist', 'flake8', 'mock']
+    'testing': ['pytest', 'pytest-cov', 'pytest-xdist', 'flake8',                                             'mock']
 }
 
 # Meta dependency groups.
