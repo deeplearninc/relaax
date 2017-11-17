@@ -1,3 +1,5 @@
+[![CircleCI](https://circleci.com/gh/deeplearninc/relaax.svg?style=shield)](https://circleci.com/gh/deeplearninc/relaax)
+
 # REinforcement Learning Algorithms, Autoscaling and eXchange (RELAAX)
 
 RELAAX is a framework designed to:
