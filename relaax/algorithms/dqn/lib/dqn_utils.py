@@ -49,5 +49,6 @@ class Actor(subgraph.Subgraph):
                            lambda: tf.squeeze(self.ph_q_value))
         else:
             return tf.cond(tf.less(tf.random_uniform([]), eps),
-                           lambda: tf.random_uniform([], 0, dqn_config.config.output.action_size, dtype=tf.int32),
+                           lambda: tf.random_uniform([], 0, dqn_config.config.output.action_size,
+                                                     dtype=tf.int32),
                            lambda: tf.cast(tf.squeeze(tf.argmax(self.ph_q_value, axis=1)), tf.int32))
