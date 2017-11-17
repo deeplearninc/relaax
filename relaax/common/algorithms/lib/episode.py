@@ -98,8 +98,10 @@ class Dataset(Episode):
         if self.do_shuffle:
             self.shuffle()
 
-        while self._next_id <= self.size - batch_size:
+        while True:
             yield self.next_batch(batch_size)
+            if self._next_id > self.size - batch_size:
+                break
         self._next_id = 0
 
 

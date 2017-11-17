@@ -35,12 +35,11 @@ class Agent(object):
 
         action = self.batch.step(reward, state, terminal)
 
-        if self.batch.size >= dppo_config.config.batch_size:
+        if self.batch.size >= dppo_config.config.batch_size or terminal:
             self.batch.end()
+            if terminal:
+                self.reset()
             self.batch.begin()
-
-        if terminal:
-            self.batch.reset()
 
         return action
 
