@@ -99,19 +99,19 @@ class DPPOBatch(object):
             iterations = abs(dppo_config.config.policy_iterations - dppo_config.config.value_func_iterations)
 
             if dppo_config.config.policy_iterations > dppo_config.config.value_func_iterations:
-                logger.debug('Value function update finished')
                 for i in range(iterations):
                     if dppo_config.config.use_lstm:
                         self.mini_batch_lstm_state = self.initial_lstm_state
                     for mini_batch in batch.iterate_once(self.mini_batch_size):
                         self.update_policy(mini_batch)
             else:
-                logger.debug('Policy update finished')
                 for i in range(iterations):
                     if dppo_config.config.use_lstm:
                         self.mini_batch_lstm_state = self.initial_lstm_state
                     for mini_batch in batch.iterate_once(self.mini_batch_size):
                         self.update_value_func(mini_batch)
+
+            logger.debug('Policy & Value function update finished')
 
     def get_batch(self):
         batch = self.episode.subset(elements=self.episode.size,
