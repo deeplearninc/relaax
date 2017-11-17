@@ -58,7 +58,7 @@ class DPPOBatch(object):
         if dppo_config.config.use_lstm:
             self.initial_lstm_state = self.lstm_zero_state
 
-        self.episode = episode.Dataset('reward', 'state', 'action', 'old_prob', 'terminal')
+        self.episode = episode.Dataset(['reward', 'state', 'action', 'old_prob', 'terminal'])
         self.episode.begin()
 
     def step(self, reward, state, terminal):

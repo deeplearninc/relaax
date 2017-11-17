@@ -28,9 +28,8 @@ class Trainer(object):
         model = ddpg_model.AgentModel()
         self.session = session.Session(model)
 
-        self.episode = episode.ReplayBuffer(cfg.config.buffer_size,
-                                            'state', 'action', 'reward', 'terminal', 'next_state',
-                                            seed=cfg.config.exploration.rnd_seed)
+        self.episode = episode.ReplayBuffer(['state', 'action', 'reward', 'terminal', 'next_state'],
+                                            cfg.config.buffer_size, seed=cfg.config.exploration.rnd_seed)
         self.episode.begin()
         self.observation = observation.Observation(cfg.config.input.history)
         self.last_action = self.noise_epsilon = None
