@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import time
+import sys
 import unittest
 
 from relaax.common import profiling
@@ -46,7 +47,8 @@ class TestProfiling(unittest.TestCase):
         self.method2()
         assert len(self.mh.records) == 2
         assert self.mh.records[0]['cat'] == 'tests.profiling_test'
-        assert self.mh.records[0]['name'] == 'TestProfiling.method2'
+        assert self.mh.records[0]['name'] == 'TestProfiling.method2' if sys.version_info >= (3, 0) else \
+            'method2'
         assert self.mh.records[0]['dur'] >= 10000
 
     @profiling.wrap
