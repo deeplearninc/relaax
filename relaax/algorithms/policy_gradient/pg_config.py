@@ -7,5 +7,6 @@ class PGConfig(object):
     def preprocess(cls):
         return options.get('algorithm')
 
+
 config = PGConfig.preprocess()
 config.combine_gradient = options.get('algorithm/combine_gradient', 'fifo')

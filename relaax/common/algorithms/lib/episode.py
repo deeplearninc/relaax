@@ -70,7 +70,8 @@ class Dataset(Episode):
         # - 1-D numpy array with indices: elements=array([1, 4, 2, 0, 3])
 
         if stochastic:
-            assert type(elements) is int, 'Elements should be pass as single int for a random (stochastic=True) subset'
+            assert isinstance(elements, int), \
+                'Elements should be pass as single int for a random (stochastic=True) subset'
             idx = np.random.choice(self.size, elements, replace=False)
             d.experience._lists = _fill(self.experience, idx, keys=cur_keys)
             return d
