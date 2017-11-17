@@ -137,7 +137,7 @@ class AgentModel(subgraph.Subgraph):
         sg_critic_gradients = optimizer.Gradients(sg_critic_network.weights, **critic_grad_args)
 
         sg_critic_action_gradients = optimizer.Gradients(sg_critic_network.ph_action,
-                                                     loss=sg_critic_network.critic)
+                                                         loss=sg_critic_network.critic)
 
         # Expose public API
         self.op_assign_actor_weights = self.Op(sg_actor_network.weights.assign,

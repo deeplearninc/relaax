@@ -1,7 +1,6 @@
 from builtins import object
 
 import click
-import honcho.manager
 import os
 import sys
 import webbrowser
@@ -10,7 +9,7 @@ from relaax.server.common import algorithm_loader
 from relaax.common.python.config.config_yaml import ConfigYaml
 from relaax.cmdl.cmdl import pass_context
 
-         
+
 class CmdModelGraph(object):
 
     def __init__(self, ctx, config):

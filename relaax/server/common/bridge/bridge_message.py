@@ -4,7 +4,7 @@ from builtins import str
 from builtins import range
 from builtins import object
 import numpy as np
-import types
+import sys
 from . import bridge_pb2
 
 from relaax.common import profiling
@@ -202,10 +202,10 @@ class BridgeMessage(object):
             DictMarshaller(bridge_pb2.Item.DICT_OPEN, dict, bridge_pb2.Item.DICT_CLOSE)
         ]
         # True for Python 3, False for Python 2
-        if type('') != type(b''):
+        if sys.version_info >= (3, 0):
             marshallers.append(ScalarMarshaller(bridge_pb2.Item.STR, type(''), 'str_value'))
         else:
-            marshallers.append(ScalarMarshaller(bridge_pb2.Item.LONG, long, 'int_value'))
+            marshallers.append(ScalarMarshaller(bridge_pb2.Item.LONG, long, 'int_value'))  # noqa: F821
 
         for marshaller in marshallers:
             assert marshaller.value_type not in cls.SERIALIZERS

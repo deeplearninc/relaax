@@ -12,7 +12,8 @@ class TensorflowMetrics(metrics.Metrics):
         self._graph = tf.Graph()
         self._writer = tf.summary.FileWriter(metrics_dir, self._graph)
         config = tf.ConfigProto()
-        # TODO: parallelism cfg = tf.ConfigProto(intra_op_parallelism_threads=1, inter_op_parallelism_threads=1)
+        # TODO: parallelism cfg =
+        # tf.ConfigProto(intra_op_parallelism_threads=1, inter_op_parallelism_threads=1)
         config.gpu_options.allow_growth = True
         self._session = tf.Session(config=config, graph=self._graph)
         self._x = x

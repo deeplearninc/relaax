@@ -45,7 +45,7 @@ class TrainingBase(object):
                     try:
                         self.initialize_agent(retry=10)
                         continue
-                    except:
+                    except Exception:
                         raise Exception('Can\'t reconnect, exiting...')
 
         except Exception as e:

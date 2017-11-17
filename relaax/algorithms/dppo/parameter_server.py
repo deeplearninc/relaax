@@ -29,5 +29,4 @@ class ParameterServer(parameter_server_base.ParameterServerBase):
 
     def n_step(self):
         policy_step = self.session.policy.op_n_step()
-        value_step = self.session.value_func.op_n_step()
         return policy_step

@@ -1,6 +1,4 @@
-from builtins import next
 from builtins import object
-import itertools
 import tensorflow as tf
 
 from relaax.common import profiling
@@ -14,7 +12,8 @@ class Session(object):
     def __init__(self, *args, **kwargs):
         # Prevents TF from consuming all GPU RAM if running on GPU
         config = tf.ConfigProto()
-        # TODO: parallelism cfg = tf.ConfigProto(intra_op_parallelism_threads=1, inter_op_parallelism_threads=1)
+        # TODO: parallelism cfg =
+        # tf.ConfigProto(intra_op_parallelism_threads=1, inter_op_parallelism_threads=1)
         config.gpu_options.allow_growth = True
         self._parent_session = None
         self._tf_session = tf.Session(config=config)
@@ -24,7 +23,6 @@ class Session(object):
         else:
             assert len(kwargs) == 0
             self.model, = args
-
 
     def __getattr__(self, name):
         return SessionMethod(self, name, getattr(self.model, name))

@@ -54,5 +54,5 @@ class Agent(object):
         expected_shape = list(cfg.algorithm.input.shape)
         actual_shape = list(np.asarray(state).shape)
         if actual_shape != expected_shape:
-            logger.warning('State shape %s does not match to expected one %s.',
-                    repr(actual_shape), repr(expected_shape))
+            logger.warning('State shape %s does not match to expected one %s.', repr(actual_shape),
+                           repr(expected_shape))

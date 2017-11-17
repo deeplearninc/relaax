@@ -32,5 +32,6 @@ class Training(TrainingBase):
 
         return episode_reward
 
+
 if __name__ == '__main__':
     Training().run()

@@ -80,7 +80,7 @@ class BaseLayer(subgraph.Subgraph):
 
 class Convolution(BaseLayer):
     def build_graph(self, x, n_filters=32, filter_size=[3, 3], stride=[2, 2], border=Border.Same,
-            activation=Activation.Elu):
+                    activation=Activation.Elu):
         shape = filter_size + [x.node.shape.as_list()[-1], n_filters]
 
         def tr(x, W):

@@ -13,7 +13,8 @@ from relaax.common.algorithms.lib import lr_schedule
 
 from . import dppo_config
 
-from relaax.algorithms.trpo.trpo_model import GetVariablesFlatten, SetVariablesFlatten, ProbType, ConcatFixedStd
+from relaax.algorithms.trpo.trpo_model import (GetVariablesFlatten, SetVariablesFlatten, ProbType,
+                                               ConcatFixedStd)
 
 logger = logging.getLogger(__name__)
 
@@ -114,7 +115,8 @@ class PolicyModel(subgraph.Subgraph):
         ph_adv_n = graph.TfNode(tf.placeholder(tf.float32, name='adv_n'))
 
         # Contains placeholder for the actual action made by the agent
-        sg_probtype = ProbType(dppo_config.config.output.action_size, continuous=dppo_config.config.output.continuous)
+        sg_probtype = ProbType(dppo_config.config.output.action_size,
+                               continuous=dppo_config.config.output.continuous)
 
         # Placeholder to store action probabilities under the old policy
         ph_oldprob_np = sg_probtype.ProbVariable()
@@ -142,9 +144,6 @@ class PolicyModel(subgraph.Subgraph):
         if dppo_config.config.use_lstm:
             self.op_compute_ppo_clip_gradients = self.Ops(sg_ppo_clip_gradients.calculate,
                                                           sg_network.lstm_state, **feeds)
-
-        # Flattened gradients
-        sg_ppo_clip_gradients_flatten = GetVariablesFlatten(sg_ppo_clip_gradients.calculate)
 
         # Weights get/set for updating the policy
         sg_get_weights_flatten = GetVariablesFlatten(sg_network.weights)
@@ -256,14 +255,16 @@ class SharedWeights(subgraph.Subgraph):
         # First come, first served gradient update
         def func_fifo_gradient(session, gradients, step):
             current_step = session.op_n_step()
-            logger.debug("Gradient with step {} received from agent. Current step: {}".format(step, current_step))
+            logger.debug("Gradient with step {} received from agent. Current step: {}".format(step,
+                                                                                              current_step))
             session.op_apply_gradients(gradients=gradients, increment=1)
 
         # Accumulate gradients from many agents and average them
         self.gradients = []
 
         def func_average_gradient(session, gradients, step):
-            logger.debug("received a gradient, number of gradients collected so far: {}".format(len(self.gradients)))
+            logger.debug("received a gradient, number of gradients collected so far: {}".
+                         format(len(self.gradients)))
             if step >= session.op_n_step():
                 logger.debug("gradient is fresh, accepted")
                 self.gradients.append(gradients)
@@ -280,7 +281,8 @@ class SharedWeights(subgraph.Subgraph):
                 session.op_apply_gradients(gradients=mean_grad, increment=1)
                 self.gradients = []
 
-        # Asynchronous Stochastic Gradient Descent with Delay Compensation, see https://arxiv.org/pdf/1609.08326.pdf
+        # Asynchronous Stochastic Gradient Descent with Delay Compensation,
+        # see https://arxiv.org/pdf/1609.08326.pdf
         self.weights_history = {}
 
         def init_weight_history(session):

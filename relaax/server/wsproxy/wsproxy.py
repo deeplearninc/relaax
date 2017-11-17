@@ -1,5 +1,4 @@
 from __future__ import absolute_import
-from builtins import str
 
 import json
 import numpy
@@ -132,6 +131,7 @@ def main():
     reactor.listenTCP(int(options.bind[1]), factory)
     log.info("Expecting RLX server on %s:%s" % options.rlx_server)
     reactor.run()
+
 
 if __name__ == '__main__':
     main()

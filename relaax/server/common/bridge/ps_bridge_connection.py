@@ -37,7 +37,7 @@ class PsBridgeConnection(object):
         for _ in range(9):
             try:
                 return self._stub.Init(message)
-            except grpc.RpcError as e:
+            except grpc.RpcError:
                 pass
         return self._stub.Init(message)
 
@@ -66,6 +66,7 @@ class PsBridgeSessionMethod(object):
             return bridge_message.BridgeMessage.deserialize(result)
         except KeyboardInterrupt:
             pass
+
 
 class PsBridgeMetrics(metrics.Metrics):
     def __init__(self, connection):

@@ -197,7 +197,8 @@ class DPPOBatch(object):
     def load_shared_value_func_parameters(self):
         # Load value function parameters from server if they are fresh
         new_value_func_weights, new_value_func_step = self.ps.session.value_func.op_get_weights_signed()
-        msg = "Current value func weights: {}, received weights: {}".format(self.value_step, new_value_func_step)
+        msg = "Current value func weights: {}, received weights: {}".format(self.value_step,
+                                                                            new_value_func_step)
 
         if (self.value_step is None) or (new_value_func_step > self.value_step):
             logger.debug(msg + ", updating weights")

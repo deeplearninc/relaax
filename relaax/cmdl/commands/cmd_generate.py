@@ -55,7 +55,7 @@ class CmdGenerate(object):
             os.remove(fn) if os.path.exists(fn) else None
             try:
                 shutil.copy2(os.path.abspath(os.path.join(template_path, '../README.md')), self.app_path)
-            except:
+            except Exception:
                 self.ctx.log('Can\'t find README for specified environment')
 
         self.ctx.log('Created %s %s in %s' % (template_name, template_type, target_path))
