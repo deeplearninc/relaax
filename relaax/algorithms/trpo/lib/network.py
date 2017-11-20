@@ -20,7 +20,7 @@ def make_probtype():
 
 
 def make_policy_wrapper(relaax_session, relaax_metrics):
-    return core.StochPolicyKeras(make_probtype(), relaax_session, relaax_metrics)
+    return core.StochPolicy(make_probtype(), relaax_session, relaax_metrics)
 
 
 def make_baseline_wrapper(value_model, relaax_metrics):
