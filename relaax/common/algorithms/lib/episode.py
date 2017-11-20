@@ -101,9 +101,7 @@ class Dataset(Episode):
 
         while True:
             yield self.next_batch(batch_size)
-            # TODO: test with small tails (lstm version)
-            # if self._next_id >= self.size:
-            if self._next_id > self.size - batch_size:
+            if self._next_id >= self.size:
                 break
         self._next_id = 0
 
