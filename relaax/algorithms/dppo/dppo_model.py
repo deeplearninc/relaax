@@ -132,11 +132,19 @@ class PolicyModel(subgraph.Subgraph):
         surr = r_theta * ph_adv_n.node
         clip_e = dppo_config.config.clip_e
         surr_clipped = tf.clip_by_value(r_theta, 1.0 - clip_e, 1.0 + clip_e) * ph_adv_n.node
-        sg_ppo_clip_loss = graph.TfNode(-tf.reduce_mean(tf.minimum(surr, surr_clipped)))
+        sg_pol_clip_loss = graph.TfNode(-tf.reduce_mean(tf.minimum(surr, surr_clipped)))
+
+        # PPO entropy loss
+        if dppo_config.config.entropy is not None:
+            sg_entropy = sg_probtype.Entropy(sg_network.head)
+            sg_ent_loss = (-dppo_config.config.entropy) * tf.reduce_mean(sg_entropy.node)
+            sg_pol_total_loss = graph.TfNode(sg_pol_clip_loss.node + sg_ent_loss)
+        else:
+            sg_pol_total_loss = sg_pol_clip_loss
 
         # Regular gradients
         sg_ppo_clip_gradients = optimizer.Gradients(sg_network.weights,
-                                                    loss=sg_ppo_clip_loss)
+                                                    loss=sg_pol_total_loss)
         feeds = dict(state=sg_network.ph_state, action=sg_probtype.ph_sampled_variable,
                      advantage=ph_adv_n, old_prob=ph_oldprob_np)
         if dppo_config.config.use_lstm:
