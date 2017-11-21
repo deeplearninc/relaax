@@ -5,6 +5,7 @@ import numpy as np
 
 from relaax.server.common import session
 from relaax.common.algorithms.lib import episode    # dataset
+from relaax.common.algorithms.lib.utils import ZFilter
 
 from relaax.algorithms.trpo.lib.core import Categorical, DiagGauss
 
@@ -48,6 +49,9 @@ class DPPOBatch(object):
         else:
             self.prob_type = Categorical(dppo_config.config.output.action_size)
 
+        if dppo_config.config.use_filter:
+            self.filter = ZFilter(dppo_config.config.input.shape)
+
     @property
     def size(self):
         return self.episode.size
@@ -63,6 +67,8 @@ class DPPOBatch(object):
 
     def step(self, reward, state, terminal):
         self.terminal = terminal
+        if dppo_config.config.use_filter:
+            state = self.filter(state)
         self.final_state = state
         self.steps += 1
         if reward is not None:
