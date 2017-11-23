@@ -69,12 +69,12 @@ class Model(subgraph.Subgraph):
 
         policy_head = Network(input_placeholder)
         if dppo_config.config.output.continuous:
-            output = layer.Dense(policy_head, dppo_config.config.output.action_size)
+            output = layer.Dense(policy_head, dppo_config.config.output.action_size, init_var=0.01)
             actor = ConcatFixedStd(output)
             actor_layers = [output, actor]
         else:
             actor = layer.Dense(policy_head, dppo_config.config.output.action_size,
-                                activation=layer.Activation.Softmax)
+                                activation=layer.Activation.Softmax, init_var=0.01)
             actor_layers = [actor]
 
         value_head = Network(input_placeholder)
