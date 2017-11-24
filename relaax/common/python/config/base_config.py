@@ -94,7 +94,8 @@ class BaseConfig(ConfigYaml):
         self.load_command_line()
         self.load_from_yaml()
         self.setup_logger()
-        assert relaax.__version__ == self.get('version'), 'You have to provide appropriate RELAAX version X.X.X in yaml'
+        assert relaax.__version__ == self.get('version'),\
+            'You have to provide appropriate RELAAX version X.X.X in yaml'
         return self
 
     @staticmethod
