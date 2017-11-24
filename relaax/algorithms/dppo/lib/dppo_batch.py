@@ -132,6 +132,8 @@ class DPPOBatch(object):
         terminals.append(self.terminal)
 
         adv, vtarg = compute_adv_and_vtarg(experience['reward'], values, terminals)
+        if dppo_config.config.norm_adv:
+            adv = (adv - adv.mean()) / adv.std()
         batch.extend(adv=adv, vtarg=vtarg)
 
         if not dppo_config.config.use_lstm:

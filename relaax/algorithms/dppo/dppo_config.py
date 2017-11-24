@@ -12,6 +12,7 @@ config.entropy = options.get('algorithm/entropy', None)
 config.use_filter = options.get('algorithm/use_filter', False)
 config.use_lstm = options.get('algorithm/use_lstm', False)
 config.use_icm = options.get('algorithm/use_icm', False)
+config.norm_adv = options.get('algorithm/normalize_advantage', False)
 
 config.policy_iterations = options.get('algorithm/policy_iterations', 5)
 config.value_func_iterations = options.get('algorithm/value_func_iterations', 5)
