@@ -138,8 +138,9 @@ class Network(subgraph.Subgraph):
     def build_graph(self):
         input = layer.Input(trpo_config.config.input)
 
+        activation = layer.Activation.get_activation(trpo_config.config.activation)
         head = layer.GenericLayers(layer.Flatten(input),
-                                   [dict(type=layer.Dense, size=size, activation=layer.Activation.Tanh)
+                                   [dict(type=layer.Dense, size=size, activation=activation)
                                     for size in trpo_config.config.hidden_sizes])
 
         if trpo_config.config.output.continuous:

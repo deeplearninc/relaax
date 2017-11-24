@@ -66,7 +66,12 @@ class Agent(object):
             self.reset()
             return None
         assert state is not None
-        return self.act(np.asarray(state))
+
+        if trpo_config.config.return_prob:
+            action, prob = self.act(np.asarray(state))
+            return prob
+        else:
+            return self.act(np.asarray(state))
 
     @staticmethod
     def check_state_shape(state):
@@ -93,7 +98,11 @@ class Agent(object):
             self.data[k].append(v)
 
         self.server_latency_accumulator += time.time() - start
-        return action
+
+        if trpo_config.config.return_prob:
+            return action, agentinfo['prob']
+        else:
+            return action
 
     def reward_and_act(self, reward, state):
         if not self.reward(reward):
