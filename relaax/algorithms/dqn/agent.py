@@ -25,11 +25,16 @@ class Agent(object):
     # environment generated new state and reward
     # and asking agent for an action for this state
     @profiler.wrap
-    def update(self, reward, state, terminal):
+    def update(self, reward, state, terminal, info=None):
         # replace empty state with constant one
         if list(np.asarray(state).shape) == [0]:
             state = [0]
 
-        self.episode.step(reward, state, terminal)
+        skip = False
+        if info is not None:
+            if 'skip' in info:
+                skip = info['skip']
+
+        self.episode.step(reward, state, terminal, skip)
 
         return self.episode.last_action

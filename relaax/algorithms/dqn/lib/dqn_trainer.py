@@ -40,31 +40,35 @@ class Trainer(object):
         self.get_action()
 
     @profiler.wrap
-    def step(self, reward, state, terminal):
-        self.local_step += 1
+    def step(self, reward, state, terminal, skip):
 
-        if self.local_step % dqn_config.config.update_target_weights_interval == 0:
-            self.session.op_update_target_weights()
+        if not skip:
+            self.local_step += 1
 
-        self.receive_experience()
+            if self.local_step % dqn_config.config.update_target_weights_interval == 0:
+                self.session.op_update_target_weights()
 
-        if self.local_step > dqn_config.config.start_sample_step:
-            self.update()
+            self.receive_experience()
 
-        # metrics
-        if state is not None:
-            self.metrics.histogram('state', state)
+            if self.local_step > dqn_config.config.start_sample_step:
+                self.update()
 
-        if reward is None:
-            self.observation.add_state(state)
-        else:
-            self.push_experience(reward, state, terminal)
+            # metrics
+            if state is not None:
+                self.metrics.histogram('state', state)
 
-        if terminal:
-            self.observation.add_state(None)
+            if reward is None:
+                self.observation.add_state(state)
+            else:
+                self.push_experience(reward, state, terminal)
 
-        assert self.last_action is None
+            if terminal:
+                self.observation.add_state(None)
+
+            assert self.last_action is None
+
         self.get_action()
+
 
     @profiler.wrap
     def update(self):
