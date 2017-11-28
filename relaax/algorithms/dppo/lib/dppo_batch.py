@@ -16,8 +16,9 @@ logger = logging.getLogger(__name__)
 
 
 class DPPOBatch(object):
-    def __init__(self, parameter_server, exploit):
+    def __init__(self, parameter_server, exploit, metrics):
         self.exploit = exploit
+        self.metrics = metrics
         self.ps = parameter_server
         model = dppo_model.Model(assemble_model=True)
         self.session = session.Session(policy=model.policy, value_func=model.value_func)
