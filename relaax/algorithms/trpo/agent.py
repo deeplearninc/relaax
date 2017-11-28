@@ -60,6 +60,8 @@ class Agent(object):
         :param info: additional information from the environment
         :return: new action for the received state
         """
+
+        #logger.debug("Agent.update called")
         self.check_state_shape(state)
         # replace empty state with constant one
         if list(np.asarray(state).shape) == [0]:
@@ -80,6 +82,8 @@ class Agent(object):
             assert state is not None
 
         action = self.act(np.asarray(state), skip=skip)
+
+        #logger.debug("Action = {}".format(action))
 
         return action
 
