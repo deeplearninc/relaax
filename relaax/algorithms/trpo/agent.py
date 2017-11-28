@@ -13,7 +13,6 @@ from . import trpo_config
 from . import trpo_model
 from .lib import network
 
-
 logger = logging.getLogger(__name__)
 profiler = profiling.get_profiler(__name__)
 
@@ -29,8 +28,8 @@ class Agent(object):
         model = trpo_model.AgentModel()
         self.session = session.Session(model)
 
-        self._episode_timestep = 0   # timestep for current episode (round)
-        self._episode_reward = 0     # score accumulator for current episode (round)
+        self._episode_timestep = 0  # timestep for current episode (round)
+        self._episode_reward = 0  # score accumulator for current episode (round)
         self._stop_training = False  # stop training flag to prevent the training further
 
         self.data = defaultdict(list)
@@ -46,32 +45,43 @@ class Agent(object):
             state = self.ps.session.call_get_filter_state()
             self.obs_filter.rs.set(*state)
 
-        self.server_latency_accumulator = 0     # accumulator for averaging server latency
-        self.collecting_time = time.time()      # timer for collecting experience
+        self.server_latency_accumulator = 0  # accumulator for averaging server latency
+        self.collecting_time = time.time()  # timer for collecting experience
 
         return True
 
-    # environment generated new state and reward
-    # and asking agent for an action for this state
     @profiler.wrap
-    def update(self, reward, state, terminal):
+    def update(self, reward, state, terminal, info=None):
+        """
+        Environment has generated new state and reward and is asking agent for an action for this state
+        :param reward: reward for the previous action
+        :param state: new state
+        :param terminal: if the episode has ended
+        :param info: additional information from the environment
+        :return: new action for the received state
+        """
         self.check_state_shape(state)
         # replace empty state with constant one
         if list(np.asarray(state).shape) == [0]:
             state = [0]
-        if reward is not None:
-            if self.reward(reward):
-                return None
-        if terminal:
-            self.reset()
-            return None
-        assert state is not None
 
-        if trpo_config.config.return_prob:
-            action, prob = self.act(np.asarray(state))
-            return prob
-        else:
-            return self.act(np.asarray(state))
+        skip = False
+        if info is not None:
+            if 'skip' in info:
+                skip = info['skip']
+
+        if not skip:
+            if reward is not None:
+                if self.reward(reward):
+                    return None
+            if terminal:
+                self.reset()
+                return None
+            assert state is not None
+
+        action = self.act(np.asarray(state), skip=skip)
+
+        return action
 
     @staticmethod
     def check_state_shape(state):
@@ -83,26 +93,26 @@ class Agent(object):
             logger.warning('State shape %s does not match to expected one %s.', repr(actual_shape),
                            repr(expected_shape))
 
-    def act(self, state):
+    def act(self, state, skip=False):
         start = time.time()
 
         obs = state
-        if trpo_config.config.use_filter:
-            obs = self.obs_filter(state)
-        self.data["observation"].append(obs)
 
         action, agentinfo = self.policy.act(np.reshape(obs, obs.shape + (1,)))
-        self.data["action"].append(action)
 
-        for (k, v) in agentinfo.items():
-            self.data[k].append(v)
+        if not skip:
+            if trpo_config.config.use_filter:
+                obs = self.obs_filter(state)
+            self.data["observation"].append(obs)
 
-        self.server_latency_accumulator += time.time() - start
+            self.data["action"].append(action)
 
-        if trpo_config.config.return_prob:
-            return action, agentinfo['prob']
-        else:
-            return action
+            for (k, v) in agentinfo.items():
+                self.data[k].append(v)
+
+            self.server_latency_accumulator += time.time() - start
+
+        return action
 
     def reward_and_act(self, reward, state):
         if not self.reward(reward):
@@ -156,8 +166,8 @@ class Agent(object):
             return
 
         if old_n_iter < self._n_iter:
-            print('Collecting time for {} iteration: {}'.format(old_n_iter+1, time.time() -
-                  self.collecting_time))
+            print('Collecting time for {} iteration: {}'.format(old_n_iter + 1, time.time() -
+                                                                self.collecting_time))
             self.session.op_set_weights(weights=self.ps.session.policy.op_get_weights())
             self.collecting_time = time.time()
 

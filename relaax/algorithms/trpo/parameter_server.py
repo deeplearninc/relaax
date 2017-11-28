@@ -81,7 +81,7 @@ class Ps(object):
         self.relaax_session.op_next_iter()
         self.compute_advantage()
         # Value Update
-        self.baseline.fit(self.paths)
+        vf_metrics = self.baseline.fit(self.paths)
         # Policy Update
         self.updater(self.paths)
 

@@ -33,12 +33,13 @@ class AgentProxy(object):
         return self._exchange({'command': 'init', 'exploit': exploit})
 
     @profiler.wrap
-    def update(self, reward=None, state=None, terminal=False):
+    def update(self, reward=None, state=None, terminal=False, info=None):
         return self._exchange({
             'command': 'update',
             'reward': reward,
             'state': state,
-            'terminal': terminal})
+            'terminal': terminal,
+            'info': info})
 
     @profiler.wrap
     def reset(self):

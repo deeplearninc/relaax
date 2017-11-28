@@ -32,7 +32,7 @@ class RLXAgentProxy(object):
         reward = data['reward']
         if reward is not None:
             self.average.append(reward)
-        action = self.agent.update(reward=reward, state=data['state'], terminal=data['terminal'])
+        action = self.agent.update(reward=reward, state=data['state'], terminal=data['terminal'], info=data['info'])
         # if isinstance(action, np.ndarray):
         #     action = np.asarray(action).tolist()
         return {'response': 'action', 'data': action}
