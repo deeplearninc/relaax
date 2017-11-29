@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import logging
 import numpy as np
 import time
 from scipy.signal import lfilter
@@ -10,6 +11,8 @@ from relaax.server.common import session
 from . import trpo_config
 from . import trpo_model
 from .lib import network
+
+logger = logging.getLogger(__name__)
 
 
 class ParameterServer(parameter_server_base.ParameterServerBase):
@@ -51,6 +54,7 @@ class Ps(object):
         return self.relaax_session.op_n_iter()
 
     def send_experience(self, n_iter, paths, length):
+        logger.debug("PS.send_experience called, n_iter={}, self.niter={}".format(n_iter, self.n_iter()))
         if n_iter == self.n_iter():
             self.update_paths(paths, length)
 
@@ -75,6 +79,7 @@ class Ps(object):
             self.paths = []
 
     def trpo_update(self):
+        logger.debug("trpo_update called")
         self.relaax_session.op_turn_collect_off()
         start = time.time()
 

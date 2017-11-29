@@ -38,6 +38,7 @@ class Agent(object):
 
         # counter for global updates at parameter server
         self._n_iter = self.ps.session.call_wait_for_iteration()
+        logger.debug("Initialize n_iter from server = {}".format(self._n_iter))
         self.session.op_set_weights(weights=self.ps.session.policy.op_get_weights())
 
         if trpo_config.config.use_filter:
@@ -98,6 +99,7 @@ class Agent(object):
                            repr(expected_shape))
 
     def act(self, state, skip=False):
+        logger.debug("Agent.act called, skip={}".format(skip))
         start = time.time()
 
         obs = state
@@ -129,6 +131,7 @@ class Agent(object):
         return self.reset()
 
     def reset(self):
+        logger.debug("Agent.reset called")
         latency = self.server_latency_accumulator / self._episode_timestep
         self.server_latency_accumulator = 0
         self.ps.metrics.scalar('server_latency', latency)
@@ -148,6 +151,7 @@ class Agent(object):
         return self._stop_training
 
     def _send_experience(self, terminated=False):
+        logger.debug("Send experience called")
         self.data["terminated"] = terminated
         self.data["filter_diff"] = (0, np.zeros(1), np.zeros(1))
         if trpo_config.config.use_filter:
@@ -162,6 +166,7 @@ class Agent(object):
         old_n_iter = self._n_iter
         self._n_iter = self.ps.session.call_wait_for_iteration()
         if self._n_iter == -1:
+            logger.debug("received -1 n_iter")
             self._n_iter = old_n_iter
             return
 
