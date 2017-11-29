@@ -57,7 +57,7 @@ class PpoUpdater(object):
         d_length = state.shape[0]
 
         for i in range(self.n_epochs):
-            for batch in d.iterate_once(d_length if self.batch_size is not None else self.batch_size):
+            for batch in d.iterate_once(d_length if self.batch_size is None else self.batch_size):
                 self.policy_model.op_ppo_optimize(state=batch['state'],
                                                   sampled_variable=batch['sampled_variable'],
                                                   adv_n=batch['adv_n'],
