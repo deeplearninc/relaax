@@ -1,10 +1,13 @@
 from __future__ import print_function
 
+import logging
 import numpy as np
 
 from .. import trpo_config
 from . import core
 from . import dataset
+
+logger = logging.getLogger(__name__)
 
 
 def make_filter(config):
@@ -31,8 +34,18 @@ def make_baseline_wrapper(value_model, relaax_metrics):
 class PpoUpdater(object):
     def __init__(self, policy_model):
         self.policy_model = policy_model
+        if not hasattr(trpo_config.config.PPO, 'minibatch_size'):
+            self.batch_size = None
+        else:
+            self.batch_size = trpo_config.config.PPO.minibatch_size
+
+        if not hasattr(trpo_config.config.PPO, 'n_epochs'):
+            self.n_epochs = 4
+        else:
+            self.n_epochs = trpo_config.config.PPO.n_epochs
 
     def __call__(self, paths):
+        logger.debug("PPO updater called")
         prob_np = np.concatenate([path['prob'] for path in paths])
         ob_no = np.concatenate([path['observation'] for path in paths])
         state = np.reshape(ob_no, ob_no.shape + (1,))
@@ -41,14 +54,16 @@ class PpoUpdater(object):
 
         d = dataset.Dataset(dict(state=state, sampled_variable=action_na, adv_n=advantage_n,
                                  oldprob_np=prob_np))
+        d_length = state.shape[0]
 
-        for i in range(trpo_config.config.PPO.n_epochs):
-            for batch in d.iterate_once(trpo_config.config.PPO.minibatch_size):
+        for i in range(self.n_epochs):
+            for batch in d.iterate_once(d_length if self.batch_size is not None else self.batch_size):
                 self.policy_model.op_ppo_optimize(state=batch['state'],
                                                   sampled_variable=batch['sampled_variable'],
                                                   adv_n=batch['adv_n'],
                                                   oldprob_np=batch['oldprob_np'])
         # TODO: add KL new/old for debug
+        return None
 
 
 class TrpoCalculator(object):

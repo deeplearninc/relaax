@@ -1,8 +1,8 @@
 from __future__ import absolute_import
 
 import logging
-import numpy as np
 import time
+import numpy as np
 from scipy.signal import lfilter
 
 from relaax.server.parameter_server import parameter_server_base
@@ -54,7 +54,6 @@ class Ps(object):
         return self.relaax_session.op_n_iter()
 
     def send_experience(self, n_iter, paths, length):
-        logger.debug("PS.send_experience called, n_iter={}, self.niter={}".format(n_iter, self.n_iter()))
         if n_iter == self.n_iter():
             self.update_paths(paths, length)
 
@@ -79,18 +78,25 @@ class Ps(object):
             self.paths = []
 
     def trpo_update(self):
-        logger.debug("trpo_update called")
         self.relaax_session.op_turn_collect_off()
         start = time.time()
 
         self.relaax_session.op_next_iter()
         self.compute_advantage()
+
         # Value Update
-        vf_metrics = self.baseline.fit(self.paths)
+        valuefunc_metrics = self.baseline.fit(self.paths)
+        logger.debug("VF metrics: {}".format(valuefunc_metrics))
+        for key, value in valuefunc_metrics.items():
+            self._metrics.scalar(key, value)
+
         # Policy Update
-        self.updater(self.paths)
+        policy_metrics = self.updater(self.paths)
 
         print('Update time for {} iteration: {}'.format(self.n_iter(), time.time() - start))
+
+        # Submit metrics
+
         self.relaax_session.op_turn_collect_on()
 
     def compute_advantage(self):
