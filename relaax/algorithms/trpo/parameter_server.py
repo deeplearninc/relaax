@@ -1,7 +1,8 @@
 from __future__ import absolute_import
 
-import numpy as np
+import logging
 import time
+import numpy as np
 from scipy.signal import lfilter
 
 from relaax.server.parameter_server import parameter_server_base
@@ -10,6 +11,8 @@ from relaax.server.common import session
 from . import trpo_config
 from . import trpo_model
 from .lib import network
+
+logger = logging.getLogger(__name__)
 
 
 class ParameterServer(parameter_server_base.ParameterServerBase):
@@ -80,12 +83,20 @@ class Ps(object):
 
         self.relaax_session.op_next_iter()
         self.compute_advantage()
+
         # Value Update
-        vf_metrics = self.baseline.fit(self.paths)
+        valuefunc_metrics = self.baseline.fit(self.paths)
+        logger.debug("VF metrics: {}".format(valuefunc_metrics))
+        for key, value in valuefunc_metrics.items():
+            self._metrics.scalar(key, value)
+
         # Policy Update
-        self.updater(self.paths)
+        policy_metrics = self.updater(self.paths)
 
         print('Update time for {} iteration: {}'.format(self.n_iter(), time.time() - start))
+
+        # Submit metrics
+
         self.relaax_session.op_turn_collect_on()
 
     def compute_advantage(self):
