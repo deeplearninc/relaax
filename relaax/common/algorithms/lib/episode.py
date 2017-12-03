@@ -69,13 +69,6 @@ class Dataset(Episode):
         # - tuple of integers: elements=(begin_index, end_index)
         # - 1-D numpy array with indices: elements=array([1, 4, 2, 0, 3])
 
-        if stochastic:
-            assert isinstance(elements, int), \
-                'Elements should be pass as single int for a random (stochastic=True) subset'
-            idx = np.random.choice(self.size, elements, replace=False)
-            d.experience._lists = _fill(self.experience, idx, keys=cur_keys)
-            return d
-
         d.experience._lists = _fill(self.experience, elements, keys=cur_keys)
         return d
 

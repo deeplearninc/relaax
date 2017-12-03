@@ -8,6 +8,8 @@ config.input.universe = options.get('algorithm/input/universe', True)
 config.activation = options.get('algorithm/activation', 'tanh')
 config.lam = options.get('algorithm/lambda', 1.00)
 config.entropy = options.get('algorithm/entropy', None)
+config.l2_coeff = options.get('algorithm/l2_coeff', None)
+config.critic_scale = options.get('algorithm/critic_scale', 1.0)
 
 config.use_filter = options.get('algorithm/use_filter', False)
 config.use_lstm = options.get('algorithm/use_lstm', False)

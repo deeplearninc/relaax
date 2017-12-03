@@ -137,8 +137,6 @@ class DPPOBatch(object):
             adv = (adv - adv.mean()) / adv.std()
         batch.extend(adv=adv, vtarg=vtarg)
 
-        if not dppo_config.config.use_lstm:
-            batch.shuffle()
         return batch
 
     def update_policy(self, experience):

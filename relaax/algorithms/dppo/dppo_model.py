@@ -181,14 +181,17 @@ class ValueModel(subgraph.Subgraph):
 
         logger.debug("ValueModel | mse={}".format(mse.node))
 
-        l2 = graph.TfNode(1e-3 * tf.add_n([tf.reduce_sum(tf.square(v)) for v in
-                                           utils.Utils.flatten(sg_value_net.weights.node)]))
+        # PPO entropy loss
+        if dppo_config.config.l2_coeff is not None:
+            l2 = graph.TfNode(dppo_config.config.l2_coeff *
+                              tf.add_n([tf.reduce_sum(tf.square(v)) for v in
+                                        utils.Utils.flatten(sg_value_net.weights.node)]))
+            logger.debug("ValueModel | l2={}".format(l2.node))
+            sg_vf_total_loss = graph.TfNode((l2.node + mse.node) * dppo_config.config.critic_scale)
+        else:
+            sg_vf_total_loss = graph.TfNode(mse.node * dppo_config.config.critic_scale)
 
-        logger.debug("ValueModel | l2={}".format(l2.node))
-
-        loss = graph.TfNode(l2.node + mse.node)
-
-        sg_gradients = optimizer.Gradients(sg_value_net.weights, loss=loss)
+        sg_gradients = optimizer.Gradients(sg_value_net.weights, loss=sg_vf_total_loss)
         sg_gradients_flatten = GetVariablesFlatten(sg_gradients.calculate)
 
         # Op to compute value of a state
@@ -217,8 +220,16 @@ class ValueModel(subgraph.Subgraph):
         if dppo_config.config.use_lstm:
             self.op_compute_gradients = self.Ops(sg_gradients.calculate, sg_value_net.lstm_state, **feeds)
 
-        self.op_compute_loss_and_gradient_flatten = self.Ops(loss, sg_gradients_flatten, **feeds)
-        self.op_losses = self.Ops(loss, mse, l2, **feeds)
+        self.op_compute_loss_and_gradient_flatten = self.Ops(sg_vf_total_loss, sg_gradients_flatten, **feeds)
+
+        losses = [sg_vf_total_loss, mse]
+        if dppo_config.config.l2_coeff is not None:
+            losses.append(l2)
+        self.op_losses = self.Ops(*losses, **feeds)
+
+        # Init Op for all weights
+        sg_initialize = graph.Initialize()
+        self.op_initialize = self.Op(sg_initialize)
 
 
 # A generic subgraph to handle distributed weights updates
