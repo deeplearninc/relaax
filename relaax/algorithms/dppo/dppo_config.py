@@ -10,6 +10,8 @@ config.lam = options.get('algorithm/lambda', 1.00)
 config.entropy = options.get('algorithm/entropy', None)
 config.l2_coeff = options.get('algorithm/l2_coeff', None)
 config.critic_scale = options.get('algorithm/critic_scale', 0.25)
+
+config.combine_gradient = options.get('algorithm/combine_gradient', 'fifo')
 config.gradients_norm_clipping = options.get('algorithm/gradients_norm_clipping', False)
 
 config.use_filter = options.get('algorithm/use_filter', False)

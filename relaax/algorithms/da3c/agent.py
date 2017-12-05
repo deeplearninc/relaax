@@ -43,6 +43,7 @@ class Agent(object):
         self.terminal = False
         self.discounted_reward = None
         self.filter = None
+        self.agent_weights_id = 0
 
     # environment is ready and
     # waiting for agent to initialize
@@ -165,7 +166,7 @@ class Agent(object):
 
     @profiler.wrap
     def receive_experience(self):
-        self.ps.session.op_check_weights()
+        _, self.agent_weights_id = self.ps.session.op_check_weights()
         weights = self.ps.session.op_get_weights()
         if M:
             for i, w in enumerate(utils.Utils.flatten(weights)):
@@ -278,5 +279,7 @@ class Agent(object):
         if M:
             for i, g in enumerate(utils.Utils.flatten(gradients)):
                 self.metrics.histogram('gradients_%d' % i, g)
-        self.ps.session.op_apply_gradients(gradients=gradients, increment=experience_size)
+        # self.ps.session.op_apply_gradients(gradients=gradients, increment=experience_size)
+        self.ps.session.op_submit_gradients(gradients=gradients, step_inc=experience_size,
+                                            agent_step=self.agent_weights_id)
         self.ps.session.op_check_weights()

@@ -22,11 +22,13 @@ config.output.action_high = options.get('algorithm/output/action_high', [])
 config.output.action_low = options.get('algorithm/output/action_low', [])
 
 config.activation = options.get('algorithm/activation', 'relu')
-config.entropy_type = options.get('algorithm/normal_entropy', 'Gauss')  # Gauss | Origin
+config.entropy_type = options.get('algorithm/entropy_type', 'Gauss')  # Gauss | Origin
 config.policy_clip = options.get('algorithm/policy_clip', False)
 config.critic_clip = options.get('algorithm/critic_clip', False)
 
+config.combine_gradients = options.get('algorithm/combine_gradients', 'fifo')
 config.gradients_norm_clipping = options.get('algorithm/gradients_norm_clipping', False)
+
 config.input.universe = options.get('algorithm/input/universe', True)
 
 # ICM parameters

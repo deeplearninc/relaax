@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import logging
 import tensorflow as tf
 
 from relaax.common.algorithms import subgraph
@@ -10,6 +11,8 @@ from relaax.common.algorithms.lib import optimizer
 from relaax.common.algorithms.lib import lr_schedule
 from . import da3c_config
 from . import icm_model
+
+logger = logging.getLogger(__name__)
 
 
 class Network(subgraph.Subgraph):
@@ -84,11 +87,48 @@ class SharedParameters(subgraph.Subgraph):
 
         # Expose public API
         self.op_n_step = self.Op(sg_global_step.n)
-        self.op_check_weights = self.Op(sg_weights.check)
+        self.op_check_weights = self.Ops(sg_weights.check, sg_global_step.n)
         self.op_get_weights = self.Op(sg_weights)
         self.op_apply_gradients = self.Ops(sg_gradients.apply, sg_global_step.increment,
                                            gradients=sg_gradients.ph_gradients,
                                            increment=sg_global_step.ph_increment)
+
+        # Gradients' applying methods: fifo (by default), averaging, delay compensation
+
+        # First come, first served gradient update
+        def func_fifo_gradient(session, gradients, step_inc, agent_step):
+            global_step = session.op_n_step()
+            logger.debug("Gradient with step {} received from agent. Current step: {}".format(agent_step,
+                                                                                              global_step))
+            session.op_apply_gradients(gradients=gradients, increment=step_inc)
+
+        # Accumulate gradients from many agents and average them
+        self.gradients = []
+
+        def func_average_gradient(session, gradients, step_inc, agent_step):
+            pass
+
+        # Asynchronous Stochastic Gradient Descent with Delay Compensation,
+        # see https://arxiv.org/pdf/1609.08326.pdf
+        self.weights_history = {}
+
+        def init_weight_history(session):
+            self.weights_history[0] = session.op_get_weights_flatten()
+
+        self.op_init_weight_history = self.Call(init_weight_history)
+
+        def func_dc_gradient(session, gradients, step_inc, agent_step):
+            pass
+
+        if da3c_config.config.combine_gradients == 'fifo':
+            self.op_submit_gradients = self.Call(func_fifo_gradient)
+        elif da3c_config.config.combine_gradient == 'average':
+            self.op_submit_gradients = self.Call(func_average_gradient)
+        elif da3c_config.config.combine_gradient == 'dc':
+            self.op_submit_gradients = self.Call(func_dc_gradient)
+        else:
+            logger.error("Unknown gradient combination mode: {}".format(da3c_config.config.combine_gradients))
+
         self.op_initialize = self.Op(sg_initialize)
 
 
