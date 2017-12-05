@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import logging
+import numpy as np
 import tensorflow as tf
 
 from relaax.common.algorithms import subgraph
@@ -9,6 +10,7 @@ from relaax.common.algorithms.lib import layer
 from relaax.common.algorithms.lib import loss
 from relaax.common.algorithms.lib import optimizer
 from relaax.common.algorithms.lib import lr_schedule
+from relaax.common.algorithms.lib import utils
 from . import da3c_config
 from . import icm_model
 
@@ -103,10 +105,27 @@ class SharedParameters(subgraph.Subgraph):
             session.op_apply_gradients(gradients=gradients, increment=step_inc)
 
         # Accumulate gradients from many agents and average them
-        self.gradients = []
+        self.gradients, self.avg_step_inc = [], 0
 
         def func_average_gradient(session, gradients, step_inc, agent_step):
-            pass
+            logger.debug("Gradient is received, number of gradients collected so far: {}".
+                         format(len(self.gradients)))
+            if agent_step >= session.op_n_step():
+                logger.debug("Gradient is FRESH -> Accepted")
+                self.gradients.append(gradients)
+                self.avg_step_inc += step_inc
+            else:
+                logger.debug("Gradient is OLD -> Rejected")
+
+            if len(self.gradients) >= da3c_config.config.num_gradients:
+                # We've collected enough gradients -> we can average them now and make an update step
+                logger.debug("Computing Mean of accumulated Gradients")
+                flat_grads = [Shaper.get_flat(g) for g in self.gradients]
+                mean_flat_grad = np.mean(np.stack(flat_grads), axis=0)
+
+                mean_grad = Shaper.reverse(mean_flat_grad, gradients)
+                session.op_apply_gradients(gradients=mean_grad, increment=self.avg_step_inc)
+                self.gradients, self.avg_step_inc = [], 0
 
         # Asynchronous Stochastic Gradient Descent with Delay Compensation,
         # see https://arxiv.org/pdf/1609.08326.pdf
@@ -122,9 +141,9 @@ class SharedParameters(subgraph.Subgraph):
 
         if da3c_config.config.combine_gradients == 'fifo':
             self.op_submit_gradients = self.Call(func_fifo_gradient)
-        elif da3c_config.config.combine_gradient == 'average':
+        elif da3c_config.config.combine_gradients == 'avg':
             self.op_submit_gradients = self.Call(func_average_gradient)
-        elif da3c_config.config.combine_gradient == 'dc':
+        elif da3c_config.config.combine_gradients == 'dc':
             self.op_submit_gradients = self.Call(func_dc_gradient)
         else:
             logger.error("Unknown gradient combination mode: {}".format(da3c_config.config.combine_gradients))
@@ -183,3 +202,28 @@ class AgentModel(subgraph.Subgraph):
                                                     state=sg_network.ph_state)
 
         self.op_compute_gradients_and_summaries = self.Ops(sg_gradients.calculate, summaries, **feeds)
+
+
+class Shaper():
+    @staticmethod
+    def numel(x):
+        return np.prod(np.shape(x))
+
+    @classmethod
+    def get_flat(cls, v):
+        tensor_list = list(utils.Utils.flatten(v))
+        u = np.concatenate([np.reshape(t, newshape=[cls.numel(t), ]) for t in tensor_list], axis=0)
+        return u
+
+    @staticmethod
+    def reverse(u, base_shape):
+        tensor_list = list(utils.Utils.flatten(base_shape))
+        shapes = map(np.shape, tensor_list)
+        v_flat = []
+        start = 0
+        for (shape, t) in zip(shapes, tensor_list):
+            size = np.prod(shape)
+            v_flat.append(np.reshape(u[start:start + size], shape))
+            start += size
+        v = utils.Utils.reconstruct(v_flat, base_shape)
+        return v

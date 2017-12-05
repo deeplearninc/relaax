@@ -168,6 +168,7 @@ class Agent(object):
     def receive_experience(self):
         _, self.agent_weights_id = self.ps.session.op_check_weights()
         weights = self.ps.session.op_get_weights()
+        # print('w_id', self.agent_weights_id)
         if M:
             for i, w in enumerate(utils.Utils.flatten(weights)):
                 self.metrics.histogram('weight_%d' % i, w)
