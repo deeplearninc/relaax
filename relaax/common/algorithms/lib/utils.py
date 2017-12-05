@@ -138,10 +138,11 @@ class Utils(object):
 class ZFilter(object):
     """ y = (x-mean)/std
     using running estimates of mean, std """
-    def __init__(self, shape, demean=True, destd=True, clip=10.0):
+    def __init__(self, shape, demean=True, destd=True, clip=5.0, epsilon=1e-8):
         self.demean = demean
         self.destd = destd
         self.clip = clip
+        self.epsilon = epsilon
 
         self.rs = RunningStat(shape)
 
@@ -151,7 +152,7 @@ class ZFilter(object):
         if self.demean:
             x = x - self.rs.mean
         if self.destd:
-            x = x / (self.rs.std+1e-8)
+            x = x / (self.rs.std + self.epsilon)
         if self.clip:
             x = np.clip(x, -self.clip, self.clip)
         return x

@@ -135,7 +135,11 @@ class DPPOBatch(object):
         adv, vtarg = compute_adv_and_vtarg(experience['reward'], values, terminals)
         if dppo_config.config.norm_adv:
             adv = (adv - adv.mean()) / adv.std()
-        batch.extend(adv=adv, vtarg=vtarg)
+
+        if dppo_config.config.vf_clipped_loss:
+            batch.extend(adv=adv, vtarg=vtarg, old_vpred=values[:-1])
+        else:
+            batch.extend(adv=adv, vtarg=vtarg)
 
         return batch
 
@@ -269,6 +273,8 @@ class DPPOBatch(object):
         if dppo_config.config.use_lstm:
             # 0 <- actor's lstm state & critic's lstm state -> 1
             feeds.update(dict(lstm_state=self.mini_batch_lstm_state[1], lstm_step=[len(experience['state'])]))
+        if dppo_config.config.vf_clipped_loss:
+            feeds.update(dict(vpred_old=experience['old_vpred']))
 
         gradients = self.session.value_func.op_compute_gradients(**feeds)
         if dppo_config.config.use_lstm:
