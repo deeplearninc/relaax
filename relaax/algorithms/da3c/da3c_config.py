@@ -28,6 +28,8 @@ config.critic_clip = options.get('algorithm/critic_clip', False)
 
 config.combine_gradients = options.get('algorithm/combine_gradients', 'fifo')
 config.num_gradients = options.get('algorithm/num_gradients', 4)
+config.dc_lambda = options.get('algorithm/dc_lambda', 0.05)
+config.dc_history = options.get('algorithm/dc_history', 20)
 config.gradients_norm_clipping = options.get('algorithm/gradients_norm_clipping', False)
 
 config.input.universe = options.get('algorithm/input/universe', True)

@@ -11,8 +11,11 @@ from relaax.common.algorithms.lib import loss
 from relaax.common.algorithms.lib import optimizer
 from relaax.common.algorithms.lib import lr_schedule
 from relaax.common.algorithms.lib import utils
+
+from relaax.algorithms.trpo.trpo_model import (GetVariablesFlatten, SetVariablesFlatten)
 from . import da3c_config
 from . import icm_model
+
 
 logger = logging.getLogger(__name__)
 
@@ -129,7 +132,13 @@ class SharedParameters(subgraph.Subgraph):
 
         # Asynchronous Stochastic Gradient Descent with Delay Compensation,
         # see https://arxiv.org/pdf/1609.08326.pdf
-        self.weights_history = {}
+        self.weights_history = {}   # {global_step: weights}
+
+        sg_get_weights_flatten = GetVariablesFlatten(sg_weights)
+        sg_set_weights_flatten = SetVariablesFlatten(sg_weights)
+
+        self.op_get_weights_flatten = self.Op(sg_get_weights_flatten)
+        self.op_set_weights_flatten = self.Op(sg_set_weights_flatten, value=sg_set_weights_flatten.ph_value)
 
         def init_weight_history(session):
             self.weights_history[0] = session.op_get_weights_flatten()
@@ -137,7 +146,32 @@ class SharedParameters(subgraph.Subgraph):
         self.op_init_weight_history = self.Call(init_weight_history)
 
         def func_dc_gradient(session, gradients, step_inc, agent_step):
-            pass
+            global_weights_f = session.op_get_weights_flatten()
+
+            old_weights_f = self.weights_history.get(agent_step, global_weights_f)
+
+            new_gradient_f = Shaper.get_flat(gradients)
+
+            # Compute compensated Gradient
+            delta = da3c_config.config.dc_lambda * (
+                new_gradient_f * new_gradient_f * (global_weights_f - old_weights_f))
+
+            compensated_gradient_f = new_gradient_f + delta
+            compensated_gradient = Shaper.reverse(compensated_gradient_f, gradients)
+
+            session.op_apply_gradients(gradients=compensated_gradient, increment=step_inc)
+
+            updated_weights = session.op_get_weights_flatten()
+            updated_step = session.op_n_step()
+            self.weights_history[updated_step] = updated_weights
+
+            # Cleanup history
+            for k in list(self.weights_history.keys()):
+                if k < updated_step - da3c_config.config.dc_history:
+                    try:
+                        del self.weights_history[k]
+                    except KeyError:
+                        pass
 
         if da3c_config.config.combine_gradients == 'fifo':
             self.op_submit_gradients = self.Call(func_fifo_gradient)
