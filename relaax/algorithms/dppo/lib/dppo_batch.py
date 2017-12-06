@@ -77,8 +77,6 @@ class DPPOBatch(object):
         if terminal and state is not None:
             logger.debug("DPPOBatch.step doesn't act in case of terminal.")
             state = None
-        else:
-            assert state is not None
         if not terminal:
             state = np.asarray(state)
             if state.size == 0:
