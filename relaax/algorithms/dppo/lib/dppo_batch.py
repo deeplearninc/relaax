@@ -68,7 +68,7 @@ class DPPOBatch(object):
 
     def step(self, reward, state, terminal):
         self.terminal = terminal
-        if dppo_config.config.use_filter:
+        if dppo_config.config.use_filter and not terminal:
             state = self.filter(state)
         self.final_state = state
         self.steps += 1
