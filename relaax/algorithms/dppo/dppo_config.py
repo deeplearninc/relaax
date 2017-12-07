@@ -37,4 +37,5 @@ if not hasattr(config, 'optimizer'):
 config.optimizer.epsilon = options.get('algorithm/optimizer/epsilon', 1e-5)
 
 config.schedule = options.get('algorithm/schedule', 'linear')
+config.schedule_step = options.get('algorithm/schedule_step', 'update')     # update | environment
 config.max_global_step = options.get('algorithm/max_global_step', 1e7)

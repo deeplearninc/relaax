@@ -253,10 +253,18 @@ class SharedWeights(subgraph.Subgraph):
     def build_graph(self, weights):
         # Build graph
         sg_global_step = graph.GlobalStep()
+        sg_update_step = graph.GlobalStep()
         sg_weights = weights
 
         if dppo_config.config.schedule == 'linear':
-            sg_learning_rate = lr_schedule.Linear(sg_global_step,
+            if dppo_config.config.schedule_step == 'update':
+                sg_schedule_step = sg_update_step
+            elif dppo_config.config.schedule_step == 'environment':
+                sg_schedule_step = sg_global_step
+            else:
+                assert False, 'Valid options for the schedule step are: update OR environment.' \
+                              'You provide the following option:'.format(dppo_config.config.schedule_step)
+            sg_learning_rate = lr_schedule.Linear(sg_schedule_step,
                                                   dppo_config.config.learning_rate,
                                                   dppo_config.config.max_global_step)
         else:
@@ -272,12 +280,15 @@ class SharedWeights(subgraph.Subgraph):
 
         # Expose public API
         self.op_n_step = self.Op(sg_global_step.n)
-        self.op_get_weights = self.Op(sg_weights)
-        self.op_get_weights_signed = self.Ops(sg_weights, sg_global_step.n)
+        self.op_upd_step = self.Op(sg_update_step.n)
+        self.op_inc_global_step = self.Op(sg_global_step.increment, increment=sg_global_step.ph_increment)
 
-        self.op_apply_gradients = self.Ops(sg_gradients.apply,
-                                           sg_global_step.increment, gradients=sg_gradients.ph_gradients,
-                                           increment=sg_global_step.ph_increment)
+        self.op_get_weights = self.Op(sg_weights)
+        self.op_get_weights_signed = self.Ops(sg_weights, sg_update_step.n)
+
+        self.op_apply_gradients = self.Ops(sg_gradients.apply, sg_update_step.increment,
+                                           gradients=sg_gradients.ph_gradients,
+                                           increment=sg_update_step.ph_increment)
 
         self.op_get_weights_flatten = self.Op(sg_get_weights_flatten)
         self.op_set_weights_flatten = self.Op(sg_set_weights_flatten, value=sg_set_weights_flatten.ph_value)
@@ -286,7 +297,7 @@ class SharedWeights(subgraph.Subgraph):
 
         # First come, first served gradient update
         def func_fifo_gradient(session, gradients, step):
-            current_step = session.op_n_step()
+            current_step = session.op_upd_step()
             logger.debug("Gradient with step {} received from agent. Current step: {}".format(step,
                                                                                               current_step))
             session.op_apply_gradients(gradients=gradients, increment=1)
@@ -297,7 +308,7 @@ class SharedWeights(subgraph.Subgraph):
         def func_average_gradient(session, gradients, step):
             logger.debug("received a gradient, number of gradients collected so far: {}".
                          format(len(self.gradients)))
-            if step >= session.op_n_step():
+            if step >= session.op_upd_step():
                 logger.debug("gradient is fresh, accepted")
                 self.gradients.append(gradients)
             else:
@@ -340,7 +351,7 @@ class SharedWeights(subgraph.Subgraph):
 
             session.op_apply_gradients(gradients=compensated_gradient, increment=1)
             updated_weights = session.op_get_weights_flatten()
-            updated_step = session.op_n_step()
+            updated_step = session.op_upd_step()
             self.weights_history[updated_step] = updated_weights
 
             # Cleanup history

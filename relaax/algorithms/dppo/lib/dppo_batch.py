@@ -117,6 +117,9 @@ class DPPOBatch(object):
                         self.update_value_func(mini_batch)
 
             logger.debug('Policy & Value function update finished')
+            steps = len(batch.experience['state'])
+            self.ps.session.policy.op_inc_global_step(increment=steps)
+            self.ps.session.value_func.op_inc_global_step(increment=steps)
 
     def get_batch(self):
         batch = self.episode.subset(elements=self.episode.size,
