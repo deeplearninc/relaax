@@ -18,6 +18,9 @@ from relaax.algorithms.trpo.trpo_model import (GetVariablesFlatten, SetVariables
 
 logger = logging.getLogger(__name__)
 
+tf.set_random_seed(dppo_config.config.seed)
+np.random.seed(dppo_config.config.seed)
+
 
 class Network(subgraph.Subgraph):
     def build_graph(self, input_placeholder):

@@ -16,8 +16,10 @@ from relaax.algorithms.trpo.trpo_model import (GetVariablesFlatten, SetVariables
 from . import da3c_config
 from . import icm_model
 
-
 logger = logging.getLogger(__name__)
+
+tf.set_random_seed(da3c_config.config.seed)
+np.random.seed(da3c_config.config.seed)
 
 
 class Network(subgraph.Subgraph):

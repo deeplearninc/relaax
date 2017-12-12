@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import logging
+import numpy as np
 import tensorflow as tf
 
 from relaax.common.algorithms import subgraph
@@ -10,6 +12,11 @@ from relaax.common.algorithms.lib import optimizer
 from relaax.common.algorithms.lib import lr_schedule
 from . import da3c_config
 from . import icm_model
+
+logger = logging.getLogger(__name__)
+
+tf.set_random_seed(da3c_config.config.seed)
+np.random.seed(da3c_config.config.seed)
 
 
 class Head(subgraph.Subgraph):

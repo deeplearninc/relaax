@@ -1,7 +1,9 @@
 from relaax.common.python.config.loaded_config import options
 from argparse import Namespace
+import random
 
 config = options.get('algorithm')
+config.seed = options.get('algorithm/seed', random.randrange(1000000))
 
 for key, value in [('use_convolutions', [])]:
     if not hasattr(config, key):
