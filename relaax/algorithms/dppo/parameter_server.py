@@ -7,8 +7,9 @@ from . import dppo_model
 
 class ParameterServer(parameter_server_base.ParameterServerBase):
     def init_session(self):
-        policy_shared = dppo_model.SharedWeights(dppo_model.Network().weights)
-        value_func_shared = dppo_model.SharedWeights(dppo_model.ValueNet().weights)
+        sg_model = dppo_model.Model()
+        policy_shared = dppo_model.SharedWeights(sg_model.actor.weights)
+        value_func_shared = dppo_model.SharedWeights(sg_model.critic.weights)
 
         """self.policy_session = session.Session(policy_shared)
         self.policy_session.op_initialize()

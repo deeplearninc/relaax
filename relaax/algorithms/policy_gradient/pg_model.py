@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 class Network(subgraph.Subgraph):
     def build_graph(self):
-        input = layer.Input(pg_config.config.input)
+        input = layer.ConfiguredInput(pg_config.config.input)
 
         dense = layer.GenericLayers(layer.Flatten(input),
                                     [dict(type=layer.Dense, size=size, activation=layer.Activation.Relu)

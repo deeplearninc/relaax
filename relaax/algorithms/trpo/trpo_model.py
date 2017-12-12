@@ -117,10 +117,10 @@ class DiagGauss(subgraph.Subgraph):
         return lambda prob: self.EntropySubgraph(prob, self._d)
 
 
-def ProbType(size, continuous=False):
+def ProbType(action_size, continuous=False):
     if continuous:
-        return DiagGauss(size)
-    return Categorical(size)
+        return DiagGauss(action_size)
+    return Categorical(action_size)
 
 
 class ConcatFixedStd(subgraph.Subgraph):
@@ -136,7 +136,7 @@ class ConcatFixedStd(subgraph.Subgraph):
 
 class Network(subgraph.Subgraph):
     def build_graph(self):
-        input = layer.Input(trpo_config.config.input)
+        input = layer.ConfiguredInput(trpo_config.config.input)
 
         head = layer.GenericLayers(layer.Flatten(input),
                                    [dict(type=layer.Dense, size=size, activation=layer.Activation.Tanh)

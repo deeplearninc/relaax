@@ -3,7 +3,6 @@ from __future__ import absolute_import
 from builtins import object
 import logging
 import numpy as np
-import scipy.signal
 import threading
 import six.moves.queue as queue
 
@@ -44,6 +43,7 @@ class Agent(object):
         self.terminal = False
         self.discounted_reward = None
         self.filter = None
+        self.agent_weights_id = 0
 
     # environment is ready and
     # waiting for agent to initialize
@@ -166,8 +166,9 @@ class Agent(object):
 
     @profiler.wrap
     def receive_experience(self):
-        self.ps.session.op_check_weights()
+        _, self.agent_weights_id = self.ps.session.op_check_weights()
         weights = self.ps.session.op_get_weights()
+        # print('w_id', self.agent_weights_id)
         if M:
             for i, w in enumerate(utils.Utils.flatten(weights)):
                 self.metrics.histogram('weight_%d' % i, w)
@@ -248,13 +249,13 @@ class Agent(object):
         gamma = da3c_config.config.rewards_gamma
 
         # compute discounted rewards
-        self.discounted_reward = self.discount(np.asarray(reward + [r], dtype=np.float32), gamma)[:-1]
+        self.discounted_reward = utils.discount(np.asarray(reward + [r], dtype=np.float32), gamma)[:-1]
 
         # compute advantage wrt rewards and critic values
         forward_values = np.asarray(experience['value'][1:] + [r]) * gamma
         rewards = np.asarray(reward) + forward_values - np.asarray(experience['value'])
 
-        advantage = self.discount(rewards, gamma * da3c_config.config.gae_lambda)
+        advantage = utils.discount(rewards, gamma * da3c_config.config.gae_lambda)
 
         feeds = dict(state=experience['state'], action=experience['action'],
                      advantage=advantage, discounted_reward=self.discounted_reward)
@@ -279,9 +280,7 @@ class Agent(object):
         if M:
             for i, g in enumerate(utils.Utils.flatten(gradients)):
                 self.metrics.histogram('gradients_%d' % i, g)
-        self.ps.session.op_apply_gradients(gradients=gradients, increment=experience_size)
+        # self.ps.session.op_apply_gradients(gradients=gradients, increment=experience_size)
+        self.ps.session.op_submit_gradients(gradients=gradients, step_inc=experience_size,
+                                            agent_step=self.agent_weights_id)
         self.ps.session.op_check_weights()
-
-    @staticmethod
-    def discount(x, gamma):
-        return scipy.signal.lfilter([1], [1, -gamma], x[::-1], axis=0)[::-1]

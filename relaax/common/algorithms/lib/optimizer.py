@@ -27,11 +27,15 @@ class Gradients(subgraph.Subgraph):
 
 
 class AdamOptimizer(subgraph.Subgraph):
-    def build_graph(self, learning_rate=0.001):
-        return tf.train.AdamOptimizer(learning_rate=learning_rate)
+    def build_graph(self, learning_rate=0.001, beta1=0.9, beta2=0.999, epsilon=1e-8):
+        if type(learning_rate) is not float:
+            learning_rate = learning_rate.node
+        return tf.train.AdamOptimizer(learning_rate=learning_rate, beta1=beta1, beta2=beta2, epsilon=epsilon)
 
 
 class RMSPropOptimizer(subgraph.Subgraph):
-    def build_graph(self, learning_rate, decay=0.9, momentum=0.0, epsilon=1e-10):
-        return tf.train.RMSPropOptimizer(learning_rate=learning_rate.node, decay=decay, momentum=momentum,
+    def build_graph(self, learning_rate=0.0007, decay=0.9, momentum=0.0, epsilon=1e-10):
+        if type(learning_rate) is not float:
+            learning_rate = learning_rate.node
+        return tf.train.RMSPropOptimizer(learning_rate=learning_rate, decay=decay, momentum=momentum,
                                          epsilon=epsilon)

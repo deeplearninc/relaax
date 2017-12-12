@@ -9,3 +9,4 @@ class PGConfig(object):
 
 
 config = PGConfig.preprocess()
+config.combine_gradient = options.get('algorithm/combine_gradient', 'fifo')

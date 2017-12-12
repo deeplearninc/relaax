@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import logging
+import numpy as np
 import tensorflow as tf
 
 from relaax.common.algorithms import subgraph
@@ -7,18 +9,19 @@ from relaax.common.algorithms.lib import graph
 from relaax.common.algorithms.lib import layer
 from relaax.common.algorithms.lib import loss
 from relaax.common.algorithms.lib import optimizer
-from .lib import da3c_graph
+from relaax.common.algorithms.lib import lr_schedule
 from . import da3c_config
 from . import icm_model
+
+logger = logging.getLogger(__name__)
+
+tf.set_random_seed(da3c_config.config.seed)
+np.random.seed(da3c_config.config.seed)
 
 
 class Head(subgraph.Subgraph):
     def build_graph(self, input_placeholder):
-        conv_layer = dict(type=layer.Convolution, activation=layer.Activation.Elu,
-                          n_filters=32, filter_size=[3, 3], stride=[2, 2],
-                          border=layer.Border.Same)
-        input_layers = [dict(conv_layer)] * 4 if da3c_config.config.input.universe else None
-        input = layer.Input(da3c_config.config.input, descs=input_layers, input_placeholder=input_placeholder)
+        input = layer.ConfiguredInput(da3c_config.config.input, input_placeholder=input_placeholder)
 
         sizes = da3c_config.config.hidden_sizes
         layers = [input]
@@ -103,8 +106,9 @@ class SharedParameters(subgraph.Subgraph):
             sg_actor_optimizer = optimizer.AdamOptimizer(da3c_config.config.initial_learning_rate)
             sg_critic_optimizer = optimizer.AdamOptimizer(da3c_config.config.initial_learning_rate)
         else:
-            sg_learning_rate = da3c_graph.LearningRate(sg_global_step,
-                                                       da3c_config.config.initial_learning_rate)
+            sg_learning_rate = lr_schedule.Linear(sg_global_step,
+                                                  da3c_config.config.initial_learning_rate,
+                                                  da3c_config.config.max_global_step)
             sg_actor_optimizer = optimizer.RMSPropOptimizer(learning_rate=sg_learning_rate,
                                                             decay=da3c_config.config.RMSProp.decay,
                                                             momentum=0.0,
