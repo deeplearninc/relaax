@@ -16,6 +16,21 @@ class Watch(object):
             self.interval.reset()
 
 
+class BestWatch(object):
+    def __init__(self, ps, *intervals):
+        self.ps = ps
+        self.interval = Intervals(intervals)
+        self.last_saved_step = ps.n_step()
+
+    def check(self):
+        if self.interval.check():
+            n_step = self.ps.n_step()
+            if n_step != self.last_saved_step:
+                self.ps.save_scored_checkpoint()
+                self.last_saved_step = n_step
+            self.interval.reset()
+
+
 class Intervals(object):
     def __init__(self, intervals):
         self.intervals = []

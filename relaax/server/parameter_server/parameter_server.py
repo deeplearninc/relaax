@@ -53,7 +53,7 @@ class ParameterServer(object):
             log.critical("Can't load algorithm")
             raise
 
-        return ParameterServer(cls.saver_factory, cls.metrics_factory)
+        return ParameterServer(cls.saver_factory, cls.scored_saver_factory, cls.metrics_factory)
 
     @classmethod
     def exit_server(cls, signum, frame):
@@ -114,29 +114,27 @@ class ParameterServer(object):
 
     @classmethod
     def saver_factory(cls, checkpoint):
+        return cls._saver_factory(cls, checkpoint, options.relaax_parameter_server.checkpoints_to_keep)
+
+    @classmethod
+    def scored_saver_factory(cls, checkpoint):
+        return cls._saver_factory(cls, checkpoint, options.relaax_parameter_server.best_checkpoints_to_keep)
+
+    @classmethod
+    def _saver_factory(cls, checkpoint, checkpoints_to_keep):
         ps_options = options.relaax_parameter_server
 
         savers = []
         if ps_options.checkpoint_dir is not None:
-            savers.append(fs_saver.FsSaver(
-                checkpoint=checkpoint,
-                dir=ps_options.checkpoint_dir
-            ))
+            savers.append(fs_saver.FsSaver(checkpoint=checkpoint, dir=ps_options.checkpoint_dir))
         if ps_options.checkpoint_aws_s3 is not None:
             aws_access_key, aws_secret_key = cls.load_aws_keys()
-            savers.append(s3_saver.S3Saver(
-                checkpoint=checkpoint,
-                bucket_key=ps_options.checkpoint_aws_s3,
-                aws_access_key=aws_access_key,
-                aws_secret_key=aws_secret_key
-            ))
+            savers.append(s3_saver.S3Saver(checkpoint=checkpoint, bucket_key=ps_options.checkpoint_aws_s3,
+                                           aws_access_key=aws_access_key, aws_secret_key=aws_secret_key))
 
         saver = multi_saver.MultiSaver(savers)
-        if ps_options.checkpoints_to_keep is not None:
-            saver = limited_saver.LimitedSaver(
-                saver,
-                ps_options.checkpoints_to_keep
-            )
+        if checkpoints_to_keep is not None:
+            saver = limited_saver.LimitedSaver(saver, checkpoints_to_keep)
         return saver
 
     @staticmethod
