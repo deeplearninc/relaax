@@ -114,11 +114,11 @@ class ParameterServer(object):
 
     @classmethod
     def saver_factory(cls, checkpoint):
-        return cls._saver_factory(cls, checkpoint, options.relaax_parameter_server.checkpoints_to_keep)
+        return cls._saver_factory(checkpoint, options.relaax_parameter_server.checkpoints_to_keep)
 
     @classmethod
     def scored_saver_factory(cls, checkpoint):
-        return cls._saver_factory(cls, checkpoint, options.relaax_parameter_server.best_checkpoints_to_keep)
+        return cls._saver_factory(checkpoint, options.relaax_parameter_server.best_checkpoints_to_keep)
 
     @classmethod
     def _saver_factory(cls, checkpoint, checkpoints_to_keep):

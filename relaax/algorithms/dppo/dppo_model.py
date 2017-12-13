@@ -275,6 +275,7 @@ class SharedWeights(subgraph.Subgraph):
 
         sg_optimizer = optimizer.AdamOptimizer(sg_learning_rate, epsilon=dppo_config.config.optimizer.epsilon)
         sg_gradients = optimizer.Gradients(sg_weights, optimizer=sg_optimizer)
+        sg_average_reward = graph.LinearMovingAverage(10)
         sg_initialize = graph.Initialize()
 
         # Weights get/set for updating the policy
@@ -284,7 +285,13 @@ class SharedWeights(subgraph.Subgraph):
         # Expose public API
         self.op_n_step = self.Op(sg_global_step.n)
         self.op_upd_step = self.Op(sg_update_step.n)
-        self.op_inc_global_step = self.Op(sg_global_step.increment, increment=sg_global_step.ph_increment)
+        self.op_score = self.Op(sg_average_reward.average)
+        self.op_inc_global_step = self.Ops(sg_global_step.increment, increment=sg_global_step.ph_increment)
+        self.op_inc_global_step_and_average_reward = self.Ops(sg_global_step.increment,
+                                                              sg_average_reward.add,
+                                                              increment=sg_global_step.ph_increment,
+                                                              reward_sum=sg_average_reward.ph_sum,
+                                                              reward_weight=sg_average_reward.ph_count)
 
         self.op_get_weights = self.Op(sg_weights)
         self.op_get_weights_signed = self.Ops(sg_weights, sg_update_step.n)

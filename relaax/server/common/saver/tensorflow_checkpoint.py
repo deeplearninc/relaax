@@ -53,15 +53,15 @@ class TensorflowCheckpoint(checkpoint.Checkpoint):
 
 class TensorflowScoredCheckpoint(TensorflowCheckpoint):
     _CHECKPOINT_PREFIX = 'best-cp'
-    _CHECKPOINT_RE_PREFIX = '%s-(\d+(?:\.\d+))' % _CHECKPOINT_PREFIX
+    _CHECKPOINT_RE_PREFIX = '%s-(\d+(?:|\.\d+))' % _CHECKPOINT_PREFIX
 
     def _parse_match(self, match):
         score = float(match.group(1))
         n_step = int(match.group(2))
-        return n_step, score
+        return score, n_step
 
     def _short_prefix(self, checkpoint_id):
-        _, score = checkpoint_id
+        score, _ = checkpoint_id
 
         score_s = '%f' % score
 
@@ -74,5 +74,5 @@ class TensorflowScoredCheckpoint(TensorflowCheckpoint):
         return '%s-%s' % (self._CHECKPOINT_PREFIX, score_s)
 
     def _n_step(self, checkpoint_id):
-        n_step, _ = checkpoint_id
+        _, n_step = checkpoint_id
         return n_step

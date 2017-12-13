@@ -118,13 +118,16 @@ class DPPOBatch(object):
 
             logger.debug('Policy & Value function update finished')
             steps = len(batch.experience['state'])
-            self.ps.session.policy.op_inc_global_step(increment=steps)
+            rewards = batch.experience['reward']
+            self.ps.session.policy.op_inc_global_step_and_average_reward(increment=steps,
+                                                                         reward_sum=sum(rewards),
+                                                                         reward_weight=steps)
             self.ps.session.value_func.op_inc_global_step(increment=steps)
 
     def get_batch(self):
         batch = self.episode.subset(elements=self.episode.size,
                                     stochastic=not dppo_config.config.use_lstm,
-                                    keys=['state', 'action', 'old_prob'])
+                                    keys=['state', 'action', 'old_prob', 'reward'])
         experience = self.episode.end()
 
         values, self.final_value = self.compute_state_values(experience['state'])

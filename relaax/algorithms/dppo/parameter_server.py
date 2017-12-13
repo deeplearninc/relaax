@@ -28,5 +28,7 @@ class ParameterServer(parameter_server_base.ParameterServerBase):
         self.session.value_func.op_init_weight_history()
 
     def n_step(self):
-        policy_step = self.session.policy.op_n_step()
-        return policy_step
+        return self.session.policy.op_n_step()
+
+    def score(self):
+        return self.session.policy.op_score()

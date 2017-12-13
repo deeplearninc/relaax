@@ -24,7 +24,7 @@ class ParameterServerBase(object):
         self.saver.save_checkpoint(self.n_step())
 
     def save_scored_checkpoint(self):
-        self.scored_saver.save_checkpoint(self.n_step())
+        self.scored_saver.save_checkpoint((self.score(), self.n_step()))
 
     def create_checkpoint(self):
         return self.session.create_checkpoint()
