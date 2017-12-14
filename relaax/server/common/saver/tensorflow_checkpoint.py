@@ -15,6 +15,9 @@ class TensorflowCheckpoint(checkpoint.Checkpoint):
         self.session = session
         self.saver = tensorflow.train.Saver(max_to_keep=None)
 
+    def normalized_checkpoint_id(self, checkpoint_id):
+        return checkpoint_id
+
     def checkpoint_ids(self, names):
         re_ = re.compile('^%s-(\d+)(|\..+)$' % self._CHECKPOINT_RE_PREFIX)
         ids = set()
@@ -25,15 +28,18 @@ class TensorflowCheckpoint(checkpoint.Checkpoint):
         return ids
 
     def checkpoint_names(self, names, checkpoint_id):
+        assert checkpoint_id == self.normalized_checkpoint_id(checkpoint_id)
         prefix = self._full_prefix(checkpoint_id)
         re_ = re.compile('^%s(?:|\..+)$' % re.escape(prefix))
         return (name for name in names if re_.match(name) is not None)
 
     def restore_checkpoint(self, dir, checkpoint_id):
+        assert checkpoint_id == self.normalized_checkpoint_id(checkpoint_id)
         prefix = self._full_prefix(checkpoint_id)
         self.saver.restore(self.session, os.path.join(dir, prefix))
 
     def save_checkpoint(self, dir, checkpoint_id):
+        assert checkpoint_id == self.normalized_checkpoint_id(checkpoint_id)
         self.saver.save(self.session, os.path.join(dir, self._short_prefix(checkpoint_id)),
                         global_step=self._n_step(checkpoint_id))
 
@@ -54,6 +60,11 @@ class TensorflowCheckpoint(checkpoint.Checkpoint):
 class TensorflowScoredCheckpoint(TensorflowCheckpoint):
     _CHECKPOINT_PREFIX = 'best-cp'
     _CHECKPOINT_RE_PREFIX = '%s-((?:|-)\d+(?:|\.\d+))' % _CHECKPOINT_PREFIX
+
+    def normalized_checkpoint_id(self, checkpoint_id):
+        score, n_step = checkpoint_id
+        score = float('%f' % score)
+        return score, n_step
 
     def _parse_match(self, match):
         score = float(match.group(1))

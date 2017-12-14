@@ -19,6 +19,7 @@ from relaax.server.common.metrics import x_metrics
 from relaax.server.common.saver import fs_saver
 from relaax.server.common.saver import limited_saver
 from relaax.server.common.saver import multi_saver
+from relaax.server.common.saver import normalized_saver
 from relaax.server.common.saver import s3_saver
 from relaax.server.common.saver import watch
 import multiprocessing
@@ -135,7 +136,7 @@ class ParameterServer(object):
         saver = multi_saver.MultiSaver(savers)
         if checkpoints_to_keep is not None:
             saver = limited_saver.LimitedSaver(saver, checkpoints_to_keep)
-        return saver
+        return normalized_saver.NormalizedSaver(saver, checkpoint)
 
     @staticmethod
     def metrics_factory(x):
