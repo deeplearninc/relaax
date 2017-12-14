@@ -53,7 +53,7 @@ class TensorflowCheckpoint(checkpoint.Checkpoint):
 
 class TensorflowScoredCheckpoint(TensorflowCheckpoint):
     _CHECKPOINT_PREFIX = 'best-cp'
-    _CHECKPOINT_RE_PREFIX = '%s-(\d+(?:|\.\d+))' % _CHECKPOINT_PREFIX
+    _CHECKPOINT_RE_PREFIX = '%s-((?:|-)\d+(?:|\.\d+))' % _CHECKPOINT_PREFIX
 
     def _parse_match(self, match):
         score = float(match.group(1))
