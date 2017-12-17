@@ -10,9 +10,9 @@ from relaax.common.algorithms.lib import layer
 from relaax.common.algorithms.lib import loss
 from relaax.common.algorithms.lib import optimizer
 from relaax.common.algorithms.lib import lr_schedule
-from relaax.common.algorithms.lib import utils
 
 from relaax.algorithms.trpo.trpo_model import (GetVariablesFlatten, SetVariablesFlatten)
+
 from . import da3c_config
 from . import icm_model
 
@@ -100,89 +100,13 @@ class SharedParameters(subgraph.Subgraph):
                                            gradients=sg_gradients.ph_gradients,
                                            increment=sg_global_step.ph_increment)
 
-        # Gradients' applying methods: fifo (by default), averaging, delay compensation
-
-        # First come, first served gradient update
-        def func_fifo_gradient(session, gradients, step_inc, agent_step):
-            global_step = session.op_n_step()
-            logger.debug("Gradient with step {} received from agent. Current step: {}".format(agent_step,
-                                                                                              global_step))
-            session.op_apply_gradients(gradients=gradients, increment=step_inc)
-
-        # Accumulate gradients from many agents and average them
-        self.gradients, self.avg_step_inc = [], 0
-
-        def func_average_gradient(session, gradients, step_inc, agent_step):
-            logger.debug("Gradient is received, number of gradients collected so far: {}".
-                         format(len(self.gradients)))
-            if agent_step >= session.op_n_step():
-                logger.debug("Gradient is FRESH -> Accepted")
-                self.gradients.append(gradients)
-                self.avg_step_inc += step_inc
-            else:
-                logger.debug("Gradient is OLD -> Rejected")
-
-            if len(self.gradients) >= da3c_config.config.num_gradients:
-                # We've collected enough gradients -> we can average them now and make an update step
-                logger.debug("Computing Mean of accumulated Gradients")
-                flat_grads = [Shaper.get_flat(g) for g in self.gradients]
-                mean_flat_grad = np.mean(np.stack(flat_grads), axis=0)
-
-                mean_grad = Shaper.reverse(mean_flat_grad, gradients)
-                session.op_apply_gradients(gradients=mean_grad, increment=self.avg_step_inc)
-                self.gradients, self.avg_step_inc = [], 0
-
-        # Asynchronous Stochastic Gradient Descent with Delay Compensation,
-        # see https://arxiv.org/pdf/1609.08326.pdf
-        self.weights_history = {}   # {global_step: weights}
-
+        # Determine Gradients' applying methods: fifo (by default), averaging, delay compensation
         sg_get_weights_flatten = GetVariablesFlatten(sg_weights)
         sg_set_weights_flatten = SetVariablesFlatten(sg_weights)
-
         self.op_get_weights_flatten = self.Op(sg_get_weights_flatten)
         self.op_set_weights_flatten = self.Op(sg_set_weights_flatten, value=sg_set_weights_flatten.ph_value)
 
-        def init_weight_history(session):
-            self.weights_history[0] = session.op_get_weights_flatten()
-
-        self.op_init_weight_history = self.Call(init_weight_history)
-
-        def func_dc_gradient(session, gradients, step_inc, agent_step):
-            global_weights_f = session.op_get_weights_flatten()
-
-            old_weights_f = self.weights_history.get(agent_step, global_weights_f)
-
-            new_gradient_f = Shaper.get_flat(gradients)
-
-            # Compute compensated Gradient
-            delta = da3c_config.config.dc_lambda * (
-                new_gradient_f * new_gradient_f * (global_weights_f - old_weights_f))
-
-            compensated_gradient_f = new_gradient_f + delta
-            compensated_gradient = Shaper.reverse(compensated_gradient_f, gradients)
-
-            session.op_apply_gradients(gradients=compensated_gradient, increment=step_inc)
-
-            updated_weights = session.op_get_weights_flatten()
-            updated_step = session.op_n_step()
-            self.weights_history[updated_step] = updated_weights
-
-            # Cleanup history
-            for k in list(self.weights_history.keys()):
-                if k < updated_step - da3c_config.config.dc_history:
-                    try:
-                        del self.weights_history[k]
-                    except KeyError:
-                        pass
-
-        if da3c_config.config.combine_gradients == 'fifo':
-            self.op_submit_gradients = self.Call(func_fifo_gradient)
-        elif da3c_config.config.combine_gradients == 'avg':
-            self.op_submit_gradients = self.Call(func_average_gradient)
-        elif da3c_config.config.combine_gradients == 'dc':
-            self.op_submit_gradients = self.Call(func_dc_gradient)
-        else:
-            logger.error("Unknown gradient combination mode: {}".format(da3c_config.config.combine_gradients))
+        self.op_submit_gradients = self.Call(graph.get_gradients_apply_routine(da3c_config.config))
 
         self.op_initialize = self.Op(sg_initialize)
 
@@ -238,28 +162,3 @@ class AgentModel(subgraph.Subgraph):
                                                     state=sg_network.ph_state)
 
         self.op_compute_gradients_and_summaries = self.Ops(sg_gradients.calculate, summaries, **feeds)
-
-
-class Shaper():
-    @staticmethod
-    def numel(x):
-        return np.prod(np.shape(x))
-
-    @classmethod
-    def get_flat(cls, v):
-        tensor_list = list(utils.Utils.flatten(v))
-        u = np.concatenate([np.reshape(t, newshape=[cls.numel(t), ]) for t in tensor_list], axis=0)
-        return u
-
-    @staticmethod
-    def reverse(u, base_shape):
-        tensor_list = list(utils.Utils.flatten(base_shape))
-        shapes = map(np.shape, tensor_list)
-        v_flat = []
-        start = 0
-        for (shape, t) in zip(shapes, tensor_list):
-            size = np.prod(shape)
-            v_flat.append(np.reshape(u[start:start + size], shape))
-            start += size
-        v = utils.Utils.reconstruct(v_flat, base_shape)
-        return v

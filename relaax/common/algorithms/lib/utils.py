@@ -203,3 +203,28 @@ class RunningStat(object):
 
 def discount(x, gamma):
     return scipy.signal.lfilter([1], [1, -gamma], x[::-1], axis=0)[::-1]
+
+
+class Shaper():
+    @staticmethod
+    def numel(x):
+        return np.prod(np.shape(x))
+
+    @classmethod
+    def get_flat(cls, v):
+        tensor_list = list(Utils.flatten(v))
+        u = np.concatenate([np.reshape(t, newshape=[cls.numel(t), ]) for t in tensor_list], axis=0)
+        return u
+
+    @staticmethod
+    def reverse(u, base_shape):
+        tensor_list = list(Utils.flatten(base_shape))
+        shapes = map(np.shape, tensor_list)
+        v_flat = []
+        start = 0
+        for (shape, t) in zip(shapes, tensor_list):
+            size = np.prod(shape)
+            v_flat.append(np.reshape(u[start:start + size], shape))
+            start += size
+        v = Utils.reconstruct(v_flat, base_shape)
+        return v

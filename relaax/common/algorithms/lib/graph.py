@@ -1,11 +1,15 @@
 from __future__ import print_function
 from builtins import object
+
+import logging
+import numpy as np
 import tensorflow as tf
 from tensorflow.python.ops import init_ops
-import numpy as np
 
 from relaax.common.algorithms.lib import utils
 from relaax.common.algorithms import subgraph
+
+logger = logging.getLogger(__name__)
 
 
 class DefaultInitializer(object):
@@ -294,3 +298,90 @@ class LinearMovingAverage(subgraph.Subgraph):
         self.ph_count = ph_count
         self.add = TfNode(tf.group(update_sum, update_count, update_sums, update_counts, move))
         self.average = TfNode(sum_ / tf.maximum(tf.cast(1e-10, tf.float64), count))
+
+
+def get_gradients_apply_routine(cfg):
+    if cfg.combine_gradients == 'fifo':
+        return GradientFIFO().func
+    elif cfg.combine_gradients == 'avg':
+        return GradientAVG(cfg).func
+    elif cfg.combine_gradients == 'dc':
+        return GradientDC(cfg).func
+    else:
+        logger.error("Unknown gradient combination mode: {}".format(cfg.combine_gradients))
+
+
+class GradientFIFO(subgraph.Subgraph):
+    # First come, first served gradient update
+    def build_graph(self):
+        def func_fifo_gradient(session, gradients, step_inc, agent_step):
+            global_step = session.op_n_step()
+            logger.debug("Gradient with step {} received from agent. Current step: {}".format(agent_step,
+                                                                                              global_step))
+            session.op_apply_gradients(gradients=gradients, increment=step_inc)
+
+        self.func = func_fifo_gradient
+
+
+class GradientAVG(subgraph.Subgraph):
+    # Accumulate gradients from many agents and average them
+    def build_graph(self, cfg):
+        self.gradients = []
+        self.avg_step_inc = 0
+
+        def func_average_gradient(session, gradients, step_inc, agent_step):
+            logger.debug("Gradient is received, number of gradients collected so far: {}".
+                         format(len(self.gradients)))
+            if agent_step >= session.op_n_step():
+                logger.debug("Gradient is FRESH -> Accepted")
+                self.gradients.append(gradients)
+                self.avg_step_inc += step_inc
+            else:
+                logger.debug("Gradient is OLD -> Rejected")
+
+            if len(self.gradients) >= cfg.num_gradients:
+                # We've collected enough gradients -> we can average them now and make an update step
+                logger.debug("Computing Mean of accumulated Gradients")
+                flat_grads = [utils.Shaper.get_flat(g) for g in self.gradients]
+                mean_flat_grad = np.mean(np.stack(flat_grads), axis=0)
+
+                mean_grad = utils.Shaper.reverse(mean_flat_grad, gradients)
+                session.op_apply_gradients(gradients=mean_grad, increment=self.avg_step_inc)
+                self.gradients, self.avg_step_inc = [], 0
+
+        self.func = func_average_gradient
+
+
+class GradientDC(subgraph.Subgraph):
+    # Asynchronous Stochastic Gradient Descent with Delay Compensation -> arxiv.org/abs/1609.08326
+    def build_graph(self, cfg):
+        self.weights_history = {}   # {id: weights}
+
+        def func_dc_gradient(session, gradients, step_inc, agent_step):
+            global_weights_f = session.op_get_weights_flatten()
+
+            old_weights_f = self.weights_history.get(agent_step, global_weights_f)
+
+            new_gradient_f = utils.Shaper.get_flat(gradients)
+
+            # Compute compensated Gradient
+            delta = cfg.dc_lambda * (new_gradient_f * new_gradient_f * (global_weights_f - old_weights_f))
+
+            compensated_gradient_f = new_gradient_f + delta
+            compensated_gradient = utils.Shaper.reverse(compensated_gradient_f, gradients)
+
+            session.op_apply_gradients(gradients=compensated_gradient, increment=step_inc)
+
+            updated_weights = session.op_get_weights_flatten()
+            updated_step = session.op_n_step()
+            self.weights_history[updated_step] = updated_weights
+
+            # Cleanup history
+            for k in list(self.weights_history.keys()):
+                if k < updated_step - cfg.dc_history:
+                    try:
+                        del self.weights_history[k]
+                    except KeyError:
+                        pass
+
+        self.func = func_dc_gradient
