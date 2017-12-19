@@ -118,7 +118,7 @@ class Reshape(subgraph.Subgraph):
 
 class Flatten(subgraph.Subgraph):
     def build_graph(self, x):
-        return Reshape(x, (-1, )).node
+        return Reshape(x, (-1,)).node
 
 
 class Expand(subgraph.Subgraph):
@@ -328,6 +328,7 @@ class GradientAVG(subgraph.Subgraph):
     def build_graph(self, cfg):
         self.gradients = []
         self.avg_step_inc = 0
+        self.cfg = cfg
 
         def func_average_gradient(session, gradients, step_inc, agent_step):
             logger.debug("Gradient is received, number of gradients collected so far: {}".
@@ -339,7 +340,7 @@ class GradientAVG(subgraph.Subgraph):
             else:
                 logger.debug("Gradient is OLD -> Rejected")
 
-            if len(self.gradients) >= cfg.num_gradients:
+            if len(self.gradients) >= self.cfg.num_gradients:
                 # We've collected enough gradients -> we can average them now and make an update step
                 logger.debug("Computing Mean of accumulated Gradients")
                 flat_grads = [utils.Shaper.get_flat(g) for g in self.gradients]
@@ -355,7 +356,8 @@ class GradientAVG(subgraph.Subgraph):
 class GradientDC(subgraph.Subgraph):
     # Asynchronous Stochastic Gradient Descent with Delay Compensation -> arxiv.org/abs/1609.08326
     def build_graph(self, cfg):
-        self.weights_history = {}   # {id: weights}
+        self.weights_history = {}  # {id: weights}
+        self.cfg = cfg
 
         def func_dc_gradient(session, gradients, step_inc, agent_step):
             global_weights_f = session.op_get_weights_flatten()
@@ -365,7 +367,8 @@ class GradientDC(subgraph.Subgraph):
             new_gradient_f = utils.Shaper.get_flat(gradients)
 
             # Compute compensated Gradient
-            delta = cfg.dc_lambda * (new_gradient_f * new_gradient_f * (global_weights_f - old_weights_f))
+            delta = self.cfg.dc_lambda * \
+                (new_gradient_f * new_gradient_f * (global_weights_f - old_weights_f))
 
             compensated_gradient_f = new_gradient_f + delta
             compensated_gradient = utils.Shaper.reverse(compensated_gradient_f, gradients)
@@ -378,7 +381,7 @@ class GradientDC(subgraph.Subgraph):
 
             # Cleanup history
             for k in list(self.weights_history.keys()):
-                if k < updated_step - cfg.dc_history:
+                if k < updated_step - self.cfg.dc_history:
                     try:
                         del self.weights_history[k]
                     except KeyError:
