@@ -90,15 +90,22 @@ class SharedParameters(subgraph.Subgraph):
             self.op_icm_apply_gradients = self.Op(sg_icm_gradients.apply,
                                                   gradients=sg_icm_gradients.ph_gradients)
 
+        sg_average_reward = graph.LinearMovingAverage(da3c_config.config.avg_in_num_batches)
         sg_initialize = graph.Initialize()
 
         # Expose public API
         self.op_n_step = self.Op(sg_global_step.n)
-        self.op_check_weights = self.Ops(sg_weights.check, sg_global_step.n)
-        self.op_get_weights = self.Op(sg_weights)
+        self.op_score = self.Op(sg_average_reward.average)
+
+        self.op_check_weights = self.Op(sg_weights.check)
+        self.op_get_weights = self.Ops(sg_weights, sg_global_step.n)
+
         self.op_apply_gradients = self.Ops(sg_gradients.apply, sg_global_step.increment,
                                            gradients=sg_gradients.ph_gradients,
                                            increment=sg_global_step.ph_increment)
+        self.op_add_rewards_to_model_score_routine = self.Ops(sg_average_reward.add,
+                                                              reward_sum=sg_average_reward.ph_sum,
+                                                              reward_weight=sg_average_reward.ph_count)
 
         # Determine Gradients' applying methods: fifo (by default), averaging, delay compensation
         sg_get_weights_flatten = GetVariablesFlatten(sg_weights)

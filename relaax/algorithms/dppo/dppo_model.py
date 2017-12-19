@@ -275,7 +275,7 @@ class SharedWeights(subgraph.Subgraph):
 
         sg_optimizer = optimizer.AdamOptimizer(sg_learning_rate, epsilon=dppo_config.config.optimizer.epsilon)
         sg_gradients = optimizer.Gradients(sg_weights, optimizer=sg_optimizer)
-        sg_average_reward = graph.LinearMovingAverage(10)
+        sg_average_reward = graph.LinearMovingAverage(dppo_config.config.avg_in_num_batches)
         sg_initialize = graph.Initialize()
 
         # Weights get/set for updating the policy

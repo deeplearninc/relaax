@@ -16,6 +16,7 @@ config.critic_scale = options.get('algorithm/critic_scale', 0.25)
 config.combine_gradient = options.get('algorithm/combine_gradient', 'fifo')
 config.gradients_norm_clipping = options.get('algorithm/gradients_norm_clipping', False)
 
+config.avg_in_num_batches = options.get('algorithm/avg_in_num_batches', 10)
 config.use_filter = options.get('algorithm/use_filter', False)
 config.use_lstm = options.get('algorithm/use_lstm', False)
 config.use_icm = options.get('algorithm/use_icm', False)
