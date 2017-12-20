@@ -160,14 +160,14 @@ class Agent(object):
 
     @profiler.wrap
     def send_experience(self, experience):
-        self.apply_gradients(self.compute_gradients(experience), len(experience))
+        self.apply_gradients(self.compute_gradients(experience), experience['reward'])
         if da3c_config.config.use_icm:
             self.ps.session.op_icm_apply_gradients(gradients=self.compute_icm_gradients(experience))
 
     @profiler.wrap
     def receive_experience(self):
-        _, self.agent_weights_id = self.ps.session.op_check_weights()
-        weights = self.ps.session.op_get_weights()
+        self.ps.session.op_check_weights()
+        weights, self.agent_weights_id = self.ps.session.op_get_weights()
         # print('w_id', self.agent_weights_id)
         if M:
             for i, w in enumerate(utils.Utils.flatten(weights)):
@@ -276,7 +276,8 @@ class Agent(object):
                                                      action=experience['action'],
                                                      probs=experience['probs'])
 
-    def apply_gradients(self, gradients, experience_size):
+    def apply_gradients(self, gradients, rewards):
+        experience_size = len(rewards)
         if M:
             for i, g in enumerate(utils.Utils.flatten(gradients)):
                 self.metrics.histogram('gradients_%d' % i, g)
@@ -284,3 +285,7 @@ class Agent(object):
         self.ps.session.op_submit_gradients(gradients=gradients, step_inc=experience_size,
                                             agent_step=self.agent_weights_id)
         self.ps.session.op_check_weights()
+
+        self.ps.session.op_add_rewards_to_model_score_routine(increment=experience_size,
+                                                              reward_sum=sum(rewards),
+                                                              reward_weight=experience_size)

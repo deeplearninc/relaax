@@ -19,6 +19,7 @@ config.optimizer = options.get('algorithm/optimizer', 'Adam')
 config.hogwild = options.get('algorithm/hogwild', False)
 config.use_icm = options.get('algorithm/use_icm', False)
 config.use_filter = options.get('algorithm/use_filter', False)
+config.avg_in_num_batches = options.get('algorithm/avg_in_num_batches', 10)
 
 config.output.action_high = options.get('algorithm/output/action_high', [])
 config.output.action_low = options.get('algorithm/output/action_low', [])
