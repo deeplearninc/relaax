@@ -181,7 +181,8 @@ class Placeholder(subgraph.Subgraph):
     DTYPE = {
         np.int32: tf.int32,
         np.int64: tf.int64,
-        np.float32: tf.float32
+        np.float32: tf.float32,
+        np.float64: tf.float64
     }
 
     def build_graph(self, dtype, shape=None, name=None):
@@ -220,7 +221,9 @@ class GlobalStep(subgraph.Subgraph):
 class Variable(subgraph.Subgraph):
     DTYPE = {
         None: None,
-        np.int64: tf.int64
+        np.int32: tf.int32,
+        np.int64: tf.int64,
+        np.float64: tf.float64
     }
 
     def build_graph(self, initial_value, dtype=None):
@@ -260,3 +263,34 @@ class AssignWeights(subgraph.Subgraph):
             trap = 1. - part
             self.op = TfNode([tf.assign(variable, trap * variable + part * value) for variable, value
                               in utils.Utils.izip(w1.node, w2.node)])
+
+
+class LinearMovingAverage(subgraph.Subgraph):
+    def build_graph(self, size):
+        sum_ = tf.Variable(0, dtype=np.float64)
+        count = tf.Variable(0, dtype=np.float64)
+
+        pointer = tf.Variable(0, dtype=np.int32)
+        sums = tf.Variable([0] * size, dtype=np.float64)
+        counts = tf.Variable([0] * size, dtype=np.float64)
+
+        ph_sum = Placeholder(np.float64)
+        ph_count = Placeholder(np.float64)
+
+        update_sum = tf.assign_add(sum_, ph_sum.node - sums[pointer])
+        update_count = tf.assign_add(count, ph_count.node - counts[pointer])
+
+        with tf.get_default_graph().control_dependencies([update_sum]):
+            update_sums = tf.scatter_update(sums, [pointer], [ph_sum.node])
+
+        with tf.get_default_graph().control_dependencies([update_count]):
+            update_counts = tf.scatter_update(counts, [pointer], [ph_count.node])
+
+        with tf.get_default_graph().control_dependencies([update_sum, update_count, update_sums,
+                                                          update_counts]):
+            move = tf.assign(pointer, (pointer + 1) % size)
+
+        self.ph_sum = ph_sum
+        self.ph_count = ph_count
+        self.add = TfNode(tf.group(update_sum, update_count, update_sums, update_counts, move))
+        self.average = TfNode(sum_ / tf.maximum(tf.cast(1e-10, tf.float64), count))

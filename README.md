@@ -1,3 +1,5 @@
+[![CircleCI](https://circleci.com/gh/deeplearninc/relaax.svg?style=shield)](https://circleci.com/gh/deeplearninc/relaax)
+
 # REinforcement Learning Algorithms, Autoscaling and eXchange (RELAAX)
 
 RELAAX is a framework designed to:
@@ -283,7 +285,7 @@ Update metrics message:
 
 ## [RELAAX Servers](#contents)
 
-RELAAX Server implements dynamic loading of the algorithm implementation. By convention, every algorithm implementation exposes Agent (agent.py) and ParameterServer (parameter_server.py) classes. RLX Server loads and instattiate Agent model for every incomming connection from Environment. There usually single Parameter Server (PS). PS loads and instantiate ParameterServer class. Every Agent gets RPC connection to PS and could call remotely methods exposed on PS model.
+RELAAX Server implements dynamic loading of the algorithm implementation. By convention, every algorithm implementation exposes Agent (agent.py) and ParameterServer (parameter_server.py) classes. RLX Server loads and instattiate Agent model for every incoming connection from Environment. There usually single Parameter Server (PS). PS loads and instantiate ParameterServer class. Every Agent gets RPC connection to PS and could call remotely methods exposed on PS model.
 
 Model(s) on PS should be registered with Session and methods exposed to RPC using Op method. See [samples/simple-exchange-js/algorithm/](samples/simple-exchange-js/algorithm/) to very basic sample of the Agent, ParameterServer, and Model implementation and data exchange between them.
 

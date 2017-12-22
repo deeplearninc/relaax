@@ -30,6 +30,9 @@ class Session(object):
     def create_checkpoint(self):
         return tensorflow_checkpoint.TensorflowCheckpoint(self._tf_session)
 
+    def create_scored_checkpoint(self):
+        return tensorflow_checkpoint.TensorflowScoredCheckpoint(self._tf_session)
+
 
 class SuperModel(object):
     def __init__(self, desc):

@@ -45,7 +45,7 @@ class DiagGauss(ProbType):
         return prob[:, :self.d]
 
 
-class StochPolicyKeras(object):
+class StochPolicy(object):
     def __init__(self, probtype, relaax_session, relaax_metrics):
         self._probtype = probtype
         self._relaax_session = relaax_session

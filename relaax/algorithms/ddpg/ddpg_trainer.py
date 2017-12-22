@@ -28,9 +28,8 @@ class Trainer(object):
         model = ddpg_model.AgentModel()
         self.session = session.Session(model)
 
-        self.episode = episode.ReplayBuffer(cfg.config.buffer_size,
-                                            cfg.config.exploration.rnd_seed,
-                                            'state', 'action', 'reward', 'terminal', 'next_state')
+        self.episode = episode.ReplayBuffer(['state', 'action', 'reward', 'terminal', 'next_state'],
+                                            cfg.config.buffer_size, seed=cfg.config.exploration.rnd_seed)
         self.episode.begin()
         self.observation = observation.Observation(cfg.config.input.history)
         self.last_action = self.noise_epsilon = None
@@ -108,7 +107,7 @@ class Trainer(object):
 
     @profiler.wrap
     def update(self):
-        if self.episode.experience._len > cfg.config.batch_size:
+        if self.episode.size > cfg.config.batch_size:
             experience = self.episode.sample(cfg.config.batch_size)
             if not self.exploit:
                 self.do_task(lambda: self.send_experience(experience))

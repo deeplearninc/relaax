@@ -230,20 +230,11 @@ class InputPlaceholder(subgraph.Subgraph):
 
 
 class Input(subgraph.Subgraph):
-    def build_graph(self, input, descs=None, input_placeholder=None):
+    def build_graph(self, input, descs, input_placeholder=None):
         if input_placeholder is None:
             input_placeholder = InputPlaceholder(input)
         self.ph_state = input_placeholder.ph_state
 
-        if descs is None:
-            if input.use_convolutions:
-                # applying vanilla A3C convolution layers
-                descs = [dict(type=Convolution, n_filters=16, filter_size=[8, 8], stride=[4, 4],
-                              activation=Activation.Relu),
-                         dict(type=Convolution, n_filters=32, filter_size=[4, 4], stride=[2, 2],
-                              activation=Activation.Relu)]
-            else:
-                descs = []
         layers = GenericLayers(input_placeholder, descs)
 
         self.weight = layers.weight
@@ -266,17 +257,20 @@ class ConfiguredInput(subgraph.Subgraph):
         if hasattr(input, 'layers'):
             descs = self.read_layers(input.layers)
         else:
-            if input.universe:
-                conv_layer = dict(type=Convolution, activation=Activation.Elu, n_filters=32,
-                                  filter_size=[3, 3], stride=[2, 2], border=Border.Same)
-                descs = [conv_layer] * 4
+            if input.use_convolutions:
+                if input.universe:
+                    conv_layer = dict(type=Convolution, activation=Activation.Elu, n_filters=32,
+                                      filter_size=[3, 3], stride=[2, 2], border=Border.Same)
+                    descs = [conv_layer] * 4
+                else:
+                    descs = [dict(type=Convolution, n_filters=16, filter_size=[8, 8], stride=[4, 4],
+                                  activation=Activation.Relu),
+                             dict(type=Convolution, n_filters=32, filter_size=[4, 4], stride=[2, 2],
+                                  activation=Activation.Relu)]
             else:
-                descs = [dict(type=Convolution, n_filters=16, filter_size=[8, 8], stride=[4, 4],
-                              activation=Activation.Relu),
-                         dict(type=Convolution, n_filters=32, filter_size=[4, 4], stride=[2, 2],
-                              activation=Activation.Relu)]
+                descs = []
 
-        input = Input(input, descs=descs, input_placeholder=input_placeholder)
+        input = Input(input, descs, input_placeholder=input_placeholder)
         self.ph_state = input.ph_state
         self.weight = input.weight
         return input.node

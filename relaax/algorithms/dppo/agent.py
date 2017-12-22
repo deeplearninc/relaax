@@ -19,11 +19,12 @@ class Agent(object):
     def __init__(self, parameter_server, metrics):
         self.ps = parameter_server
         self.metrics = metrics
+        self.batch = None
 
     # environment is ready and
     # waiting for agent to initialize
     def init(self, exploit=False):
-        self.batch = dppo_batch.DPPOBatch(self.ps, exploit)
+        self.batch = dppo_batch.DPPOBatch(self.ps, exploit, self.metrics)
         self.batch.begin()
         return True
 
@@ -34,8 +35,10 @@ class Agent(object):
 
         action = self.batch.step(reward, state, terminal)
 
-        if (len(self.batch.experience) == dppo_config.config.batch_size) or terminal:
+        if self.batch.size >= dppo_config.config.batch_size or terminal:
             self.batch.end()
+            if terminal:
+                self.reset()
             self.batch.begin()
 
         return action

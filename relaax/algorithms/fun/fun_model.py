@@ -15,7 +15,7 @@ from .lib.lstm import DilatedLSTMCell, CustomBasicLSTMCell
 
 class _PerceptionNetwork(subgraph.Subgraph):
     def build_graph(self):
-        input = layer.Input(cfg.input)
+        input = layer.ConfiguredInput(cfg.input)
 
         self.perception =\
             layer.Dense(layer.Flatten(input), cfg.d,  # d=256
