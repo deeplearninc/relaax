@@ -99,7 +99,7 @@ class Agent(object):
                            repr(expected_shape))
 
     def act(self, state, skip=False):
-        logger.debug("Agent.act called, skip={}".format(skip))
+        #logger.debug("Agent.act called, skip={}".format(skip))
         start = time.time()
 
         obs = state
