@@ -388,3 +388,21 @@ class GradientDC(subgraph.Subgraph):
                         pass
 
         self.func = func_dc_gradient
+
+
+class GetVariablesFlatten(subgraph.Subgraph):
+    def build_graph(self, variables):
+        return tf.concat([tf.reshape(t, [-1]) for t in utils.Utils.flatten(variables.node)], axis=0)
+
+
+class SetVariablesFlatten(subgraph.Subgraph):
+    def build_graph(self, variables):
+        self.ph_value = tf.placeholder(tf.float32, [None])
+        start = 0
+        assignes = []
+        for t in utils.Utils.flatten(variables.node):
+            shape = t.shape.as_list()
+            size = np.prod(shape)
+            assignes.append(tf.assign(t, tf.reshape(self.ph_value[start:start + size], shape)))
+            start += size
+        return tf.group(*assignes)

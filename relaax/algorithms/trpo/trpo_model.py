@@ -13,24 +13,6 @@ from . import trpo_config
 from .lib import trpo_graph
 
 
-class GetVariablesFlatten(subgraph.Subgraph):
-    def build_graph(self, variables):
-        return tf.concat([tf.reshape(t, [-1]) for t in utils.Utils.flatten(variables.node)], axis=0)
-
-
-class SetVariablesFlatten(subgraph.Subgraph):
-    def build_graph(self, variables):
-        self.ph_value = tf.placeholder(tf.float32, [None])
-        start = 0
-        assignes = []
-        for t in utils.Utils.flatten(variables.node):
-            shape = t.shape.as_list()
-            size = np.prod(shape)
-            assignes.append(tf.assign(t, tf.reshape(self.ph_value[start:start + size], shape)))
-            start += size
-        return tf.group(*assignes)
-
-
 class Categorical(subgraph.Subgraph):
     def build_graph(self, n):
         self._n = n
@@ -180,8 +162,8 @@ class PolicyNet(subgraph.Subgraph):
     def build_graph(self):
         sg_network = Network()
 
-        sg_get_weights_flatten = GetVariablesFlatten(sg_network.weights)
-        sg_set_weights_flatten = SetVariablesFlatten(sg_network.weights)
+        sg_get_weights_flatten = graph.GetVariablesFlatten(sg_network.weights)
+        sg_set_weights_flatten = graph.SetVariablesFlatten(sg_network.weights)
 
         ph_adv_n = graph.TfNode(tf.placeholder(tf.float32, name='adv_n'))
 
@@ -207,7 +189,7 @@ class PolicyNet(subgraph.Subgraph):
         sg_ent = graph.TfNode(tf.reduce_mean(sg_probtype.Entropy(sg_network.actor).node))
 
         sg_gradients = optimizer.Gradients(sg_network.weights, loss=sg_surr)
-        sg_gradients_flatten = GetVariablesFlatten(sg_gradients.calculate)
+        sg_gradients_flatten = graph.GetVariablesFlatten(sg_gradients.calculate)
 
         self.op_get_weights = self.Op(sg_network.weights)
         self.op_get_weights_flatten = self.Op(sg_get_weights_flatten)
@@ -259,15 +241,15 @@ class ValueNet(subgraph.Subgraph):
 
         weights = layer.Weights(value)
 
-        sg_get_weights_flatten = GetVariablesFlatten(weights)
-        sg_set_weights_flatten = SetVariablesFlatten(weights)
+        sg_get_weights_flatten = graph.GetVariablesFlatten(weights)
+        sg_set_weights_flatten = graph.SetVariablesFlatten(weights)
 
         l2 = graph.TfNode(1e-3 * tf.add_n([tf.reduce_sum(tf.square(v)) for v in
                                            utils.Utils.flatten(weights.node)]))
         loss = graph.TfNode(l2.node + mse.node)
 
         sg_gradients = optimizer.Gradients(weights, loss=loss)
-        sg_gradients_flatten = GetVariablesFlatten(sg_gradients.calculate)
+        sg_gradients_flatten = graph.GetVariablesFlatten(sg_gradients.calculate)
 
         self.op_value = self.Op(value, state=ph_state)
 

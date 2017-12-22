@@ -11,8 +11,6 @@ from relaax.common.algorithms.lib import loss
 from relaax.common.algorithms.lib import optimizer
 from relaax.common.algorithms.lib import lr_schedule
 
-from relaax.algorithms.trpo.trpo_model import (GetVariablesFlatten, SetVariablesFlatten)
-
 from . import da3c_config
 from . import icm_model
 
@@ -108,8 +106,8 @@ class SharedParameters(subgraph.Subgraph):
                                                               reward_weight=sg_average_reward.ph_count)
 
         # Determine Gradients' applying methods: fifo (by default), averaging, delay compensation
-        sg_get_weights_flatten = GetVariablesFlatten(sg_weights)
-        sg_set_weights_flatten = SetVariablesFlatten(sg_weights)
+        sg_get_weights_flatten = graph.GetVariablesFlatten(sg_weights)
+        sg_set_weights_flatten = graph.SetVariablesFlatten(sg_weights)
         self.op_get_weights_flatten = self.Op(sg_get_weights_flatten)
         self.op_set_weights_flatten = self.Op(sg_set_weights_flatten, value=sg_set_weights_flatten.ph_value)
 

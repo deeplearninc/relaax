@@ -13,8 +13,7 @@ from relaax.common.algorithms.lib import lr_schedule
 
 from . import dppo_config
 
-from relaax.algorithms.trpo.trpo_model import (GetVariablesFlatten, SetVariablesFlatten, ProbType,
-                                               ConcatFixedStd)
+from relaax.algorithms.trpo.trpo_model import (ProbType, ConcatFixedStd)
 
 logger = logging.getLogger(__name__)
 
@@ -159,8 +158,8 @@ class PolicyModel(subgraph.Subgraph):
                                                           sg_network.lstm_state, **feeds)
 
         # Weights get/set for updating the policy
-        sg_get_weights_flatten = GetVariablesFlatten(sg_network.weights)
-        sg_set_weights_flatten = SetVariablesFlatten(sg_network.weights)
+        sg_get_weights_flatten = graph.GetVariablesFlatten(sg_network.weights)
+        sg_set_weights_flatten = graph.SetVariablesFlatten(sg_network.weights)
 
         self.op_get_weights = self.Op(sg_network.weights)
         self.op_assign_weights = self.Op(sg_network.weights.assign,
@@ -204,7 +203,7 @@ class ValueModel(subgraph.Subgraph):
 
         sg_gradients = optimizer.Gradients(sg_value_net.weights, loss=sg_vf_total_loss,
                                            norm=dppo_config.config.gradients_norm_clipping)
-        sg_gradients_flatten = GetVariablesFlatten(sg_gradients.calculate)
+        sg_gradients_flatten = graph.GetVariablesFlatten(sg_gradients.calculate)
 
         # Op to compute value of a state
         if dppo_config.config.use_lstm:
@@ -218,8 +217,8 @@ class ValueModel(subgraph.Subgraph):
         self.op_assign_weights = self.Op(sg_value_net.weights.assign,
                                          weights=sg_value_net.weights.ph_weights)
 
-        sg_get_weights_flatten = GetVariablesFlatten(sg_value_net.weights)
-        sg_set_weights_flatten = SetVariablesFlatten(sg_value_net.weights)
+        sg_get_weights_flatten = graph.GetVariablesFlatten(sg_value_net.weights)
+        sg_set_weights_flatten = graph.SetVariablesFlatten(sg_value_net.weights)
 
         self.op_get_weights_flatten = self.Op(sg_get_weights_flatten)
         self.op_set_weights_flatten = self.Op(sg_set_weights_flatten, value=sg_set_weights_flatten.ph_value)
@@ -279,8 +278,8 @@ class SharedWeights(subgraph.Subgraph):
         sg_initialize = graph.Initialize()
 
         # Weights get/set for updating the policy
-        sg_get_weights_flatten = GetVariablesFlatten(sg_weights)
-        sg_set_weights_flatten = SetVariablesFlatten(sg_weights)
+        sg_get_weights_flatten = graph.GetVariablesFlatten(sg_weights)
+        sg_set_weights_flatten = graph.SetVariablesFlatten(sg_weights)
 
         # Expose public API
         self.op_n_step = self.Op(sg_global_step.n)

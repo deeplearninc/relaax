@@ -88,6 +88,7 @@ class Network(subgraph.Subgraph):
                               lstm_state=critic_head.lstm_state))
         self.critic = Subnet(**feeds)
 
+        self.weights = layer.Weights(actor_head, actor, critic_head, critic)
         if da3c_config.config.use_lstm:
             self.lstm_zero_state = (self.actor.lstm_zero_state, self.critic.lstm_zero_state)
 
@@ -130,17 +131,33 @@ class SharedParameters(subgraph.Subgraph):
             self.op_icm_apply_gradients = self.Op(sg_icm_gradients.apply,
                                                   gradients=sg_icm_gradients.ph_gradients)
 
+        sg_average_reward = graph.LinearMovingAverage(da3c_config.config.avg_in_num_batches)
         sg_initialize = graph.Initialize()
 
         # Expose public API
         self.op_n_step = self.Op(sg_global_step.n)
+        self.op_score = self.Op(sg_average_reward.average)
+
         self.op_check_weights = self.Ops(self.actor.weights.check, self.critic.weights.check)
-        self.op_get_weights = self.Ops(self.actor.weights, self.critic.weights)
+        self.op_get_weights = self.Ops((self.actor.weights, self.critic.weights), sg_global_step.n)
+
         self.op_apply_gradients = self.Ops(sg_actor_gradients.apply, sg_critic_gradients.apply,
                                            sg_global_step.increment,
                                            gradients=(sg_actor_gradients.ph_gradients,
                                                       sg_critic_gradients.ph_gradients),
                                            increment=sg_global_step.ph_increment)
+        self.op_add_rewards_to_model_score_routine = self.Ops(sg_average_reward.add,
+                                                              reward_sum=sg_average_reward.ph_sum,
+                                                              reward_weight=sg_average_reward.ph_count)
+
+        # Determine Gradients' applying methods: fifo (by default), averaging, delay compensation
+        sg_get_weights_flatten = graph.GetVariablesFlatten(sg_network.weights)
+        sg_set_weights_flatten = graph.SetVariablesFlatten(sg_network.weights)
+        self.op_get_weights_flatten = self.Op(sg_get_weights_flatten)
+        self.op_set_weights_flatten = self.Op(sg_set_weights_flatten, value=sg_set_weights_flatten.ph_value)
+
+        self.op_submit_gradients = self.Call(graph.get_gradients_apply_routine(da3c_config.config))
+
         self.op_initialize = self.Op(sg_initialize)
 
 
