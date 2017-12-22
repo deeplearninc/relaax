@@ -81,12 +81,12 @@ class TrpoCalculator(object):
         thprev = self.policy_model.op_get_weights_flatten()
 
         if np.allclose(self.g, 0):
-            print('got zero gradient. not updating')
+            logger.debug('got zero gradient. not updating')
         else:
             stepdir = cg(self.fisher_vector_product, -self.g)
             shs = .5 * stepdir.dot(self.fisher_vector_product(stepdir))
             lm = np.sqrt(shs / trpo_config.config.TRPO.max_kl)
-            print('lagrange multiplier:', lm, 'gnorm:', np.linalg.norm(self.g))
+            logger.debug('lagrange multiplier: {}, gnorm: {}'.format(lm, np.linalg.norm(self.g)))
             fullstep = stepdir / lm
             neggdotstepdir = -self.g.dot(stepdir)
 
@@ -96,10 +96,10 @@ class TrpoCalculator(object):
                                                             sampled_variable=self.action_na,
                                                             adv_n=self.advantage_n,
                                                             prob_variable=self.prob_np)
-                return surr
+                return surr, kl, ent
 
-            success, theta = linesearch(loss, thprev, fullstep, neggdotstepdir/lm)
-            print('success', success)
+            success, theta = linesearch2(loss, thprev, fullstep, neggdotstepdir/lm)
+            logger.debug('success: {}'.format(success))
             self.policy_model.op_set_weights_flatten(value=theta)
 
 
@@ -158,11 +158,11 @@ def linesearch(f, x, fullstep, expected_improve_rate, max_backtracks=10, accept_
     """
     Backtracking linesearch, where expected_improve_rate is the slope dy/dx at the initial point
     """
-    fval = f(x)
+    fval, *_ = f(x)
     print('fval before', fval)
     for stepfrac in .5 ** np.arange(max_backtracks):
         xnew = x + stepfrac * fullstep
-        newfval = f(xnew)
+        newfval, *_ = f(xnew)
         actual_improve = fval - newfval
         expected_improve = expected_improve_rate * stepfrac
         ratio = actual_improve/expected_improve
@@ -171,6 +171,35 @@ def linesearch(f, x, fullstep, expected_improve_rate, max_backtracks=10, accept_
             print('fval after', newfval)
             return True, xnew
     return False, x
+
+
+def linesearch2(f, x, fullstep, expected_improve_rate, max_backtracks=10, accept_ratio=.1):
+    """
+    Simpler version of linesearch
+    """
+    fval, *_ = f(x)
+    logger.debug('fval before: {}'.format(fval))
+    for stepfrac in .5 ** np.arange(max_backtracks):
+        xnew = x + stepfrac * fullstep
+        new_fval, kl, *_ = f(xnew)
+        actual_improve = fval - new_fval
+        expected_improve = expected_improve_rate * stepfrac
+        ratio = actual_improve/expected_improve
+        print('a/e/r', actual_improve, expected_improve, ratio)
+        if not np.isfinite((new_fval, kl)).all():
+            logger.debug("Got non-finite value of losses -- bad!")
+        elif kl > trpo_config.config.TRPO.max_kl * 1.5:
+            logger.debug("violated KL constraint. shrinking step.")
+        elif actual_improve < 0:
+            logger.debug("surrogate didn't improve. shrinking step.")
+        else:
+            logger.debug("Stepsize OK!")
+            break
+    else:
+        logger.debug("couldn't compute a good step")
+        return False, x
+
+    return True, xnew
 
 
 def cg(f_Ax, b, cg_iters=10, callback=None, verbose=False, residual_tol=1e-10):

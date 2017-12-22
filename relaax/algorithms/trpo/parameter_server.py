@@ -44,6 +44,20 @@ class Ps(object):
             self.M = np.zeros(trpo_config.config.state_size)
             self.S = np.zeros(trpo_config.config.state_size)
 
+        # Create a update predicate based on config options
+        if trpo_config.config.episodes_per_batch is not None:
+            # Update when number of episodes is reached
+            self.update_condition = self.episodic_update_condition
+        else:
+            # Update when total number of timesteps is reached
+            self.update_condition = self.step_update_condition
+
+    def episodic_update_condition(self):
+        return len(self.paths) >= trpo_config.config.episodes_per_batch
+
+    def step_update_condition(self):
+        return self.paths_len >= trpo_config.config.timesteps_per_batch
+
     def get_global_t(self):
         return self.relaax_session.op_n_step()
 
@@ -72,7 +86,7 @@ class Ps(object):
         if trpo_config.config.use_filter:
             self.update_filter_state(paths["filter_diff"])
 
-        if self.paths_len >= trpo_config.config.PG_OPTIONS.timesteps_per_batch:
+        if self.update_condition():
             self.trpo_update()
             self.paths_len = 0
             self.paths = []
