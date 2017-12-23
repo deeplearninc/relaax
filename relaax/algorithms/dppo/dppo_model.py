@@ -285,6 +285,7 @@ class SharedWeights(subgraph.Subgraph):
         self.op_n_step = self.Op(sg_global_step.n)
         self.op_upd_step = self.Op(sg_update_step.n)
         self.op_score = self.Op(sg_average_reward.average)
+
         self.op_inc_global_step = self.Ops(sg_global_step.increment, increment=sg_global_step.ph_increment)
         self.op_inc_global_step_and_average_reward = self.Ops(sg_global_step.increment,
                                                               sg_average_reward.add,
@@ -303,82 +304,7 @@ class SharedWeights(subgraph.Subgraph):
         self.op_set_weights_flatten = self.Op(sg_set_weights_flatten, value=sg_set_weights_flatten.ph_value)
 
         # Gradient combining routines
-
-        # First come, first served gradient update
-        def func_fifo_gradient(session, gradients, step):
-            current_step = session.op_upd_step()
-            logger.debug("Gradient with step {} received from agent. Current step: {}".format(step,
-                                                                                              current_step))
-            session.op_apply_gradients(gradients=gradients, increment=1)
-
-        # Accumulate gradients from many agents and average them
-        self.gradients = []
-
-        def func_average_gradient(session, gradients, step):
-            logger.debug("received a gradient, number of gradients collected so far: {}".
-                         format(len(self.gradients)))
-            if step >= session.op_upd_step():
-                logger.debug("gradient is fresh, accepted")
-                self.gradients.append(gradients)
-            else:
-                logger.debug("gradient is old, rejected")
-
-            if len(self.gradients) >= dppo_config.config.num_gradients:
-                # we have collected enough gradients, no we can average them and make a step
-                logger.debug("computing mean grad")
-                flat_grads = [Shaper.get_flat(g) for g in self.gradients]
-                mean_flat_grad = np.mean(np.stack(flat_grads), axis=0)
-
-                mean_grad = Shaper.reverse(mean_flat_grad, gradients)
-                session.op_apply_gradients(gradients=mean_grad, increment=1)
-                self.gradients = []
-
-        # Asynchronous Stochastic Gradient Descent with Delay Compensation,
-        # see https://arxiv.org/pdf/1609.08326.pdf
-        self.weights_history = {}
-
-        def init_weight_history(session):
-            self.weights_history[0] = session.op_get_weights_flatten()
-
-        self.op_init_weight_history = self.Call(init_weight_history)
-
-        def func_dc_gradient(session, gradients, step):
-            # Assume step to be global step number
-            # current_step = session.op_n_step()
-            current_weights_f = session.op_get_weights_flatten()
-
-            old_weights_f = self.weights_history.get(step, current_weights_f)
-
-            new_gradient_f = Shaper.get_flat(gradients)
-
-            # Compute new gradient
-            delta = dppo_config.config.dc_lambda * (
-                new_gradient_f * new_gradient_f * (current_weights_f - old_weights_f))
-            compensated_gradient_f = new_gradient_f + delta
-
-            compensated_gradient = Shaper.reverse(compensated_gradient_f, gradients)
-
-            session.op_apply_gradients(gradients=compensated_gradient, increment=1)
-            updated_weights = session.op_get_weights_flatten()
-            updated_step = session.op_upd_step()
-            self.weights_history[updated_step] = updated_weights
-
-            # Cleanup history
-            for k in list(self.weights_history.keys()):
-                if k < updated_step - 20:
-                    try:
-                        del self.weights_history[k]
-                    except KeyError:
-                        pass
-
-        if dppo_config.config.combine_gradient == 'fifo':
-            self.op_submit_gradients = self.Call(func_fifo_gradient)
-        elif dppo_config.config.combine_gradient == 'average':
-            self.op_submit_gradients = self.Call(func_average_gradient)
-        elif dppo_config.config.combine_gradient == 'dc':
-            self.op_submit_gradients = self.Call(func_dc_gradient)
-        else:
-            logger.error("Unknown gradient combination mode: {}".format(dppo_config.config.combine_gradient))
+        self.op_submit_gradients = self.Call(graph.get_gradients_apply_routine(dppo_config.config))
 
         self.op_initialize = self.Op(sg_initialize)
 
@@ -394,31 +320,6 @@ class SharedParameters(subgraph.Subgraph):
 
         self.policy = sg_policy_shared
         self.value_func = sg_value_func_shared
-
-
-class Shaper():
-    @staticmethod
-    def numel(x):
-        return np.prod(np.shape(x))
-
-    @classmethod
-    def get_flat(cls, v):
-        tensor_list = list(utils.Utils.flatten(v))
-        u = np.concatenate([np.reshape(t, newshape=[cls.numel(t), ]) for t in tensor_list], axis=0)
-        return u
-
-    @staticmethod
-    def reverse(u, base_shape):
-        tensor_list = list(utils.Utils.flatten(base_shape))
-        shapes = map(np.shape, tensor_list)
-        v_flat = []
-        start = 0
-        for (shape, t) in zip(shapes, tensor_list):
-            size = np.prod(shape)
-            v_flat.append(np.reshape(u[start:start + size], shape))
-            start += size
-        v = utils.Utils.reconstruct(v_flat, base_shape)
-        return v
 
 
 if __name__ == '__main__':

@@ -250,7 +250,8 @@ class DPPOBatch(object):
         return gradients
 
     def apply_policy_gradients(self, gradients):
-        self.ps.session.policy.op_submit_gradients(gradients=gradients, step=self.policy_step)
+        self.ps.session.policy.op_submit_gradients(gradients=gradients, step_inc=1,
+                                                   agent_step=self.policy_step)
 
     def compute_state_values(self, states):
         if dppo_config.config.use_lstm:
@@ -286,7 +287,8 @@ class DPPOBatch(object):
         return gradients
 
     def apply_value_func_gradients(self, gradients):
-        self.ps.session.value_func.op_submit_gradients(gradients=gradients, step=self.value_step)
+        self.ps.session.value_func.op_submit_gradients(gradients=gradients, step_inc=1,
+                                                       agent_step=self.value_step)
 
 
 def compute_adv_and_vtarg(rewards, values, terminals):

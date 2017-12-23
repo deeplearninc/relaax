@@ -13,7 +13,10 @@ config.entropy = options.get('algorithm/entropy', None)
 config.l2_coeff = options.get('algorithm/l2_coeff', None)
 config.critic_scale = options.get('algorithm/critic_scale', 0.25)
 
-config.combine_gradient = options.get('algorithm/combine_gradient', 'fifo')
+config.combine_gradients = options.get('algorithm/combine_gradients', 'fifo')
+config.num_gradients = options.get('algorithm/num_gradients', 4)
+config.dc_lambda = options.get('algorithm/dc_lambda', 0.05)
+config.dc_history = options.get('algorithm/dc_history', 20)
 config.gradients_norm_clipping = options.get('algorithm/gradients_norm_clipping', False)
 
 config.avg_in_num_batches = options.get('algorithm/avg_in_num_batches', 10)
