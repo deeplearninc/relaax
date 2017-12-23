@@ -4,13 +4,13 @@ import logging
 import numpy as np
 
 from relaax.server.common import session
-from relaax.common.algorithms.lib import episode    # dataset
+from relaax.common.algorithms.lib import episode
 from relaax.common.algorithms.lib.utils import ZFilter
 
 from relaax.algorithms.trpo.lib.core import Categorical, DiagGauss
 
-from .. import dppo_config
-from .. import dppo_model
+from . import dppo_config
+from . import dppo_model
 
 logger = logging.getLogger(__name__)
 

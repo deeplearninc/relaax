@@ -5,7 +5,7 @@ import logging
 import numpy as np
 
 from . import dppo_config
-from .lib import dppo_batch
+from . import dppo_batch
 
 
 logger = logging.getLogger(__name__)
