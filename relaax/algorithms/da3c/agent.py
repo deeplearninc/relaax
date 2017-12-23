@@ -286,6 +286,5 @@ class Agent(object):
                                             agent_step=self.agent_weights_id)
         self.ps.session.op_check_weights()
 
-        self.ps.session.op_add_rewards_to_model_score_routine(increment=experience_size,
-                                                              reward_sum=sum(rewards),
+        self.ps.session.op_add_rewards_to_model_score_routine(reward_sum=sum(rewards),
                                                               reward_weight=experience_size)
