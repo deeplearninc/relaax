@@ -34,6 +34,7 @@ class Trainer(object):
         self.last_action = None
         self.local_step = 0
         self.last_target_weights_update = 0
+        self.agent_weights_id = 0
 
     @profiler.wrap
     def begin(self):
@@ -50,6 +51,8 @@ class Trainer(object):
 
         if self.local_step > dqn_config.config.start_sample_step:
             self.update()
+            if reward is not None:
+                self.ps.session.op_add_rewards_to_model_score_routine(reward_sum=reward, reward_weight=1)
 
         # metrics
         if state is not None:
@@ -89,11 +92,11 @@ class Trainer(object):
         for i, g in enumerate(utils.Utils.flatten(gradients)):
             self.metrics.histogram('gradients_%d' % i, g)
 
-        self.ps.session.op_apply_gradients(gradients=gradients, n_steps=len(experience))
+        self.ps.session.op_submit_gradients(gradients=gradients, step_inc=1, agent_step=self.agent_weights_id)
 
     @profiler.wrap
     def receive_experience(self):
-        weights = self.ps.session.op_get_weights()
+        weights, self.agent_weights_id = self.ps.session.op_get_weights_signed()
         self.session.op_assign_weights(weights=weights)
 
     def push_experience(self, reward, state, terminal):

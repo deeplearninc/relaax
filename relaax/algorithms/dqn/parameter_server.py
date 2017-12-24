@@ -15,3 +15,6 @@ class ParameterServer(parameter_server_base.ParameterServerBase):
 
     def get_session(self):
         return self.session
+
+    def score(self):
+        return self.session.op_score()
