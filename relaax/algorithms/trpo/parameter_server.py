@@ -24,6 +24,9 @@ class ParameterServer(parameter_server_base.ParameterServerBase):
     def n_step(self):
         return self.session.op_n_step()
 
+    def score(self):
+        return self.session.op_score()
+
 
 class Ps(object):
     def __init__(self, relaax_session, metrics, ps):
@@ -98,11 +101,15 @@ class Ps(object):
             path["advantage"] = self.discount(deltas, trpo_config.config.PG_OPTIONS.rewards_gamma *
                                               trpo_config.config.PG_OPTIONS.gae_lambda)
         alladv = np.concatenate([path["advantage"] for path in self.paths])
+        allrwd = np.concatenate([path["reward"] for path in self.paths])
         # Standardize advantage
         std = alladv.std()
         mean = alladv.mean()
         for path in self.paths:
             path["advantage"] = (path["advantage"] - mean) / std
+
+        self.relaax_session.op_add_reward_to_model_score_routine(reward_sum=np.sum(allrwd),
+                                                                 reward_weight=allrwd.shape[0])
 
     def update_filter_state(self, diff):
         self.M = (self.M*self.relaax_session.op_n_step() + diff[1]) / (

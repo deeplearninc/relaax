@@ -276,7 +276,6 @@ class SharedParameters(subgraph.Subgraph):
 
     def build_graph(self):
         # Build graph
-
         sg_policy_net = PolicyNet()
 
         sg_n_iter = trpo_graph.NIter()
@@ -285,12 +284,17 @@ class SharedParameters(subgraph.Subgraph):
 
         sg_value_net = ValueNet()
 
+        sg_average_reward = graph.LinearMovingAverage(trpo_config.config.avg_in_num_batches)
         sg_initialize = graph.Initialize()
 
         # Expose public API
         self.op_n_step = self.Op(sg_global_step.n)
         self.op_inc_step = self.Op(sg_global_step.increment, increment=sg_global_step.ph_increment)
-        self.op_initialize = self.Op(sg_initialize)
+
+        self.op_score = self.Op(sg_average_reward.average)
+        self.op_add_reward_to_model_score_routine = self.Ops(sg_average_reward.add,
+                                                             reward_sum=sg_average_reward.ph_sum,
+                                                             reward_weight=sg_average_reward.ph_count)
 
         self.call_wait_for_iteration = self.Call(self.wait_for_iteration)
         self.call_send_experience = self.Call(self.send_experience)
@@ -304,6 +308,7 @@ class SharedParameters(subgraph.Subgraph):
 
         self.policy = sg_policy_net
         self.value = sg_value_net
+        self.op_initialize = self.Op(sg_initialize)
 
 
 # Policy run by Agent(s)
