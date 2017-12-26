@@ -14,5 +14,8 @@ class ParameterServer(parameter_server_base.ParameterServerBase):
     def n_step(self):
         return self.session.op_n_step()
 
+    def score(self):
+        return self.session.op_score()
+
     def get_session(self):
         return self.session
