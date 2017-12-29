@@ -217,9 +217,9 @@ class PolicyNet(subgraph.Subgraph):
 
         sg_minimize = graph.TfNode(tf.train.AdamOptimizer(
                 learning_rate=trpo_config.config.PPO.learning_rate).minimize(sg_ppo_loss.node))
-        self.op_ppo_optimize = self.Op(sg_minimize, state=sg_network.ph_state,
-                                       sampled_variable=sg_probtype.ph_sampled_variable, adv_n=ph_adv_n,
-                                       oldprob_np=ph_oldprob_np)
+        self.op_ppo_optimize = self.Ops((sg_surr, sg_kl, sg_ent), sg_minimize, state=sg_network.ph_state,
+                                        sampled_variable=sg_probtype.ph_sampled_variable, adv_n=ph_adv_n,
+                                        oldprob_np=ph_oldprob_np)
 
 
 class ValueNet(subgraph.Subgraph):
