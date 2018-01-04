@@ -163,6 +163,9 @@ class FisherVectorProduct(subgraph.Subgraph):
         gradients1 = tf.gradients(kl_first_fixed.node, weight_list)
         ph_tangent = graph.Placeholder(np.float32, shape=(None,))
 
+        if trpo_config.config.trpo_max_gradient_norm:
+            gradients1, _ = tf.clip_by_global_norm(gradients1, trpo_config.config.trpo_max_gradient_norm)
+
         gvp = []
         start = 0
         for g in gradients1:
@@ -171,6 +174,9 @@ class FisherVectorProduct(subgraph.Subgraph):
             start += size
 
         gradients2 = tf.gradients(gvp, weight_list)
+        if trpo_config.config.trpo_max_gradient_norm:
+            gradients2, _ = tf.clip_by_global_norm(gradients2, trpo_config.config.trpo_max_gradient_norm)
+
         fvp = tf.concat([tf.reshape(g, [-1]) for g in gradients2], axis=0)
 
         self.ph_tangent = ph_tangent
@@ -207,7 +213,7 @@ class PolicyNet(subgraph.Subgraph):
 
         sg_ent = graph.TfNode(tf.reduce_mean(sg_probtype.Entropy(sg_network.actor).node))
 
-        sg_gradients = optimizer.Gradients(sg_network.weights, loss=sg_surr)
+        sg_gradients = optimizer.Gradients(sg_network.weights, loss=sg_surr, norm=trpo_config.config.trpo_max_gradient_norm)
         sg_gradients_flatten = GetVariablesFlatten(sg_gradients.calculate)
 
         self.op_get_weights = self.Op(sg_network.weights)
