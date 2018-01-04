@@ -8,6 +8,7 @@ from . import core
 from . import dataset
 
 logger = logging.getLogger(__name__)
+losses_names = ['surr_loss', 'kl', 'entropy']
 
 
 def make_filter(config):
@@ -23,7 +24,7 @@ def make_probtype():
 
 
 def make_policy_wrapper(relaax_session, relaax_metrics):
-    return core.StochPolicyKeras(make_probtype(), relaax_session, relaax_metrics)
+    return core.StochPolicy(make_probtype(), relaax_session, relaax_metrics)
 
 
 def make_baseline_wrapper(value_model, relaax_metrics):
@@ -35,14 +36,10 @@ class PpoUpdater(object):
     def __init__(self, policy_model):
         self.policy_model = policy_model
         if not hasattr(trpo_config.config.PPO, 'minibatch_size'):
-            self.batch_size = None
-        else:
-            self.batch_size = trpo_config.config.PPO.minibatch_size
+            trpo_config.config.PPO.minibatch_size = None
 
         if not hasattr(trpo_config.config.PPO, 'n_epochs'):
-            self.n_epochs = 4
-        else:
-            self.n_epochs = trpo_config.config.PPO.n_epochs
+            trpo_config.config.PPO.n_epochs = 4
 
     def __call__(self, paths):
         logger.debug("PPO updater called")
@@ -54,16 +51,21 @@ class PpoUpdater(object):
 
         d = dataset.Dataset(dict(state=state, sampled_variable=action_na, adv_n=advantage_n,
                                  oldprob_np=prob_np))
-        d_length = state.shape[0]
 
-        for i in range(self.n_epochs):
-            for batch in d.iterate_once(d_length if self.batch_size is None else self.batch_size):
-                self.policy_model.op_ppo_optimize(state=batch['state'],
-                                                  sampled_variable=batch['sampled_variable'],
-                                                  adv_n=batch['adv_n'],
-                                                  oldprob_np=batch['oldprob_np'])
-        # TODO: add KL new/old for debug
-        return None
+        losses = []
+        batch_size = trpo_config.config.PPO.minibatch_size\
+            if trpo_config.config.PPO.minibatch_size is not None else state.shape[0]
+        assert trpo_config.config.PPO.n_epochs > 0, 'Number of epochs should be above zero'
+
+        for i in range(trpo_config.config.PPO.n_epochs):
+            for batch in d.iterate_once(batch_size):
+                new_losses, _ = self.policy_model.op_ppo_optimize(state=batch['state'],
+                                                                  sampled_variable=batch['sampled_variable'],
+                                                                  adv_n=batch['adv_n'],
+                                                                  oldprob_np=batch['oldprob_np'])
+                losses.append(new_losses)
+
+        return dict(zip(losses_names, np.mean(losses, axis=0)))
 
 
 class TrpoCalculator(object):
@@ -75,6 +77,16 @@ class TrpoCalculator(object):
         self.state = np.reshape(ob_no, ob_no.shape + (1,))
         self.action_na = np.concatenate([path['action'] for path in paths])
         self.advantage_n = np.concatenate([path['advantage'] for path in paths])
+
+        if trpo_config.config.TRPO.linesearch_type == "Origin":
+            self.search = linesearch
+        elif trpo_config.config.TRPO.linesearch_type == "Adaptive":
+            self.search = linesearch2
+        else:
+            assert False, "You have to provide search type between: Origin | Adaptive"
+
+        # Stub for current gradient vector
+        self.g = None
         self.init()
 
     def __call__(self):
@@ -92,15 +104,25 @@ class TrpoCalculator(object):
 
             def loss(th):
                 self.policy_model.op_set_weights_flatten(value=th)
-                surr, kl, ent = self.policy_model.op_losses(state=self.state,
-                                                            sampled_variable=self.action_na,
-                                                            adv_n=self.advantage_n,
-                                                            prob_variable=self.prob_np)
-                return surr, kl, ent
+                # Calculates losses in order: surrogate loss, KL divergence, entropy penalty
+                return self.policy_model.op_losses(state=self.state,
+                                                   sampled_variable=self.action_na,
+                                                   adv_n=self.advantage_n,
+                                                   prob_variable=self.prob_np)
 
-            success, theta = linesearch2(loss, thprev, fullstep, neggdotstepdir/lm)
-            logger.debug('success: {}'.format(success))
+            success, theta, losses = self.search(loss, thprev, fullstep, neggdotstepdir/lm)
+            print('Success: {}'.format(success))
+
+            success, theta = linesearch(loss, thprev, fullstep, neggdotstepdir/lm)
+            print('success', success)
             self.policy_model.op_set_weights_flatten(value=theta)
+            return dict(zip(losses_names, np.mean(losses, axis=0)))
+
+    def init(self):
+        pass
+
+    def fisher_vector_product(self, vec):
+        pass
 
 
 class TrpoD1Calculator(TrpoCalculator):
@@ -138,7 +160,7 @@ class TrpoD1Updater(object):
         self.policy_model = policy_model
 
     def __call__(self, paths):
-        TrpoD1Calculator(self.policy_model, paths)()
+        return TrpoD1Calculator(self.policy_model, paths)()
 
 
 class TrpoD2Updater(object):
@@ -146,7 +168,7 @@ class TrpoD2Updater(object):
         self.policy_model = policy_model
 
     def __call__(self, paths):
-        TrpoD2Calculator(self.policy_model, paths)()
+        return TrpoD2Calculator(self.policy_model, paths)()
 
 
 def Updater(policy_model):
@@ -158,30 +180,34 @@ def linesearch(f, x, fullstep, expected_improve_rate, max_backtracks=10, accept_
     """
     Backtracking linesearch, where expected_improve_rate is the slope dy/dx at the initial point
     """
-    fval, *_ = f(x)
-    print('fval before', fval)
+    fval, kl, ent = f(x)
+    losses = [(fval, kl, ent)]
+    logger.debug('fval before: {}'.format(fval))
     for stepfrac in .5 ** np.arange(max_backtracks):
         xnew = x + stepfrac * fullstep
-        newfval, *_ = f(xnew)
-        actual_improve = fval - newfval
+        new_fval, kl, ent = f(xnew)
+        losses.append((new_fval, kl, ent))
+        actual_improve = fval - new_fval
         expected_improve = expected_improve_rate * stepfrac
         ratio = actual_improve/expected_improve
-        print('a/e/r', actual_improve, expected_improve, ratio)
+        print('a/e/r:', actual_improve, expected_improve, ratio)
         if ratio > accept_ratio and actual_improve > 0:
-            print('fval after', newfval)
-            return True, xnew
-    return False, x
+            logger.debug('fval after: {}'.format(new_fval))
+            return True, xnew, losses
+    return False, x, losses
 
 
 def linesearch2(f, x, fullstep, expected_improve_rate, max_backtracks=10, accept_ratio=.1):
     """
     Simpler version of linesearch
     """
-    fval, *_ = f(x)
+    fval, kl, ent = f(x)
+    losses = [(fval, kl, ent)]
     logger.debug('fval before: {}'.format(fval))
     for stepfrac in .5 ** np.arange(max_backtracks):
         xnew = x + stepfrac * fullstep
-        new_fval, kl, *_ = f(xnew)
+        new_fval, kl, ent = f(xnew)
+        losses.append((new_fval, kl, ent))
         actual_improve = fval - new_fval
         expected_improve = expected_improve_rate * stepfrac
         ratio = actual_improve/expected_improve
@@ -197,9 +223,9 @@ def linesearch2(f, x, fullstep, expected_improve_rate, max_backtracks=10, accept
             break
     else:
         logger.debug("couldn't compute a good step")
-        return False, x
+        return False, x, losses
 
-    return True, xnew
+    return True, xnew, losses
 
 
 def cg(f_Ax, b, cg_iters=10, callback=None, verbose=False, residual_tol=1e-10):

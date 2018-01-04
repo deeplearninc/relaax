@@ -13,7 +13,7 @@ from . import ddpg_config as cfg
 
 class ActorNetwork(subgraph.Subgraph):
     def build_graph(self):
-        input = layer.Input(cfg.config.input)
+        input = layer.ConfiguredInput(cfg.config.input)
 
         dense = layer.GenericLayers(layer.Flatten(input),
                                     [dict(type=layer.Dense, size=size, activation=layer.Activation.Relu)
@@ -28,7 +28,7 @@ class ActorNetwork(subgraph.Subgraph):
 
 class CriticNetwork(subgraph.Subgraph):
     def build_graph(self):
-        input = layer.Input(cfg.config.input)
+        input = layer.ConfiguredInput(cfg.config.input)
         self.ph_action = graph.Placeholder(np.float32, (None, cfg.config.output.action_size))
 
         sizes = cfg.config.hidden_sizes
@@ -65,6 +65,11 @@ class SharedParameters(subgraph.Subgraph):
         sg_actor_target_weights = ActorNetwork().weights
         sg_critic_target_weights = CriticNetwork().weights
 
+        sg_get_weights_flatten = \
+            graph.GetVariablesFlatten(graph.Variables(sg_actor_weights, sg_critic_weights))
+        sg_set_weights_flatten = \
+            graph.SetVariablesFlatten(graph.Variables(sg_actor_weights, sg_critic_weights))
+
         # needs reassign weights from actor & critic to target networks
         sg_init_actor_target_weights = \
             graph.AssignWeights(sg_actor_target_weights, sg_actor_weights).op
@@ -82,11 +87,15 @@ class SharedParameters(subgraph.Subgraph):
         sg_actor_gradients = optimizer.Gradients(sg_actor_weights, optimizer=sg_actor_optimizer)
         sg_critic_gradients = optimizer.Gradients(sg_critic_weights, optimizer=sg_critic_optimizer)
 
+        sg_average_reward = graph.LinearMovingAverage(cfg.config.avg_in_num_batches)
         sg_initialize = graph.Initialize()
 
         # Expose public API
-        self.op_get_weights = self.Ops(sg_actor_weights, sg_actor_target_weights,
-                                       sg_critic_weights, sg_critic_target_weights)
+        self.op_get_weights_signed = self.Ops(sg_actor_weights, sg_actor_target_weights,
+                                              sg_critic_weights, sg_critic_target_weights, sg_global_step.n)
+
+        self.op_get_weights_flatten = self.Op(sg_get_weights_flatten)
+        self.op_set_weights_flatten = self.Op(sg_set_weights_flatten, value=sg_set_weights_flatten.ph_value)
 
         self.op_init_target_weights = self.Ops(sg_init_actor_target_weights,
                                                sg_init_critic_target_weights)
@@ -94,11 +103,15 @@ class SharedParameters(subgraph.Subgraph):
         self.op_update_target_weights = self.Ops(sg_update_actor_target_weights,
                                                  sg_update_critic_target_weights)
 
-        self.op_apply_actor_gradients = self.Ops(sg_actor_gradients.apply, sg_global_step.increment,
-                                                 gradients=sg_actor_gradients.ph_gradients,
-                                                 increment=sg_global_step.ph_increment)
-        self.op_apply_critic_gradients = self.Op(sg_critic_gradients.apply,
-                                                 gradients=sg_critic_gradients.ph_gradients)
+        self.op_apply_gradients = self.Ops(sg_actor_gradients.apply, sg_critic_gradients.apply,
+                                           sg_global_step.increment,
+                                           gradients=(sg_actor_gradients.ph_gradients,
+                                                      sg_critic_gradients.ph_gradients),
+                                           increment=sg_global_step.ph_increment)
+        self.op_add_rewards_to_model_score_routine = self.Ops(sg_average_reward.add,
+                                                              reward_sum=sg_average_reward.ph_sum,
+                                                              reward_weight=sg_average_reward.ph_count)
+        self.op_score = self.Op(sg_average_reward.average)
 
         self.op_n_step = self.Op(sg_global_step.n)
         self.op_inc_step = self.Op(sg_global_step.increment, increment=sg_global_step.ph_increment)
@@ -106,6 +119,7 @@ class SharedParameters(subgraph.Subgraph):
         self.op_get_episode_cnt = self.Op(sg_episode_cnt.n)
         self.op_inc_episode_cnt = self.Op(sg_episode_cnt.increment, increment=sg_episode_cnt.ph_increment)
 
+        self.op_submit_gradients = self.Call(graph.get_gradients_apply_routine(cfg.config))
         self.op_initialize = self.Op(sg_initialize)
 
 

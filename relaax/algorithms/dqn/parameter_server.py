@@ -13,11 +13,8 @@ class ParameterServer(parameter_server_base.ParameterServerBase):
     def n_step(self):
         return self.session.op_n_step()
 
-    def close(self):
-        self.session.close()
-
-    def create_checkpoint(self):
-        return self.session.create_checkpoint()
-
     def get_session(self):
         return self.session
+
+    def score(self):
+        return self.session.op_score()

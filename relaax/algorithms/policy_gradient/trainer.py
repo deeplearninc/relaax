@@ -37,7 +37,7 @@ class Trainer(object):
         self.experience = None
 
         if not self.exploit:
-            self.model_api.apply_gradients(self.model_api.compute_gradients(_experience), len(_experience))
+            self.model_api.compute_and_apply_gradients(_experience)
 
     def reset(self):
         self.experience = None
@@ -46,7 +46,7 @@ class Trainer(object):
         if reward is not None:
             self.push_experience(reward, terminal)
         if terminal and state is not None:
-            logger.warning('PG Agent.step ignores state in case of terminal.')
+            logger.debug('PG Agent.step ignores state in case of terminal.')
             state = None
         else:
             assert state is not None

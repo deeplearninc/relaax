@@ -1,11 +1,15 @@
 from __future__ import print_function
 from builtins import object
+
+import logging
+import numpy as np
 import tensorflow as tf
 from tensorflow.python.ops import init_ops
-import numpy as np
 
 from relaax.common.algorithms.lib import utils
 from relaax.common.algorithms import subgraph
+
+logger = logging.getLogger(__name__)
 
 
 class DefaultInitializer(object):
@@ -114,7 +118,7 @@ class Reshape(subgraph.Subgraph):
 
 class Flatten(subgraph.Subgraph):
     def build_graph(self, x):
-        return Reshape(x, (-1, )).node
+        return Reshape(x, (-1,)).node
 
 
 class Expand(subgraph.Subgraph):
@@ -181,7 +185,8 @@ class Placeholder(subgraph.Subgraph):
     DTYPE = {
         np.int32: tf.int32,
         np.int64: tf.int64,
-        np.float32: tf.float32
+        np.float32: tf.float32,
+        np.float64: tf.float64
     }
 
     def build_graph(self, dtype, shape=None, name=None):
@@ -220,7 +225,9 @@ class GlobalStep(subgraph.Subgraph):
 class Variable(subgraph.Subgraph):
     DTYPE = {
         None: None,
-        np.int64: tf.int64
+        np.int32: tf.int32,
+        np.int64: tf.int64,
+        np.float64: tf.float64
     }
 
     def build_graph(self, initial_value, dtype=None):
@@ -260,3 +267,142 @@ class AssignWeights(subgraph.Subgraph):
             trap = 1. - part
             self.op = TfNode([tf.assign(variable, trap * variable + part * value) for variable, value
                               in utils.Utils.izip(w1.node, w2.node)])
+
+
+class LinearMovingAverage(subgraph.Subgraph):
+    def build_graph(self, size):
+        sum_ = tf.Variable(0, dtype=np.float64)
+        count = tf.Variable(0, dtype=np.float64)
+
+        pointer = tf.Variable(0, dtype=np.int32)
+        sums = tf.Variable([0] * size, dtype=np.float64)
+        counts = tf.Variable([0] * size, dtype=np.float64)
+
+        ph_sum = Placeholder(np.float64)
+        ph_count = Placeholder(np.float64)
+
+        update_sum = tf.assign_add(sum_, ph_sum.node - sums[pointer])
+        update_count = tf.assign_add(count, ph_count.node - counts[pointer])
+
+        with tf.get_default_graph().control_dependencies([update_sum]):
+            update_sums = tf.scatter_update(sums, [pointer], [ph_sum.node])
+
+        with tf.get_default_graph().control_dependencies([update_count]):
+            update_counts = tf.scatter_update(counts, [pointer], [ph_count.node])
+
+        with tf.get_default_graph().control_dependencies([update_sum, update_count, update_sums,
+                                                          update_counts]):
+            move = tf.assign(pointer, (pointer + 1) % size)
+
+        self.ph_sum = ph_sum
+        self.ph_count = ph_count
+        self.add = TfNode(tf.group(update_sum, update_count, update_sums, update_counts, move))
+        self.average = TfNode(sum_ / tf.maximum(tf.cast(1e-10, tf.float64), count))
+
+
+def get_gradients_apply_routine(cfg):
+    if cfg.combine_gradients == 'fifo':
+        return GradientFIFO().func
+    elif cfg.combine_gradients == 'avg':
+        return GradientAVG(cfg).func
+    elif cfg.combine_gradients == 'dc':
+        return GradientDC(cfg).func
+    else:
+        logger.error("Unknown gradient combination mode: {}".format(cfg.combine_gradients))
+
+
+class GradientFIFO(subgraph.Subgraph):
+    # First come, first served gradient update
+    def build_graph(self):
+        def func_fifo_gradient(session, gradients, step_inc, agent_step):
+            global_step = session.op_n_step()
+            logger.debug("Gradient with step {} received from agent. Current step: {}".format(agent_step,
+                                                                                              global_step))
+            session.op_apply_gradients(gradients=gradients, increment=step_inc)
+
+        self.func = func_fifo_gradient
+
+
+class GradientAVG(subgraph.Subgraph):
+    # Accumulate gradients from many agents and average them
+    def build_graph(self, cfg):
+        self.gradients = []
+        self.avg_step_inc = 0
+        self.cfg = cfg
+
+        def func_average_gradient(session, gradients, step_inc, agent_step):
+            logger.debug("Gradient is received, number of gradients collected so far: {}".
+                         format(len(self.gradients)))
+            if agent_step >= session.op_n_step():
+                logger.debug("Gradient is FRESH -> Accepted")
+                self.gradients.append(gradients)
+                self.avg_step_inc += step_inc
+            else:
+                logger.debug("Gradient is OLD -> Rejected")
+
+            if len(self.gradients) >= self.cfg.num_gradients:
+                # We've collected enough gradients -> we can average them now and make an update step
+                logger.debug("Computing Mean of accumulated Gradients")
+                flat_grads = [utils.Shaper.get_flat(g) for g in self.gradients]
+                mean_flat_grad = np.mean(np.stack(flat_grads), axis=0)
+
+                mean_grad = utils.Shaper.reverse(mean_flat_grad, gradients)
+                session.op_apply_gradients(gradients=mean_grad, increment=self.avg_step_inc)
+                self.gradients, self.avg_step_inc = [], 0
+
+        self.func = func_average_gradient
+
+
+class GradientDC(subgraph.Subgraph):
+    # Asynchronous Stochastic Gradient Descent with Delay Compensation -> arxiv.org/abs/1609.08326
+    def build_graph(self, cfg):
+        self.weights_history = {}  # {id: weights}
+        self.cfg = cfg
+
+        def func_dc_gradient(session, gradients, step_inc, agent_step):
+            global_weights_f = session.op_get_weights_flatten()
+
+            old_weights_f = self.weights_history.get(agent_step, global_weights_f)
+
+            new_gradient_f = utils.Shaper.get_flat(gradients)
+
+            # Compute compensated Gradient
+            delta = self.cfg.dc_lambda * \
+                (new_gradient_f * new_gradient_f * (global_weights_f - old_weights_f))
+
+            compensated_gradient_f = new_gradient_f + delta
+            compensated_gradient = utils.Shaper.reverse(compensated_gradient_f, gradients)
+
+            session.op_apply_gradients(gradients=compensated_gradient, increment=step_inc)
+
+            updated_weights = session.op_get_weights_flatten()
+            updated_step = session.op_n_step()
+            self.weights_history[updated_step] = updated_weights
+
+            # Cleanup history
+            for k in list(self.weights_history.keys()):
+                if k < updated_step - self.cfg.dc_history:
+                    try:
+                        del self.weights_history[k]
+                    except KeyError:
+                        pass
+
+        self.func = func_dc_gradient
+
+
+class GetVariablesFlatten(subgraph.Subgraph):
+    def build_graph(self, variables):
+        return tf.concat([tf.reshape(t, [-1]) for t in utils.Utils.flatten(variables.node)], axis=0)
+
+
+class SetVariablesFlatten(subgraph.Subgraph):
+    def build_graph(self, variables):
+        self.ph_value = tf.placeholder(tf.float32, [None])
+        start = 0
+        assignes = []
+        for t in utils.Utils.flatten(variables.node):
+            shape = t.shape.as_list()
+            size = np.prod(shape)
+            assignes.append(tf.assign(t, tf.reshape(self.ph_value[start:start + size], shape)))
+            start += size
+        return tf.group(*assignes)

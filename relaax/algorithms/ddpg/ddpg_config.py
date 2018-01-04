@@ -27,3 +27,10 @@ config.exploration.ou_theta = options.get('algorithm/exploration/ou_theta', .15)
 config.exploration.ou_sigma = options.get('algorithm/exploration/ou_sigma', .2)
 config.exploration.tau = options.get('algorithm/exploration/tau', 25)
 config.exploration.rnd_seed = options.get('algorithm/exploration/rnd_seed', 1234)
+
+config.combine_gradients = options.get('algorithm/combine_gradients', 'fifo')
+config.num_gradients = options.get('algorithm/num_gradients', 4)
+config.dc_lambda = options.get('algorithm/dc_lambda', 0.05)
+config.dc_history = options.get('algorithm/dc_history', 20)
+
+config.avg_in_num_batches = options.get('algorithm/avg_in_num_batches', 200)

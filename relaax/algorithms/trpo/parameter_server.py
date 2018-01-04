@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
-import logging
 import time
+import logging
 import numpy as np
 from scipy.signal import lfilter
 
@@ -27,6 +27,9 @@ class ParameterServer(parameter_server_base.ParameterServerBase):
     def n_step(self):
         return self.session.op_n_step()
 
+    def score(self):
+        return self.session.op_score()
+
 
 class Ps(object):
     def __init__(self, relaax_session, metrics, ps):
@@ -44,13 +47,13 @@ class Ps(object):
             self.M = np.zeros(trpo_config.config.state_size)
             self.S = np.zeros(trpo_config.config.state_size)
 
-        # Create a update predicate based on config options
-        if trpo_config.config.episodes_per_batch is not None:
-            # Update when number of episodes is reached
-            self.update_condition = self.episodic_update_condition
-        else:
+        # Create an update predicate based on config options
+        if trpo_config.config.timesteps_per_batch is not None:
             # Update when total number of timesteps is reached
             self.update_condition = self.step_update_condition
+        else:
+            # Update when number of episodes is reached
+            self.update_condition = self.episodic_update_condition
 
     def episodic_update_condition(self):
         return len(self.paths) >= trpo_config.config.episodes_per_batch
@@ -99,13 +102,16 @@ class Ps(object):
         self.compute_advantage()
 
         # Value Update
-        valuefunc_metrics = self.baseline.fit(self.paths)
-        logger.debug("VF metrics: {}".format(valuefunc_metrics))
-        for key, value in valuefunc_metrics.items():
+        vf_metrics = self.baseline.fit(self.paths)
+        logger.debug("VF metrics: {}".format(vf_metrics))
+        for key, value in vf_metrics.items():
             self._metrics.scalar(key, value)
 
         # Policy Update
         policy_metrics = self.updater(self.paths)
+        logger.debug("Policy metrics: {}".format(policy_metrics))
+        for key, value in policy_metrics.items():
+            self._metrics.scalar(key, value)
 
         print('Update time for {} iteration: {}'.format(self.n_iter(), time.time() - start))
 
@@ -123,11 +129,15 @@ class Ps(object):
             path["advantage"] = self.discount(deltas, trpo_config.config.PG_OPTIONS.rewards_gamma *
                                               trpo_config.config.PG_OPTIONS.gae_lambda)
         alladv = np.concatenate([path["advantage"] for path in self.paths])
+        allrwd = np.concatenate([path["reward"] for path in self.paths])
         # Standardize advantage
         std = alladv.std()
         mean = alladv.mean()
         for path in self.paths:
             path["advantage"] = (path["advantage"] - mean) / std
+
+        self.relaax_session.op_add_reward_to_model_score_routine(reward_sum=np.sum(allrwd),
+                                                                 reward_weight=allrwd.shape[0])
 
     def update_filter_state(self, diff):
         self.M = (self.M*self.relaax_session.op_n_step() + diff[1]) / (

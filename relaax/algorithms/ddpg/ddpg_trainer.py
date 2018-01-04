@@ -28,9 +28,8 @@ class Trainer(object):
         model = ddpg_model.AgentModel()
         self.session = session.Session(model)
 
-        self.episode = episode.ReplayBuffer(cfg.config.buffer_size,
-                                            cfg.config.exploration.rnd_seed,
-                                            'state', 'action', 'reward', 'terminal', 'next_state')
+        self.episode = episode.ReplayBuffer(['state', 'action', 'reward', 'terminal', 'next_state'],
+                                            cfg.config.buffer_size, seed=cfg.config.exploration.rnd_seed)
         self.episode.begin()
         self.observation = observation.Observation(cfg.config.input.history)
         self.last_action = self.noise_epsilon = None
@@ -41,6 +40,7 @@ class Trainer(object):
                                                cfg.config.exploration.ou_sigma,
                                                cfg.config.exploration.rnd_seed)
         self.max_q = self.step_cnt = 0
+        self.agent_weights_id = 0
         self.terminal = False
 
         if hogwild_update:
@@ -87,6 +87,7 @@ class Trainer(object):
 
         if reward is not None:
             self.push_experience(reward, state, terminal)
+            self.ps.session.op_add_rewards_to_model_score_routine(reward_sum=reward, reward_weight=1)
         else:
             self.observation.add_state(state)
 
@@ -108,7 +109,7 @@ class Trainer(object):
 
     @profiler.wrap
     def update(self):
-        if self.episode.experience._len > cfg.config.batch_size:
+        if self.episode.size > cfg.config.batch_size:
             experience = self.episode.sample(cfg.config.batch_size)
             if not self.exploit:
                 self.do_task(lambda: self.send_experience(experience))
@@ -189,8 +190,9 @@ class Trainer(object):
             self.metrics.histogram('batch_next_states', experience['next_state'])
 
         if not cfg.config.no_ps:
-            self.ps.session.op_apply_actor_gradients(gradients=actor_grads, increment=self.cur_loop_cnt)
-            self.ps.session.op_apply_critic_gradients(gradients=critic_grads)
+            self.ps.session.op_submit_gradients(gradients=(actor_grads, critic_grads),
+                                                step_inc=self.cur_loop_cnt,
+                                                agent_step=self.agent_weights_id)
 
             self.ps.session.op_update_target_weights()
         else:
@@ -203,8 +205,8 @@ class Trainer(object):
     @profiler.wrap
     def receive_experience(self):
         if not cfg.config.no_ps:
-            actor_weights, actor_target_weights, critic_weights, critic_target_weights = \
-                self.ps.session.op_get_weights()
+            actor_weights, actor_target_weights, critic_weights, critic_target_weights, \
+                self.agent_weights_id = self.ps.session.op_get_weights_signed()
         else:
             actor_weights, actor_target_weights, critic_weights, critic_target_weights = \
                 self.session.op_get_weights()
