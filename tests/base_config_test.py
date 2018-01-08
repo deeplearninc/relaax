@@ -97,6 +97,7 @@ class TestBaseConfig(object):
         called_load_command_line = MockUtils.count_calls(self.config, 'load_command_line', monkeypatch)
         called_load_from_yaml = MockUtils.count_calls(self.config, 'load_from_yaml', monkeypatch)
         called_setup_logger = MockUtils.count_calls(self.config, 'setup_logger', monkeypatch)
+        self.config.version = '1.1.0'
         self.config.load()
         assert called_load_command_line.times == 1
         assert called_load_from_yaml.times == 1
