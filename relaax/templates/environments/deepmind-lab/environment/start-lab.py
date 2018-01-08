@@ -14,7 +14,7 @@ log = logging.getLogger(__name__)
 class MDLab(object):
 
     def __init__(self):
-        self.show_ui = options.get('show_ui', False)
+        self.show_ui = options.show_ui
         self.lab_path = options.get('environment/lab_path', '/lab')
         self.level_script = options.get('environment/level_script', None)
         if self.level_script is None:
@@ -49,9 +49,7 @@ class MDLab(object):
     def _run_deepmind_lab(self):
         log.info('Run deepmind-lab, please wait, it may take a moment...')
         try:
-            rlx_address = options.get('rlx_server_address', None)
-            if rlx_address is None:
-                rlx_address = options.get('relaax_rlx_server/bind', 'localhost:7001')
+            rlx_address = options.rlx_server_address
             app_path = os.path.dirname(os.path.abspath(__file__))
             config = os.path.abspath(os.path.join(app_path, '../app.yaml'))
             headless = 'false' if self.show_ui else 'osmesa'

@@ -23,16 +23,13 @@ class ParameterServerConfig(BaseConfig):
 
     def process_after_loaded(self):
         if self.log_level is None:
-            self.log_level = self.get(
-                'relaax_parameter_server/log_level', 'DEBUG')
+            self.log_level = self.get('relaax_parameter_server/log_level', 'DEBUG')
 
         if self.bind is None:
-            self.bind = self.get(
-                'relaax_parameter_server/bind', 'localhost:7000')
+            self.bind = self.get_parameter_server()
 
         if self.metrics_server is None:
-            self.metrics_server = self.get(
-                'relaax_metrics_server/bind', 'localhost:7002')
+            self.metrics_server = self.get_metrics_server()
 
         self.algorithm_path = self.get('algorithm/path')
         self.algorithm_name = self.get('algorithm/name')

@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 import argparse
 import logging
+import os
 import re
 import sys
 import relaax
@@ -82,6 +83,22 @@ class BaseConfig(ConfigYaml):
             format = '[%(asctime)s]:[%(levelname)s]:[%(name)s]: %(message)s'
 
         logging.basicConfig(stream=sys.stdout, datefmt='%H:%M:%S', format=format, level=log_level)
+
+    def get_binding(self, section, def_value):
+        bind = self.get('%s/bind' % section, 'localhost:7002')
+        bind_by_env_var = self.get('%s/bind_by_env_var' % section, None)
+        if bind_by_env_var is not None and bind_by_env_var in os.environ:
+            bind = os.environ[bind_by_env_var]
+        return bind
+
+    def get_parameter_server(self):
+        return self.get_binding('relaax_parameter_server', 'localhost:7000')
+
+    def get_rlx_server(self):
+        return self.get_binding('relaax_rlx_server', 'localhost:7001')
+
+    def get_metrics_server(self):
+        return self.get_binding('relaax_metrics_server', 'localhost:7002')
 
     def parse_address(self, address, address_name):
         m = re.match('^\s*([^\s:]*)\s*:\s*(\d+)\s*$', address)

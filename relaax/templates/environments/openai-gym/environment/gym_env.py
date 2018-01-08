@@ -58,7 +58,7 @@ class GymEnv(object):
             if options.get('environment/stochastic_reset', False) else 0
 
         self.gym.seed(random.randrange(1000000))
-        self._show_ui = options.get('show_ui', False)
+        self._show_ui = options.show_ui
 
         limit = options.get('environment/limit',
                             self.gym.spec.tags.get('wrapper_config.TimeLimit.max_episode_steps'))
