@@ -1,6 +1,7 @@
 ---
 # generic DDPG configuration
 
+version: 1.1.0
 algorithm:
   name: ddpg                      # short name for algorithm to load
 

@@ -1,6 +1,7 @@
 ---
 # DQN configuration for Open AI Gym CartPole-v0
 
+version: 1.1.0
 algorithm:
   name: dqn                             # short name for algorithm to load
 

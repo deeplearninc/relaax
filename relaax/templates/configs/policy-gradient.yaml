@@ -1,6 +1,7 @@
 ---
 # generic Policy Gradient configuration
 
+version: 1.1.0
 algorithm:
   name: policy_gradient
 

@@ -1,3 +1,4 @@
+version: 1.1.0
 algorithm:
   name: dppo
 
@@ -25,4 +26,3 @@ algorithm:
   combine_gradient: dc
   num_gradients: 4
   dc_lambda: 0.05
-

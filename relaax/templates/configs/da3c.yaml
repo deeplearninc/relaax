@@ -1,6 +1,7 @@
 ---
 # generic DA3C configuration
 
+version: 1.1.0
 algorithm:
   name: da3c                      # short name for algorithm to load
 

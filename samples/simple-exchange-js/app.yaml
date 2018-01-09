@@ -17,18 +17,19 @@ relaax-metrics-server:
   log_level: INFO
 
 relaax-parameter-server:
-  --bind: localhost:7000
-  --checkpoint-dir: logs/checkpoints/
-  --log-level: DEBUG
+  bind: localhost:7000
+  checkpoint-dir: logs/checkpoints/
+  log-level: DEBUG
 
 relaax-rlx-server:
-  --bind: localhost:7001
-  --log-level: DEBUG
+  bind: localhost:7001
+  log-level: DEBUG
 
 relaax-wsproxy:
-  --bind: localhost:9000
-  --log-level: DEBUG
+  bind: localhost:9000
+  log-level: DEBUG
 
+version: 1.1.0
 algorithm:
   path: ./algorithm
   name: simple-exchange
