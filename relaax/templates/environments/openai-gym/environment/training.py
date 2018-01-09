@@ -27,6 +27,5 @@ class Training(TrainingBase):
         log.info('Episode %d reward %d' % (number, episode_reward))
         return episode_reward
 
-
 if __name__ == '__main__':
     Training().run()

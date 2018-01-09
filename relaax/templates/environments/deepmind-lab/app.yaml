@@ -2,12 +2,12 @@ environment:
   run: python environment/start-container.py
   lab_path: /lab
   max_episodes: 1000
-  infinite_run: False
-  run_in_container: False
+  infinite_run: false
+  run_in_container: false
   # level_script: custom-map/custom_map
 
 relaax-metrics-server:
-  enable_unknown_metrics: False
+  enable_unknown_metrics: false
   metrics:
     episode_reward: true
     server_latency: true
@@ -22,14 +22,15 @@ relaax-metrics-server:
   log_level: INFO
 
 relaax-parameter-server:
-  --bind: localhost:7000
-  --checkpoint-dir: logs/checkpoints
-  --log-level: INFO
+  bind: localhost:7000
+  checkpoint-dir: logs/checkpoints
+  log-level: INFO
 
 relaax-rlx-server:
-  --bind: 0.0.0.0:7001
-  --log-level: INFO
+  bind: 0.0.0.0:7001
+  log-level: INFO
 
+version: 1.1.0
 algorithm:
   name: da3c
 
@@ -55,4 +56,4 @@ algorithm:
   RMSProp:
     decay: 0.99
     epsilon: 0.1
-  gradient_norm_clipping: 40
+  gradient_norm_clipping: 40.

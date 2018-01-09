@@ -24,9 +24,8 @@ class Training(TrainingBase):
             reward, state, terminal = self.gym.act(action)
             action = self.agent.update(reward, state, terminal)
             episode_reward += reward
-        log.info('Episode %d reward %d' % (number, episode_reward))
+        log.info('Episode %d reward %.2f' % (number, episode_reward))
         return episode_reward
-
 
 if __name__ == '__main__':
     Training().run()

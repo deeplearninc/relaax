@@ -20,6 +20,7 @@ from gym.wrappers.frame_skipping import SkipWrapper
 from ppaquette_gym_doom import wrappers
 
 from relaax.environment.config import options
+from relaax.common.rlx_message import RLXMessageImage
 
 gym.configuration.undo_logger_setup()
 log = logging.getLogger(__name__)
@@ -35,7 +36,7 @@ class DoomEnv(object):
         acwrapper = wrappers.ToDiscrete('minimal')
         env = modewrapper(obwrapper(acwrapper(env)))
 
-        frame_skip = options.get('environment/frame_skip', None)
+        frame_skip = options.get('environment/frame_skip', 4)
         if frame_skip is not None:
             skip_wrapper = SkipWrapper(frame_skip)
             env = skip_wrapper(env)
@@ -61,7 +62,8 @@ class DoomEnv(object):
 
         shape = options.get('environment/shape', (42, 42))
         self._shape = shape[:2]
-        self._channels = 0 if len(shape) == 2 else shape[-1]
+        assert len(self._shape) > 1, 'You should provide 2D or 3D shape'
+        self._channels = 0 if len(self._shape) == 2 else self._shape[-1]
 
         self.action_size = self._get_action_size(env)
         if self.action_size != options.algorithm.output.action_size:
@@ -70,13 +72,18 @@ class DoomEnv(object):
                    options.algorithm.output.action_size, self.action_size))
             sys.exit(-1)
 
-        self.env = NoNegativeRewardEnv(env)
-        self._obs_buffer = deque(maxlen=2)
+        if options.get('environment/no_life', True):
+            env = NoNegativeRewardEnv(env)
+        self.env = env
+
+        self._process_img = self._process_common
+        if options.get('environment/max_pool', True):
+            self._obs_buffer = deque(maxlen=2)
+            self._process_img = self._process_max
 
         self.observation_space = Box(0.0, 255.0, shape)
         self.observation_space.high[...] = 1.0
 
-        self._scale = (1.0 / 255.0)
         self.reset()
 
     def _get_action_size(self, env):
@@ -112,18 +119,24 @@ class DoomEnv(object):
 
         return state
 
-    def _process_img(self, screen):
+    def _process_common(self, screen):
+        if self._channels < 2:
+            screen = np.dot(screen[..., :3], [0.299, 0.587, 0.114]).astype(np.uint8)
+
+        screen = RLXMessageImage(Image.fromarray(screen).resize(self._shape, resample=Image.BILINEAR))
+
+        return screen
+
+    def _process_max(self, screen):
         self._obs_buffer.append(screen)
         screen = np.max(np.stack(self._obs_buffer), axis=0)
 
         if self._channels < 2:
-            screen = np.dot(screen[..., :3], [0.299, 0.587, 0.114])
+            screen = np.dot(screen[..., :3], [0.299, 0.587, 0.114]).astype(np.uint8)
 
-        screen = np.array(Image.fromarray(screen).resize(
-            self._shape, resample=Image.BILINEAR), dtype=np.uint8)
+        screen = RLXMessageImage(Image.fromarray(screen).resize(self._shape, resample=Image.BILINEAR))
 
-        # return processed screen
-        return screen.astype(np.float32) * self._scale
+        return screen
 
 
 class NoNegativeRewardEnv(gym.RewardWrapper):

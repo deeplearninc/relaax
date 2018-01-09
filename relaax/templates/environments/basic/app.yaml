@@ -3,11 +3,11 @@
 environment:
   run: python environment/training.py
   steps: 3000
-  max_episodes: 1
-  infinite_run: False
+  max_episodes: 100
+  infinite_run: false
 
 relaax-metrics-server:
-  enable_unknown_metrics: False
+  enable_unknown_metrics: false
   metrics:
     episode_reward: true
     server_latency: true
@@ -22,14 +22,15 @@ relaax-metrics-server:
   log_level: INFO
 
 relaax-parameter-server:
-  --bind: localhost:7000
-  --checkpoint-dir: logs/checkpoints
-  --log-level: INFO
+  bind: localhost:7000
+  checkpoint-dir: logs/checkpoints
+  log-level: INFO
 
 relaax-rlx-server:
-  --bind: localhost:7001
-  --log-level: INFO
+  bind: localhost:7001
+  log-level: INFO
 
+version: 1.1.0
 algorithm:
   name: policy_gradient
 
