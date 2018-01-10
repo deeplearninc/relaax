@@ -13,8 +13,8 @@ from relaax.cmdl.commands.cmd_generate import CmdGenerate
 DEFAULT_ALGORITHMS_FOR_ENV = {
     'basic': 'policy-gradient',
     'openai-gym': 'da3c-cartpole',
-    'deepmind-lab': 'da3c-dmlab',
-    'vizdoom': 'da3c-doom'
+    'deepmind-lab': 'da3c-deepmind-lab',
+    'vizdoom': 'da3c-vizdoom'
 }
 
 
@@ -51,6 +51,10 @@ class NewApp(object):
             if self.environment == 'openai-gym':
                 self.ctx.log('Please make sure you have OpenAI Gym installed; '
                              'see installation instruction here: https://github.com/openai/gym')
+
+            if self.environment == 'vizdoom':
+                self.ctx.log('Please make sure you have Gym Doom installed; '
+                             'see installation instruction here:  https://github.com/ppaquette/gym-doom')
 
             self.ctx.log('To run application, please do: cd %s && relaax run' % self.app_name)
 

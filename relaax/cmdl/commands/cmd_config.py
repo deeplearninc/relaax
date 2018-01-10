@@ -8,6 +8,7 @@ from relaax.cmdl.cmdl import pass_context
 from relaax.cmdl.cmdl import ENVIRONMENTS, ENVIRONMENTS_META
 from relaax.cmdl.utils.backup import Backup
 from relaax.cmdl.utils.commented_yaml import CommentedYaml
+NEW = False
 
 
 class CmdConfig(object):
@@ -23,6 +24,11 @@ class CmdConfig(object):
     def apply(self):
         if self.algorithm is None and self.environment is None:
             CmdConfig.list_configurations(self.ctx)
+        elif NEW and self.algorithm is not None and self.environment is not None:
+            cfg_name = self.algorithm + '-' + self.environment
+            self._configure(self.algorithm,
+                            'algorithm and ' + self.environment + ' environment with',
+                            '../../templates/configs/%s.yaml' % cfg_name)
         else:
             if self.algorithm is not None:
                 self._configure(self.algorithm,
@@ -40,7 +46,10 @@ class CmdConfig(object):
         template_config = CommentedYaml.read(
             self.ctx, self.template_config_path(template_path), 'Sorry, can\'t read config template: %s')
 
-        app_config[block_name] = template_config[block_name]
+        if NEW and template_name not in ('algorithm', 'environment'):
+            app_config = template_config
+        else:
+            app_config[block_name] = template_config[block_name]
 
         if set_algorithm_path:
             app_config[block_name].insert(0, 'path', './algorithm',
@@ -71,7 +80,7 @@ class CmdConfig(object):
             if filename.endswith('.yaml'):
                 rv.append(filename[:-5])
         rv.sort()
-        return (rv, '|'.join(rv))
+        return rv, '|'.join(rv)
 
     @staticmethod
     def list_configurations(ctx):

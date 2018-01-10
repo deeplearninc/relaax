@@ -9,11 +9,11 @@ environment:
 
 relaax-metrics-server:
   enable_unknown_metrics: false
-    metrics:
-      episode_reward: true
-      server_latency: true
-      action: true
-      critic: true
+  metrics:
+    episode_reward: true
+    server_latency: true
+    action: true
+    critic: true
 
   bind: localhost:7002
   metrics_dir: logs/metrics
@@ -53,7 +53,7 @@ algorithm:
   rewards_gamma: 0.99             # rewards discount factor
 
   initial_learning_rate: 1e-4     # initial learning rate to start the training
-  use_linear_schedule: False      # set to True to use linear learning rate annealing wrt max_global_step
+  use_linear_schedule: false      # set to True to use linear learning rate annealing wrt max_global_step
 
   optimizer: Adam                 # type of optimizer to use: Adam | RMSProp
   gradients_norm_clipping: 40.    # value to clip the gradients by its global norm

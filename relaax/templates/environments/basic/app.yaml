@@ -35,15 +35,16 @@ algorithm:
   name: policy_gradient
 
   input:
-    shape: [0]
-    history: 1
-    use_convolutions: false
-
+    shape: [0]                # shape of input state, [0] means empty state (bandit env)
+    history: 1                # number of consecutive states to stuck to represent an input
+    use_convolutions: false   # set to True to use convolutions to process the input,
+                              # it uses the set of convolutions from universe architecture by default
   output:
-    continuous: false
-    action_size: 4
+    continuous: false         # set to True to handle with continuous action type
+    action_size: 4            # action size for the given environment
 
-  hidden_sizes: [10]
-  batch_size: 10
-  learning_rate: 0.01
-  GAMMA: 0.97 # rewards discount factor
+  hidden_sizes: [10]          # list of num_units for hidden fc layers
+  batch_size: 10              # experience size for one update
+
+  learning_rate: 0.01         # learning rate to perform the training
+  GAMMA: 0.97                 # rewards discount factor
