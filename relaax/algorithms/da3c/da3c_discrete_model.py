@@ -67,12 +67,16 @@ class SharedParameters(subgraph.Subgraph):
         sg_network = Network()
         sg_weights = sg_network.weights
 
-        if da3c_config.config.optimizer == 'Adam':
-            sg_optimizer = optimizer.AdamOptimizer(da3c_config.config.initial_learning_rate)
-        else:
+        if da3c_config.config.use_linear_schedule:
             sg_learning_rate = lr_schedule.Linear(sg_global_step,
                                                   da3c_config.config.initial_learning_rate,
                                                   da3c_config.config.max_global_step)
+        else:
+            sg_learning_rate = da3c_config.config.initial_learning_rate
+
+        if da3c_config.config.optimizer == 'Adam':
+            sg_optimizer = optimizer.AdamOptimizer(sg_learning_rate)
+        else:
             sg_optimizer = optimizer.RMSPropOptimizer(learning_rate=sg_learning_rate,
                                                       decay=da3c_config.config.RMSProp.decay, momentum=0.0,
                                                       epsilon=da3c_config.config.RMSProp.epsilon)

@@ -103,13 +103,17 @@ class SharedParameters(subgraph.Subgraph):
         self.actor = sg_network.actor
         self.critic = sg_network.critic
 
-        if da3c_config.config.optimizer == 'Adam':
-            sg_actor_optimizer = optimizer.AdamOptimizer(da3c_config.config.initial_learning_rate)
-            sg_critic_optimizer = optimizer.AdamOptimizer(da3c_config.config.initial_learning_rate)
-        else:
+        if da3c_config.config.use_linear_schedule:
             sg_learning_rate = lr_schedule.Linear(sg_global_step,
                                                   da3c_config.config.initial_learning_rate,
                                                   da3c_config.config.max_global_step)
+        else:
+            sg_learning_rate = da3c_config.config.initial_learning_rate
+
+        if da3c_config.config.optimizer == 'Adam':
+            sg_actor_optimizer = optimizer.AdamOptimizer(sg_learning_rate)
+            sg_critic_optimizer = optimizer.AdamOptimizer(sg_learning_rate)
+        else:
             sg_actor_optimizer = optimizer.RMSPropOptimizer(learning_rate=sg_learning_rate,
                                                             decay=da3c_config.config.RMSProp.decay,
                                                             momentum=0.0,
@@ -118,6 +122,7 @@ class SharedParameters(subgraph.Subgraph):
                                                              decay=da3c_config.config.RMSProp.decay,
                                                              momentum=0.0,
                                                              epsilon=da3c_config.config.RMSProp.epsilon)
+
         sg_actor_gradients = optimizer.Gradients(self.actor.weights, optimizer=sg_actor_optimizer)
         sg_critic_gradients = optimizer.Gradients(self.critic.weights, optimizer=sg_critic_optimizer)
 

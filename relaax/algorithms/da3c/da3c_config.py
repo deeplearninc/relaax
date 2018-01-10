@@ -11,10 +11,19 @@ for key, value in [('use_convolutions', [])]:
 
 config.output.scale = options.get('algorithm/output/scale', 1.0)
 config.critic_scale = options.get('algorithm/critic_scale', 1.0)
-config.gae_lambda = options.get('algorithm/gae_lambda', 1.00)
 
+config.gae_lambda = options.get('algorithm/gae_lambda', 1.00)
+config.entropy_beta = options.get('algorithm/entropy_beta', 0.01)
+
+config.use_linear_schedule = options.get('algorithm/use_linear_schedule', False)
 config.output.loss_type = options.get('algorithm/output/loss_type', 'Normal')
-config.optimizer = options.get('algorithm/optimizer', 'Adam')
+
+config.optimizer = options.get('algorithm/optimizer', 'Adam')   # Adam | RMSProp
+# RMSProp default parameters
+if not hasattr(config, 'RMSProp'):
+    config.RMSProp = options.get('algorithm/RMSProp', Namespace())
+config.RMSProp.decay = options.get('algorithm/RMSProp/decay', 0.99)
+config.RMSProp.epsilon = options.get('algorithm/RMSProp/epsilon', 0.1)
 
 config.hogwild = options.get('algorithm/hogwild', False)
 config.use_icm = options.get('algorithm/use_icm', False)
@@ -37,7 +46,7 @@ config.gradients_norm_clipping = options.get('algorithm/gradients_norm_clipping'
 
 config.input.universe = options.get('algorithm/input/universe', True)
 
-# ICM parameters
+# ICM default parameters
 if not hasattr(config, 'icm'):
     config.icm = options.get('algorithm/icm', Namespace())
 config.icm.nu = options.get('algorithm/icm/nu', 0.8)
