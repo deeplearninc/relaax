@@ -9,38 +9,63 @@ from relaax.common.algorithms.lib import graph
 from relaax.common.algorithms.lib import utils
 
 
-class Activation(object):
-    @staticmethod
-    def Null(x):
+class NullSubgraph(subgraph.Subgraph):
+    def build_graph(self, x):
+        self.weight = []
         return x
 
-    @staticmethod
-    def Relu(x):
-        return tf.nn.relu(x)
 
-    @staticmethod
-    def Relu6(x):
-        return tf.nn.relu6(x)
-
-    @staticmethod
-    def Elu(x):
-        return tf.nn.elu(x)
-
-    @staticmethod
-    def Sigmoid(x):
+class SigmoidSubgraph(subgraph.Subgraph):
+    def build_graph(self, x):
+        self.weight = []
         return tf.nn.sigmoid(x)
 
-    @staticmethod
-    def Tanh(x):
+
+class TanhSubgraph(subgraph.Subgraph):
+    def build_graph(self, x):
+        self.weight = []
         return tf.nn.tanh(x)
 
-    @staticmethod
-    def Softmax(x):
+
+class ReluSubgraph(subgraph.Subgraph):
+    def build_graph(self, x):
+        self.weight = []
+        return tf.nn.relu(x)
+
+
+class Relu6Subgraph(subgraph.Subgraph):
+    def build_graph(self, x):
+        self.weight = []
+        return tf.nn.relu6(x)
+
+
+class EluSubgraph(subgraph.Subgraph):
+    def build_graph(self, x):
+        self.weight = []
+        return tf.nn.elu(x)
+
+
+class SoftmaxSubgraph(subgraph.Subgraph):
+    def build_graph(self, x):
+        self.weight = []
         return tf.nn.softmax(x)
 
-    @staticmethod
-    def Softplus(x):
+
+class SoftplusSubgraph(subgraph.Subgraph):
+    def build_graph(self, x):
+        self.weight = []
         return tf.nn.softplus(x)
+
+
+class Activation(object):
+    Null = NullSubgraph
+    Sigmoid = SigmoidSubgraph
+    Tanh = TanhSubgraph
+    Relu = ReluSubgraph
+    Relu6 = Relu6Subgraph
+    Elu = EluSubgraph
+    Softmax = SoftmaxSubgraph
+    Softplus = SoftplusSubgraph
 
     # dict comprehension has its own locals. dict comprehension does not see class context.
     # This is why class locals are passed as lambda argument
@@ -74,8 +99,9 @@ class BaseLayer(subgraph.Subgraph):
         initializer = graph.RandomUniformInitializer(minval=-d, maxval=d)
         W = graph.Variable(initializer(np.float32, shape)).node
         b = graph.Variable(initializer(np.float32, shape[-1:])).node
-        self.weight = graph.TfNode((W, b))
-        return activation(transformation(x, W) + b)
+        activation = activation(transformation(x, W) + b)
+        self.weight = graph.TfNode((W, b, activation.weight))
+        return activation.node
 
 
 class Convolution(BaseLayer):
