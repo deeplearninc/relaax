@@ -128,8 +128,17 @@ class DoubleDense(BaseLayer):
         return activation(tf.matmul(x1.node, W1) + tf.matmul(x2.node, W2) + b)
 
 
+def lstm(lstm_type, x, batch_size=1, n_units=256, num_cores=8):
+    if lstm_type.lower() == 'basic':
+        return LSTM(x, batch_size, n_units)
+    elif lstm_type.lower() == 'dilated':
+        return DilatedLSTM(x, batch_size, n_units, num_cores)
+    else:
+        assert False, "There are 2 valid options for LSTM type: Basic | Dilated"
+
+
 class LSTM(subgraph.Subgraph):
-    def build_graph(self, x, batch_size=1, n_units=256):
+    def build_graph(self, x, batch_size, n_units):
         self.phs = [graph.Placeholder(np.float32, [batch_size, n_units]) for _ in range(2)]
         self.ph_state = graph.TfNode(tuple(ph.node for ph in self.phs))
         self.ph_state.checked = tuple(ph.checked for ph in self.phs)
@@ -146,6 +155,23 @@ class LSTM(subgraph.Subgraph):
         self.state = graph.TfNode(self.state)
         self.weight = graph.TfNode(tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,
                                                      tf.get_variable_scope().name))
+        self.reset_timestep = None
+        return outputs
+
+
+class DilatedLSTM(subgraph.Subgraph):
+    def build_graph(self, x, batch_size, n_units, num_cores):
+        lstm = graph.DilatedLSTMCell(n_units, num_cores)
+
+        self.ph_state = graph.Placeholder(np.float32, [batch_size, lstm.state_size])
+        self.zero_state = np.zeros([batch_size, lstm.state_size])
+
+        outputs, self.state = tf.nn.dynamic_rnn(lstm, x.node, initial_state=self.ph_state.checked,
+                                                sequence_length=tf.shape(x.node)[1:2], time_major=False)
+
+        self.state = graph.TfNode(self.state)
+        self.weight = graph.TfNode([lstm.matrix, lstm.bias])
+        self.reset_timestep = graph.TfNode(lstm.reset_timestep)
         return outputs
 
 

@@ -36,13 +36,16 @@ class Head(subgraph.Subgraph):
             last_size = sizes[-1]
 
         if da3c_config.config.use_lstm:
-            lstm = layer.LSTM(graph.Expand(fc_layers, 0), n_units=last_size)
+            lstm = layer.lstm(da3c_config.config.lstm_type,
+                              graph.Expand(fc_layers, 0), n_units=last_size,
+                              num_cores=da3c_config.config.lstm_num_cores)
             head = graph.Reshape(lstm, [-1, last_size])
             layers.append(lstm)
 
-            self.ph_lstm_state = lstm.ph_state
-            self.lstm_zero_state = lstm.zero_state
-            self.lstm_state = lstm.state
+            self.lstm_items = {"ph_lstm_state": lstm.ph_state,
+                               "lstm_zero_state": lstm.zero_state,
+                               "lstm_state": lstm.state,
+                               "lstm_reset_timestep": lstm.reset_timestep}
         else:
             head = layer.Dense(fc_layers, last_size, activation=layer.Activation.Relu6)
             layers.append(head)
@@ -53,13 +56,15 @@ class Head(subgraph.Subgraph):
 
 
 class Subnet(object):
-    def __init__(self, head, weights, ph_lstm_state=None, lstm_zero_state=None, lstm_state=None):
+    def __init__(self, head, weights,
+                 ph_lstm_state=None, lstm_zero_state=None, lstm_state=None, lstm_reset_timestep=None):
         self.head = head
         self.weights = weights
         if da3c_config.config.use_lstm:
             self.ph_lstm_state = ph_lstm_state
             self.lstm_zero_state = lstm_zero_state
             self.lstm_state = lstm_state
+            self.lstm_reset_timestep = lstm_reset_timestep
 
 
 class Network(subgraph.Subgraph):
@@ -76,16 +81,12 @@ class Network(subgraph.Subgraph):
 
         feeds = dict(head=actor, weights=layer.Weights(actor_head, actor))
         if da3c_config.config.use_lstm:
-            feeds.update(dict(ph_lstm_state=actor_head.ph_lstm_state,
-                              lstm_zero_state=actor_head.lstm_zero_state,
-                              lstm_state=actor_head.lstm_state))
+            feeds.update(actor_head.lstm_items)
         self.actor = Subnet(**feeds)
 
         feeds = dict(head=graph.Flatten(critic), weights=layer.Weights(critic_head, critic))
         if da3c_config.config.use_lstm:
-            feeds.update(dict(ph_lstm_state=critic_head.ph_lstm_state,
-                              lstm_zero_state=critic_head.lstm_zero_state,
-                              lstm_state=critic_head.lstm_state))
+            feeds.update(critic_head.lstm_items)
         self.critic = Subnet(**feeds)
 
         self.weights = layer.Weights(actor_head, actor, critic_head, critic)
@@ -216,6 +217,8 @@ class AgentModel(subgraph.Subgraph):
         if da3c_config.config.use_lstm:
             feeds.update(dict(lstm_state=(sg_network.actor.ph_lstm_state, sg_network.critic.ph_lstm_state)))
             self.lstm_zero_state = (sg_network.actor.lstm_zero_state, sg_network.critic.lstm_zero_state)
+            self.op_lstm_reset_timestep = self.Ops(sg_network.actor.lstm_reset_timestep,
+                                                   sg_network.critic.lstm_reset_timestep)
             self.op_get_action_value_and_lstm_state = \
                 self.Ops(sg_network.actor.head, sg_network.critic.head,
                          (sg_network.actor.lstm_state, sg_network.critic.lstm_state),

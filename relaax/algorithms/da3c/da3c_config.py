@@ -45,6 +45,8 @@ config.dc_history = options.get('algorithm/dc_history', 20)
 config.gradients_norm_clipping = options.get('algorithm/gradients_norm_clipping', False)
 
 config.input.universe = options.get('algorithm/input/universe', True)
+config.lstm_type = options.get('algorithm/lstm_type', 'Basic')  # Basic | Dilated
+config.lstm_num_cores = options.get('algorithm/lstm_num_cores', 8)
 
 # ICM default parameters
 if not hasattr(config, 'icm'):
