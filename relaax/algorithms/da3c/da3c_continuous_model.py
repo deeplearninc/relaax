@@ -22,13 +22,14 @@ np.random.seed(da3c_config.config.seed)
 class Head(subgraph.Subgraph):
     def build_graph(self, input_placeholder):
         input = layer.ConfiguredInput(da3c_config.config.input, input_placeholder=input_placeholder)
+        activation = layer.get_activation(da3c_config.config.activation)
 
         sizes = da3c_config.config.hidden_sizes
         layers = [input]
         flattened_input = layer.Flatten(input)
 
         fc_layers = layer.GenericLayers(flattened_input, [dict(type=layer.Dense, size=size,
-                                        activation=layer.Activation.Relu6) for size in sizes[:-1]])
+                                        activation=activation) for size in sizes[:-1]])
         layers.append(fc_layers)
 
         last_size = fc_layers.node.shape.as_list()[-1]
@@ -38,7 +39,7 @@ class Head(subgraph.Subgraph):
         if da3c_config.config.use_lstm:
             lstm = layer.lstm(da3c_config.config.lstm_type,
                               graph.Expand(fc_layers, 0), n_units=last_size,
-                              num_cores=da3c_config.config.lstm_num_cores)
+                              n_cores=da3c_config.config.lstm_num_cores)
             head = graph.Reshape(lstm, [-1, last_size])
             layers.append(lstm)
 
@@ -47,7 +48,7 @@ class Head(subgraph.Subgraph):
                                "lstm_state": lstm.state,
                                "lstm_reset_timestep": lstm.reset_timestep}
         else:
-            head = layer.Dense(fc_layers, last_size, activation=layer.Activation.Relu6)
+            head = layer.Dense(fc_layers, last_size, activation=activation)
             layers.append(head)
 
         self.ph_state = input.ph_state

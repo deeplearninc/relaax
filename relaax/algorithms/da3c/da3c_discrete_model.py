@@ -35,7 +35,7 @@ class Network(subgraph.Subgraph):
         if da3c_config.config.use_lstm:
             lstm = layer.lstm(da3c_config.config.lstm_type,
                               graph.Expand(flattened_input, 0), n_units=last_size,
-                              num_cores=da3c_config.config.lstm_num_cores)
+                              n_cores=da3c_config.config.lstm_num_cores)
             head = graph.Reshape(lstm, [-1, last_size])
             layers.append(lstm)
 
@@ -44,7 +44,7 @@ class Network(subgraph.Subgraph):
             self.lstm_state = lstm.state
             self.lstm_reset_timestep = lstm.reset_timestep
         else:
-            activation = layer.Activation.get_activation(da3c_config.config.activation)
+            activation = layer.get_activation(da3c_config.config.activation)
             head = layer.GenericLayers(flattened_input,
                                        [dict(type=layer.Dense, size=size,
                                              activation=activation) for size in sizes])
@@ -164,8 +164,8 @@ class AgentModel(subgraph.Subgraph):
 
         if da3c_config.config.use_lstm:
             feeds.update(dict(lstm_state=sg_network.ph_lstm_state))
-            self.op_lstm_reset_timestep = self.Op(sg_network.lstm_reset_timestep)
             self.lstm_zero_state = sg_network.lstm_zero_state
+            self.op_lstm_reset_timestep = self.Op(sg_network.lstm_reset_timestep)
             self.op_get_action_value_and_lstm_state = self.Ops(sg_network.actor, sg_network.critic,
                                                                sg_network.lstm_state,
                                                                state=sg_network.ph_state,

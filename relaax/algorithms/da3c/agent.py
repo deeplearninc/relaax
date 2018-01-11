@@ -89,6 +89,8 @@ class Agent(object):
     def reset(self):
         if da3c_config.config.use_lstm:
             self.initial_lstm_state = self.lstm_state = self.lstm_zero_state
+            if da3c_config.config.lstm_type.lower() == 'dilated':
+                self.session.op_lstm_reset_timestep()
     # End callback methods
 
     @profiler.wrap

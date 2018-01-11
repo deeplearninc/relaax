@@ -27,7 +27,7 @@ class Network(subgraph.Subgraph):
         layers = [input]
 
         sizes = dppo_config.config.hidden_sizes
-        activation = layer.Activation.get_activation(dppo_config.config.activation)
+        activation = layer.get_activation(dppo_config.config.activation)
         fc_layers = layer.GenericLayers(layer.Flatten(input),
                                         [dict(type=layer.Dense, size=size, activation=activation)
                                         for size in sizes[:-1]])
@@ -38,13 +38,16 @@ class Network(subgraph.Subgraph):
             last_size = sizes[-1]
 
         if dppo_config.config.use_lstm:
-            lstm = layer.LSTM(graph.Expand(fc_layers, 0), n_units=last_size)
+            lstm = layer.lstm(dppo_config.config.lstm_type,
+                              graph.Expand(fc_layers, 0), n_units=last_size,
+                              n_cores=dppo_config.config.lstm_num_cores)
             head = graph.Reshape(lstm, [-1, last_size])
             layers.append(lstm)
 
-            self.ph_lstm_state = lstm.ph_state
-            self.lstm_zero_state = lstm.zero_state
-            self.lstm_state = lstm.state
+            self.lstm_items = {"ph_lstm_state": lstm.ph_state,
+                               "lstm_zero_state": lstm.zero_state,
+                               "lstm_state": lstm.state,
+                               "lstm_reset_timestep": lstm.reset_timestep}
         else:
             head = layer.Dense(fc_layers, last_size, activation=activation)
             layers.append(head)
@@ -55,7 +58,8 @@ class Network(subgraph.Subgraph):
 
 
 class Subnet(object):
-    def __init__(self, head, weights, ph_state, ph_lstm_state=None, lstm_zero_state=None, lstm_state=None):
+    def __init__(self, head, weights, ph_state,
+                 ph_lstm_state=None, lstm_zero_state=None, lstm_state=None, lstm_reset_timestep=None):
         self.head = head
         self.weights = weights
         self.ph_state = ph_state
@@ -63,6 +67,7 @@ class Subnet(object):
             self.ph_lstm_state = ph_lstm_state
             self.lstm_zero_state = lstm_zero_state
             self.lstm_state = lstm_state
+            self.lstm_reset_timestep = lstm_reset_timestep
 
 
 class Model(subgraph.Subgraph):
@@ -85,17 +90,13 @@ class Model(subgraph.Subgraph):
         feeds = dict(head=actor, weights=layer.Weights(policy_head, *actor_layers),
                      ph_state=input_placeholder.ph_state)
         if dppo_config.config.use_lstm:
-            feeds.update(dict(ph_lstm_state=policy_head.ph_lstm_state,
-                              lstm_zero_state=policy_head.lstm_zero_state,
-                              lstm_state=policy_head.lstm_state))
+            feeds.update(policy_head.lstm_items)
         self.actor = Subnet(**feeds)
 
         feeds = dict(head=critic, weights=layer.Weights(value_head, critic),
                      ph_state=input_placeholder.ph_state)
         if dppo_config.config.use_lstm:
-            feeds.update(dict(ph_lstm_state=value_head.ph_lstm_state,
-                              lstm_zero_state=value_head.lstm_zero_state,
-                              lstm_state=value_head.lstm_state))
+            feeds.update(value_head.lstm_items)
         self.critic = Subnet(**feeds)
 
         if assemble_model:
@@ -111,7 +112,7 @@ class PolicyModel(subgraph.Subgraph):
         if dppo_config.config.use_lstm:
             self.op_get_action = self.Ops(sg_network.head, sg_network.lstm_state,
                                           state=sg_network.ph_state, lstm_state=sg_network.ph_lstm_state)
-            self.op_lstm_zero_state = sg_network.lstm_zero_state
+            self.op_lstm_reset_timestep = self.Op(sg_network.lstm_reset_timestep)
         else:
             self.op_get_action = self.Op(sg_network.head, state=sg_network.ph_state)
 
@@ -209,7 +210,7 @@ class ValueModel(subgraph.Subgraph):
         if dppo_config.config.use_lstm:
             self.op_value = self.Ops(sg_value_net.head, sg_value_net.lstm_state,
                                      state=sg_value_net.ph_state, lstm_state=sg_value_net.ph_lstm_state)
-            self.op_lstm_zero_state = sg_value_net.lstm_zero_state
+            self.op_lstm_reset_timestep = self.Op(sg_value_net.lstm_reset_timestep)
         else:
             self.op_value = self.Op(sg_value_net.head, state=sg_value_net.ph_state)
 
