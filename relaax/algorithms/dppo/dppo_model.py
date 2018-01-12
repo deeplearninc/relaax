@@ -27,7 +27,8 @@ class Network(subgraph.Subgraph):
         layers = [input]
 
         sizes = dppo_config.config.hidden_sizes
-        activation = layer.get_activation(dppo_config.config.activation)
+        activation = layer.get_activation(dppo_config.config)
+
         fc_layers = layer.GenericLayers(layer.Flatten(input),
                                         [dict(type=layer.Dense, size=size, activation=activation)
                                         for size in sizes[:-1]])

@@ -53,6 +53,26 @@ class RandomUniformInitializer(object):
         )
 
 
+class RandomNormalInitializer(object):
+    DTYPE = {
+        np.float: tf.float64,
+        np.float64: tf.float64,
+        np.float32: tf.float32,
+    }
+
+    def __init__(self, mean=0.0, stddev=1.0):
+        self.mean = mean
+        self.stddev = stddev
+
+    def __call__(self, dtype=np.float32, shape=None):
+        return tf.random_normal(
+            shape,
+            dtype=self.DTYPE[dtype],
+            mean=self.mean,
+            stddev=self.stddev,
+        )
+
+
 class XavierInitializer(object):
     DTYPE = {
         np.float: tf.float64,

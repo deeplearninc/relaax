@@ -50,3 +50,11 @@ config.optimizer.epsilon = options.get('algorithm/optimizer/epsilon', 1e-5)
 config.schedule = options.get('algorithm/schedule', 'linear')
 config.schedule_step = options.get('algorithm/schedule_step', 'update')     # update | environment
 config.max_global_step = options.get('algorithm/max_global_step', 1e7)
+
+# KAF default parameters
+if not hasattr(config, 'KAF'):
+    config.KAF = options.get('algorithm/KAF', Namespace())
+config.KAF.boundary = options.get('algorithm/KAF/boundary', 2.0)
+config.KAF.size = options.get('algorithm/KAF/size', 20)
+config.KAF.kernel = options.get('algorithm/KAF/kernel', 'rbf')  # rbf | rbf2d
+config.KAF.gamma = options.get('algorithm/KAF/gamma', 1.0)

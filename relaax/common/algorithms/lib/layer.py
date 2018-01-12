@@ -57,6 +57,16 @@ class SoftplusSubgraph(subgraph.Subgraph):
         return tf.nn.softplus(x)
 
 
+class KAFConfigurator(object):
+    def __init__(self, cfg):
+        self.D = tf.linspace(start=-cfg.boundary, stop=-cfg.boundary, num=cfg.size)
+        self.kernel = cfg.kernel
+        self.gamma = cfg.gamma
+
+    def __call__(self, x):
+        return KAFSubgraph(x, self.D, self.kernel, self.gamma)
+
+
 class Activation(object):
     Null = NullSubgraph
     Sigmoid = SigmoidSubgraph
@@ -66,6 +76,7 @@ class Activation(object):
     Elu = EluSubgraph
     Softmax = SoftmaxSubgraph
     Softplus = SoftplusSubgraph
+    KAF = KAFConfigurator
 
     # dict comprehension has its own locals. dict comprehension does not see class context.
     # This is why class locals are passed as lambda argument
@@ -76,8 +87,61 @@ class Activation(object):
         return getattr(cls, cls._MAP[name.lower()])
 
 
-def get_activation(activation_name):
-    return Activation.get_activation(activation_name)
+def get_activation(cfg):
+    activation = Activation.get_activation(cfg.activation)
+    if cfg.activation.lower() == 'kaf':
+        activation = activation(cfg.KAF)
+    return activation
+
+
+class KAFSubgraph(subgraph.Subgraph):
+    def build_graph(self, x, d, kernel='rbf', gamma=1.):
+        initializer = graph.RandomNormalInitializer(stddev=0.1)
+
+        if kernel == 'rbf':
+            k = gauss_kernel(x, d, gamma=gamma)
+
+            shape = (1, x.get_shape().as_list()[-1], d.get_shape().as_list()[0])
+            alpha = graph.Variable(initializer(np.float32, shape=shape))
+
+        elif kernel == 'rbf2d':
+            dx, dy = tf.meshgrid(d, d)
+            k = gauss_kernel2d(x, dx, dy, gamma=gamma)
+
+            shape = (1, x.get_shape().as_list()[-1] // 2,
+                     d.get_shape().as_list()[0] * d.get_shape().as_list()[0])
+            alpha = graph.Variable(initializer(np.float32, shape=shape))
+        else:
+            assert False, "There are 2 valid options for KAF kernels: rbf | rbf2d"
+
+        self.weight = alpha.node
+        return tf.reduce_sum(tf.multiply(k, self.weight), axis=-1)
+
+
+def gauss_kernel(x, d, gamma=1.):
+    x = tf.expand_dims(x, axis=-1)
+    if x.get_shape().ndims < 4:
+        d = tf.reshape(d, (1, 1, -1))
+    else:
+        d = tf.reshape(d, (1, 1, 1, 1, -1))
+
+    return tf.exp(- gamma * tf.square(x - d))
+
+
+def gauss_kernel2d(x, dx, dy, gamma=1.):
+    h_size = x.get_shape()[-1].value // 2
+
+    x = tf.expand_dims(x, axis=-1)
+    if x.get_shape().ndims < 4:
+        dx = tf.reshape(dx, (1, 1, -1))
+        dy = tf.reshape(dy, (1, 1, -1))
+        x1, x2 = x[:, :h_size], x[:, h_size:]
+    else:
+        dy = tf.reshape(dy, (1, 1, 1, 1, -1))
+        dx = tf.reshape(dx, (1, 1, 1, 1, -1))
+        x1, x2 = x[:, :, :, :h_size], x[:, :, :, h_size:]
+
+    return tf.exp(-gamma * tf.square(x1 - dx)) + tf.exp(- gamma * tf.square(x2 - dy))
 
 
 class Border(object):

@@ -22,7 +22,7 @@ np.random.seed(da3c_config.config.seed)
 class Head(subgraph.Subgraph):
     def build_graph(self, input_placeholder):
         input = layer.ConfiguredInput(da3c_config.config.input, input_placeholder=input_placeholder)
-        activation = layer.get_activation(da3c_config.config.activation)
+        activation = layer.get_activation(da3c_config.config)
 
         sizes = da3c_config.config.hidden_sizes
         layers = [input]

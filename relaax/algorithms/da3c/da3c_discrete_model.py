@@ -44,7 +44,7 @@ class Network(subgraph.Subgraph):
             self.lstm_state = lstm.state
             self.lstm_reset_timestep = lstm.reset_timestep
         else:
-            activation = layer.get_activation(da3c_config.config.activation)
+            activation = layer.get_activation(da3c_config.config)
             head = layer.GenericLayers(flattened_input,
                                        [dict(type=layer.Dense, size=size,
                                              activation=activation) for size in sizes])

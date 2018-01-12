@@ -54,3 +54,11 @@ if not hasattr(config, 'icm'):
 config.icm.nu = options.get('algorithm/icm/nu', 0.8)
 config.icm.beta = options.get('algorithm/icm/beta', 0.2)
 config.icm.lr = options.get('algorithm/icm/lr', 1e-3)
+
+# KAF default parameters
+if not hasattr(config, 'KAF'):
+    config.KAF = options.get('algorithm/KAF', Namespace())
+config.KAF.boundary = options.get('algorithm/KAF/boundary', 2.0)
+config.KAF.size = options.get('algorithm/KAF/size', 20)
+config.KAF.kernel = options.get('algorithm/KAF/kernel', 'rbf')  # rbf | rbf2d
+config.KAF.gamma = options.get('algorithm/KAF/gamma', 1.0)
