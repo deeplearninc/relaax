@@ -15,7 +15,6 @@ algorithm:
 
   input:
     shape: [3]                    # shape of input state
-    history: 1                    # number of consecutive states to stack
     use_convolutions: false       # set to true to process input by convolution layers
 
   output:

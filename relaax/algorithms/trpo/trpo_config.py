@@ -15,6 +15,7 @@ config.timesteps_per_batch = options.get('algorithm/PG_OPTIONS/timesteps_per_bat
 config.episodes_per_batch = options.get('algorithm/PG_OPTIONS/episodes_per_batch', 5)
 
 config.avg_in_num_batches = options.get('algorithm/avg_in_num_batches', 2)
+config.input.history = options.get('algorithm/input/history', 1)
 
 if not hasattr(config, 'PPO'):
     config.PPO = options.get('algorithm/PPO', Namespace())

@@ -7,6 +7,7 @@ config = options.get('algorithm')
 config.seed = options.get('algorithm/seed', random.randrange(1000000))
 
 config.input.universe = options.get('algorithm/input/universe', True)
+config.input.history = options.get('algorithm/input/history', 1)
 config.activation = options.get('algorithm/activation', 'tanh')
 
 config.lam = options.get('algorithm/lambda', 1.00)

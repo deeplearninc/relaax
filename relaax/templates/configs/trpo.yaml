@@ -8,14 +8,13 @@ algorithm:
 
   input:
     shape: [42, 42]               # state: [height, width] or [height, width, channels]
-    history: 4                    # number of consecutive states to stuck to represent an input
     use_convolutions: false       # set to True to use convolutions to process the input
 
   output:
     continuous: false             # set to True to handle with continuous action type
     action_size: 4                # action size for the given environment
 
-  hidden_sizes: [64, 64]          # list of num_units for hidden layers
+  hidden_sizes: [128, 64]         # list of num_units for hidden layers
   activation: tanh                # activation function for MLP
 
   use_filter: false               # use average filter of the incoming observations and rewards

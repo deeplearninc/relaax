@@ -7,9 +7,8 @@ algorithm:
   subtype: trpo-d2
 
   input:
-    shape: [0]                # shape of input state, [0] means empty state (bandit env)
-    history: 1                # number of consecutive states to stuck to represent an input
-    use_convolutions: false   # set to True to use convolutions to process the input
+    shape: [0]                    # shape of input state, [0] means empty state (bandit env)
+    use_convolutions: false       # set to True to use convolutions to process the input
 
   output:
     continuous: false             # set to True to handle with continuous action type

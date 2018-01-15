@@ -7,7 +7,6 @@ algorithm:
 
   input:
     shape: [4]                    # state: size of the input vector
-    history: 1                    # number of consecutive states to stuck to represent an input
     use_convolutions: false       # set to True to use convolutions to process the input
 
   output:
