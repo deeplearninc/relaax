@@ -139,5 +139,8 @@ class NnVf(object):
         return self.reg.fit(ob_no, vtarg_n1)
 
     def preproc(self, ob_no):
-        return np.concatenate([ob_no, np.arange(len(ob_no)).reshape(-1, 1) / float(self.timestep_limit)],
+        length = len(ob_no)
+        if ob_no[0].ndim > 1:
+            ob_no = [obs.flatten() for obs in ob_no]
+        return np.concatenate([ob_no, np.arange(length).reshape(-1, 1) / float(self.timestep_limit)],
                               axis=1)
