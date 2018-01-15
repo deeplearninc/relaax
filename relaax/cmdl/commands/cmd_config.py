@@ -68,7 +68,7 @@ class CmdConfig(object):
                                  self.algorithm, env_section['type'], env_section['name'])
                     self.ctx.log('WARNING: this is NOT equal to requested %s environment type',
                                  self.environment)
-            except:
+            except RuntimeError:
                 pass
 
             app_config[block_name] = template_config[block_name]
