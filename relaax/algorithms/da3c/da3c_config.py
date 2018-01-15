@@ -16,7 +16,7 @@ config.gae_lambda = options.get('algorithm/gae_lambda', 1.00)
 config.entropy_beta = options.get('algorithm/entropy_beta', 0.01)
 
 config.use_linear_schedule = options.get('algorithm/use_linear_schedule', False)
-config.output.loss_type = options.get('algorithm/output/loss_type', 'Normal')
+config.output.loss_type = options.get('algorithm/output/loss_type', 'Normal')   # Normal | Expanded | Extended
 
 config.optimizer = options.get('algorithm/optimizer', 'Adam')   # Adam | RMSProp
 # RMSProp default parameters

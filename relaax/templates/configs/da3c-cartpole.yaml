@@ -1,5 +1,5 @@
 ---
-# DA3C configuration for Open AI Gym CartPole-v0
+# DA3C configuration for OpenAI Gym CartPole-v0
 
 version: 1.1.0
 algorithm:
@@ -8,14 +8,14 @@ algorithm:
   input:
     shape: [4]                    # state: size of the input vector
     history: 1                    # number of consecutive states to stuck to represent an input
-    use_convolutions: false       # set to True to use convolutions to process the input,
-                                  # it uses the set of convolutions from universe architecture by default
+    use_convolutions: false       # set to True to use convolutions to process the input
+
   output:
     continuous: false             # set to True to handle with continuous action type
     action_size: 2                # action size for the given environment
 
-  hidden_sizes: []                # list of num_units for hidden fc layer
-  batch_size: 50                  # local loop size for one episode
+  hidden_sizes: []                # list of num_units for hidden layers
+  batch_size: 50                  # maximum batch size, which need to accumulate for one update
 
   use_lstm: false                 # to use LSTM instead of FF, set to the True
   max_global_step: 30000          # amount of maximum global steps to pass through the training

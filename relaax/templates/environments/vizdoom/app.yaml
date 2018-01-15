@@ -1,4 +1,5 @@
 ---
+# There are sample for Gym Doom environment
 
 environment:
   run: python environment/training.py
@@ -43,8 +44,8 @@ algorithm:
     continuous: false             # set to True to handle with continuous action type
     action_size: 4                # action size for the given environment
 
-  hidden_sizes: [288]             # list of num_units for hidden fc layers
-  batch_size: 20                  # experience size for one update
+  hidden_sizes: [288]             # list of num_units for hidden layers
+  batch_size: 8                   # experience size for one update
 
   use_lstm: true                  # to use LSTM instead of FF, set to the True
   max_global_step: 1e8            # amount of maximum global steps to pass through the training
@@ -56,7 +57,7 @@ algorithm:
 
   optimizer: Adam                 # type of optimizer to use: Adam | RMSProp
   gradients_norm_clipping: 40.    # value to clip the gradients by its global norm
-  critic_scale: 0.25              # coefficient to scale the critic loss
+  critic_scale: 0.25              # coefficient to scale the critic loss or its learning rate wrt policy
 
   combine_gradient: dc            # gradient's combining method: dc | fifo | average
   dc_lambda: 0.05                 # delay compensation regularization constant

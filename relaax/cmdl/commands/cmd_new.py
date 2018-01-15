@@ -11,10 +11,10 @@ from relaax.cmdl.cmdl import ALGORITHMS, ALGORITHMS_META, ENVIRONMENTS, ENVIRONM
 from relaax.cmdl.commands.cmd_generate import CmdGenerate
 
 DEFAULT_ALGORITHMS_FOR_ENV = {
-    'basic': 'policy-gradient',
-    'openai-gym': 'da3c-cartpole',
-    'deepmind-lab': 'da3c-deepmind-lab',
-    'vizdoom': 'da3c-vizdoom'
+    'bandit': 'policy-gradient',
+    'openai-gym': 'trpo',
+    'deepmind-lab': 'da3c',
+    'vizdoom': 'da3c'
 }
 
 
@@ -55,7 +55,8 @@ class NewApp(object):
             if self.environment == 'vizdoom':
                 self.ctx.log('Please make sure you have Gym Doom installed; '
                              'see installation instruction here:  https://github.com/ppaquette/gym-doom')
-
+            self.ctx.log(
+                'To find more samples, please see: https://github.com/deeplearninc/relaax_sample_apps')
             self.ctx.log('To run application, please do: cd %s && relaax run' % self.app_name)
 
         except Exception as e:
@@ -67,7 +68,7 @@ class NewApp(object):
 @click.option('--algorithm', '-a', default=None, metavar='',
               type=click.Choice(ALGORITHMS),
               help='[%s]\nAlgorithm to use with this application.' % ALGORITHMS_META)
-@click.option('--environment', '-e', default='basic', show_default=True, metavar='',
+@click.option('--environment', '-e', default='bandit', show_default=True, metavar='',
               type=click.Choice(ENVIRONMENTS),
               help='[%s] \n Environment to base application on.' % ENVIRONMENTS_META)
 @pass_context
