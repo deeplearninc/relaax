@@ -33,15 +33,18 @@ class Network(subgraph.Subgraph):
             last_size = sizes[-1]
 
         if da3c_config.config.use_lstm:
-            lstm = layer.LSTM(graph.Expand(flattened_input, 0), n_units=last_size)
+            lstm = layer.lstm(da3c_config.config.lstm_type,
+                              graph.Expand(flattened_input, 0), n_units=last_size,
+                              n_cores=da3c_config.config.lstm_num_cores)
             head = graph.Reshape(lstm, [-1, last_size])
             layers.append(lstm)
 
             self.ph_lstm_state = lstm.ph_state
             self.lstm_zero_state = lstm.zero_state
             self.lstm_state = lstm.state
+            self.lstm_reset_timestep = lstm.reset_timestep
         else:
-            activation = layer.Activation.get_activation(da3c_config.config.activation)
+            activation = layer.get_activation(da3c_config.config)
             head = layer.GenericLayers(flattened_input,
                                        [dict(type=layer.Dense, size=size,
                                              activation=activation) for size in sizes])
@@ -67,12 +70,16 @@ class SharedParameters(subgraph.Subgraph):
         sg_network = Network()
         sg_weights = sg_network.weights
 
-        if da3c_config.config.optimizer == 'Adam':
-            sg_optimizer = optimizer.AdamOptimizer(da3c_config.config.initial_learning_rate)
-        else:
+        if da3c_config.config.use_linear_schedule:
             sg_learning_rate = lr_schedule.Linear(sg_global_step,
                                                   da3c_config.config.initial_learning_rate,
                                                   da3c_config.config.max_global_step)
+        else:
+            sg_learning_rate = da3c_config.config.initial_learning_rate
+
+        if da3c_config.config.optimizer == 'Adam':
+            sg_optimizer = optimizer.AdamOptimizer(sg_learning_rate)
+        else:
             sg_optimizer = optimizer.RMSPropOptimizer(learning_rate=sg_learning_rate,
                                                       decay=da3c_config.config.RMSProp.decay, momentum=0.0,
                                                       epsilon=da3c_config.config.RMSProp.epsilon)
@@ -158,6 +165,7 @@ class AgentModel(subgraph.Subgraph):
         if da3c_config.config.use_lstm:
             feeds.update(dict(lstm_state=sg_network.ph_lstm_state))
             self.lstm_zero_state = sg_network.lstm_zero_state
+            self.op_lstm_reset_timestep = self.Op(sg_network.lstm_reset_timestep)
             self.op_get_action_value_and_lstm_state = self.Ops(sg_network.actor, sg_network.critic,
                                                                sg_network.lstm_state,
                                                                state=sg_network.ph_state,

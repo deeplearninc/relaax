@@ -1,5 +1,5 @@
 ---
-# generic TRPO configuration
+# generic TRPO configuration, which is fitted to default deepmind-lab or vizdoom environment from templates
 
 version: 1.1.0
 algorithm:
@@ -7,23 +7,23 @@ algorithm:
   subtype: trpo-d2
 
   input:
-    shape: [42, 42]               # state: [height, width] or [height, width, channels]
+    shape: [0]                    # shape of input state, [0] means empty state (bandit env)
     use_convolutions: false       # set to True to use convolutions to process the input
 
   output:
     continuous: false             # set to True to handle with continuous action type
     action_size: 4                # action size for the given environment
 
-  hidden_sizes: [128, 64]         # list of num_units for hidden layers
+  hidden_sizes: [10]              # list of num_units for hidden layers
   activation: tanh                # activation function for MLP
 
   use_filter: false               # use average filter of the incoming observations and rewards
   async: false                    # set to true to collect experience without blocking the updater
 
   PG_OPTIONS:
-    timestep_limit: 1e4           # length in steps for one round in environment
-    n_iter: 1e5                   # number of updates to pass through the training (training length)
-    timesteps_per_batch: 5e4      # number of experience to collect before update
+    timestep_limit: 200           # length in steps for one round in environment
+    n_iter: 10000                 # number of updates to pass through the training (training length)
+    timesteps_per_batch: 5000     # number of experience to collect before update
     rewards_gamma: 0.995          # rewards discount factor
     gae_lambda: 0.97              # lambda from generalized advantage estimation
 

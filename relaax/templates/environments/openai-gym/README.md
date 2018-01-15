@@ -24,7 +24,7 @@ $ pip install git+https://github.com/Kojoley/atari-py.git
 
 ### Generate new application:
 ```bash
-$ relaax new app_name -e openai-gym -a da3c
+$ relaax new app_name -e openai-gym -a trpo
 ```
 
 ### app.yaml parameters for ATARI games with images as a state:

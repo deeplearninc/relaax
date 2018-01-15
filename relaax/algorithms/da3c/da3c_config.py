@@ -11,10 +11,19 @@ for key, value in [('use_convolutions', [])]:
 
 config.output.scale = options.get('algorithm/output/scale', 1.0)
 config.critic_scale = options.get('algorithm/critic_scale', 1.0)
-config.gae_lambda = options.get('algorithm/gae_lambda', 1.00)
 
-config.output.loss_type = options.get('algorithm/output/loss_type', 'Normal')
-config.optimizer = options.get('algorithm/optimizer', 'Adam')
+config.gae_lambda = options.get('algorithm/gae_lambda', 1.00)
+config.entropy_beta = options.get('algorithm/entropy_beta', 0.01)
+
+config.use_linear_schedule = options.get('algorithm/use_linear_schedule', False)
+config.output.loss_type = options.get('algorithm/output/loss_type', 'Normal')   # Normal | Expanded | Extended
+
+config.optimizer = options.get('algorithm/optimizer', 'Adam')   # Adam | RMSProp
+# RMSProp default parameters
+if not hasattr(config, 'RMSProp'):
+    config.RMSProp = options.get('algorithm/RMSProp', Namespace())
+config.RMSProp.decay = options.get('algorithm/RMSProp/decay', 0.99)
+config.RMSProp.epsilon = options.get('algorithm/RMSProp/epsilon', 0.1)
 
 config.hogwild = options.get('algorithm/hogwild', False)
 config.use_icm = options.get('algorithm/use_icm', False)
@@ -36,10 +45,20 @@ config.dc_history = options.get('algorithm/dc_history', 20)
 config.gradients_norm_clipping = options.get('algorithm/gradients_norm_clipping', False)
 
 config.input.universe = options.get('algorithm/input/universe', True)
+config.lstm_type = options.get('algorithm/lstm_type', 'Basic')  # Basic | Dilated
+config.lstm_num_cores = options.get('algorithm/lstm_num_cores', 8)
 
-# ICM parameters
+# ICM default parameters
 if not hasattr(config, 'icm'):
     config.icm = options.get('algorithm/icm', Namespace())
 config.icm.nu = options.get('algorithm/icm/nu', 0.8)
 config.icm.beta = options.get('algorithm/icm/beta', 0.2)
 config.icm.lr = options.get('algorithm/icm/lr', 1e-3)
+
+# KAF default parameters
+if not hasattr(config, 'KAF'):
+    config.KAF = options.get('algorithm/KAF', Namespace())
+config.KAF.boundary = options.get('algorithm/KAF/boundary', 2.0)
+config.KAF.size = options.get('algorithm/KAF/size', 20)
+config.KAF.kernel = options.get('algorithm/KAF/kernel', 'rbf')  # rbf | rbf2d
+config.KAF.gamma = options.get('algorithm/KAF/gamma', 1.0)

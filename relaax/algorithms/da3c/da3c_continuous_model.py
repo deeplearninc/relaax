@@ -22,13 +22,14 @@ np.random.seed(da3c_config.config.seed)
 class Head(subgraph.Subgraph):
     def build_graph(self, input_placeholder):
         input = layer.ConfiguredInput(da3c_config.config.input, input_placeholder=input_placeholder)
+        activation = layer.get_activation(da3c_config.config)
 
         sizes = da3c_config.config.hidden_sizes
         layers = [input]
         flattened_input = layer.Flatten(input)
 
         fc_layers = layer.GenericLayers(flattened_input, [dict(type=layer.Dense, size=size,
-                                        activation=layer.Activation.Relu6) for size in sizes[:-1]])
+                                        activation=activation) for size in sizes[:-1]])
         layers.append(fc_layers)
 
         last_size = fc_layers.node.shape.as_list()[-1]
@@ -36,15 +37,18 @@ class Head(subgraph.Subgraph):
             last_size = sizes[-1]
 
         if da3c_config.config.use_lstm:
-            lstm = layer.LSTM(graph.Expand(fc_layers, 0), n_units=last_size)
+            lstm = layer.lstm(da3c_config.config.lstm_type,
+                              graph.Expand(fc_layers, 0), n_units=last_size,
+                              n_cores=da3c_config.config.lstm_num_cores)
             head = graph.Reshape(lstm, [-1, last_size])
             layers.append(lstm)
 
-            self.ph_lstm_state = lstm.ph_state
-            self.lstm_zero_state = lstm.zero_state
-            self.lstm_state = lstm.state
+            self.lstm_items = {"ph_lstm_state": lstm.ph_state,
+                               "lstm_zero_state": lstm.zero_state,
+                               "lstm_state": lstm.state,
+                               "lstm_reset_timestep": lstm.reset_timestep}
         else:
-            head = layer.Dense(fc_layers, last_size, activation=layer.Activation.Relu6)
+            head = layer.Dense(fc_layers, last_size, activation=activation)
             layers.append(head)
 
         self.ph_state = input.ph_state
@@ -53,13 +57,15 @@ class Head(subgraph.Subgraph):
 
 
 class Subnet(object):
-    def __init__(self, head, weights, ph_lstm_state=None, lstm_zero_state=None, lstm_state=None):
+    def __init__(self, head, weights,
+                 ph_lstm_state=None, lstm_zero_state=None, lstm_state=None, lstm_reset_timestep=None):
         self.head = head
         self.weights = weights
         if da3c_config.config.use_lstm:
             self.ph_lstm_state = ph_lstm_state
             self.lstm_zero_state = lstm_zero_state
             self.lstm_state = lstm_state
+            self.lstm_reset_timestep = lstm_reset_timestep
 
 
 class Network(subgraph.Subgraph):
@@ -76,16 +82,12 @@ class Network(subgraph.Subgraph):
 
         feeds = dict(head=actor, weights=layer.Weights(actor_head, actor))
         if da3c_config.config.use_lstm:
-            feeds.update(dict(ph_lstm_state=actor_head.ph_lstm_state,
-                              lstm_zero_state=actor_head.lstm_zero_state,
-                              lstm_state=actor_head.lstm_state))
+            feeds.update(actor_head.lstm_items)
         self.actor = Subnet(**feeds)
 
         feeds = dict(head=graph.Flatten(critic), weights=layer.Weights(critic_head, critic))
         if da3c_config.config.use_lstm:
-            feeds.update(dict(ph_lstm_state=critic_head.ph_lstm_state,
-                              lstm_zero_state=critic_head.lstm_zero_state,
-                              lstm_state=critic_head.lstm_state))
+            feeds.update(critic_head.lstm_items)
         self.critic = Subnet(**feeds)
 
         self.weights = layer.Weights(actor_head, actor, critic_head, critic)
@@ -103,13 +105,17 @@ class SharedParameters(subgraph.Subgraph):
         self.actor = sg_network.actor
         self.critic = sg_network.critic
 
-        if da3c_config.config.optimizer == 'Adam':
-            sg_actor_optimizer = optimizer.AdamOptimizer(da3c_config.config.initial_learning_rate)
-            sg_critic_optimizer = optimizer.AdamOptimizer(da3c_config.config.initial_learning_rate)
-        else:
+        if da3c_config.config.use_linear_schedule:
             sg_learning_rate = lr_schedule.Linear(sg_global_step,
                                                   da3c_config.config.initial_learning_rate,
                                                   da3c_config.config.max_global_step)
+        else:
+            sg_learning_rate = da3c_config.config.initial_learning_rate
+
+        if da3c_config.config.optimizer == 'Adam':
+            sg_actor_optimizer = optimizer.AdamOptimizer(sg_learning_rate)
+            sg_critic_optimizer = optimizer.AdamOptimizer(sg_learning_rate)
+        else:
             sg_actor_optimizer = optimizer.RMSPropOptimizer(learning_rate=sg_learning_rate,
                                                             decay=da3c_config.config.RMSProp.decay,
                                                             momentum=0.0,
@@ -118,6 +124,7 @@ class SharedParameters(subgraph.Subgraph):
                                                              decay=da3c_config.config.RMSProp.decay,
                                                              momentum=0.0,
                                                              epsilon=da3c_config.config.RMSProp.epsilon)
+
         sg_actor_gradients = optimizer.Gradients(self.actor.weights, optimizer=sg_actor_optimizer)
         sg_critic_gradients = optimizer.Gradients(self.critic.weights, optimizer=sg_critic_optimizer)
 
@@ -211,6 +218,8 @@ class AgentModel(subgraph.Subgraph):
         if da3c_config.config.use_lstm:
             feeds.update(dict(lstm_state=(sg_network.actor.ph_lstm_state, sg_network.critic.ph_lstm_state)))
             self.lstm_zero_state = (sg_network.actor.lstm_zero_state, sg_network.critic.lstm_zero_state)
+            self.op_lstm_reset_timestep = self.Ops(sg_network.actor.lstm_reset_timestep,
+                                                   sg_network.critic.lstm_reset_timestep)
             self.op_get_action_value_and_lstm_state = \
                 self.Ops(sg_network.actor.head, sg_network.critic.head,
                          (sg_network.actor.lstm_state, sg_network.critic.lstm_state),

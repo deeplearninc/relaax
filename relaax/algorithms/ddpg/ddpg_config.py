@@ -4,6 +4,7 @@ config = options.get('algorithm')
 
 config.log_lvl = options.get('relaax-metrics-server/log_level', 'INFO')  # INFO | DEBUG | VERBOSE
 config.no_ps = options.get('algorithm/no_ps', False)
+config.input.history = options.get('algorithm/input/history', 1)
 
 config.buffer_size = options.get('algorithm/buffer_size', 4*10**5)
 config.batch_size = options.get('algorithm/batch_size', 64)

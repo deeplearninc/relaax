@@ -1,20 +1,20 @@
 ---
-# generic Policy Gradient configuration
+# generic PG configuration, which is fitted to default deepmind-lab or vizdoom environment from templates
 
 version: 1.1.0
 algorithm:
   name: policy_gradient
 
   input:
-    shape: [0]
-    history: 1
-    use_convolutions: false
+    shape: [42, 42]               # state: [height, width] or [height, width, channels]
+    use_convolutions: true        # set to True to use convolutions to process the input
 
   output:
-    continuous: false
-    action_size: 4
+    continuous: false             # set to True to handle with continuous action type
+    action_size: 4                # action size for the given environment
 
-  hidden_sizes: [10]
-  batch_size: 10
-  learning_rate: 0.01
-  GAMMA: 0.97 # rewards discount factor
+  hidden_sizes: [288]             # list of num_units for hidden layers
+  batch_size: 6                   # maximum batch size, which need to accumulate for one update
+
+  learning_rate: 1e-4             # learning rate to use within the whole training process (Adam optimizer)
+  GAMMA: 0.97                     # rewards discount factor

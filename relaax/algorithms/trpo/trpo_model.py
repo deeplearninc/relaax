@@ -224,7 +224,7 @@ class PolicyNet(subgraph.Subgraph):
 
 class ValueNet(subgraph.Subgraph):
     def build_graph(self):
-        input_size, = trpo_config.config.input.shape
+        input_size = np.prod(trpo_config.config.input.shape)
 
         # add one extra feature for timestep
         ph_state = graph.Placeholder(np.float32, shape=(None, input_size + 1))

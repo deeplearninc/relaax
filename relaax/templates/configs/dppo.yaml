@@ -1,28 +1,47 @@
+---
+# generic DPPO configuration, which is fitted to default deepmind-lab or vizdoom environment from templates
+
 version: 1.1.0
 algorithm:
   name: dppo
 
   input:
-    shape: [4]
-    history: 1
-    use_convolutions: false
+    shape: [42, 42]               # state: [height, width] or [height, width, channels]
+    use_convolutions: true        # set to True to use convolutions to process the input
 
   output:
-    continuous: false
-    action_size: 4
+    continuous: false             # set to True to handle with continuous action type
+    action_size: 4                # action size for the given environment
 
-  hidden_sizes: [10]
-  activation: relu
+  hidden_sizes: [288]             # list of num_units for hidden layers
+  activation: relu                # activation for the set of layers defined in hidden_sizes
 
-  batch_size: 5
-  batch_steps: 10
-  batch_sequences: 2
+  batch_size: 128                 # experience size for one epoch
+  mini_batch: 32                  # experience size for one update within epoch
 
-  gamma: 0.97
+  max_global_step: 2e6            # amount of maximum global steps | updates to pass through the training
+  learning_rate: 2e-4             # initial learning rate, which can be anneal by some schedule
+  schedule: linear                # linear learning rate annealing wrt max_global_step
+  schedule_step: update           # linear learning rate annealing wrt amount of updates
 
-  clip_e: 0.2
-  learning_rate: 0.001
+  gamma: 0.99                     # rewards discount factor
+  lambda: 0.97                    # lambda for GAE (generalized advantage estimation)
 
-  combine_gradient: dc
-  num_gradients: 4
-  dc_lambda: 0.05
+  use_lstm: true                  # to use LSTM instead of FF, set to the True
+  lstm_type: Basic                # there are two types of LSTM to use: Basic | Dilated
+  lstm_num_cores: 8               # level of granularity for Dilated LSTM to set within amount of cores
+
+  entropy: 1e-2                   # set some value to use entropy penalty for policy, None instead
+  # l2_coeff: 1e3                 # set some value to use L2 regularization for the critic
+  critic_scale: 0.25              # coefficient to scale the critic loss or its learning rate wrt policy
+
+  normalize_advantage: false      # set to True to normalize advantage
+  clip_e: 0.2                     # clipping range for the losses
+  vf_clipped_loss: true           # set to True to use clipped loss also for the critic
+  gradients_norm_clipping: 0.5    # gradients clipping by global norm, if false then it is ignored
+
+  policy_iterations: 4            # number of updates for the policy within a epoch
+  value_func_iterations: 4        # number of updates for the value function within a epoch
+
+  combine_gradient: dc            # gradient's combining method: dc | fifo | average
+  dc_lambda: 0.05                 # delay compensation regularization constant
