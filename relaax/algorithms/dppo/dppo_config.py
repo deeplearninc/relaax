@@ -7,7 +7,9 @@ config = options.get('algorithm')
 config.seed = options.get('algorithm/seed', random.randrange(1000000))
 
 config.input.universe = options.get('algorithm/input/universe', True)
+config.input.history = options.get('algorithm/input/history', 1)
 config.activation = options.get('algorithm/activation', 'tanh')
+
 config.lam = options.get('algorithm/lambda', 1.00)
 config.entropy = options.get('algorithm/entropy', None)
 config.l2_coeff = options.get('algorithm/l2_coeff', None)
@@ -21,7 +23,11 @@ config.gradients_norm_clipping = options.get('algorithm/gradients_norm_clipping'
 
 config.avg_in_num_batches = options.get('algorithm/avg_in_num_batches', 10)
 config.use_filter = options.get('algorithm/use_filter', False)
+
 config.use_lstm = options.get('algorithm/use_lstm', False)
+config.lstm_type = options.get('algorithm/lstm_type', 'Basic')  # Basic | Dilated
+config.lstm_num_cores = options.get('algorithm/lstm_num_cores', 8)
+
 config.use_icm = options.get('algorithm/use_icm', False)
 config.norm_adv = options.get('algorithm/normalize_advantage', False)
 config.vf_clipped_loss = options.get('algorithm/vf_clipped_loss', False)
@@ -45,3 +51,11 @@ config.optimizer.epsilon = options.get('algorithm/optimizer/epsilon', 1e-5)
 config.schedule = options.get('algorithm/schedule', 'linear')
 config.schedule_step = options.get('algorithm/schedule_step', 'update')     # update | environment
 config.max_global_step = options.get('algorithm/max_global_step', 1e7)
+
+# KAF default parameters
+if not hasattr(config, 'KAF'):
+    config.KAF = options.get('algorithm/KAF', Namespace())
+config.KAF.boundary = options.get('algorithm/KAF/boundary', 2.0)
+config.KAF.size = options.get('algorithm/KAF/size', 20)
+config.KAF.kernel = options.get('algorithm/KAF/kernel', 'rbf')  # rbf | rbf2d
+config.KAF.gamma = options.get('algorithm/KAF/gamma', 1.0)

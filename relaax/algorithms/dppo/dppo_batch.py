@@ -160,7 +160,9 @@ class DPPOBatch(object):
         self.steps = 0
         if dppo_config.config.use_lstm:
             self.lstm_state = self.lstm_zero_state
-
+            if dppo_config.config.lstm_type.lower() == 'dilated':
+                self.session.policy.op_lstm_reset_timestep()
+                self.session.value_func.op_lstm_reset_timestep()
     # Helper methods
 
     def push_experience(self, reward):

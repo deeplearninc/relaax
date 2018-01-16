@@ -1,22 +1,18 @@
 ---
-# There are sample for DeepMind Lab environment
+# There are sample for Gym Doom environment
 
 environment:
-  run: python environment/start-container.py
-  lab_path: /lab
-  max_episodes: 1000
+  run: python environment/training.py
+  name: ppaquette/DoomMyWayHome-v0
+  max_episodes: 10000
   infinite_run: false
-  run_in_container: false
-  # level_script: custom-map/custom_map
 
 relaax-metrics-server:
-  enable_unknown_metrics: false
+  enable_unknown_metrics: true
   metrics:
     episode_reward: true
     server_latency: true
     action: true
-    mu: true
-    sigma2: true
     critic: true
 
   bind: localhost:7002
@@ -27,10 +23,12 @@ relaax-metrics-server:
 relaax-parameter-server:
   bind: localhost:7000
   checkpoint-dir: logs/checkpoints
+  checkpoint_step_interval: 2000000
+  checkpoints_to_keep: 4
   log-level: INFO
 
 relaax-rlx-server:
-  bind: 0.0.0.0:7001
+  bind: localhost:7001
   log-level: INFO
 
 version: 1.1.0
@@ -40,13 +38,13 @@ algorithm:
   input:
     shape: [42, 42]               # state: [height, width] or [height, width, channels]
     history: 1                    # number of consecutive states to stuck to represent an input
-    use_convolutions: true        # set to True to use convolutions to process the input
-
+    use_convolutions: true        # set to True to use convolutions to process the input,
+                                  # it uses the set of convolutions from universe architecture by default
   output:
     continuous: false             # set to True to handle with continuous action type
     action_size: 4                # action size for the given environment
 
-  hidden_sizes: [256]             # list of num_units for hidden layers
+  hidden_sizes: [288]             # list of num_units for hidden layers
   batch_size: 8                   # experience size for one update
 
   use_lstm: true                  # to use LSTM instead of FF, set to the True

@@ -29,7 +29,7 @@ class LabEnv(object):
         self._height, self._width = shape[0], shape[1]
         self._channels = 0 if len(shape) == 2 else shape[-1]
 
-        action_size = options.get('environment/action_size', 'medium')
+        action_size = options.get('environment/action_size', 'small')
         if action_size in ACTIONS:
             self._actions = list(ACTIONS[action_size].values())
         else:
@@ -115,7 +115,8 @@ FULL_ACTIONS = {
 SMALL_ACTIONS = {
     'look_left': _action(-20, 0, 0, 0, 0, 0, 0),
     'look_right': _action(20, 0, 0, 0, 0, 0, 0),
-    'forward': _action(0, 0, 0, 1, 0, 0, 0)
+    'forward': _action(0, 0, 0, 1, 0, 0, 0),
+    'backward': _action(0, 0, 0, -1, 0, 0, 0)
 }
 
 MEDIUM_ACTIONS = {

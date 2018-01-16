@@ -1,16 +1,19 @@
 ---
-# generic DA3C configuration
+# generic DA3C configuration, which is fitted to default Bandit environment from templates
 
+version: 1.1.0
 algorithm:
   name: da3c                      # short name for algorithm to load
+  seed: 12345                     # seed value to use within the training process
 
   input:
     shape: [0]                    # shape of input state, [0] means empty state (bandit env)
     history: 1                    # number of consecutive states to stack
-    use_convolutions: false       # set to true to process input by convolution layers
+    use_convolutions: false       # set to True to process input by convolution layers
+    universe: false               # set to True to use set of convolutions from universe architecture
 
   output:
-    continuous: false             # set to true to switch to continuous action space
+    continuous: false             # set to True to switch to continuous action space
     loss_type: Normal             # choose loss_type by name for continuous action space
     action_size: 4                # action size for the given environment
     action_high: []               # upper boundary for clipping continuous action
@@ -18,25 +21,35 @@ algorithm:
     scale: 1.0                    # multiplier to scale continuous output
 
   hidden_sizes: []                # list of dense layers sizes, for ex. [128, 64]
+  activation: relu                # activation for the set of layers defined in hidden_sizes
+
   batch_size: 100                 # maximum batch size, which need to accumulate for one update
+  use_filter: True                # set to True to use mean/std running filter for input
 
-  use_icm: false                  # to use ICM, set to the True
-  use_lstm: false                 # to use LSTM instead of FF, set to the True
   max_global_step: 30000          # amount of maximum global steps to pass through the training
+  initial_learning_rate: 2e-2     # initial learning rate, which can be anneal by schedule
+  use_linear_schedule: false      # set to True to use linear learning rate annealing wrt max_global_step
 
-  entropy_beta: 0.01              # entropy regularization constant
   rewards_gamma: 0.99             # rewards discount factor
-  use_gae: false                  # switcher for generalized advantage estimation
-  gae_lambda: 1.00                # lambda for generalized advantage estimation
+  gae_lambda: 1.00                # lambda for GAE (generalized advantage estimation)
 
-  initial_learning_rate: 2e-2     # initial learning rate, which can be anneal by some procedure
-  gradients_norm_clipping: false  # gradients clipping by global norm, if false then it is ignored
+  use_lstm: false                 # to use LSTM instead of FF, set to the True
+  lstm_type: Dilated              # there are two types of LSTM to use: Basic | Dilated
+  lstm_num_cores: 8               # level of granularity for Dilated LSTM to set within amount of cores
+
+  entropy_beta: 1e-2              # entropy regularization constant
+  entropy_type: Origin            # switch between relevant entropy types for continuous: Origin | Gauss
+
+  critic_scale: 1.00              # coefficient to scale the critic loss or its learning rate wrt policy
+  policy_clip: false              # use to clip continuous loss by some value of Normal type
+  critic_clip: false              # use to clip continuous loss by some value of Normal type
+
   optimizer: Adam                 # name of optimizer to use within training
+  gradients_norm_clipping: false  # gradients clipping by global norm, if false then it is ignored
 
-  RMSProp:                        # RMSProp optimizer specific parameters
+  RMSProp:                        # if optimizer is set to RMSProp: there are its specific parameters
     decay: 0.99
     epsilon: 0.1
 
-  ICM:                            # ICM specific parameters
-    alpha: 0.1
-    beta: 0.2
+  combine_gradient: dc            # gradient's combining method: dc | fifo | average
+  dc_lambda: 0.05                 # delay compensation regularization constant

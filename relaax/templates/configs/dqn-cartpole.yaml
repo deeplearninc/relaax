@@ -1,0 +1,40 @@
+---
+# generic DQN configuration, which is fitted to default deepmind-lab or vizdoom environment from templates
+
+version: 1.1.0
+algorithm:
+  name: dqn                             # short name for algorithm to load
+
+  input:
+    shape: [4]                          # state: size of the input vector
+    history: 1                          # number of consecutive states to stuck to represent an input
+    use_convolutions: false             # set to True to use convolutions to process the input
+
+  output:
+    action_size: 2                      # action size for the given environment
+    q_values: false                     # return Q values for all action, instead the number of best one
+
+  double_dqn: false                     # use DoubleDQN if true
+  dueling_dqn: true                     # use DuelingDQN if true
+
+  hidden_sizes: [24]                    # list of dense layers sizes, for ex. [128, 64]
+  batch_size: 50                        # maximum batch size, which need to accumulate for one update
+
+  max_global_step: 1e5                  # amount of maximum global steps to pass through the training
+  start_sample_step: 1000               # amount of steps before start training local Q-network
+  update_target_weights_interval: 1000  # number of steps for updating target Q-network on Agent
+
+  rewards_gamma: 1.0                    # rewards discount factor
+
+  initial_learning_rate: 1e-3           # initial learning rate, which can be anneal by some procedure
+  gradients_norm_clipping: false        # gradients clipping by global norm, if false then it is ignored
+  optimizer: Adam                       # name of optimizer to use within training
+
+  replay_buffer_size: 10000             # maximum number of samples in replay buffer
+  alpha: 1.0                            # prioritization exponent. Larger values lead to more prioritization.
+
+  eps:
+    initial: 1.0                        # initial value for eps
+    end: 0.02                           # end value for epsilon
+    stochastic: true                    # use stochastic number of eps decay steps if true
+    decay_steps: 10000                  # number of decay steps or decay steps range if stochastic == true

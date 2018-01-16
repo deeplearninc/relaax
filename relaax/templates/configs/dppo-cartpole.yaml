@@ -1,0 +1,26 @@
+---
+# DPPO configuration for OpenAI Gym CartPole-v0
+
+version: 1.1.0
+algorithm:
+  name: dppo
+
+  input:
+    shape: [4]                    # state: size of the input vector
+    use_convolutions: false       # set to True to use convolutions to process the input
+
+  output:
+    continuous: false             # set to True to handle with continuous action type
+    action_size: 2                # action size for the given environment
+
+  hidden_sizes: [12]              # list of num_units for hidden layers
+  activation: relu                # activation for the set of layers defined in hidden_sizes
+
+  batch_size: 200                 # experience size for one epoch
+  mini_batch: 50                  # experience size for one update within epoch
+
+  max_global_step: 4e3            # amount of maximum global steps | updates to pass through the training
+  learning_rate: 1e-3             # initial learning rate, which can be anneal by some schedule
+
+  gamma: 0.97                     # rewards discount factor
+  clip_e: 0.2                     # clipping range for the losses

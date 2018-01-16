@@ -84,7 +84,6 @@ class GymEnv(object):
                       (options.algorithm.output.action_size, self.action_size))
             sys.exit(-1)
 
-        self._scale = (1.0 / 255.0)
         self.reset()
 
     def _get_action_size(self):

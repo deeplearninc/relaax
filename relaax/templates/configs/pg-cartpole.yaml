@@ -1,0 +1,20 @@
+---
+# generic Policy Gradient configuration
+
+version: 1.1.0
+algorithm:
+  name: policy_gradient
+
+  input:
+    shape: [4]                    # state: size of the input vector
+    use_convolutions: false       # set to True to use convolutions to process the input
+
+  output:
+    continuous: false             # set to True to handle with continuous action type
+    action_size: 2                # action size for the given environment
+
+  hidden_sizes: [12]              # list of num_units for hidden layers
+  batch_size: 50                  # maximum batch size, which need to accumulate for one update
+
+  learning_rate: 1e-2             # learning rate to use within the whole training process (Adam optimizer)
+  GAMMA: 0.99                     # rewards discount factor

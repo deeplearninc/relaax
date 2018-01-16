@@ -1,39 +1,44 @@
 ---
-# generic DDPG configuration
+# generic DDPG configuration, which is fitted to OpenAI Gym Pendulum-v0
 
+environment:
+  type: OpenAI-Gym
+  run: python environment/training.py
+  name: Pendulum-v0
+  shape: [3]
+  max_episodes: 10000
+  infinite_run: false
+
+version: 1.1.0
 algorithm:
   name: ddpg                      # short name for algorithm to load
 
   input:
     shape: [3]                    # shape of input state
-    history: 1                    # number of consecutive states to stack
     use_convolutions: false       # set to true to process input by convolution layers
 
   output:
     continuous: true              # set to true to switch to continuous action space
     action_size: 1                # action size for the given environment
-    action_high: []               # upper boundary for clipping continuous action
-    action_low: []                # lower boundary for clipping continuous action
-    scale: 1.0                    # multiplier to scale continuous output
+    scale: 2.0                    # multiplier to scale continuous output
 
   hidden_sizes: [400, 300]        # list of dense layers sizes, for ex. [128, 64]
   batch_size: 64                  # batch size, which needs for one networks update
-  buffer_size: 400000             # local buffer size to sample experience
 
-  use_lstm: false                 # to use LSTM instead of FF, set to the True
-  max_global_step: 100000000      # amount of maximum global steps to pass through the training
+  buffer_size: 10000              # local buffer size to sample experience
+  use_filter: false               # set to True to use mean/std running filter for input
 
-  entropy_beta: 0.01              # entropy regularization constant
   rewards_gamma: 0.99             # rewards discount factor
-  use_gae: false                  # switcher for generalized advantage estimation
-  gae_lambda: 1.00                # lambda for generalized advantage estimation
 
   optimizer: Adam                 # name of optimizer to use within training
   actor_learning_rate: 1e-4       # actor learning rate
   critic_learning_rate: 1e-3      # critic learning rate
   tau: 1e-3                       # rate of target updates
 
-  exploration:                    # exploration relevant parameters such as OU
+  l2: true                        # set to True to use L2 regularization for the critic
+  l2_decay: 1e-2                  # L2 regularization constant
+
+  exploration:                    # OU parameters, which is used for exploration process
     ou_mu: 0.0
     ou_theta: 0.15
     ou_sigma: 0.20

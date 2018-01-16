@@ -2,7 +2,7 @@ environment:
   run: python environment/training.py
 
 relaax-metrics-server:
-  enable_unknown_metrics: False
+  enable_unknown_metrics: false
   metrics:
     episode_reward: true
     server_latency: true
@@ -17,14 +17,15 @@ relaax-metrics-server:
   log_level: INFO
 
 relaax-parameter-server:
-  --bind: localhost:7000
-  --checkpoint-dir: logs/checkpoints/
-  --log-level: DEBUG
+  bind: localhost:7000
+  checkpoint-dir: logs/checkpoints/
+  log-level: DEBUG
 
 relaax-rlx-server:
-  --bind: localhost:7001
-  --log-level: DEBUG
+  bind: localhost:7001
+  log-level: DEBUG
 
+version: 1.1.0
 algorithm:
   path: ../simple-exchange-js/algorithm
   name: simple-exchange

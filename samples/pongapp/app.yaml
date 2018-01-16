@@ -5,6 +5,7 @@ environment:
   max_episodes: 100000
   infinite_run: false
 
+version: 1.1.0
 algorithm:
   name: da3c                      # short name for algorithm to load
 
@@ -37,14 +38,14 @@ algorithm:
   optimizer: Adam                 # name of optimizer to use within training
 
 relaax-parameter-server:
-  --bind: localhost:7000
-  --metrics-dir: logs/da3c/metrics
-  --checkpoint-dir: logs/da3c/checkpoints
-  --log-level: INFO
+  bind: localhost:7000
+  metrics-dir: logs/da3c/metrics
+  checkpoint-dir: logs/da3c/checkpoints
+  log-level: INFO
 
 relaax-rlx-server:
-  --bind: localhost:7001
-  --log-level: INFO
+  bind: localhost:7001
+  log-level: INFO
 
 relaax-metrics-server:
   enable_unknown_metrics: False

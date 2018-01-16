@@ -9,38 +9,74 @@ from relaax.common.algorithms.lib import graph
 from relaax.common.algorithms.lib import utils
 
 
-class Activation(object):
-    @staticmethod
-    def Null(x):
+class NullSubgraph(subgraph.Subgraph):
+    def build_graph(self, x):
+        self.weight = []
         return x
 
-    @staticmethod
-    def Relu(x):
-        return tf.nn.relu(x)
 
-    @staticmethod
-    def Relu6(x):
-        return tf.nn.relu6(x)
-
-    @staticmethod
-    def Elu(x):
-        return tf.nn.elu(x)
-
-    @staticmethod
-    def Sigmoid(x):
+class SigmoidSubgraph(subgraph.Subgraph):
+    def build_graph(self, x):
+        self.weight = []
         return tf.nn.sigmoid(x)
 
-    @staticmethod
-    def Tanh(x):
+
+class TanhSubgraph(subgraph.Subgraph):
+    def build_graph(self, x):
+        self.weight = []
         return tf.nn.tanh(x)
 
-    @staticmethod
-    def Softmax(x):
+
+class ReluSubgraph(subgraph.Subgraph):
+    def build_graph(self, x):
+        self.weight = []
+        return tf.nn.relu(x)
+
+
+class Relu6Subgraph(subgraph.Subgraph):
+    def build_graph(self, x):
+        self.weight = []
+        return tf.nn.relu6(x)
+
+
+class EluSubgraph(subgraph.Subgraph):
+    def build_graph(self, x):
+        self.weight = []
+        return tf.nn.elu(x)
+
+
+class SoftmaxSubgraph(subgraph.Subgraph):
+    def build_graph(self, x):
+        self.weight = []
         return tf.nn.softmax(x)
 
-    @staticmethod
-    def Softplus(x):
+
+class SoftplusSubgraph(subgraph.Subgraph):
+    def build_graph(self, x):
+        self.weight = []
         return tf.nn.softplus(x)
+
+
+class KAFConfigurator(object):
+    def __init__(self, cfg):
+        self.D = tf.linspace(start=-cfg.boundary, stop=-cfg.boundary, num=cfg.size)
+        self.kernel = cfg.kernel
+        self.gamma = cfg.gamma
+
+    def __call__(self, x):
+        return KAFSubgraph(x, self.D, self.kernel, self.gamma)
+
+
+class Activation(object):
+    Null = NullSubgraph
+    Sigmoid = SigmoidSubgraph
+    Tanh = TanhSubgraph
+    Relu = ReluSubgraph
+    Relu6 = Relu6Subgraph
+    Elu = EluSubgraph
+    Softmax = SoftmaxSubgraph
+    Softplus = SoftplusSubgraph
+    KAF = KAFConfigurator
 
     # dict comprehension has its own locals. dict comprehension does not see class context.
     # This is why class locals are passed as lambda argument
@@ -49,6 +85,63 @@ class Activation(object):
     @classmethod
     def get_activation(cls, name):
         return getattr(cls, cls._MAP[name.lower()])
+
+
+def get_activation(cfg):
+    activation = Activation.get_activation(cfg.activation)
+    if cfg.activation.lower() == 'kaf':
+        activation = activation(cfg.KAF)
+    return activation
+
+
+class KAFSubgraph(subgraph.Subgraph):
+    def build_graph(self, x, d, kernel='rbf', gamma=1.):
+        initializer = graph.RandomNormalInitializer(stddev=0.1)
+
+        if kernel == 'rbf':
+            k = gauss_kernel(x, d, gamma=gamma)
+
+            shape = (1, x.get_shape().as_list()[-1], d.get_shape().as_list()[0])
+            alpha = graph.Variable(initializer(np.float32, shape=shape))
+
+        elif kernel == 'rbf2d':
+            dx, dy = tf.meshgrid(d, d)
+            k = gauss_kernel2d(x, dx, dy, gamma=gamma)
+
+            shape = (1, x.get_shape().as_list()[-1] // 2,
+                     d.get_shape().as_list()[0] * d.get_shape().as_list()[0])
+            alpha = graph.Variable(initializer(np.float32, shape=shape))
+        else:
+            assert False, "There are 2 valid options for KAF kernels: rbf | rbf2d"
+
+        self.weight = alpha.node
+        return tf.reduce_sum(tf.multiply(k, self.weight), axis=-1)
+
+
+def gauss_kernel(x, d, gamma=1.):
+    x = tf.expand_dims(x, axis=-1)
+    if x.get_shape().ndims < 4:
+        d = tf.reshape(d, (1, 1, -1))
+    else:
+        d = tf.reshape(d, (1, 1, 1, 1, -1))
+
+    return tf.exp(- gamma * tf.square(x - d))
+
+
+def gauss_kernel2d(x, dx, dy, gamma=1.):
+    h_size = x.get_shape()[-1].value // 2
+
+    x = tf.expand_dims(x, axis=-1)
+    if x.get_shape().ndims < 4:
+        dx = tf.reshape(dx, (1, 1, -1))
+        dy = tf.reshape(dy, (1, 1, -1))
+        x1, x2 = x[:, :h_size], x[:, h_size:]
+    else:
+        dy = tf.reshape(dy, (1, 1, 1, 1, -1))
+        dx = tf.reshape(dx, (1, 1, 1, 1, -1))
+        x1, x2 = x[:, :, :, :h_size], x[:, :, :, h_size:]
+
+    return tf.exp(-gamma * tf.square(x1 - dx)) + tf.exp(- gamma * tf.square(x2 - dy))
 
 
 class Border(object):
@@ -74,8 +167,9 @@ class BaseLayer(subgraph.Subgraph):
         initializer = graph.RandomUniformInitializer(minval=-d, maxval=d)
         W = graph.Variable(initializer(np.float32, shape)).node
         b = graph.Variable(initializer(np.float32, shape[-1:])).node
-        self.weight = graph.TfNode((W, b))
-        return activation(transformation(x, W) + b)
+        activation = activation(transformation(x, W) + b)
+        self.weight = graph.TfNode((W, b, activation.weight))
+        return activation.node
 
 
 class Convolution(BaseLayer):
@@ -128,8 +222,17 @@ class DoubleDense(BaseLayer):
         return activation(tf.matmul(x1.node, W1) + tf.matmul(x2.node, W2) + b)
 
 
+def lstm(lstm_type, x, batch_size=1, n_units=256, n_cores=8):
+    if lstm_type.lower() == 'basic':
+        return LSTM(x, batch_size, n_units)
+    elif lstm_type.lower() == 'dilated':
+        return DilatedLSTM(x, batch_size, n_units, n_cores)
+    else:
+        assert False, "There are 2 valid options for LSTM type: Basic | Dilated"
+
+
 class LSTM(subgraph.Subgraph):
-    def build_graph(self, x, batch_size=1, n_units=256):
+    def build_graph(self, x, batch_size, n_units):
         self.phs = [graph.Placeholder(np.float32, [batch_size, n_units]) for _ in range(2)]
         self.ph_state = graph.TfNode(tuple(ph.node for ph in self.phs))
         self.ph_state.checked = tuple(ph.checked for ph in self.phs)
@@ -146,6 +249,23 @@ class LSTM(subgraph.Subgraph):
         self.state = graph.TfNode(self.state)
         self.weight = graph.TfNode(tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,
                                                      tf.get_variable_scope().name))
+        self.reset_timestep = None
+        return outputs
+
+
+class DilatedLSTM(subgraph.Subgraph):
+    def build_graph(self, x, batch_size, n_units, n_cores):
+        lstm = graph.DilatedLSTMCell(n_units, n_cores)
+
+        self.ph_state = graph.Placeholder(np.float32, [batch_size, lstm.state_size])
+        self.zero_state = np.zeros([batch_size, lstm.state_size])
+
+        outputs, self.state = tf.nn.dynamic_rnn(lstm, x.node, initial_state=self.ph_state.checked,
+                                                sequence_length=tf.shape(x.node)[1:2], time_major=False)
+
+        self.state = graph.TfNode(self.state)
+        self.weight = graph.TfNode([lstm.matrix, lstm.bias])
+        self.reset_timestep = graph.TfNode(lstm.reset_timestep)
         return outputs
 
 
