@@ -217,9 +217,10 @@ class DoubleDense(BaseLayer):
 
         initializer = graph.RandomUniformInitializer()
         b = graph.Variable(initializer(np.float32, shape2[-1:])).node
-        self.weight = graph.TfNode((W1, W2, b))
 
-        return activation(tf.matmul(x1.node, W1) + tf.matmul(x2.node, W2) + b)
+        activation = activation(tf.matmul(x1.node, W1) + tf.matmul(x2.node, W2) + b)
+        self.weight = graph.TfNode((W1, W2, b, activation.weight))
+        return activation.node
 
 
 def lstm(lstm_type, x, batch_size=1, n_units=256, n_cores=8):

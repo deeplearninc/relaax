@@ -5,6 +5,7 @@ import numpy as np
 
 from relaax.server.common import session
 from relaax.common.algorithms.lib import episode
+from relaax.common.algorithms.lib import observation
 from relaax.common.algorithms.lib.utils import ZFilter
 
 from relaax.algorithms.trpo.lib.core import Categorical, DiagGauss
@@ -24,6 +25,7 @@ class DPPOBatch(object):
         self.session = session.Session(policy=model.policy, value_func=model.value_func)
         self.episode = None
         self.steps = 0
+        self.observation = observation.Observation(dppo_config.config.input.history)
 
         if dppo_config.config.use_lstm:
             self.initial_lstm_state = self.lstm_state = self.lstm_zero_state = model.lstm_zero_state
@@ -68,23 +70,25 @@ class DPPOBatch(object):
 
     def step(self, reward, state, terminal):
         self.terminal = terminal
+
         if dppo_config.config.use_filter and not terminal:
             state = self.filter(state)
         self.final_state = state
         self.steps += 1
+
         if reward is not None:
             self.push_experience(reward)
-        if terminal and state is not None:
-            logger.debug("DPPOBatch.step doesn't act in case of terminal.")
-            state = None
-        if not terminal:
-            state = np.asarray(state)
-            if state.size == 0:
-                state = np.asarray([0])
-            state = np.reshape(state, state.shape + (1,))
-        action, prob = self.get_action_and_prob(state)
-        self.keep_state_action_prob(state, action, prob)
-        self.last_terminal = terminal
+
+        if terminal:
+            self.observation.add_state(None)
+        else:
+            assert state is not None
+            self.metrics.histogram('state', state)
+            self.observation.add_state(state)
+
+        action, prob = self.get_action_and_prob()
+
+        self.keep_action_prob_terminal(action, prob, terminal)
         return action
 
     def end(self):
@@ -166,38 +170,36 @@ class DPPOBatch(object):
     # Helper methods
 
     def push_experience(self, reward):
-        assert self.last_state is not None
+        assert self.observation.queue is not None
         assert self.last_action is not None
         assert self.last_prob is not None
         assert self.last_terminal is not None
 
         self.episode.step(
             reward=reward,
-            state=self.last_state,
+            state=self.observation.queue,
             action=self.last_action,
             old_prob=self.last_prob,
             terminal=self.last_terminal
         )
-        self.last_state = None
         self.last_action = None
         self.last_prob = None
         self.last_terminal = None
 
-    def get_action_and_prob(self, state):
-        if state is None:
+    def get_action_and_prob(self):
+        if self.observation.queue is None:
             return None, None
-        action, prob = self.action_and_prob_from_policy(state)
+        action, prob = self.action_and_prob_from_policy()
         assert action is not None
         return action, prob
 
-    def keep_state_action_prob(self, state, action, prob):
-        assert self.last_state is None
+    def keep_action_prob_terminal(self, action, prob, terminal):
         assert self.last_action is None
         assert self.last_prob is None
 
-        self.last_state = state
         self.last_action = action
         self.last_prob = prob
+        self.last_terminal = terminal
 
     def load_shared_policy_parameters(self):
         # Load policy parameters from server if they are fresh
@@ -224,17 +226,14 @@ class DPPOBatch(object):
         else:
             logger.debug(msg + ", keeping old weights")
 
-    def action_and_prob_from_policy(self, state):
-        assert state is not None
-        state = np.asarray(state)
-        state = np.reshape(state, (1,) + state.shape)
-
+    def action_and_prob_from_policy(self):
         if dppo_config.config.use_lstm:
             # 0 <- actor's lstm state & critic's lstm state -> 1
             probabilities, self.lstm_state[0] = \
-                self.session.policy.op_get_action(state=state, lstm_state=self.lstm_state[0], lstm_step=[1])
+                self.session.policy.op_get_action(state=[self.observation.queue],
+                                                  lstm_state=self.lstm_state[0], lstm_step=[1])
         else:
-            probabilities = self.session.policy.op_get_action(state=state)
+            probabilities = self.session.policy.op_get_action(state=[self.observation.queue])
 
         # logger.debug("probs: {}".format(probabilities))
         return self.prob_type.sample(probabilities)[0], probabilities[0]
@@ -269,8 +268,14 @@ class DPPOBatch(object):
         else:
             values = self.session.value_func.op_value(state=states)
             if not self.terminal:
-                final_state = np.reshape(self.final_state, (1,) + self.final_state.shape + (1,))
-                l_value = self.session.value_func.op_value(state=final_state)
+                state = np.asarray(self.final_state)
+                axis = len(state.shape)  # extra dimension for observation
+                observation = np.reshape(state, state.shape + (1,))
+
+                final_state = np.delete(self.observation.queue, 0, axis=axis)
+                final_state = np.append(final_state, observation, axis=axis)
+
+                l_value = self.session.value_func.op_value(state=[final_state])
 
         last_value = 0 if self.terminal else l_value[0][0]
         return values, last_value
