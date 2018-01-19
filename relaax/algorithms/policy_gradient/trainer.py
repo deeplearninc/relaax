@@ -1,10 +1,10 @@
 from __future__ import absolute_import
 
 import logging
-import numpy as np
 
 from . import pg_config
 from relaax.common.algorithms.lib import experience
+from relaax.common.algorithms.lib import observation
 from .model_api import ModelApi
 
 logger = logging.getLogger(__name__)
@@ -24,6 +24,7 @@ class Trainer(object):
         self.keys = ['reward', 'state', 'action']
         self.experience = None
         self.model_api = ModelApi(session_arg, exploit, parameter_server)
+        self.observation = observation.Observation(pg_config.config.input.history)
         self.begin()
 
     def begin(self):
@@ -45,27 +46,25 @@ class Trainer(object):
     def step(self, reward, state, terminal):
         if reward is not None:
             self.push_experience(reward, terminal)
-        if terminal and state is not None:
-            logger.debug('PG Agent.step ignores state in case of terminal.')
-            state = None
+
+        if terminal:
+            self.observation.add_state(None)
         else:
             assert state is not None
-        if not terminal:
-            state = np.asarray(state)
-            if state.size == 0:
-                state = np.asarray([0])
-            state = np.reshape(state, state.shape + (1,))
-        action = self.get_action(state)
-        self.keep_state_and_action(state, action)
+            self.metrics.histogram('state', state)
+            self.observation.add_state(state)
+
+        action = self.get_action()
+        self.keep_action(action)
         return action
 
     # Helper methods
     def push_experience(self, reward, terminal):
-        assert self.last_state is not None
+        assert self.observation.queue is not None
         assert self.last_action is not None
 
         assert self.experience is not None
-        self.experience.push_record(reward=reward, state=self.last_state, action=self.last_action)
+        self.experience.push_record(reward=reward, state=self.observation.queue, action=self.last_action)
 
         if (len(self.experience) == pg_config.config.batch_size) or terminal:
             self.end()
@@ -73,19 +72,15 @@ class Trainer(object):
                 self.reset()
             self.begin()
 
-        self.last_state = None
         self.last_action = None
 
-    def get_action(self, state):
-        if state is None:
+    def get_action(self):
+        if self.observation.queue is None:
             return None
-        action = self.model_api.action_from_policy(state)
+        action = self.model_api.action_from_policy(self.observation.queue)
         assert action is not None
         return action
 
-    def keep_state_and_action(self, state, action):
-        assert self.last_state is None
+    def keep_action(self, action):
         assert self.last_action is None
-
-        self.last_state = state
         self.last_action = action
