@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import logging
-import numpy as np
 
 from relaax.common.algorithms.lib import utils
 from . import pg_config
