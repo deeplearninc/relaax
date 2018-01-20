@@ -120,8 +120,9 @@ class Network(subgraph.Subgraph):
     def build_graph(self):
         input = layer.ConfiguredInput(trpo_config.config.input)
 
+        activation = layer.Activation.get_activation(trpo_config.config.activation)
         head = layer.GenericLayers(layer.Flatten(input),
-                                   [dict(type=layer.Dense, size=size, activation=layer.Activation.Tanh)
+                                   [dict(type=layer.Dense, size=size, activation=activation)
                                     for size in trpo_config.config.hidden_sizes])
 
         if trpo_config.config.output.continuous:
@@ -224,22 +225,23 @@ class PolicyNet(subgraph.Subgraph):
 
 class ValueNet(subgraph.Subgraph):
     def build_graph(self):
-        input_size = np.prod(trpo_config.config.input.shape)
-
+        input = layer.ConfiguredInput(trpo_config.config.input)
         # add one extra feature for timestep
-        ph_state = graph.Placeholder(np.float32, shape=(None, input_size + 1))
+        ph_step = graph.Placeholder(np.float32, shape=[None, 1])
+        state = (input.ph_state, ph_step)
+
+        concatenated = graph.Concat([layer.Flatten(input), ph_step], axis=1)
 
         activation = layer.Activation.get_activation(trpo_config.config.activation)
-        descs = [dict(type=layer.Dense, size=size, activation=activation) for size
-                 in trpo_config.config.hidden_sizes]
-        descs.append(dict(type=layer.Dense, size=1))
-
-        value = layer.GenericLayers(ph_state, descs)
+        head = layer.GenericLayers(concatenated,
+                                   [dict(type=layer.Dense, size=size, activation=activation)
+                                    for size in trpo_config.config.hidden_sizes])
+        value = layer.Dense(head, 1)
 
         ph_ytarg_ny = graph.Placeholder(np.float32)
         mse = graph.TfNode(tf.reduce_mean(tf.square(ph_ytarg_ny.node - value.node)))
 
-        weights = layer.Weights(value)
+        weights = layer.Weights(input, head, value)
 
         sg_get_weights_flatten = graph.GetVariablesFlatten(weights)
         sg_set_weights_flatten = graph.SetVariablesFlatten(weights)
@@ -251,15 +253,15 @@ class ValueNet(subgraph.Subgraph):
         sg_gradients = optimizer.Gradients(weights, loss=loss)
         sg_gradients_flatten = graph.GetVariablesFlatten(sg_gradients.calculate)
 
-        self.op_value = self.Op(value, state=ph_state)
+        self.op_value = self.Op(value, state=state)
 
         self.op_get_weights_flatten = self.Op(sg_get_weights_flatten)
         self.op_set_weights_flatten = self.Op(sg_set_weights_flatten, value=sg_set_weights_flatten.ph_value)
 
-        self.op_compute_loss_and_gradient = self.Ops(loss, sg_gradients_flatten, state=ph_state,
+        self.op_compute_loss_and_gradient = self.Ops(loss, sg_gradients_flatten, state=state,
                                                      ytarg_ny=ph_ytarg_ny)
 
-        self.op_losses = self.Ops(loss, mse, l2, state=ph_state, ytarg_ny=ph_ytarg_ny)
+        self.op_losses = self.Ops(loss, mse, l2, state=state, ytarg_ny=ph_ytarg_ny)
 
 
 # Weights of the policy are shared across

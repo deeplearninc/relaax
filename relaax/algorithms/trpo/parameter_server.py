@@ -44,8 +44,8 @@ class Ps(object):
         self.updater = network.Updater(relaax_session.policy)
 
         if trpo_config.config.use_filter:
-            self.M = np.zeros(trpo_config.config.state_size)
-            self.S = np.zeros(trpo_config.config.state_size)
+            self.M = np.zeros(trpo_config.config.input.shape)
+            self.S = np.zeros(trpo_config.config.input.shape)
 
         # Create an update predicate based on config options
         if trpo_config.config.timesteps_per_batch is not None:

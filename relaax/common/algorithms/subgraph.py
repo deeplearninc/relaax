@@ -98,7 +98,7 @@ class Op(object):
         v1 = cls.cast(v1)
         if isinstance(v1, (tuple, list)):
             assert isinstance(v2, (tuple, list))
-            assert len(v1) == len(v2)
+            assert len(v1) == len(v2), 'len(v1) = {}, len(v2) = {}'.format(len(v1), len(v2))
             for vv1, vv2 in zip(v1, v2):
                 for vvv1, vvv2 in cls.izip2(vv1, vv2):
                     yield vvv1, vvv2

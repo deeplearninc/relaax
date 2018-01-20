@@ -52,7 +52,7 @@ class StochPolicy(object):
         self._relaax_metrics = relaax_metrics
 
     def act(self, ob, stochastic=True):
-        prob = self._relaax_session.op_get_action(state=ob[None])
+        prob = self._relaax_session.op_get_action(state=ob)
         self._relaax_metrics.histogram('action', prob)
         if stochastic:
             return self._probtype.sample(prob)[0], {"prob": prob[0]}
@@ -134,13 +134,22 @@ class NnVf(object):
         return value
 
     def fit(self, paths):
-        ob_no = np.concatenate([self.preproc(path["observation"]) for path in paths], axis=0)
         vtarg_n1 = np.concatenate([path["return"] for path in paths]).reshape(-1, 1)
-        return self.reg.fit(ob_no, vtarg_n1)
+        return self.reg.fit(self.concat_paths(paths), vtarg_n1)
 
     def preproc(self, ob_no):
-        length = len(ob_no)
-        if ob_no[0].ndim > 1:
-            ob_no = [obs.flatten() for obs in ob_no]
-        return np.concatenate([ob_no, np.arange(length).reshape(-1, 1) / float(self.timestep_limit)],
-                              axis=1)
+        steps = np.arange(len(ob_no)).reshape(-1, 1) / float(self.timestep_limit)
+        return ob_no, steps
+
+    def concat_paths(self, paths):
+        ob_no_list = []
+        steps_list = []
+
+        for path in paths:
+            ob_no, steps = self.preproc(path["observation"])
+            ob_no_list.append(ob_no)
+            steps_list.append(steps)
+
+        ob_no = np.concatenate(ob_no_list, axis=0)
+        steps = np.concatenate(steps_list, axis=0)
+        return ob_no, steps

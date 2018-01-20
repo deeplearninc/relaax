@@ -8,6 +8,7 @@ import time
 
 from relaax.server.common import session
 from relaax.common import profiling
+from relaax.common.algorithms.lib import observation
 
 from . import trpo_config
 from . import trpo_model
@@ -34,6 +35,7 @@ class Agent(object):
         self._stop_training = False  # stop training flag to prevent the training further
 
         self.data = defaultdict(list)
+        self.observation = observation.Observation(trpo_config.config.input.history)
 
         self.policy = network.make_policy_wrapper(self.session, self.ps.metrics)
 
@@ -81,12 +83,13 @@ class Agent(object):
     def act(self, state):
         start = time.time()
 
-        obs = state
         if trpo_config.config.use_filter:
-            obs = self.obs_filter(state)
-        self.data["observation"].append(obs)
+            state = self.obs_filter(state)
 
-        action, agentinfo = self.policy.act(np.reshape(obs, obs.shape + (1,)))
+        self.observation.add_state(state)
+        self.data["observation"].append(self.observation.queue)
+
+        action, agentinfo = self.policy.act([self.observation.queue])
         self.data["action"].append(action)
 
         for (k, v) in agentinfo.items():
@@ -110,6 +113,7 @@ class Agent(object):
         self.server_latency_accumulator = 0
         self.ps.metrics.scalar('server_latency', latency)
 
+        self.observation.add_state(None)
         self._send_experience(terminated=(self._episode_timestep <
                                           trpo_config.config.PG_OPTIONS.timestep_limit))
         return True
