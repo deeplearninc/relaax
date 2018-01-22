@@ -3,7 +3,10 @@ from argparse import Namespace
 import random
 
 config = options.get('algorithm')
+
 config.seed = options.get('algorithm/seed', random.randrange(1000000))
+config.avg_in_num_batches = options.get('algorithm/avg_in_num_batches', 10)
+config.input.history = options.get('algorithm/input/history', 1)
 
 for key, value in [('use_convolutions', [])]:
     if not hasattr(config, key):
@@ -28,7 +31,6 @@ config.RMSProp.epsilon = options.get('algorithm/RMSProp/epsilon', 0.1)
 config.hogwild = options.get('algorithm/hogwild', False)
 config.use_icm = options.get('algorithm/use_icm', False)
 config.use_filter = options.get('algorithm/use_filter', False)
-config.avg_in_num_batches = options.get('algorithm/avg_in_num_batches', 10)
 
 config.output.action_high = options.get('algorithm/output/action_high', [])
 config.output.action_low = options.get('algorithm/output/action_low', [])
