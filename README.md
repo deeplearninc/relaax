@@ -29,7 +29,7 @@ The components of RELAAX include:
     - [Running on Windows](#running-on-windows)
 - [System Architecture](#system-architecture)
 - [Release Notes](#release-notes)
-    - [1.1.0](#1.1.0)
+    - [1.1.0](#110)
 - [RELAAX Agent Proxy](#relaax-agent-proxy)
     - [Reinforcement Learning eXchange protocol](#reinforcement-learning-exchange-protocol)
     - [Reinforcement Learning eXchange protocol definition](#reinforcement-learning-exchange-protocol-definition)
@@ -186,7 +186,7 @@ This will run a CartPole-v0 environment.
 
 ## [Release Notes](#contents)
 
-### [1.1.0](#1.1.0)
+### [1.1.0](#contents)
 
 * All configuration `yamls` should be supplied with the `relaax` version, for ex.:
 ```yaml
