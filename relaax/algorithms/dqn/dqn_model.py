@@ -8,6 +8,7 @@ from relaax.common.algorithms.lib import layer
 from relaax.common.algorithms.lib import loss
 from relaax.common.algorithms.lib import utils
 from relaax.common.algorithms.lib import optimizer
+from relaax.common.algorithms.lib import lr_schedule
 
 from .dqn_config import config
 from .lib.dqn_utils import Actor
@@ -58,19 +59,19 @@ class GlobalServer(subgraph.Subgraph):
         sg_get_weights_flatten = graph.GetVariablesFlatten(sg_network.weights)
         sg_set_weights_flatten = graph.SetVariablesFlatten(sg_network.weights)
 
-        if config.optimizer == 'Adam':
-            sg_optimizer = optimizer.AdamOptimizer(config.initial_learning_rate)
-        elif config.optimizer == 'RMSProp':
-            param = {}
-            if hasattr(config, 'RMSProp'):
-                if hasattr(config.RMSProp, "decay"):
-                    param["decay"] = config.RMSProp.decay
-                if hasattr(config.RMSProp, "epsilon"):
-                    param["epsilon"] = config.RMSProp.epsilon
-
-            sg_optimizer = optimizer.RMSPropOptimizer(config.initial_learning_rate, **param)
+        if config.use_linear_schedule:
+            sg_learning_rate = lr_schedule.Linear(sg_global_step, config)
         else:
-            raise NotImplementedError
+            sg_learning_rate = config.initial_learning_rate
+
+        if config.optimizer == 'Adam':
+            sg_optimizer = optimizer.AdamOptimizer(sg_learning_rate)
+        elif config.optimizer == 'RMSProp':
+            sg_optimizer = optimizer.RMSPropOptimizer(learning_rate=sg_learning_rate,
+                                                      decay=config.RMSProp.decay,
+                                                      epsilon=config.RMSProp.epsilon)
+        else:
+            assert False, 'There 2 valid options for optimizers: Adam | RMSProp'
 
         sg_gradients_apply = optimizer.Gradients(sg_network.weights, optimizer=sg_optimizer)
 

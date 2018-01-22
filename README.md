@@ -203,7 +203,7 @@ algorithm:
     - `avg`: averaging.  
     All gradients is accumulated on parameter server while its amount reaches the number,  
     defined by `num_gradients` parameters. Gradients are applying to the parameter server after that.
-    - `dc`: delay compensation, see related [article](https://arxiv.org/abs/1609.08326)
+    - `dc`: delay compensation, see related [article](https://arxiv.org/abs/1609.08326)  
     Incoming gradients are applying wisely to the parameter server,  
     even if its weights is already changed by the other agent.  
     It computes the difference between parameter server & agents weights  
@@ -297,30 +297,24 @@ It uses separate neural networks for the policy & critic, also as for its losses
 It supports `6` base algorithms and its variants: `policy-gradient`, `da3c`, `trpo`, `ddpg`, `dqn`, `dppo`  
 and `4` environment templates: `bandit`, `openai-gym`, `deepmind-lab`, `vizdoom` (gym-doom)
 
-* Learning rate scheduling was added. It could be configured via related `yaml`, for ex.:
+* Learning rate scheduling was added (except DDPG & TRPO algorithms).  
+It could be configured via related `yaml`, for ex.:
 ```yaml
   max_global_step: 30000          # amount of maximum global steps to pass through the training
-  initial_learning_rate: 2e-2     # initial learning rate, which can be anneal by schedule
   use_linear_schedule: true       # set to True to use linear learning rate annealing wrt max_global_step
-```
-It allows to specify the `low` boundary for learning rate annealing:
-```python
-lr_end = 0.1 * config.initial_learning_rate
-lr_schedule.Linear(sg_global_step, config.initial_learning_rate, config.max_global_step, lr_end)
-```
-It assigns `lr_end = 0.2 * config.initial_learning_rate` by default,
-if `lr_end` isn't provided to the schedule.
 
-Learning rate schedule for `DPPO` algorithm is configured a bit different:
-```yaml
-algorithm:
-    schedule: linear
-    schedule_step: update     # variants: update | environment
-    max_global_step: 1e7
+  initial_learning_rate: 2e-2     # initial learning rate, which can be anneal by schedule
+  learning_rate_end: 2e-3         # final learning rate within schedule
+  
+  schedule_step: update           # variants: update | environment (only applicable for DPPO)
 ```
-It can be uses environment steps as or update steps to perform annealing,  
-where the 2-nd variant is more applicable for this algorithm.
+It allows to specify the `low` boundary for the learning rate annealing procedure.  
+If `learning_rate_end` boundary isn't provided to the schedule, it sets to `0.0`.
 
+DPPO algorithm can uses `environment` steps or `update` steps (amount of updates within optmization procedure)  
+to perform annealing, where the 2-nd variant is more applicable.
+
+* Best model checkpoint
 
 ## [RELAAX Agent Proxy](#contents)
 Agent Proxy run with your Environments training and is used to communicate with RL Agents. At the moment client implemented in Python, later on we are planning to implement client code in C/C++, Ruby, GO, etc. to simplify integration of other environments.

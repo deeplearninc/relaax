@@ -53,9 +53,12 @@ if not hasattr(config, 'optimizer'):
     config.optimizer = options.get('algorithm/optimizer', Namespace())
 config.optimizer.epsilon = options.get('algorithm/optimizer/epsilon', 1e-5)
 
-config.schedule = options.get('algorithm/schedule', 'linear')
-config.schedule_step = options.get('algorithm/schedule_step', 'update')     # update | environment
 config.max_global_step = options.get('algorithm/max_global_step', 1e7)
+config.use_linear_schedule = options.get('algorithm/use_linear_schedule', True)
+config.schedule_step = options.get('algorithm/schedule_step', 'update')     # update | environment
+
+config.initial_learning_rate = options.get('algorithm/initial_learning_rate', 1e-4)
+config.learning_rate_end = options.get('algorithm/learning_rate_end', 0.0)
 
 # KAF default parameters
 if not hasattr(config, 'KAF'):

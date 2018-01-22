@@ -8,6 +8,7 @@ from relaax.common.algorithms.lib import layer
 from relaax.common.algorithms.lib import optimizer
 from relaax.common.algorithms.lib import loss
 from relaax.common.algorithms.lib import utils
+from relaax.common.algorithms.lib import lr_schedule
 
 from . import pg_config
 
@@ -42,7 +43,20 @@ class SharedParameters(subgraph.Subgraph):
         sg_get_weights_flatten = graph.GetVariablesFlatten(sg_weights)
         sg_set_weights_flatten = graph.SetVariablesFlatten(sg_weights)
 
-        sg_optimizer = optimizer.AdamOptimizer(pg_config.config.learning_rate)
+        if pg_config.config.use_linear_schedule:
+            sg_learning_rate = lr_schedule.Linear(sg_global_step, pg_config.config)
+        else:
+            sg_learning_rate = pg_config.config.initial_learning_rate
+
+        if pg_config.config.optimizer == 'Adam':
+            sg_optimizer = optimizer.AdamOptimizer(sg_learning_rate)
+        elif pg_config.config.optimizer == 'RMSProp':
+            sg_optimizer = optimizer.RMSPropOptimizer(learning_rate=sg_learning_rate,
+                                                      decay=pg_config.config.RMSProp.decay,
+                                                      epsilon=pg_config.config.RMSProp.epsilon)
+        else:
+            assert False, 'There 2 valid options for optimizers: Adam | RMSProp'
+
         sg_gradients = optimizer.Gradients(sg_weights, optimizer=sg_optimizer)
 
         sg_average_reward = graph.LinearMovingAverage(pg_config.config.avg_in_num_batches)

@@ -1,4 +1,5 @@
 from relaax.common.python.config.loaded_config import options
+from argparse import Namespace
 
 config = options.get('algorithm')
 
@@ -9,7 +10,19 @@ for key, value in [('use_convolutions', [])]:
     if not hasattr(config, key):
         setattr(config, key, value)
 
-config.optimizer = options.get('algorithm/optimizer', 'Adam')
+config.max_global_step = options.get('algorithm/max_global_step', 1e8)
+config.use_linear_schedule = options.get('algorithm/use_linear_schedule', False)
+
+config.initial_learning_rate = options.get('algorithm/initial_learning_rate', 1e-4)
+config.learning_rate_end = options.get('algorithm/learning_rate_end', 0.0)
+
+config.optimizer = options.get('algorithm/optimizer', 'Adam')   # Adam | RMSProp
+# RMSProp default parameters
+if not hasattr(config, 'RMSProp'):
+    config.RMSProp = options.get('algorithm/RMSProp', Namespace())
+config.RMSProp.decay = options.get('algorithm/RMSProp/decay', 0.99)
+config.RMSProp.epsilon = options.get('algorithm/RMSProp/epsilon', 0.1)
+
 config.gradients_norm_clipping = options.get('algorithm/gradients_norm_clipping', False)
 
 # check hidden sizes
