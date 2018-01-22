@@ -17,4 +17,4 @@ algorithm:
   batch_size: 200                 # maximum batch size, which need to accumulate for one update
 
   initial_learning_rate: 1e-2     # learning rate to use within the whole training process (Adam optimizer)
-  GAMMA: 0.99                     # rewards discount factor
+  rewards_gamma: 0.99             # rewards discount factor

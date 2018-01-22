@@ -31,6 +31,8 @@ if not hasattr(config, 'RMSProp'):
 config.RMSProp.decay = options.get('algorithm/RMSProp/decay', 0.99)
 config.RMSProp.epsilon = options.get('algorithm/RMSProp/epsilon', 0.1)
 
+config.rewards_gamma = options.get('algorithm/rewards_gamma:', 0.99)
+
 config.combine_gradients = options.get('algorithm/combine_gradients', 'fifo')
 config.num_gradients = options.get('algorithm/num_gradients', 4)
 config.dc_lambda = options.get('algorithm/dc_lambda', 0.05)
