@@ -213,7 +213,7 @@ algorithm:
     ```yaml
     algorithm:
       name: trpo
-      subtype: trpo-d2                # variants: ppo | trpo-d1 | trpo-d2
+      subtype: trpo-d2              # variants: ppo | trpo-d1 | trpo-d2
     ```
     TRPO policy used 1-st order derivatives with `trpo-d1` and 2-nd order with `trpo-d2`.
 
@@ -249,18 +249,18 @@ algorithm:
       name: da3c
     
       input:
-        shape: [84, 84]               # state: [height, width] or [height, width, channels]
-        history: 4                    # number of consecutive states to stuck to represent an input
-        use_convolutions: true        # set to True to use convolutions to process the input,
-                                      # it uses the set of convolutions from universe architecture by default
-        universe: false               # set to False to use classic set of A3C convolutions
+        shape: [84, 84]             # state: [height, width] or [height, width, channels]
+        history: 4                  # number of consecutive states to stuck to represent an input
+        use_convolutions: true      # set to True to use convolutions to process the input,
+                                    # it uses the set of convolutions from universe architecture by default
+        universe: false             # set to False to use classic set of A3C convolutions
     ```
 
 * Activations could be setup directly via configuration `yaml`, for ex.:
     ```yaml
     algorithm:
-      hidden_sizes: [128, 64]         # list of layers sizes, if use_lstm=true -> last size uses for the LSTM
-      activation: relu                # activation for the set of layers defined in hidden_sizes, except LSTM
+      hidden_sizes: [128, 64]       # list of layers sizes, if use_lstm=true -> last size uses for the LSTM
+      activation: relu              # activation for the set of layers defined in hidden_sizes, except LSTM
     ```
 
 * All activations represents as object, not simple functions as before.  
@@ -270,13 +270,13 @@ Thereby they could be heavier, have its own configuration, weights, etc.
 It could be additionally configured via `yaml`, for ex.:
     ```yaml
     algorithm:
-      activation: kaf                 # activation for the set of layers defined in hidden_sizes, except LSTM
+      activation: kaf               # activation for the set of layers defined in hidden_sizes, except LSTM
       
       KAF:
-        boundary: 2.0                 # range of values
-        size: 20                      # size of the kernel
-        kernel: rbf                   # rbf | rbf2d
-        gamma: 1.0                    # configuration constant
+        boundary: 2.0               # range of values
+        size: 20                    # size of the kernel
+        kernel: rbf                 # rbf | rbf2d
+        gamma: 1.0                  # configuration constant
     ```
 
 * Dilated LSTM was added, wrt [FeUdal Networks for Hierarchical Reinforcement Learning](https://arxiv.org/abs/1703.01161).  
@@ -285,9 +285,9 @@ This is represent a dilation when the far parts are updated less depending on th
     It could be additionally configured via `yaml`, for ex.:
     ```yaml
     algorithm:
-      use_lstm: true                  # to use LSTM instead of FF, set to the True
-      lstm_type: Dilated              # there are two types of LSTM to use: Basic | Dilated
-      lstm_num_cores: 8               # level of granularity for Dilated LSTM to set within amount of cores
+      use_lstm: true                # to use LSTM instead of FF, set to the True
+      lstm_type: Dilated            # there are two types of LSTM to use: Basic | Dilated
+      lstm_num_cores: 8             # level of granularity for Dilated LSTM to set within amount of cores
     ```
 
 * Distributed PPO (DPPO) algorithm was added: it is similar to Clipped PPO, described in this [article](https://arxiv.org/abs/1707.06347).  
@@ -300,13 +300,13 @@ and `4` environment templates: `bandit`, `openai-gym`, `deepmind-lab`, `vizdoom`
 * Learning rate scheduling was added (except DDPG & TRPO algorithms).  
 It could be configured via `yaml`, for ex.:
     ```yaml
-      max_global_step: 30000          # amount of maximum global steps to pass through the training
-      use_linear_schedule: true       # set to True to use linear learning rate annealing wrt max_global_step
+      max_global_step: 30000        # amount of maximum global steps to pass through the training
+      use_linear_schedule: true     # set to True to use linear learning rate annealing wrt max_global_step
     
-      initial_learning_rate: 2e-2     # initial learning rate, which can be anneal by schedule
-      learning_rate_end: 2e-3         # final learning rate within schedule
+      initial_learning_rate: 2e-2   # initial learning rate, which can be anneal by schedule
+      learning_rate_end: 2e-3       # final learning rate within schedule
       
-      schedule_step: update           # variants: update | environment (only applicable for DPPO)
+      schedule_step: update         # variants: update | environment (only applicable for DPPO)
     ```
     It allows to specify the `low` boundary for the learning rate annealing procedure.  
     If `learning_rate_end` boundary isn't provided to the schedule, it sets to `0.0`.
@@ -319,12 +319,12 @@ It estimates the model by its score metric, which is calculated as average rewar
 within number of batches specified by `avg_in_num_batches` parameter.
     ```yaml
     relaax-parameter-server:
-      checkpoint_time_interval: 30    # time interval in seconds to update the checkpoints
-      checkpoints_to_keep: 1          # number of last saved checkpoints to keep
-      best_checkpoints_to_keep: 3     # top-3 best checkpoints are kept wrt its score metric
+      checkpoint_time_interval: 30  # time interval in seconds to update the checkpoints
+      checkpoints_to_keep: 1        # number of last saved checkpoints to keep
+      best_checkpoints_to_keep: 3   # top-3 best checkpoints are kept wrt its score metric
       
     algorithm:
-      avg_in_num_batches: 10          # model score is calculated within 10 sliding batches
+      avg_in_num_batches: 10        # model score is calculated within 10 sliding batches
     ```
 
 * Some extensions for the existing algorithms:
