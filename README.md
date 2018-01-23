@@ -188,7 +188,7 @@ This will run a CartPole-v0 environment.
 
 ### [1.1.0](#contents)
 
-* All configuration `yamls` should be supplied with the `relaax` version, for ex.:
+* All configuration `*.yaml` files should include the `relaax` version, for ex.:
 ```yaml
 version: 1.1.0
 algorithm:
@@ -196,24 +196,24 @@ algorithm:
 ```
 
 * All algorithms supports `3` predefined methods for gradients' combining: 
-(except TRPO-based algorithms, there the agents send just experience to the parameter server)
+(except TRPO-based algorithms, where the agents send just experience to the parameter server)
     - `fifo`: first in first out.  
     There are classic scheme which is used by vanilla `A3C` algorithm. Incoming gradients are applying freely,  
     despite if parameter server weights is already changed by the other agent.
     - `avg`: averaging.  
-    All gradients is accumulated on parameter server while its amount reaches the number,  
-    defined by `num_gradients` parameters. Gradients are applying to the parameter server after that.
+    All gradients is accumulated on parameter server until their amount reaches the number specified by  
+    `num_gradients` parameter. After that, the average of the gradients are applied to the parameter server.
     - `dc`: delay compensation, see related [article](https://arxiv.org/abs/1609.08326)  
     Incoming gradients are applying wisely to the parameter server,  
     even if its weights is already changed by the other agent.  
-    It computes the difference between parameter server & agents weights  
-    to recalculate its gradients wrt delayed applying to compensate it.
+    It computes the difference between parameter server & agents weights to recalculate  
+    agents' gradients wrt delay. And it applies compensated variant to the parameter server.
 
 * TRPO-based algorithms is split into `3` variants:
 ```yaml
 algorithm:
   name: trpo
-  subtype: trpo-d2              # variants: ppo | trpo-d1 | trpo-d2
+  subtype: trpo-d2                # variants: ppo | trpo-d1 | trpo-d2
 ```
 TRPO policy used 1-st order derivatives with `trpo-d1` and 2-nd order with `trpo-d2`.
 
@@ -280,8 +280,8 @@ algorithm:
 ```
 
 * Dilated LSTM was added, wrt [FeUdal Networks for Hierarchical Reinforcement Learning](https://arxiv.org/abs/1703.01161).  
-It uses memory granularity wrt to its cores. All LSTM units is divided into part by modulo operation.  
-This is represent a dilation when the further parts are updated less depending on their core number.  
+It uses memory granularity due to the division into cores. All LSTM units is divided into parts by simple modulo operation.  
+This is represent a dilation when the far parts are updated less depending on their core number.  
 It could be additionally configured via `yaml`, for ex.:
 ```yaml
 algorithm:
@@ -298,7 +298,7 @@ It supports `6` base algorithms and its variants: `policy-gradient`, `da3c`, `tr
 and `4` environment templates: `bandit`, `openai-gym`, `deepmind-lab`, `vizdoom` (gym-doom)
 
 * Learning rate scheduling was added (except DDPG & TRPO algorithms).  
-It could be configured via related `yaml`, for ex.:
+It could be configured via `yaml`, for ex.:
 ```yaml
   max_global_step: 30000          # amount of maximum global steps to pass through the training
   use_linear_schedule: true       # set to True to use linear learning rate annealing wrt max_global_step
@@ -314,7 +314,47 @@ If `learning_rate_end` boundary isn't provided to the schedule, it sets to `0.0`
 DPPO algorithm can uses `environment` steps or `update` steps (amount of updates within optmization procedure)  
 to perform annealing, where the 2-nd variant is more applicable.
 
-* Best model checkpoint
+* Best model checkpoint was added.  
+It estimates the model by its score metric, which is calculated as average reward  
+within number of batches specified by `avg_in_num_batches` parameter.
+```yaml
+relaax-parameter-server:
+  checkpoint_time_interval: 30    # time interval in seconds to update the checkpoints
+  checkpoints_to_keep: 1          # number of last saved checkpoints to keep
+  best_checkpoints_to_keep: 3     # top-3 best checkpoints are kept wrt its score metric
+  
+algorithm:
+  avg_in_num_batches: 10          # model score is calculated within 10 sliding batches
+```
+
+* Some extensions for the existing algorithms:
+    - `DA3C` & `DPPO`
+        - `critic` learning rate could be scaled wrt `policy` learning rate  
+        by `critic_scale` parameter. If it equals to `2.0` then value function  
+        learning rate is two times higher and `0.5` for vice versa.
+        - `seed` parameter was added to reproduce some runs.
+    - `DA3C`
+        - there are `2` entropy types to use: Gauss | Origin.  
+        Where the 2-nd one is from vanilla `A3C` article.
+        - loss could be clipped by relative parameters:  
+        `policy_clip` & `critic_clip`
+    - `DPPO`
+        - `entropy`: set some value to use entropy penalty
+        - `l2_coeff`: set some value to use L2 regularization for the critic 
+        - `mini_batch`: mini_batch size to split on within batch
+        - `policy_iterations`: number of optimization iterations for the policy
+        - `value_func_iterations`: the same for the value function
+        - `norm_adv`: set to true to normalize the advantage
+        - `vf_clipped_loss`: set to true to use clipped loss for the critic
+    - `TRPO`
+        - trajectories could be accumulated by its absolute experience size  
+        or directly via number of successful trajectories (until terminal):
+        `timesteps_per_batch` or `episodes_per_batch`
+        - there are `2` linesearch types: Origin | Adaptive
+        ```yaml
+          TRPO:
+            linesearch_type: Adaptive
+        ```
 
 ## [RELAAX Agent Proxy](#contents)
 Agent Proxy run with your Environments training and is used to communicate with RL Agents. At the moment client implemented in Python, later on we are planning to implement client code in C/C++, Ruby, GO, etc. to simplify integration of other environments.
