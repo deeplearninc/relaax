@@ -4,6 +4,9 @@ from relaax.common.python.config.loaded_config import options
 
 config = options.get('algorithm')
 
+config.avg_in_num_batches = options.get('algorithm/avg_in_num_batches', 2)
+config.input.history = options.get('algorithm/input/history', 1)
+
 for key, value in [('use_convolutions', [])]:
     if not hasattr(config, key):
         setattr(config, key, value)
@@ -13,9 +16,6 @@ config.return_probs = options.get('algorithm/return_probs', False)
 
 config.timesteps_per_batch = options.get('algorithm/PG_OPTIONS/timesteps_per_batch', None)
 config.episodes_per_batch = options.get('algorithm/PG_OPTIONS/episodes_per_batch', 5)
-
-config.avg_in_num_batches = options.get('algorithm/avg_in_num_batches', 2)
-config.input.history = options.get('algorithm/input/history', 1)
 
 if not hasattr(config, 'PPO'):
     config.PPO = options.get('algorithm/PPO', Namespace())

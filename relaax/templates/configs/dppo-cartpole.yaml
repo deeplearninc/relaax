@@ -20,7 +20,7 @@ algorithm:
   mini_batch: 50                  # experience size for one update within epoch
 
   max_global_step: 4e3            # amount of maximum global steps | updates to pass through the training
-  learning_rate: 1e-3             # initial learning rate, which can be anneal by some schedule
+  initial_learning_rate: 1e-3     # learning rate, which can be anneal by some schedule
 
   gamma: 0.97                     # rewards discount factor
   clip_e: 0.2                     # clipping range for the losses

@@ -6,6 +6,7 @@ import numpy as np
 from .. import trpo_config
 from . import core
 from . import dataset
+from . import filters
 
 logger = logging.getLogger(__name__)
 losses_names = ['surr_loss', 'kl', 'entropy']
@@ -13,8 +14,8 @@ losses_names = ['surr_loss', 'kl', 'entropy']
 
 def make_filter(config):
     if config.use_filter:
-        return core.ZFilter(core.RunningStatExt(config.input.shape), clip=5)
-    return core.IDENTITY
+        return filters.ZFilter(filters.RunningStatExt(config.input.shape), clip=5)
+    return filters.IDENTITY
 
 
 def make_probtype():
@@ -39,8 +40,7 @@ class PpoUpdater(object):
     def __call__(self, paths):
         logger.debug("PPO updater called")
         prob_np = np.concatenate([path['prob'] for path in paths])
-        ob_no = np.concatenate([path['observation'] for path in paths])
-        state = np.reshape(ob_no, ob_no.shape + (1,))
+        state = np.concatenate([path['observation'] for path in paths])
         action_na = np.concatenate([path['action'] for path in paths])
         advantage_n = np.concatenate([path['advantage'] for path in paths])
 
@@ -68,8 +68,7 @@ class TrpoCalculator(object):
         self.policy_model = policy_model
         self.paths = paths
         self.prob_np = np.concatenate([path['prob'] for path in paths])
-        ob_no = np.concatenate([path['observation'] for path in paths])
-        self.state = np.reshape(ob_no, ob_no.shape + (1,))
+        self.state = np.concatenate([path['observation'] for path in paths])
         self.action_na = np.concatenate([path['action'] for path in paths])
         self.advantage_n = np.concatenate([path['advantage'] for path in paths])
 

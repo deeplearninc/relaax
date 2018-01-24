@@ -106,9 +106,7 @@ class SharedParameters(subgraph.Subgraph):
         self.critic = sg_network.critic
 
         if da3c_config.config.use_linear_schedule:
-            sg_learning_rate = lr_schedule.Linear(sg_global_step,
-                                                  da3c_config.config.initial_learning_rate,
-                                                  da3c_config.config.max_global_step)
+            sg_learning_rate = lr_schedule.Linear(sg_global_step, da3c_config.config)
         else:
             sg_learning_rate = da3c_config.config.initial_learning_rate
 

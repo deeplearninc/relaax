@@ -28,7 +28,7 @@ class ModelApi(object):
         return utils.choose_action_descrete(probabilities, self.exploit)
 
     def compute_gradients(self, experience_arg):
-        discounted_reward = utils.discounted_reward(experience_arg['reward'], pg_config.config.GAMMA)
+        discounted_reward = utils.discounted_reward(experience_arg['reward'], pg_config.config.rewards_gamma)
         return self.session.op_compute_gradients(state=experience_arg['state'],
                                                  action=experience_arg['action'],
                                                  discounted_reward=discounted_reward)

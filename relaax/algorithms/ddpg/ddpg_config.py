@@ -6,6 +6,10 @@ config.log_lvl = options.get('relaax-metrics-server/log_level', 'INFO')  # INFO 
 config.no_ps = options.get('algorithm/no_ps', False)
 config.input.history = options.get('algorithm/input/history', 1)
 
+for key, value in [('use_convolutions', [])]:
+    if not hasattr(config, key):
+        setattr(config, key, value)
+
 config.buffer_size = options.get('algorithm/buffer_size', 4*10**5)
 config.batch_size = options.get('algorithm/batch_size', 64)
 config.loop_size = options.get('algorithm/loop_size', 1)

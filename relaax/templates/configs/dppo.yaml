@@ -20,7 +20,7 @@ algorithm:
   mini_batch: 32                  # experience size for one update within epoch
 
   max_global_step: 2e6            # amount of maximum global steps | updates to pass through the training
-  learning_rate: 2e-4             # initial learning rate, which can be anneal by some schedule
+  initial_learning_rate: 2e-4     # learning rate, which can be anneal by some schedule
   schedule: linear                # linear learning rate annealing wrt max_global_step
   schedule_step: update           # linear learning rate annealing wrt amount of updates
 

@@ -260,7 +260,7 @@ class SharedWeights(subgraph.Subgraph):
         sg_update_step = graph.GlobalStep()
         sg_weights = weights
 
-        if dppo_config.config.schedule == 'linear':
+        if dppo_config.config.use_linear_schedule:
             if dppo_config.config.schedule_step == 'update':
                 sg_schedule_step = sg_update_step
             elif dppo_config.config.schedule_step == 'environment':
@@ -268,11 +268,9 @@ class SharedWeights(subgraph.Subgraph):
             else:
                 assert False, 'Valid options for the schedule step are: update OR environment.' \
                               'You provide the following option:'.format(dppo_config.config.schedule_step)
-            sg_learning_rate = lr_schedule.Linear(sg_schedule_step,
-                                                  dppo_config.config.learning_rate,
-                                                  dppo_config.config.max_global_step)
+            sg_learning_rate = lr_schedule.Linear(sg_schedule_step, dppo_config.config)
         else:
-            sg_learning_rate = dppo_config.config.learning_rate
+            sg_learning_rate = dppo_config.config.initial_learning_rate
 
         sg_optimizer = optimizer.AdamOptimizer(sg_learning_rate, epsilon=dppo_config.config.optimizer.epsilon)
         sg_gradients = optimizer.Gradients(sg_weights, optimizer=sg_optimizer)
