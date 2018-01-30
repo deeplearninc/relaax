@@ -259,7 +259,8 @@ class Agent(object):
         forward_values = np.asarray(experience['value'][1:] + [r]) * gamma
         rewards = np.asarray(reward) + forward_values - np.asarray(experience['value'])
 
-        advantage = utils.discount(rewards, gamma * da3c_config.config.gae_lambda)
+        advantage = utils.discount(rewards, gamma * da3c_config.config.gae_lambda,
+                                   normalize=da3c_config.config.norm_adv)
 
         feeds = dict(state=experience['state'], action=experience['action'],
                      advantage=advantage, discounted_reward=self.discounted_reward)

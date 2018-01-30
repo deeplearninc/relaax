@@ -333,6 +333,7 @@ within number of batches specified by `avg_in_num_batches` parameter.
         by `critic_scale` parameter. If it equals to `2.0` then value function  
         learning rate is two times higher and `0.5` for vice versa.
         - `seed` parameter was added to reproduce some runs.
+        - `normalize_advantage`: set to true to normalize the advantage
     - `DA3C`
         - there are `2` entropy types to use: Gauss | Origin.  
         Where the 2-nd one is from vanilla `A3C` article.
@@ -344,7 +345,6 @@ within number of batches specified by `avg_in_num_batches` parameter.
         - `mini_batch`: mini_batch size to split on within batch
         - `policy_iterations`: number of optimization iterations for the policy
         - `value_func_iterations`: the same for the value function
-        - `norm_adv`: set to true to normalize the advantage
         - `vf_clipped_loss`: set to true to use clipped loss for the critic
     - `TRPO`
         - trajectories could be accumulated by its absolute experience size  

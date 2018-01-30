@@ -201,8 +201,11 @@ class RunningStat(object):
         return self._M.shape
 
 
-def discount(x, gamma):
-    return scipy.signal.lfilter([1], [1, -gamma], x[::-1], axis=0)[::-1]
+def discount(x, gamma, normalize=False, epsilon=1e-8):
+    discounted = scipy.signal.lfilter([1], [1, -gamma], x[::-1], axis=0)[::-1]
+    if normalize:
+        discounted = (discounted - discounted.mean()) / (discounted.std() + epsilon)
+    return discounted
 
 
 class Shaper():

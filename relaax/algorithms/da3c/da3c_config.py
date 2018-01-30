@@ -34,6 +34,8 @@ config.RMSProp.epsilon = options.get('algorithm/RMSProp/epsilon', 0.1)
 config.policy_clip = options.get('algorithm/policy_clip', False)
 config.critic_clip = options.get('algorithm/critic_clip', False)
 
+config.norm_adv = options.get('algorithm/normalize_advantage', False)
+
 config.output.loss_type = options.get('algorithm/output/loss_type', 'Normal')   # Normal | Expanded | Extended
 config.gradients_norm_clipping = options.get('algorithm/gradients_norm_clipping', False)
 
