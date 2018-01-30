@@ -9,7 +9,19 @@ import sys
 from .fixtures.mock_utils import MockUtils
 from .fixtures.mock_socket import MockSocket
 from relaax.common.rlx_netstring import NetString
-from relaax.environment.agent_proxy import AgentProxy, AgentProxyException
+
+
+# flake8 prohibits module level import after statement of another type
+# lets wrap import in function and call it
+def importAgentProxy():
+    tmp = sys.argv
+    sys.argv = sys.argv[:1]
+    from relaax.environment.agent_proxy import AgentProxy, AgentProxyException
+    sys.argv = tmp
+    return AgentProxy, AgentProxyException
+
+
+AgentProxy, AgentProxyException = importAgentProxy()
 
 
 class TestAgentProxy(object):
