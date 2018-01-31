@@ -1,19 +1,21 @@
 from __future__ import print_function
 
+import logging
 import numpy as np
 
 from .. import trpo_config
 from . import core
+from . import dataset
+from . import filters
 
-
-PPO = False
-D2 = True
+logger = logging.getLogger(__name__)
+losses_names = ['surr_loss', 'kl', 'entropy']
 
 
 def make_filter(config):
     if config.use_filter:
-        return core.ZFilter(core.RunningStatExt(config.input.shape), clip=5)
-    return core.IDENTITY
+        return filters.ZFilter(filters.RunningStatExt(config.input.shape), clip=5)
+    return filters.IDENTITY
 
 
 def make_probtype():
@@ -23,7 +25,7 @@ def make_probtype():
 
 
 def make_policy_wrapper(relaax_session, relaax_metrics):
-    return core.StochPolicyKeras(make_probtype(), relaax_session, relaax_metrics)
+    return core.StochPolicy(make_probtype(), relaax_session, relaax_metrics)
 
 
 def make_baseline_wrapper(value_model, relaax_metrics):
@@ -36,16 +38,29 @@ class PpoUpdater(object):
         self.policy_model = policy_model
 
     def __call__(self, paths):
+        logger.debug("PPO updater called")
         prob_np = np.concatenate([path['prob'] for path in paths])
-        ob_no = np.concatenate([path['observation'] for path in paths])
-        state = np.reshape(ob_no, ob_no.shape + (1,))
+        state = np.concatenate([path['observation'] for path in paths])
         action_na = np.concatenate([path['action'] for path in paths])
         advantage_n = np.concatenate([path['advantage'] for path in paths])
 
+        d = dataset.Dataset(dict(state=state, sampled_variable=action_na, adv_n=advantage_n,
+                                 oldprob_np=prob_np))
+
+        losses = []
+        batch_size = trpo_config.config.PPO.minibatch_size\
+            if trpo_config.config.PPO.minibatch_size is not None else state.shape[0]
+        assert trpo_config.config.PPO.n_epochs > 0, 'Number of epochs should be above zero'
+
         for i in range(trpo_config.config.PPO.n_epochs):
-            self.policy_model.op_ppo_optimize(state=state, sampled_variable=action_na, adv_n=advantage_n,
-                                              oldprob_np=prob_np)
-        # TODO: add KL new/old for debug
+            for batch in d.iterate_once(batch_size):
+                new_losses, _ = self.policy_model.op_ppo_optimize(state=batch['state'],
+                                                                  sampled_variable=batch['sampled_variable'],
+                                                                  adv_n=batch['adv_n'],
+                                                                  oldprob_np=batch['oldprob_np'])
+                losses.append(new_losses)
+
+        return dict(zip(losses_names, np.mean(losses, axis=0)))
 
 
 class TrpoCalculator(object):
@@ -53,36 +68,44 @@ class TrpoCalculator(object):
         self.policy_model = policy_model
         self.paths = paths
         self.prob_np = np.concatenate([path['prob'] for path in paths])
-        ob_no = np.concatenate([path['observation'] for path in paths])
-        self.state = np.reshape(ob_no, ob_no.shape + (1,))
+        self.state = np.concatenate([path['observation'] for path in paths])
         self.action_na = np.concatenate([path['action'] for path in paths])
         self.advantage_n = np.concatenate([path['advantage'] for path in paths])
+
+        if trpo_config.config.TRPO.linesearch_type == "Origin":
+            self.search = linesearch
+        elif trpo_config.config.TRPO.linesearch_type == "Adaptive":
+            self.search = linesearch2
+        else:
+            assert False, "You have to provide search type between: Origin | Adaptive"
         self.init()
 
     def __call__(self):
         thprev = self.policy_model.op_get_weights_flatten()
 
         if np.allclose(self.g, 0):
-            print('got zero gradient. not updating')
+            logger.debug('got zero gradient. not updating')
         else:
             stepdir = cg(self.fisher_vector_product, -self.g)
             shs = .5 * stepdir.dot(self.fisher_vector_product(stepdir))
             lm = np.sqrt(shs / trpo_config.config.TRPO.max_kl)
-            print('lagrange multiplier:', lm, 'gnorm:', np.linalg.norm(self.g))
+            logger.debug('lagrange multiplier: {}, gnorm: {}'.format(lm, np.linalg.norm(self.g)))
             fullstep = stepdir / lm
             neggdotstepdir = -self.g.dot(stepdir)
 
             def loss(th):
                 self.policy_model.op_set_weights_flatten(value=th)
-                surr, kl, ent = self.policy_model.op_losses(state=self.state,
-                                                            sampled_variable=self.action_na,
-                                                            adv_n=self.advantage_n,
-                                                            prob_variable=self.prob_np)
-                return surr
+                # Calculates losses in order: surrogate loss, KL divergence, entropy penalty
+                return self.policy_model.op_losses(state=self.state,
+                                                   sampled_variable=self.action_na,
+                                                   adv_n=self.advantage_n,
+                                                   prob_variable=self.prob_np)
 
-            success, theta = linesearch(loss, thprev, fullstep, neggdotstepdir/lm)
-            print('success', success)
+            success, theta, losses = self.search(loss, thprev, fullstep, neggdotstepdir/lm)
+            print('Success: {}'.format(success))
+
             self.policy_model.op_set_weights_flatten(value=theta)
+            return dict(zip(losses_names, np.mean(losses, axis=0)))
 
 
 class TrpoD1Calculator(TrpoCalculator):
@@ -120,7 +143,7 @@ class TrpoD1Updater(object):
         self.policy_model = policy_model
 
     def __call__(self, paths):
-        TrpoD1Calculator(self.policy_model, paths)()
+        return TrpoD1Calculator(self.policy_model, paths)()
 
 
 class TrpoD2Updater(object):
@@ -128,7 +151,7 @@ class TrpoD2Updater(object):
         self.policy_model = policy_model
 
     def __call__(self, paths):
-        TrpoD2Calculator(self.policy_model, paths)()
+        return TrpoD2Calculator(self.policy_model, paths)()
 
 
 def Updater(policy_model):
@@ -140,19 +163,52 @@ def linesearch(f, x, fullstep, expected_improve_rate, max_backtracks=10, accept_
     """
     Backtracking linesearch, where expected_improve_rate is the slope dy/dx at the initial point
     """
-    fval = f(x)
-    print('fval before', fval)
+    fval, kl, ent = f(x)
+    losses = [(fval, kl, ent)]
+    logger.debug('fval before: {}'.format(fval))
     for stepfrac in .5 ** np.arange(max_backtracks):
         xnew = x + stepfrac * fullstep
-        newfval = f(xnew)
-        actual_improve = fval - newfval
+        new_fval, kl, ent = f(xnew)
+        losses.append((new_fval, kl, ent))
+        actual_improve = fval - new_fval
+        expected_improve = expected_improve_rate * stepfrac
+        ratio = actual_improve/expected_improve
+        print('a/e/r:', actual_improve, expected_improve, ratio)
+        if ratio > accept_ratio and actual_improve > 0:
+            logger.debug('fval after: {}'.format(new_fval))
+            return True, xnew, losses
+    return False, x, losses
+
+
+def linesearch2(f, x, fullstep, expected_improve_rate, max_backtracks=10, accept_ratio=.1):
+    """
+    Simpler version of linesearch
+    """
+    fval, kl, ent = f(x)
+    losses = [(fval, kl, ent)]
+    logger.debug('fval before: {}'.format(fval))
+    for stepfrac in .5 ** np.arange(max_backtracks):
+        xnew = x + stepfrac * fullstep
+        new_fval, kl, ent = f(xnew)
+        losses.append((new_fval, kl, ent))
+        actual_improve = fval - new_fval
         expected_improve = expected_improve_rate * stepfrac
         ratio = actual_improve/expected_improve
         print('a/e/r', actual_improve, expected_improve, ratio)
-        if ratio > accept_ratio and actual_improve > 0:
-            print('fval after', newfval)
-            return True, xnew
-    return False, x
+        if not np.isfinite((new_fval, kl)).all():
+            logger.debug("Got non-finite value of losses -- bad!")
+        elif kl > trpo_config.config.TRPO.max_kl * 1.5:
+            logger.debug("violated KL constraint. shrinking step.")
+        elif actual_improve < 0:
+            logger.debug("surrogate didn't improve. shrinking step.")
+        else:
+            logger.debug("Stepsize OK!")
+            break
+    else:
+        logger.debug("couldn't compute a good step")
+        return False, x, losses
+
+    return True, xnew, losses
 
 
 def cg(f_Ax, b, cg_iters=10, callback=None, verbose=False, residual_tol=1e-10):

@@ -2,7 +2,6 @@ from builtins import object
 
 import glob
 import os.path
-import re
 
 from . import class_loader
 

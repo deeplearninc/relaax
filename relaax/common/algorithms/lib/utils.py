@@ -3,6 +3,7 @@ from builtins import range
 from builtins import object
 import logging
 import numpy as np
+import scipy.signal
 import tensorflow as tf
 
 from relaax.common.python.config.loaded_config import options
@@ -137,10 +138,11 @@ class Utils(object):
 class ZFilter(object):
     """ y = (x-mean)/std
     using running estimates of mean, std """
-    def __init__(self, shape, demean=True, destd=True, clip=10.0):
+    def __init__(self, shape, demean=True, destd=True, clip=5.0, epsilon=1e-8):
         self.demean = demean
         self.destd = destd
         self.clip = clip
+        self.epsilon = epsilon
 
         self.rs = RunningStat(shape)
 
@@ -150,7 +152,7 @@ class ZFilter(object):
         if self.demean:
             x = x - self.rs.mean
         if self.destd:
-            x = x / (self.rs.std+1e-8)
+            x = x / (self.rs.std + self.epsilon)
         if self.clip:
             x = np.clip(x, -self.clip, self.clip)
         return x
@@ -197,3 +199,35 @@ class RunningStat(object):
     @property
     def shape(self):
         return self._M.shape
+
+
+def discount(x, gamma, normalize=False, epsilon=1e-8):
+    discounted = scipy.signal.lfilter([1], [1, -gamma], x[::-1], axis=0)[::-1]
+    if normalize:
+        discounted = (discounted - discounted.mean()) / (discounted.std() + epsilon)
+    return discounted
+
+
+class Shaper():
+    @staticmethod
+    def numel(x):
+        return np.prod(np.shape(x))
+
+    @classmethod
+    def get_flat(cls, v):
+        tensor_list = list(Utils.flatten(v))
+        u = np.concatenate([np.reshape(t, newshape=[cls.numel(t), ]) for t in tensor_list], axis=0)
+        return u
+
+    @staticmethod
+    def reverse(u, base_shape):
+        tensor_list = list(Utils.flatten(base_shape))
+        shapes = map(np.shape, tensor_list)
+        v_flat = []
+        start = 0
+        for (shape, t) in zip(shapes, tensor_list):
+            size = np.prod(shape)
+            v_flat.append(np.reshape(u[start:start + size], shape))
+            start += size
+        v = Utils.reconstruct(v_flat, base_shape)
+        return v

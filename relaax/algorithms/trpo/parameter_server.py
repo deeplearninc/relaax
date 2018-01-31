@@ -1,7 +1,8 @@
 from __future__ import absolute_import
 
-import numpy as np
 import time
+import logging
+import numpy as np
 from scipy.signal import lfilter
 
 from relaax.server.parameter_server import parameter_server_base
@@ -10,6 +11,8 @@ from relaax.server.common import session
 from . import trpo_config
 from . import trpo_model
 from .lib import network
+
+logger = logging.getLogger(__name__)
 
 
 class ParameterServer(parameter_server_base.ParameterServerBase):
@@ -23,6 +26,9 @@ class ParameterServer(parameter_server_base.ParameterServerBase):
 
     def n_step(self):
         return self.session.op_n_step()
+
+    def score(self):
+        return self.session.op_score()
 
 
 class Ps(object):
@@ -38,8 +44,22 @@ class Ps(object):
         self.updater = network.Updater(relaax_session.policy)
 
         if trpo_config.config.use_filter:
-            self.M = np.zeros(trpo_config.config.state_size)
-            self.S = np.zeros(trpo_config.config.state_size)
+            self.M = np.zeros(trpo_config.config.input.shape)
+            self.S = np.zeros(trpo_config.config.input.shape)
+
+        # Create an update predicate based on config options
+        if trpo_config.config.timesteps_per_batch is not None:
+            # Update when total number of timesteps is reached
+            self.update_condition = self.step_update_condition
+        else:
+            # Update when number of episodes is reached
+            self.update_condition = self.episodic_update_condition
+
+    def episodic_update_condition(self):
+        return len(self.paths) >= trpo_config.config.episodes_per_batch
+
+    def step_update_condition(self):
+        return self.paths_len >= trpo_config.config.timesteps_per_batch
 
     def get_global_t(self):
         return self.relaax_session.op_n_step()
@@ -69,7 +89,7 @@ class Ps(object):
         if trpo_config.config.use_filter:
             self.update_filter_state(paths["filter_diff"])
 
-        if self.paths_len >= trpo_config.config.PG_OPTIONS.timesteps_per_batch:
+        if self.update_condition():
             self.trpo_update()
             self.paths_len = 0
             self.paths = []
@@ -80,10 +100,18 @@ class Ps(object):
 
         self.relaax_session.op_next_iter()
         self.compute_advantage()
+
         # Value Update
-        self.baseline.fit(self.paths)
+        vf_metrics = self.baseline.fit(self.paths)
+        logger.debug("VF metrics: {}".format(vf_metrics))
+        for key, value in vf_metrics.items():
+            self._metrics.scalar(key, value)
+
         # Policy Update
-        self.updater(self.paths)
+        policy_metrics = self.updater(self.paths)
+        logger.debug("Policy metrics: {}".format(policy_metrics))
+        for key, value in policy_metrics.items():
+            self._metrics.scalar(key, value)
 
         print('Update time for {} iteration: {}'.format(self.n_iter(), time.time() - start))
         self.relaax_session.op_turn_collect_on()
@@ -98,11 +126,15 @@ class Ps(object):
             path["advantage"] = self.discount(deltas, trpo_config.config.PG_OPTIONS.rewards_gamma *
                                               trpo_config.config.PG_OPTIONS.gae_lambda)
         alladv = np.concatenate([path["advantage"] for path in self.paths])
+        allrwd = np.concatenate([path["reward"] for path in self.paths])
         # Standardize advantage
         std = alladv.std()
         mean = alladv.mean()
         for path in self.paths:
             path["advantage"] = (path["advantage"] - mean) / std
+
+        self.relaax_session.op_add_reward_to_model_score_routine(reward_sum=np.sum(allrwd),
+                                                                 reward_weight=allrwd.shape[0])
 
     def update_filter_state(self, diff):
         self.M = (self.M*self.relaax_session.op_n_step() + diff[1]) / (

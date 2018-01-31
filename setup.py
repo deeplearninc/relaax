@@ -1,11 +1,12 @@
 import codecs
-import os
+import pkgutil
+import platform
 import re
+import os
+from ctypes.util import find_library
 from setuptools import setup
 from setuptools import find_packages
 from subprocess import Popen, PIPE
-import platform
-from ctypes.util import find_library
 
 
 def read(*path):
@@ -46,7 +47,6 @@ def find_cuda():
 
 # Build-specific dependencies.
 extras = {
-    'keras': ['keras==1.2.1'],
     'wsproxy': ['autobahn==0.17.2', 'Twisted==17.1.0'],
     'testing': ['pytest', 'pytest-cov', 'pytest-xdist', 'flake8', 'mock']
 }
@@ -78,10 +78,7 @@ install_requires = [
 ]
 
 # Determine TensorFlow version to be installed
-try:
-    import tensorflow
-    # TensorFlow installed, nothing to do
-except ImportError:
+if pkgutil.find_loader('tensorflow') is None:
     # TensorFlow not found, try find CUDA
 
     is_cuda = find_cuda()

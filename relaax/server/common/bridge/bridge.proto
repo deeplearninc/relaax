@@ -5,7 +5,7 @@ message NullMessage {
 }
 
 message X {
-    double x = 2;
+    uint64 value = 1;
 }
 
 message Item {
@@ -21,12 +21,13 @@ message Item {
         INT = 8;
         NUMPY_INT_32 = 9;
         NUMPY_INT_64 = 10;
-        FLOAT = 11;
-        FLOAT_32 = 12;
-        FLOAT_64 = 13;
-        STR = 14;
-        BYTES = 15;
-        NUMPY_ARRAY = 16;
+        LONG = 11;
+        FLOAT = 12;
+        FLOAT_32 = 13;
+        FLOAT_64 = 14;
+        STR = 15;
+        BYTES = 16;
+        NUMPY_ARRAY = 17;
     }
 
     message NumpyArray {
@@ -49,6 +50,7 @@ message Item {
 service Bridge {
     rpc Init(NullMessage) returns (NullMessage) {}
     rpc Run(stream Item) returns (stream Item) {}
-    rpc SetX(X) returns (NullMessage) {}
     rpc StoreMetric(stream Item) returns (NullMessage) {}
+    rpc SetX(X) returns (NullMessage) {}
+    rpc GetX(NullMessage) returns (X) {}
 }

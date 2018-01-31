@@ -2,15 +2,10 @@ from __future__ import print_function
 from builtins import range
 
 import logging
-import math
 import numpy as np
-from PIL import Image, ImageDraw
-import random
+import sys
 
-
-from relaax.environment.config import options
 from relaax.environment.training import TrainingBase
-from relaax.common.rlx_message import RLXMessageImage
 
 
 logger = logging.getLogger(__name__)

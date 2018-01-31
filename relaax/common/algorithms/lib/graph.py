@@ -1,11 +1,16 @@
 from __future__ import print_function
 from builtins import object
+
+import logging
+import numpy as np
 import tensorflow as tf
 from tensorflow.python.ops import init_ops
-import numpy as np
+from tensorflow.contrib.rnn import RNNCell
 
 from relaax.common.algorithms.lib import utils
 from relaax.common.algorithms import subgraph
+
+logger = logging.getLogger(__name__)
 
 
 class DefaultInitializer(object):
@@ -45,6 +50,26 @@ class RandomUniformInitializer(object):
             dtype=self.DTYPE[dtype],
             minval=self.minval,
             maxval=self.maxval
+        )
+
+
+class RandomNormalInitializer(object):
+    DTYPE = {
+        np.float: tf.float64,
+        np.float64: tf.float64,
+        np.float32: tf.float32,
+    }
+
+    def __init__(self, mean=0.0, stddev=1.0):
+        self.mean = mean
+        self.stddev = stddev
+
+    def __call__(self, dtype=np.float32, shape=None):
+        return tf.random_normal(
+            shape,
+            dtype=self.DTYPE[dtype],
+            mean=self.mean,
+            stddev=self.stddev,
         )
 
 
@@ -114,7 +139,7 @@ class Reshape(subgraph.Subgraph):
 
 class Flatten(subgraph.Subgraph):
     def build_graph(self, x):
-        return Reshape(x, (-1, )).node
+        return Reshape(x, (-1,)).node
 
 
 class Expand(subgraph.Subgraph):
@@ -181,7 +206,8 @@ class Placeholder(subgraph.Subgraph):
     DTYPE = {
         np.int32: tf.int32,
         np.int64: tf.int64,
-        np.float32: tf.float32
+        np.float32: tf.float32,
+        np.float64: tf.float64
     }
 
     def build_graph(self, dtype, shape=None, name=None):
@@ -220,7 +246,9 @@ class GlobalStep(subgraph.Subgraph):
 class Variable(subgraph.Subgraph):
     DTYPE = {
         None: None,
-        np.int64: tf.int64
+        np.int32: tf.int32,
+        np.int64: tf.int64,
+        np.float64: tf.float64
     }
 
     def build_graph(self, initial_value, dtype=None):
@@ -260,3 +288,254 @@ class AssignWeights(subgraph.Subgraph):
             trap = 1. - part
             self.op = TfNode([tf.assign(variable, trap * variable + part * value) for variable, value
                               in utils.Utils.izip(w1.node, w2.node)])
+
+
+class LinearMovingAverage(subgraph.Subgraph):
+    def build_graph(self, size):
+        sum_ = tf.Variable(0, dtype=np.float64)
+        count = tf.Variable(0, dtype=np.float64)
+
+        pointer = tf.Variable(0, dtype=np.int32)
+        sums = tf.Variable([0] * size, dtype=np.float64)
+        counts = tf.Variable([0] * size, dtype=np.float64)
+
+        ph_sum = Placeholder(np.float64)
+        ph_count = Placeholder(np.float64)
+
+        update_sum = tf.assign_add(sum_, ph_sum.node - sums[pointer])
+        update_count = tf.assign_add(count, ph_count.node - counts[pointer])
+
+        with tf.get_default_graph().control_dependencies([update_sum]):
+            update_sums = tf.scatter_update(sums, [pointer], [ph_sum.node])
+
+        with tf.get_default_graph().control_dependencies([update_count]):
+            update_counts = tf.scatter_update(counts, [pointer], [ph_count.node])
+
+        with tf.get_default_graph().control_dependencies([update_sum, update_count, update_sums,
+                                                          update_counts]):
+            move = tf.assign(pointer, (pointer + 1) % size)
+
+        self.ph_sum = ph_sum
+        self.ph_count = ph_count
+        self.add = TfNode(tf.group(update_sum, update_count, update_sums, update_counts, move))
+        self.average = TfNode(sum_ / tf.maximum(tf.cast(1e-10, tf.float64), count))
+
+
+def get_gradients_apply_routine(cfg):
+    if cfg.combine_gradients == 'fifo':
+        return GradientFIFO().func
+    elif cfg.combine_gradients == 'avg':
+        return GradientAVG(cfg).func
+    elif cfg.combine_gradients == 'dc':
+        return GradientDC(cfg).func
+    else:
+        logger.error("Unknown gradient combination mode: {}".format(cfg.combine_gradients))
+
+
+class GradientFIFO(subgraph.Subgraph):
+    # First come, first served gradient update
+    def build_graph(self):
+        def func_fifo_gradient(session, gradients, step_inc, agent_step):
+            global_step = session.op_n_step()
+            logger.debug("Gradient with step {} received from agent. Current step: {}".format(agent_step,
+                                                                                              global_step))
+            session.op_apply_gradients(gradients=gradients, increment=step_inc)
+
+        self.func = func_fifo_gradient
+
+
+class GradientAVG(subgraph.Subgraph):
+    # Accumulate gradients from many agents and average them
+    def build_graph(self, cfg):
+        self.gradients = []
+        self.avg_step_inc = 0
+        self.cfg = cfg
+
+        def func_average_gradient(session, gradients, step_inc, agent_step):
+            logger.debug("Gradient is received, number of gradients collected so far: {}".
+                         format(len(self.gradients)))
+            if agent_step >= session.op_n_step():
+                logger.debug("Gradient is FRESH -> Accepted")
+                self.gradients.append(gradients)
+                self.avg_step_inc += step_inc
+            else:
+                logger.debug("Gradient is OLD -> Rejected")
+
+            if len(self.gradients) >= self.cfg.num_gradients:
+                # We've collected enough gradients -> we can average them now and make an update step
+                logger.debug("Computing Mean of accumulated Gradients")
+                flat_grads = [utils.Shaper.get_flat(g) for g in self.gradients]
+                mean_flat_grad = np.mean(np.stack(flat_grads), axis=0)
+
+                mean_grad = utils.Shaper.reverse(mean_flat_grad, gradients)
+                session.op_apply_gradients(gradients=mean_grad, increment=self.avg_step_inc)
+                self.gradients, self.avg_step_inc = [], 0
+
+        self.func = func_average_gradient
+
+
+class GradientDC(subgraph.Subgraph):
+    # Asynchronous Stochastic Gradient Descent with Delay Compensation -> arxiv.org/abs/1609.08326
+    def build_graph(self, cfg):
+        self.weights_history = {}  # {id: weights}
+        self.cfg = cfg
+
+        def func_dc_gradient(session, gradients, step_inc, agent_step):
+            global_weights_f = session.op_get_weights_flatten()
+
+            old_weights_f = self.weights_history.get(agent_step, global_weights_f)
+
+            new_gradient_f = utils.Shaper.get_flat(gradients)
+
+            # Compute compensated Gradient
+            delta = self.cfg.dc_lambda * \
+                (new_gradient_f * new_gradient_f * (global_weights_f - old_weights_f))
+
+            compensated_gradient_f = new_gradient_f + delta
+            compensated_gradient = utils.Shaper.reverse(compensated_gradient_f, gradients)
+
+            session.op_apply_gradients(gradients=compensated_gradient, increment=step_inc)
+
+            updated_weights = session.op_get_weights_flatten()
+            updated_step = session.op_n_step()
+            self.weights_history[updated_step] = updated_weights
+
+            # Cleanup history
+            for k in list(self.weights_history.keys()):
+                if k < updated_step - self.cfg.dc_history:
+                    try:
+                        del self.weights_history[k]
+                    except KeyError:
+                        pass
+
+        self.func = func_dc_gradient
+
+
+class GetVariablesFlatten(subgraph.Subgraph):
+    def build_graph(self, variables):
+        return tf.concat([tf.reshape(t, [-1]) for t in utils.Utils.flatten(variables.node)], axis=0)
+
+
+class SetVariablesFlatten(subgraph.Subgraph):
+    def build_graph(self, variables):
+        self.ph_value = tf.placeholder(tf.float32, [None])
+        start = 0
+        assignes = []
+        for t in utils.Utils.flatten(variables.node):
+            shape = t.shape.as_list()
+            size = np.prod(shape)
+            assignes.append(tf.assign(t, tf.reshape(self.ph_value[start:start + size], shape)))
+            start += size
+        return tf.group(*assignes)
+
+
+class DilatedLSTMCell(RNNCell):
+    """Dilated LSTM recurrent network cell.
+    It is mentioned in FuN algorithm: https://arxiv.org/abs/1703.01161
+    """
+    def __init__(self, num_units, num_cores, forget_bias=1.0, timestep=0):
+        """Initialize the basic LSTM cell.
+        Args:
+          num_units: int, The number of units in the LSTM cell.
+          num_cores: int, The number of partitions (cores) in the LSTM state.
+          forget_bias: float, The bias added to forget gates (see above).
+        """
+        self._num_units = num_units
+        self._forget_bias = forget_bias
+        # additional variables
+        self._cores = tf.constant(num_cores)
+        self._timestep = tf.Variable(timestep)  # assign to 0 then terminal (or epoch ends)
+        self.reset_timestep = tf.assign(self._timestep, 0)
+        # auxiliary operators
+        dilated_mask, hold_mask = self._get_mask(num_cores)
+        self._dilated_mask = tf.constant(dilated_mask, dtype=tf.float32)
+        self._hold_mask = tf.constant(hold_mask, dtype=tf.float32)
+
+    @property
+    def state_size(self):
+        return 2 * self._num_units
+
+    @property
+    def output_size(self):
+        return self._num_units
+
+    def __call__(self, inputs, state, scope=None):
+        """Dilated Long short-term memory cell (D-LSTM)."""
+        with tf.variable_scope(scope or type(self).__name__):  # "DilatedLSTMCell"
+            # Parameters of gates are concatenated into one multiply for efficiency.
+            c, h = tf.split(state, 2, axis=1)
+            concat = self._linear([inputs, h], 4 * self._num_units, True)
+
+            # i = input_gate, j = new_input, f = forget_gate, o = output_gate
+            i, j, f, o = tf.split(concat, 4, axis=1)
+
+            new_c = c * tf.sigmoid(f + self._forget_bias) + tf.sigmoid(i) * tf.tanh(j)
+            new_h = tf.tanh(new_c) * tf.sigmoid(o)
+
+            # update relevant cores
+            timestep = tf.assign_add(self._timestep, 1)
+            core_to_update = tf.mod(timestep, self._cores)
+
+            updated_h = self._hold_mask[core_to_update] * h + self._dilated_mask[core_to_update] * new_h
+
+            return updated_h, tf.concat([new_c, updated_h], axis=1)
+
+    def _linear(self, args, output_size, bias, bias_start=0.0, scope=None):
+        """Linear map: sum_i(args[i] * W[i]), where W[i] is a variable.
+        Args:
+          args: a 2D Tensor or a list of 2D, batch x n, Tensors.
+          output_size: int, second dimension of W[i].
+          bias: boolean, whether to add a bias term or not.
+          bias_start: starting value to initialize the bias; 0 by default.
+          scope: VariableScope for the created subgraph; defaults to "Linear".
+        Returns:
+          A 2D Tensor with shape [batch x output_size] equal to
+          sum_i(args[i] * W[i]), where W[i]s are newly created matrices.
+        Raises:
+          ValueError: if some of the arguments has unspecified or wrong shape.
+        """
+        if args is None or (isinstance(args, (list, tuple)) and not args):
+            raise ValueError("`args` must be specified")
+        if not isinstance(args, (list, tuple)):
+            args = [args]
+
+        # Calculate the total size of arguments on dimension 1.
+        total_arg_size = 0
+        shapes = [a.get_shape().as_list() for a in args]
+        for shape in shapes:
+            if len(shape) != 2:
+                raise ValueError("Linear is expecting 2D arguments: %s" % str(shapes))
+            if not shape[1]:
+                raise ValueError("Linear expects shape[1] of arguments: %s" % str(shapes))
+            else:
+                total_arg_size += shape[1]
+
+        # Computation
+        with tf.variable_scope(scope or "Linear"):
+            matrix = tf.get_variable("Matrix", [total_arg_size, output_size])
+            if len(args) == 1:
+                res = tf.matmul(args[0], matrix)
+            else:
+                res = tf.matmul(tf.concat(args, axis=1), matrix)
+            if not bias:
+                return res
+            bias_term = tf.get_variable(
+                "Bias", [output_size],
+                initializer=tf.constant_initializer(bias_start))
+
+            # Store as a member for copying (Customized)
+            self.matrix = matrix
+            self.bias = bias_term
+
+        return res + bias_term
+
+    def _get_mask(self, num_cores):
+        basis = np.arange(self._num_units)
+        dilated_mask = np.ones(self._num_units)
+        hold_mask = np.zeros(self._num_units)
+        for i in range(2, num_cores + 1):
+            dilated_mask_to_add = (basis % i == 0) * 1
+            hold_mask_to_add = dilated_mask[0] - dilated_mask_to_add
+            dilated_mask = np.concatenate([dilated_mask, dilated_mask_to_add], axis=0)
+            hold_mask = np.concatenate([hold_mask, hold_mask_to_add], axis=0)
+        return dilated_mask, hold_mask

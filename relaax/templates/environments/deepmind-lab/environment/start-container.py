@@ -17,6 +17,8 @@ def signal_handler(signal, frame):
     log.info('stopping %s' % CONTAINER_NAME)
     subprocess.call('docker stop %s' % CONTAINER_NAME, shell=True)
     sys.exit(0)
+
+
 signal.signal(signal.SIGTERM, signal_handler)
 
 
@@ -24,7 +26,7 @@ class MDLabContainer(object):
 
     def __init__(self, image_name):
         self.image_name = image_name
-        self.show_ui = options.get('show_ui', False)
+        self.show_ui = options.show_ui
 
     def start(self):
         if not self._is_container_exists():
@@ -47,7 +49,7 @@ class MDLabContainer(object):
             except Exception:
                 raise ValueError("Can't parse RLX server address.")
 
-        host, port = parse_address(options.get('relaax_rlx_server/bind', '0.0.0.0:7001'))
+        host, port = parse_address(options.rlx_server_address)
         if platform.system() == 'Linux':
             host = '127.0.0.1'
         elif host == '0.0.0.0':

@@ -8,6 +8,7 @@ from relaax.common.algorithms.lib import layer
 from relaax.common.algorithms.lib import loss
 from relaax.common.algorithms.lib import utils
 from relaax.common.algorithms.lib import optimizer
+from relaax.common.algorithms.lib import lr_schedule
 
 from .dqn_config import config
 from .lib.dqn_utils import Actor
@@ -15,7 +16,7 @@ from .lib.dqn_utils import Actor
 
 class Network(subgraph.Subgraph):
     def build_graph(self):
-        input = layer.Input(config.input)
+        input = layer.ConfiguredInput(config.input)
 
         hidden = layer.GenericLayers(layer.Flatten(input),
                                      [dict(type=layer.Dense, size=size, activation=layer.Activation.Tanh)
@@ -55,34 +56,48 @@ class GlobalServer(subgraph.Subgraph):
         sg_global_step = graph.GlobalStep()
         sg_network = Network()
 
-        if config.optimizer == 'Adam':
-            sg_optimizer = optimizer.AdamOptimizer(config.initial_learning_rate)
-        elif config.optimizer == 'RMSProp':
-            param = {}
-            if hasattr(config, 'RMSProp'):
-                if hasattr(config.RMSProp, "decay"):
-                    param["decay"] = config.RMSProp.decay
-                if hasattr(config.RMSProp, "epsilon"):
-                    param["epsilon"] = config.RMSProp.epsilon
+        sg_get_weights_flatten = graph.GetVariablesFlatten(sg_network.weights)
+        sg_set_weights_flatten = graph.SetVariablesFlatten(sg_network.weights)
 
-            sg_optimizer = optimizer.RMSPropOptimizer(config.initial_learning_rate, **param)
+        if config.use_linear_schedule:
+            sg_learning_rate = lr_schedule.Linear(sg_global_step, config)
         else:
-            raise NotImplementedError
+            sg_learning_rate = config.initial_learning_rate
+
+        if config.optimizer == 'Adam':
+            sg_optimizer = optimizer.AdamOptimizer(sg_learning_rate)
+        elif config.optimizer == 'RMSProp':
+            sg_optimizer = optimizer.RMSPropOptimizer(learning_rate=sg_learning_rate,
+                                                      decay=config.RMSProp.decay,
+                                                      epsilon=config.RMSProp.epsilon)
+        else:
+            assert False, 'There 2 valid options for optimizers: Adam | RMSProp'
 
         sg_gradients_apply = optimizer.Gradients(sg_network.weights, optimizer=sg_optimizer)
 
+        sg_average_reward = graph.LinearMovingAverage(config.avg_in_num_batches)
         sg_initialize = graph.Initialize()
 
         # Expose public API
         self.op_n_step = self.Op(sg_global_step.n)
+        self.op_score = self.Op(sg_average_reward.average)
 
-        self.op_get_weights = self.Op(sg_network.weights)
+        self.op_get_weights_signed = self.Ops(sg_network.weights, sg_global_step.n)
         self.op_assign_weights = self.Op(sg_network.weights.assign,
                                          weights=sg_network.weights.ph_weights)
 
         self.op_apply_gradients = self.Ops(sg_gradients_apply.apply, sg_global_step.increment,
                                            gradients=sg_gradients_apply.ph_gradients,
-                                           n_steps=sg_global_step.ph_increment)
+                                           increment=sg_global_step.ph_increment)
+        self.op_add_rewards_to_model_score_routine = self.Ops(sg_average_reward.add,
+                                                              reward_sum=sg_average_reward.ph_sum,
+                                                              reward_weight=sg_average_reward.ph_count)
+
+        self.op_get_weights_flatten = self.Op(sg_get_weights_flatten)
+        self.op_set_weights_flatten = self.Op(sg_set_weights_flatten, value=sg_set_weights_flatten.ph_value)
+
+        # Gradient combining routines
+        self.op_submit_gradients = self.Call(graph.get_gradients_apply_routine(config))
 
         self.op_initialize = self.Op(sg_initialize)
 

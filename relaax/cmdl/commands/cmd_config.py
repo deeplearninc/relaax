@@ -10,6 +10,18 @@ from relaax.cmdl.utils.backup import Backup
 from relaax.cmdl.utils.commented_yaml import CommentedYaml
 
 
+SPECIAL_CONFIG_LIST = {
+    'da3c-openai-gym': 'da3c-cartpole',
+    'dppo-bandit': 'dppo-bandit',
+    'dppo-openai-gym': 'dppo-cartpole',
+    'dqn-bandit': 'dqn-bandit',
+    'dqn-openai-gym': 'dqn-cartpole',
+    'policy-gradient-bandit': 'pg-bandit',
+    'policy-gradient-openai-gym': 'pg-cartpole',
+    'trpo-bandit': 'trpo-bandit'
+}
+
+
 class CmdConfig(object):
 
     def __init__(self, ctx, config, algorithm, environment, create_backup=True, set_algorithm_path=True):
@@ -24,15 +36,15 @@ class CmdConfig(object):
         if self.algorithm is None and self.environment is None:
             CmdConfig.list_configurations(self.ctx)
         else:
+            if self.environment is not None:
+                self._configure(self.environment,
+                                'environment',
+                                '../../templates/environments/%s/app.yaml' % self.environment)
             if self.algorithm is not None:
                 self._configure(self.algorithm,
                                 'algorithm',
                                 '../../templates/configs/%s.yaml' % self.algorithm,
                                 self.set_algorithm_path)
-            if self.environment is not None:
-                self._configure(self.environment,
-                                'environment',
-                                '../../templates/environments/%s/app.yaml' % self.environment)
 
     def _configure(self, template_name, block_name, template_path, set_algorithm_path=False):
         app_config = CommentedYaml.read(
@@ -40,7 +52,26 @@ class CmdConfig(object):
         template_config = CommentedYaml.read(
             self.ctx, self.template_config_path(template_path), 'Sorry, can\'t read config template: %s')
 
-        app_config[block_name] = template_config[block_name]
+        if app_config['algorithm']['name'] != template_config['algorithm']['name']:
+
+            config_name = SPECIAL_CONFIG_LIST.get(self.algorithm + '-' + self.environment)
+            if config_name is not None:
+                template_config = CommentedYaml.read(self.ctx, self.template_config_path(
+                    '../../templates/configs/%s.yaml' % config_name),
+                    'Sorry, can\'t read special config template: %s')
+
+            try:
+                env_section = template_config['environment']
+                app_config['environment'] = template_config['environment']
+                if env_section['type'].lower() != self.environment:
+                    self.ctx.log('WARNING: template for %s algorithm configured for %s %s environment',
+                                 self.algorithm, env_section['type'], env_section['name'])
+                    self.ctx.log('WARNING: this is NOT equal to requested %s environment type',
+                                 self.environment)
+            except KeyError:
+                pass
+
+            app_config[block_name] = template_config[block_name]
 
         if set_algorithm_path:
             app_config[block_name].insert(0, 'path', './algorithm',
@@ -71,7 +102,7 @@ class CmdConfig(object):
             if filename.endswith('.yaml'):
                 rv.append(filename[:-5])
         rv.sort()
-        return (rv, '|'.join(rv))
+        return rv, '|'.join(rv)
 
     @staticmethod
     def list_configurations(ctx):
@@ -87,9 +118,10 @@ class CmdConfig(object):
                         if comment_tokens:
                             output = [comment.value for comment in comment_tokens]
                             ctx.log(''.join(output).rstrip())
-                except:
+                except Exception:
                     ctx.log('No description provided')
         ctx.log('\nRun "relaax config --help" to see how to apply these configurations.\n')
+
 
 CONFIGURATIONS = CmdConfig.configurations()
 

@@ -1,37 +1,33 @@
 ---
 # generic TRPO configuration
 
+version: 1.1.0
 algorithm:
   name: trpo
-
-  subtype: ppo
+  subtype: trpo-d2
 
   input:
-    shape: [0]
-    history: 1
-    use_convolutions: false
+    shape: [42, 42]               # state: [height, width] or [height, width, channels]
+    history: 4
+    use_convolutions: false       # set to True to use convolutions to process the input
 
   output:
-    continuous: false
+    continuous: false             # set to True to handle with continuous action type
     action_size: 4                # action size for the given environment
 
-  hidden_sizes: [64, 64]
+  hidden_sizes: [128, 64]         # list of num_units for hidden layers
   activation: tanh                # activation function for MLP
+
   use_filter: false               # use average filter of the incoming observations and rewards
   async: false                    # set to true to collect experience without blocking the updater
 
   PG_OPTIONS:
-    timestep_limit: 200           # length in steps for one round in environment
-    n_iter: 10000                 # number of updates to pass through the training (training length)
-    timesteps_per_batch: 5000     # number of experience to collect before update
+    timestep_limit: 1e4           # length in steps for one round in environment
+    n_iter: 1e5                   # number of updates to pass through the training (training length)
+    timesteps_per_batch: 5e4      # number of experience to collect before update
     rewards_gamma: 0.995          # rewards discount factor
     gae_lambda: 0.97              # lambda from generalized advantage estimation
 
   TRPO:
     cg_damping: 0.1               # multiple of the identity to Fisher matrix during CG
     max_kl: 0.01                  # KL divergence between old and new policy
-
-  PPO:
-    clip_e: 0.2                   # clipping parameter for PPO loss function
-    learning_rate: 0.001          # learning rate for Adam optimizer used with PPO loss
-    n_epochs: 10                  # number of epochs to run on each batch

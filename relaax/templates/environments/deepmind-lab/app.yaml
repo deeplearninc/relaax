@@ -1,13 +1,16 @@
+---
+# There are sample for DeepMind Lab environment
+
 environment:
   run: python environment/start-container.py
   lab_path: /lab
   max_episodes: 1000
-  infinite_run: False
-  run_in_container: False
+  infinite_run: false
+  run_in_container: false
   # level_script: custom-map/custom_map
 
 relaax-metrics-server:
-  enable_unknown_metrics: False
+  enable_unknown_metrics: false
   metrics:
     episode_reward: true
     server_latency: true
@@ -22,37 +25,41 @@ relaax-metrics-server:
   log_level: INFO
 
 relaax-parameter-server:
-  --bind: localhost:7000
-  --checkpoint-dir: logs/checkpoints
-  --log-level: INFO
+  bind: localhost:7000
+  checkpoint-dir: logs/checkpoints
+  log-level: INFO
 
 relaax-rlx-server:
-  --bind: 0.0.0.0:7001
-  --log-level: INFO
+  bind: 0.0.0.0:7001
+  log-level: INFO
 
+version: 1.1.0
 algorithm:
   name: da3c
 
   input:
-    shape: [84, 84]               # state: [height, width] or [height, width, channels]
-    history: 4                    # number of consecutive states to stuck to represent an input
-    use_convolutions: true
+    shape: [42, 42]               # state: [height, width] or [height, width, channels]
+    history: 1                    # number of consecutive states to stuck to represent an input
+    use_convolutions: true        # set to True to use convolutions to process the input
 
   output:
-    continuous: false
-    action_size: 6                # action size for the given environment
+    continuous: false             # set to True to handle with continuous action type
+    action_size: 4                # action size for the given environment
 
-  batch_size: 5                   # local loop size for one episode
-  hidden_sizes: [256]
+  hidden_sizes: [256]             # list of num_units for hidden layers
+  batch_size: 8                   # experience size for one update
 
-  use_lstm: false                 # to use LSTM instead of FF, set to the True
+  use_lstm: true                  # to use LSTM instead of FF, set to the True
   max_global_step: 1e8            # amount of maximum global steps to pass through the training
 
-  initial_learning_rate: 7e-4
-  entropy_beta: 1e-2              # entropy regularization constant
   rewards_gamma: 0.99             # rewards discount factor
 
-  RMSProp:
-    decay: 0.99
-    epsilon: 0.1
-  gradient_norm_clipping: 40
+  initial_learning_rate: 1e-4     # initial learning rate to start the training
+  use_linear_schedule: False      # set to True to use linear learning rate annealing wrt max_global_step
+
+  optimizer: Adam                 # type of optimizer to use: Adam | RMSProp
+  gradients_norm_clipping: 40.    # value to clip the gradients by its global norm
+  critic_scale: 0.25              # coefficient to scale the critic loss or its learning rate wrt policy
+
+  combine_gradient: dc            # gradient's combining method: dc | fifo | average
+  dc_lambda: 0.05                 # delay compensation regularization constant

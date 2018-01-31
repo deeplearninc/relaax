@@ -50,10 +50,9 @@ class Training(TrainingBase):
         return actions
 
 
-
 class RingBuffer(object):
     def __init__(self, size):
-        self.size = size 
+        self.size = size
         self._buffer = [None] * size
         self._index = 0
 

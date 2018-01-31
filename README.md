@@ -1,3 +1,5 @@
+[![CircleCI](https://circleci.com/gh/deeplearninc/relaax.svg?style=shield)](https://circleci.com/gh/deeplearninc/relaax)
+
 # REinforcement Learning Algorithms, Autoscaling and eXchange (RELAAX)
 
 RELAAX is a framework designed to:
@@ -26,6 +28,8 @@ The components of RELAAX include:
 - [Quick start](#quick-start)
     - [Running on Windows](#running-on-windows)
 - [System Architecture](#system-architecture)
+- [Release Notes](#release-notes)
+    - [1.1.0](#110)
 - [RELAAX Agent Proxy](#relaax-agent-proxy)
     - [Reinforcement Learning eXchange protocol](#reinforcement-learning-exchange-protocol)
     - [Reinforcement Learning eXchange protocol definition](#reinforcement-learning-exchange-protocol-definition)
@@ -180,6 +184,178 @@ This will run a CartPole-v0 environment.
 * CheckPoints - storage where Parameter Server saves state of the Global Function NN; when system is re-stared, it may restore Global Function NN state from the stored previously checkpoint and continue learning.
 * Metrics - Evironment, Agent, and Parameter Server send various metrics to the Metrics node; developer may see these metrics in Web Browser by connecting to the Metrics node.
 
+## [Release Notes](#contents)
+
+### [1.1.0](#contents)
+
+* All configuration `*.yaml` files should include the `relaax` version, for ex.:
+```yaml
+version: 1.1.0
+algorithm:
+  name: policy_gradient
+```
+
+* All algorithms supports `3` predefined methods for gradients' combining: 
+(except TRPO-based algorithms, where the agents send just experience to the parameter server)
+    - `fifo`: first in first out.  
+    There are classic scheme which is used by vanilla `A3C` algorithm. Incoming gradients are applying freely,  
+    despite if parameter server weights is already changed by the other agent.
+    - `avg`: averaging.  
+    All gradients is accumulated on parameter server until their amount reaches the number specified by  
+    `num_gradients` parameter. After that, the average of the gradients are applied to the parameter server.
+    - `dc`: delay compensation, see related [article](https://arxiv.org/abs/1609.08326)  
+    Incoming gradients are applying wisely to the parameter server,  
+    even if its weights is already changed by the other agent.  
+    It computes the difference between parameter server & agents weights to recalculate  
+    agents' gradients wrt delay. And it applies compensated variant to the parameter server.
+
+* TRPO-based algorithms is split into `3` variants:
+    ```yaml
+    algorithm:
+      name: trpo
+      subtype: trpo-d2              # variants: ppo | trpo-d1 | trpo-d2
+    ```
+    TRPO policy used 1-st order derivatives with `trpo-d1` and 2-nd order with `trpo-d2`.
+
+* All algorithms supports configured input, which can described directly in the `yaml`, for ex.:
+    ```yaml
+    version: 1.1.0
+    algorithm:
+      name: da3c
+    
+      input:
+        shape: [7, 7, 3]
+        use_convolutions: true
+    
+        layers:
+        - type: convolution
+          activation: elu
+          n_filters: 8
+          filter_size: [3, 3]
+          stride: [2, 2]
+          border: valid
+        - type: convolution
+          activation: elu
+          n_filters: 8
+          filter_size: [3, 3]
+          stride: [2, 2]
+          border: valid
+    ```
+
+* All algorithms supports a stacked input state, which could be set by `history` parameter, for ex.:
+    ```yaml
+    version: 1.1.0
+    algorithm:
+      name: da3c
+    
+      input:
+        shape: [84, 84]             # state: [height, width] or [height, width, channels]
+        history: 4                  # number of consecutive states to stuck to represent an input
+        use_convolutions: true      # set to True to use convolutions to process the input,
+                                    # it uses set of convolutions from universe architecture by default
+        universe: false             # set to False to use classic set of A3C convolutions
+    ```
+
+* Activations could be setup directly via configuration `yaml`, for ex.:
+    ```yaml
+    algorithm:
+      hidden_sizes: [128, 64]       # list of layers sizes, if use_lstm=true-> last size is for LSTM
+      activation: relu              # activation for the layers defined in hidden_sizes, except LSTM
+    ```
+
+* All activations represents as object, not simple functions as before.  
+Thereby they could be heavier, have its own configuration, weights, etc.
+
+* Kernel based activation (KAF) was added, wrt [article](https://arxiv.org/abs/1707.04035).  
+It could be additionally configured via `yaml`, for ex.:
+    ```yaml
+    algorithm:
+      activation: kaf               # activation for the layers defined in hidden_sizes, except LSTM
+      
+      KAF:
+        boundary: 2.0               # range of values
+        size: 20                    # size of the kernel
+        kernel: rbf                 # rbf | rbf2d
+        gamma: 1.0                  # configuration constant
+    ```
+
+* Dilated LSTM was added, wrt [FeUdal Networks for Hierarchical Reinforcement Learning](https://arxiv.org/abs/1703.01161).  
+It uses memory granularity due to the division into cores. All LSTM units is divided into parts by simple modulo operation.  
+This is represent a dilation when the far parts are updated less depending on their core number.  
+    It could be additionally configured via `yaml`, for ex.:
+    ```yaml
+    algorithm:
+      use_lstm: true                # to use LSTM instead of FF, set to the True
+      lstm_type: Dilated            # there are two types of LSTM to use: Basic | Dilated
+      lstm_num_cores: 8             # level of granularity for Dilated LSTM within amount of cores
+    ```
+
+* Distributed PPO (DPPO) algorithm was added: it is similar to Clipped PPO, described in this [article](https://arxiv.org/abs/1707.06347).  
+It uses separate neural networks for the policy & critic, also as for its losses wrt backpropagation.
+
+* Command line was updated and improved for `relaax new` & `relaax generate` commands.   
+It supports `6` base algorithms and its variants: `policy-gradient`, `da3c`, `trpo`, `ddpg`, `dqn`, `dppo`  
+and `4` environment templates: `bandit`, `openai-gym`, `deepmind-lab`, `vizdoom` (gym-doom)
+
+* Learning rate scheduling was added (except DDPG & TRPO algorithms).  
+It could be configured via `yaml`, for ex.:
+    ```yaml
+      max_global_step: 30000        # amount of maximum global steps to pass through the training
+      use_linear_schedule: true     # set to True to use linear lr annealing wrt max_global_step
+    
+      initial_learning_rate: 2e-2   # initial learning rate, which can be anneal by schedule
+      learning_rate_end: 2e-3       # final learning rate within schedule
+      
+      schedule_step: update         # variants: update | environment (only applicable for DPPO)
+    ```
+    It allows to specify the `low` boundary for the learning rate annealing procedure.  
+    If `learning_rate_end` boundary isn't provided to the schedule, it sets to `0.0`.
+    
+    DPPO algorithm can uses `environment` steps or `update` steps (amount of updates within optmization procedure)  
+    to perform annealing, where the 2-nd variant is more applicable.
+
+* Best model checkpoint was added.  
+It estimates the model by its score metric, which is calculated as average reward  
+within number of batches specified by `avg_in_num_batches` parameter.
+    ```yaml
+    relaax-parameter-server:
+      checkpoint_time_interval: 30  # time interval in seconds to update the checkpoints
+      checkpoints_to_keep: 1        # number of last saved checkpoints to keep
+      best_checkpoints_to_keep: 3   # top-3 best checkpoints are kept wrt its score metric
+      
+    algorithm:
+      avg_in_num_batches: 10        # model score is calculated within 10 sliding batches
+    ```
+
+* Some extensions for the existing algorithms:
+    - `DA3C` & `DPPO`
+        - `critic` learning rate could be scaled wrt `policy` learning rate  
+        by `critic_scale` parameter. If it equals to `2.0` then value function  
+        learning rate is two times higher and `0.5` for vice versa.
+        - `seed` parameter was added to reproduce some runs.
+        - `normalize_advantage`: set to true to normalize the advantage
+    - `DA3C`
+        - there are `2` entropy types to use: Gauss | Origin.  
+        Where the 2-nd one is from vanilla `A3C` article.
+        - loss could be clipped by relative parameters:  
+        `policy_clip` & `critic_clip`
+    - `DPPO`
+        - `entropy`: set some value to use entropy penalty
+        - `l2_coeff`: set some value to use L2 regularization for the critic 
+        - `mini_batch`: mini_batch size to split on within batch
+        - `policy_iterations`: number of optimization iterations for the policy
+        - `value_func_iterations`: the same for the value function
+        - `vf_clipped_loss`: set to true to use clipped loss for the critic
+    - `TRPO`
+        - trajectories could be accumulated by its absolute experience size  
+        or directly via number of successful trajectories (until terminal):
+        `timesteps_per_batch` or `episodes_per_batch`
+        - there are `2` linesearch types: Origin | Adaptive
+        ```yaml
+          TRPO:
+            linesearch_type: Adaptive
+        ```
+
 ## [RELAAX Agent Proxy](#contents)
 Agent Proxy run with your Environments training and is used to communicate with RL Agents. At the moment client implemented in Python, later on we are planning to implement client code in C/C++, Ruby, GO, etc. to simplify integration of other environments.
 
@@ -283,7 +459,7 @@ Update metrics message:
 
 ## [RELAAX Servers](#contents)
 
-RELAAX Server implements dynamic loading of the algorithm implementation. By convention, every algorithm implementation exposes Agent (agent.py) and ParameterServer (parameter_server.py) classes. RLX Server loads and instattiate Agent model for every incomming connection from Environment. There usually single Parameter Server (PS). PS loads and instantiate ParameterServer class. Every Agent gets RPC connection to PS and could call remotely methods exposed on PS model.
+RELAAX Server implements dynamic loading of the algorithm implementation. By convention, every algorithm implementation exposes Agent (agent.py) and ParameterServer (parameter_server.py) classes. RLX Server loads and instattiate Agent model for every incoming connection from Environment. There usually single Parameter Server (PS). PS loads and instantiate ParameterServer class. Every Agent gets RPC connection to PS and could call remotely methods exposed on PS model.
 
 Model(s) on PS should be registered with Session and methods exposed to RPC using Op method. See [samples/simple-exchange-js/algorithm/](samples/simple-exchange-js/algorithm/) to very basic sample of the Agent, ParameterServer, and Model implementation and data exchange between them.
 

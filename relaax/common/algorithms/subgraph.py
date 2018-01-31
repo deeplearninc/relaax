@@ -1,5 +1,6 @@
 from builtins import object
 import tensorflow as tf
+import re
 
 
 class Subgraph(object):
@@ -41,7 +42,7 @@ class Op(object):
         # for k, v in self.flatten_feed_dict(feed_dict).items():
         #     import numpy as np
         #     print(repr(k), repr(np.asarray(v).shape))
-        return self.reconstruct(session.session.run(list(self.flatten(self.op)),
+        return self.reconstruct(session._tf_session.run(list(self.flatten(self.op)),
                                 feed_dict=self.flatten_feed_dict(feed_dict)), self.op)
 
     @classmethod
@@ -97,7 +98,7 @@ class Op(object):
         v1 = cls.cast(v1)
         if isinstance(v1, (tuple, list)):
             assert isinstance(v2, (tuple, list))
-            assert len(v1) == len(v2)
+            assert len(v1) == len(v2), 'len(v1) = {}, len(v2) = {}'.format(len(v1), len(v2))
             for vv1, vv2 in zip(v1, v2):
                 for vvv1, vvv2 in cls.izip2(vv1, vv2):
                     yield vvv1, vvv2
@@ -116,3 +117,9 @@ class Op(object):
         if isinstance(v, Subgraph):
             return v.node
         return v
+
+
+def only_brackets(s):
+    s1 = re.sub("[^\[\]]+", "", s)
+    s2 = s1.replace("][", "], [")
+    return s2

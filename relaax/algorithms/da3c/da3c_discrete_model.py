@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import logging
+import numpy as np
 import tensorflow as tf
 
 from relaax.common.algorithms import subgraph
@@ -7,18 +9,20 @@ from relaax.common.algorithms.lib import graph
 from relaax.common.algorithms.lib import layer
 from relaax.common.algorithms.lib import loss
 from relaax.common.algorithms.lib import optimizer
-from .lib import da3c_graph
+from relaax.common.algorithms.lib import lr_schedule
+
 from . import da3c_config
 from . import icm_model
+
+logger = logging.getLogger(__name__)
+
+tf.set_random_seed(da3c_config.config.seed)
+np.random.seed(da3c_config.config.seed)
 
 
 class Network(subgraph.Subgraph):
     def build_graph(self):
-        conv_layer = dict(type=layer.Convolution, activation=layer.Activation.Elu,
-                          n_filters=32, filter_size=[3, 3], stride=[2, 2],
-                          border=layer.Border.Same)
-        input_layers = [dict(conv_layer)] * 4 if da3c_config.config.input.universe else None
-        input = layer.Input(da3c_config.config.input, descs=input_layers)
+        input = layer.ConfiguredInput(da3c_config.config.input)
 
         sizes = da3c_config.config.hidden_sizes
         layers = [input]
@@ -29,17 +33,21 @@ class Network(subgraph.Subgraph):
             last_size = sizes[-1]
 
         if da3c_config.config.use_lstm:
-            lstm = layer.LSTM(graph.Expand(flattened_input, 0), n_units=last_size)
+            lstm = layer.lstm(da3c_config.config.lstm_type,
+                              graph.Expand(flattened_input, 0), n_units=last_size,
+                              n_cores=da3c_config.config.lstm_num_cores)
             head = graph.Reshape(lstm, [-1, last_size])
             layers.append(lstm)
 
             self.ph_lstm_state = lstm.ph_state
             self.lstm_zero_state = lstm.zero_state
             self.lstm_state = lstm.state
+            self.lstm_reset_timestep = lstm.reset_timestep
         else:
+            activation = layer.get_activation(da3c_config.config)
             head = layer.GenericLayers(flattened_input,
                                        [dict(type=layer.Dense, size=size,
-                                             activation=layer.Activation.Relu) for size in sizes])
+                                             activation=activation) for size in sizes])
             layers.append(head)
 
         actor = layer.Actor(head, da3c_config.config.output)
@@ -62,11 +70,14 @@ class SharedParameters(subgraph.Subgraph):
         sg_network = Network()
         sg_weights = sg_network.weights
 
-        if da3c_config.config.optimizer == 'Adam':
-            sg_optimizer = optimizer.AdamOptimizer(da3c_config.config.initial_learning_rate)
+        if da3c_config.config.use_linear_schedule:
+            sg_learning_rate = lr_schedule.Linear(sg_global_step, da3c_config.config)
         else:
-            sg_learning_rate = da3c_graph.LearningRate(sg_global_step,
-                                                       da3c_config.config.initial_learning_rate)
+            sg_learning_rate = da3c_config.config.initial_learning_rate
+
+        if da3c_config.config.optimizer == 'Adam':
+            sg_optimizer = optimizer.AdamOptimizer(sg_learning_rate)
+        else:
             sg_optimizer = optimizer.RMSPropOptimizer(learning_rate=sg_learning_rate,
                                                       decay=da3c_config.config.RMSProp.decay, momentum=0.0,
                                                       epsilon=da3c_config.config.RMSProp.epsilon)
@@ -82,15 +93,31 @@ class SharedParameters(subgraph.Subgraph):
             self.op_icm_apply_gradients = self.Op(sg_icm_gradients.apply,
                                                   gradients=sg_icm_gradients.ph_gradients)
 
+        sg_average_reward = graph.LinearMovingAverage(da3c_config.config.avg_in_num_batches)
         sg_initialize = graph.Initialize()
 
         # Expose public API
         self.op_n_step = self.Op(sg_global_step.n)
+        self.op_score = self.Op(sg_average_reward.average)
+
         self.op_check_weights = self.Op(sg_weights.check)
-        self.op_get_weights = self.Op(sg_weights)
+        self.op_get_weights = self.Ops(sg_weights, sg_global_step.n)
+
         self.op_apply_gradients = self.Ops(sg_gradients.apply, sg_global_step.increment,
                                            gradients=sg_gradients.ph_gradients,
                                            increment=sg_global_step.ph_increment)
+        self.op_add_rewards_to_model_score_routine = self.Ops(sg_average_reward.add,
+                                                              reward_sum=sg_average_reward.ph_sum,
+                                                              reward_weight=sg_average_reward.ph_count)
+
+        # Determine Gradients' applying methods: fifo (by default), averaging, delay compensation
+        sg_get_weights_flatten = graph.GetVariablesFlatten(sg_weights)
+        sg_set_weights_flatten = graph.SetVariablesFlatten(sg_weights)
+        self.op_get_weights_flatten = self.Op(sg_get_weights_flatten)
+        self.op_set_weights_flatten = self.Op(sg_set_weights_flatten, value=sg_set_weights_flatten.ph_value)
+
+        self.op_submit_gradients = self.Call(graph.get_gradients_apply_routine(da3c_config.config))
+
         self.op_initialize = self.Op(sg_initialize)
 
 
@@ -136,6 +163,7 @@ class AgentModel(subgraph.Subgraph):
         if da3c_config.config.use_lstm:
             feeds.update(dict(lstm_state=sg_network.ph_lstm_state))
             self.lstm_zero_state = sg_network.lstm_zero_state
+            self.op_lstm_reset_timestep = self.Op(sg_network.lstm_reset_timestep)
             self.op_get_action_value_and_lstm_state = self.Ops(sg_network.actor, sg_network.critic,
                                                                sg_network.lstm_state,
                                                                state=sg_network.ph_state,

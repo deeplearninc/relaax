@@ -1,4 +1,6 @@
 from builtins import object
+
+
 class Watch(object):
     def __init__(self, ps, *intervals):
         self.ps = ps
@@ -10,6 +12,7 @@ class Watch(object):
             n_step = self.ps.n_step()
             if n_step != self.last_saved_step:
                 self.ps.save_checkpoint()
+                self.ps.save_scored_checkpoint()
                 self.last_saved_step = n_step
             self.interval.reset()
 

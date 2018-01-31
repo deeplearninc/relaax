@@ -32,7 +32,7 @@ class MetricsBridgeConnection(object):
                 message = message_factory()
                 try:
                     return method(message)
-                except grpc.RpcError as e:
+                except grpc.RpcError:
                     pass
         return getattr(self._stub, method_name)(message_factory())
 

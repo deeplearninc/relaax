@@ -3,9 +3,6 @@ from __future__ import division
 from builtins import object
 import logging
 import os
-import ruamel.yaml
-import time
-import threading
 import signal
 
 # Load configuration options
@@ -54,19 +51,16 @@ class MetricsServer(object):
             cls.stopped_server = False
 
             while not cls.stopped_server:
-                #time.sleep(1)
                 try:
-                    msg = events.get(timeout=1)
+                    events.get(timeout=1)
                 except Empty:
                     pass
-                except:
+                except Exception:
                     break
 
         except KeyboardInterrupt:
             # swallow KeyboardInterrupt
             pass
-        except:
-            raise
 
     @staticmethod
     def metrics_factory(x):

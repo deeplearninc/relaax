@@ -9,7 +9,19 @@ import sys
 from .fixtures.mock_utils import MockUtils
 from .fixtures.mock_socket import MockSocket
 from relaax.common.rlx_netstring import NetString
-from relaax.environment.agent_proxy import AgentProxy, AgentProxyException
+
+
+# flake8 prohibits module level import after statement of another type
+# lets wrap import in function and call it
+def importAgentProxy():
+    tmp = sys.argv
+    sys.argv = sys.argv[:1]
+    from relaax.environment.agent_proxy import AgentProxy, AgentProxyException
+    sys.argv = tmp
+    return AgentProxy, AgentProxyException
+
+
+AgentProxy, AgentProxyException = importAgentProxy()
 
 
 class TestAgentProxy(object):
@@ -43,9 +55,10 @@ class TestAgentProxy(object):
             AgentProxy('localhost:7000').connect()
             assert False
         except AgentProxyException as e:
-            if sys.platform == 'win32': 
-                assert str(e) == '[WinError %d] No connection could be made because the target machine actively refused it' % errno.ECONNREFUSED
-            else:            
+            if sys.platform == 'win32':
+                assert str(e) == ('[WinError %d] No connection could be made' +
+                                  'because the target machine actively refused it') % errno.ECONNREFUSED
+            else:
                 assert str(e) == '[Errno %d] Connection refused' % errno.ECONNREFUSED
 
     def test_some_unknown_exception_in_netstring_constructor(self, monkeypatch):

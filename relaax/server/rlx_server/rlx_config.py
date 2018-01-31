@@ -28,27 +28,21 @@ class RLXConfig(BaseConfig):
 
     def process_after_loaded(self):
         if self.log_level is None:
-            self.log_level = self.get(
-                'relaax_rlx_server/log_level', 'DEBUG')
+            self.log_level = self.get('relaax_rlx_server/log_level', 'DEBUG')
 
         if self.bind is None:
-            self.bind = self.get(
-                'relaax_rlx_server/bind', 'localhost:7001')
+            self.bind = self.get_rlx_server()
 
         if self.timeout is None:
-            self.timeout = self.get(
-                'relaax-rlx-server/--timeout', 1000000)
+            self.timeout = self.get('relaax-rlx-server/--timeout', 1000000)
 
         if self.metrics_server is None:
-            self.metrics_server = self.get(
-                'relaax_metrics_server/bind', 'localhost:7002')
+            self.metrics_server = self.get_metrics_server()
 
         if self.parameter_server is None:
-            self.parameter_server = self.get(
-                'relaax_parameter_server/bind', 'localhost:7000')
+            self.parameter_server = self.get_parameter_server()
 
-        self.protocol_name = self.get(
-            'relaax_rlx_server/protocol', 'rawsocket')
+        self.protocol_name = self.get('relaax_rlx_server/protocol', 'rawsocket')
 
         self.algorithm_path = self.get('algorithm/path')
         self.algorithm_name = self.get('algorithm/name')

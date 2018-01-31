@@ -1,0 +1,50 @@
+---
+# There are sample for bandit environment
+
+environment:
+  run: python environment/training.py
+  steps: 3000
+  max_episodes: 100
+  infinite_run: false
+
+relaax-metrics-server:
+  enable_unknown_metrics: false
+  metrics:
+    episode_reward: true
+    server_latency: true
+    action: true
+    mu: true
+    sigma2: true
+    critic: true
+
+  bind: localhost:7002
+  metrics_dir: logs/metrics
+  log_metrics_to_console: false
+  log_level: INFO
+
+relaax-parameter-server:
+  bind: localhost:7000
+  checkpoint-dir: logs/checkpoints
+  log-level: INFO
+
+relaax-rlx-server:
+  bind: localhost:7001
+  log-level: INFO
+
+version: 1.1.0
+algorithm:
+  name: policy_gradient
+
+  input:
+    shape: [0]                 # shape of input state, [0] means empty state (bandit env)
+    use_convolutions: false    # set to True to use convolutions to process the input
+
+  output:
+    continuous: false          # set to True to handle with continuous action type
+    action_size: 4             # action size for the given environment
+
+  hidden_sizes: [10]           # list of num_units for hidden fc layers
+  batch_size: 10               # experience size for one update
+
+  initial_learning_rate: 0.01  # learning rate to perform the training
+  rewards_gamma: 0.97          # rewards discount factor

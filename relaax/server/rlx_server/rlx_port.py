@@ -12,6 +12,7 @@ from .rlx_worker import RLXWorker
 
 log = logging.getLogger(__name__)
 
+
 class RLXPort(object):
 
     @classmethod
@@ -27,8 +28,8 @@ class RLXPort(object):
         if sys.platform == 'win32':
             from relaax.server.common.win32_ctl_handler import set_console_ctrl_handler
             cls.stopped_server = False
-            set_console_ctrl_handler(cls.handler_event)      
-            
+            set_console_ctrl_handler(cls.handler_event)
+
         cls.listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
             cls.listener.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
@@ -71,8 +72,8 @@ class RLXPort(object):
         finally:
             log.debug('Closing connection %s:%d' % address)
             if sys.platform == 'win32':
-                os._exit(-1)             
-            else:            
+                os._exit(-1)
+            else:
                 try:
                     connection.shutdown(socket.SHUT_RDWR)
                 except socket.error as e:
@@ -82,7 +83,7 @@ class RLXPort(object):
                         raise
                 finally:
                     connection.close()
-         
+
     @classmethod
     def handle_accept_socket_exeption(cls, error):
         if error.errno in (errno.EWOULDBLOCK, errno.EAGAIN):

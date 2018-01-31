@@ -14,6 +14,7 @@ import honcho.manager
 from relaax.common.python.config.config_yaml import ConfigYaml
 from relaax.cmdl.cmdl import pass_context
 
+
 class PopenPatched(subprocess.Popen):
 
     def __init__(self, cmd, **kwargs):
@@ -30,10 +31,10 @@ class PopenPatched(subprocess.Popen):
         if ON_WINDOWS:
             # MSDN reference:
             #   http://msdn.microsoft.com/en-us/library/windows/desktop/ms684863%28v=vs.85%29.aspx
-            create_new_process_group = 0x00000200
-            detached_process = 0x00000008
-            #options.update(creationflags=detached_process | create_new_process_group)
-            os.environ["COMSPEC"]= "powershell.exe"
+            # create_new_process_group = 0x00000200
+            # detached_process = 0x00000008
+            # options.update(creationflags=detached_process | create_new_process_group)
+            os.environ["COMSPEC"] = "powershell.exe"
         elif start_new_session:
             if sys.version_info < (3, 2):
                 options.update(preexec_fn=os.setsid)
@@ -41,6 +42,7 @@ class PopenPatched(subprocess.Popen):
                 options.update(start_new_session=True)
 
         super(PopenPatched, self).__init__(cmd, **options)
+
 
 class RManager(Manager):
 
@@ -56,7 +58,7 @@ class RManager(Manager):
             return all(clients)
         else:
             super(RManager, self)._any_stopped()
-            
+
     def _killall(self, force=False):
         """Kill all remaining processes, forcefully if requested."""
         for_termination = []
@@ -72,16 +74,17 @@ class RManager(Manager):
                                (signame, n, p['pid']))
             if sys.platform == 'win32':
                 import ctypes
-                ctypes.windll.kernel32.SetConsoleCtrlHandler(0, True);
+                ctypes.windll.kernel32.SetConsoleCtrlHandler(0, True)
                 ctypes.windll.kernel32.GenerateConsoleCtrlEvent(0, 0)
                 time.sleep(0.1)
-                ctypes.windll.kernel32.SetConsoleCtrlHandler(0, False);
-            else:                   
+                ctypes.windll.kernel32.SetConsoleCtrlHandler(0, False)
+            else:
                 if force:
                     self._env.kill(p['pid'])
                 else:
                     self._env.terminate(p['pid'])
-         
+
+
 class CmdlRun(object):
 
     def __init__(self, ctx, components, config, n_clients, exploit, show_ui):
@@ -111,9 +114,9 @@ class CmdlRun(object):
 
         try:
             manager.loop()
-        except InterruptedError:
+        except InterruptedError:  # noqa: F821
             pass
-                
+
         sys.exit(manager.returncode)
 
     def intersection(self, lst):
@@ -190,8 +193,8 @@ class CmdlRun(object):
 
 
 @click.command('run', short_help='Run RELAAX components.')
-@click.argument('components', nargs=-1, type=click.Choice(
-                ['all', 'environment', 'servers', 'rlx-server', 'parameter-server', 'metrics-server', 'wsproxy']))
+@click.argument('components', nargs=-1, type=click.Choice(['all', 'environment', 'servers', 'rlx-server',
+                                                           'parameter-server', 'metrics-server', 'wsproxy']))
 @click.option('--config', '-c', type=click.File(lazy=True), show_default=True, default='app.yaml',
               help='Relaax configuraion yaml file.')
 @click.option('--n-environments', '-n', default=1, show_default=True,
@@ -210,7 +213,8 @@ def cmdl(ctx, components, config, n_environments, exploit, show_ui):
     COMPONENTS:
     all              - run environments and servers (default)
     environment      - run environment
-    servers          - run rlx-server, parameter-server, metrics-server and wsproxy (if specified in config yaml)
+    servers          - run rlx-server, parameter-server, metrics-server and wsproxy
+                       (if specified in config yaml)
     rlx-server       - run rlx-server
     parameter-server - run parameter-server
     metrics-server   - run metrics-server
@@ -226,26 +230,27 @@ def cmdl(ctx, components, config, n_environments, exploit, show_ui):
     ctx.setup_logger(format='%(asctime)s %(name)s\t\t  | %(message)s')
     # Disable TF warnings
     os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-    os.environ["COMSPEC"]= "powershell.exe"
+    os.environ["COMSPEC"] = "powershell.exe"
     # Execute command
     if sys.platform == 'win32':
         honcho.manager.KILL_WAIT = 120
         honcho.process.Popen = PopenPatched
-    
-        import _winapi, ctypes
-        
-        firstRun = False 
+
+        import _winapi
+        import ctypes
+
+        firstRun = False
         mutex = ctypes.windll.kernel32.CreateMutexA(None, False, "RELAAX_WINDOWS_MUTEX")
         if _winapi.GetLastError() == 0:
-            firstRun1 = True
-            
+            firstRun = True
+
         if firstRun:
             os.system("start powershell " + ' '.join(sys.argv))
             time.sleep(5)
             _winapi.CloseHandle(mutex)
         else:
-            _winapi.CloseHandle(mutex)    
+            _winapi.CloseHandle(mutex)
             honcho.process.Popen = PopenPatched
             CmdlRun(ctx, set(components), config.name, n_environments, exploit, show_ui).run_components()
-    else:    
+    else:
         CmdlRun(ctx, set(components), config.name, n_environments, exploit, show_ui).run_components()

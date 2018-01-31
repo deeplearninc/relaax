@@ -13,24 +13,6 @@ from . import trpo_config
 from .lib import trpo_graph
 
 
-class GetVariablesFlatten(subgraph.Subgraph):
-    def build_graph(self, variables):
-        return tf.concat([tf.reshape(t, [-1]) for t in utils.Utils.flatten(variables.node)], axis=0)
-
-
-class SetVariablesFlatten(subgraph.Subgraph):
-    def build_graph(self, variables):
-        self.ph_value = tf.placeholder(tf.float32, [None])
-        start = 0
-        assignes = []
-        for t in utils.Utils.flatten(variables.node):
-            shape = t.shape.as_list()
-            size = np.prod(shape)
-            assignes.append(tf.assign(t, tf.reshape(self.ph_value[start:start + size], shape)))
-            start += size
-        return tf.group(*assignes)
-
-
 class Categorical(subgraph.Subgraph):
     def build_graph(self, n):
         self._n = n
@@ -117,10 +99,10 @@ class DiagGauss(subgraph.Subgraph):
         return lambda prob: self.EntropySubgraph(prob, self._d)
 
 
-def ProbType(*args):
-    if trpo_config.config.output.continuous:
-        return DiagGauss(*args)
-    return Categorical(*args)
+def ProbType(action_size, continuous=False):
+    if continuous:
+        return DiagGauss(action_size)
+    return Categorical(action_size)
 
 
 class ConcatFixedStd(subgraph.Subgraph):
@@ -136,10 +118,11 @@ class ConcatFixedStd(subgraph.Subgraph):
 
 class Network(subgraph.Subgraph):
     def build_graph(self):
-        input = layer.Input(trpo_config.config.input)
+        input = layer.ConfiguredInput(trpo_config.config.input)
 
+        activation = layer.Activation.get_activation(trpo_config.config.activation)
         head = layer.GenericLayers(layer.Flatten(input),
-                                   [dict(type=layer.Dense, size=size, activation=layer.Activation.Tanh)
+                                   [dict(type=layer.Dense, size=size, activation=activation)
                                     for size in trpo_config.config.hidden_sizes])
 
         if trpo_config.config.output.continuous:
@@ -180,12 +163,13 @@ class PolicyNet(subgraph.Subgraph):
     def build_graph(self):
         sg_network = Network()
 
-        sg_get_weights_flatten = GetVariablesFlatten(sg_network.weights)
-        sg_set_weights_flatten = SetVariablesFlatten(sg_network.weights)
+        sg_get_weights_flatten = graph.GetVariablesFlatten(sg_network.weights)
+        sg_set_weights_flatten = graph.SetVariablesFlatten(sg_network.weights)
 
         ph_adv_n = graph.TfNode(tf.placeholder(tf.float32, name='adv_n'))
 
-        sg_probtype = ProbType(trpo_config.config.output.action_size)
+        sg_probtype = ProbType(trpo_config.config.output.action_size,
+                               continuous=trpo_config.config.output.continuous)
 
         ph_oldprob_np = sg_probtype.ProbVariable()
 
@@ -206,7 +190,7 @@ class PolicyNet(subgraph.Subgraph):
         sg_ent = graph.TfNode(tf.reduce_mean(sg_probtype.Entropy(sg_network.actor).node))
 
         sg_gradients = optimizer.Gradients(sg_network.weights, loss=sg_surr)
-        sg_gradients_flatten = GetVariablesFlatten(sg_gradients.calculate)
+        sg_gradients_flatten = graph.GetVariablesFlatten(sg_gradients.calculate)
 
         self.op_get_weights = self.Op(sg_network.weights)
         self.op_get_weights_flatten = self.Op(sg_get_weights_flatten)
@@ -225,7 +209,7 @@ class PolicyNet(subgraph.Subgraph):
                                                 adv_n=ph_adv_n, prob_variable=ph_oldprob_np)
 
         # PPO clipped surrogate loss
-        # likelihood ration of old and new policy
+        # likelihood ratio of old and new policy
         r_theta = tf.exp(sg_logp_n.node - sg_oldlogp_n.node)
         surr = r_theta * ph_adv_n.node
         clip_e = trpo_config.config.PPO.clip_e
@@ -234,49 +218,50 @@ class PolicyNet(subgraph.Subgraph):
 
         sg_minimize = graph.TfNode(tf.train.AdamOptimizer(
                 learning_rate=trpo_config.config.PPO.learning_rate).minimize(sg_ppo_loss.node))
-        self.op_ppo_optimize = self.Op(sg_minimize, state=sg_network.ph_state,
-                                       sampled_variable=sg_probtype.ph_sampled_variable, adv_n=ph_adv_n,
-                                       oldprob_np=ph_oldprob_np)
+        self.op_ppo_optimize = self.Ops((sg_surr, sg_kl, sg_ent), sg_minimize, state=sg_network.ph_state,
+                                        sampled_variable=sg_probtype.ph_sampled_variable, adv_n=ph_adv_n,
+                                        oldprob_np=ph_oldprob_np)
 
 
 class ValueNet(subgraph.Subgraph):
     def build_graph(self):
-        input_size, = trpo_config.config.input.shape
-
+        input = layer.ConfiguredInput(trpo_config.config.input)
         # add one extra feature for timestep
-        ph_state = graph.Placeholder(np.float32, shape=(None, input_size + 1))
+        ph_step = graph.Placeholder(np.float32, shape=[None, 1])
+        state = (input.ph_state, ph_step)
+
+        concatenated = graph.Concat([layer.Flatten(input), ph_step], axis=1)
 
         activation = layer.Activation.get_activation(trpo_config.config.activation)
-        descs = [dict(type=layer.Dense, size=size, activation=activation) for size
-                 in trpo_config.config.hidden_sizes]
-        descs.append(dict(type=layer.Dense, size=1))
-
-        value = layer.GenericLayers(ph_state, descs)
+        head = layer.GenericLayers(concatenated,
+                                   [dict(type=layer.Dense, size=size, activation=activation)
+                                    for size in trpo_config.config.hidden_sizes])
+        value = layer.Dense(head, 1)
 
         ph_ytarg_ny = graph.Placeholder(np.float32)
         mse = graph.TfNode(tf.reduce_mean(tf.square(ph_ytarg_ny.node - value.node)))
 
-        weights = layer.Weights(value)
+        weights = layer.Weights(input, head, value)
 
-        sg_get_weights_flatten = GetVariablesFlatten(weights)
-        sg_set_weights_flatten = SetVariablesFlatten(weights)
+        sg_get_weights_flatten = graph.GetVariablesFlatten(weights)
+        sg_set_weights_flatten = graph.SetVariablesFlatten(weights)
 
         l2 = graph.TfNode(1e-3 * tf.add_n([tf.reduce_sum(tf.square(v)) for v in
                                            utils.Utils.flatten(weights.node)]))
         loss = graph.TfNode(l2.node + mse.node)
 
         sg_gradients = optimizer.Gradients(weights, loss=loss)
-        sg_gradients_flatten = GetVariablesFlatten(sg_gradients.calculate)
+        sg_gradients_flatten = graph.GetVariablesFlatten(sg_gradients.calculate)
 
-        self.op_value = self.Op(value, state=ph_state)
+        self.op_value = self.Op(value, state=state)
 
         self.op_get_weights_flatten = self.Op(sg_get_weights_flatten)
         self.op_set_weights_flatten = self.Op(sg_set_weights_flatten, value=sg_set_weights_flatten.ph_value)
 
-        self.op_compute_loss_and_gradient = self.Ops(loss, sg_gradients_flatten, state=ph_state,
+        self.op_compute_loss_and_gradient = self.Ops(loss, sg_gradients_flatten, state=state,
                                                      ytarg_ny=ph_ytarg_ny)
 
-        self.op_losses = self.Ops(loss, mse, l2, state=ph_state, ytarg_ny=ph_ytarg_ny)
+        self.op_losses = self.Ops(loss, mse, l2, state=state, ytarg_ny=ph_ytarg_ny)
 
 
 # Weights of the policy are shared across
@@ -293,7 +278,6 @@ class SharedParameters(subgraph.Subgraph):
 
     def build_graph(self):
         # Build graph
-
         sg_policy_net = PolicyNet()
 
         sg_n_iter = trpo_graph.NIter()
@@ -302,12 +286,17 @@ class SharedParameters(subgraph.Subgraph):
 
         sg_value_net = ValueNet()
 
+        sg_average_reward = graph.LinearMovingAverage(trpo_config.config.avg_in_num_batches)
         sg_initialize = graph.Initialize()
 
         # Expose public API
         self.op_n_step = self.Op(sg_global_step.n)
         self.op_inc_step = self.Op(sg_global_step.increment, increment=sg_global_step.ph_increment)
-        self.op_initialize = self.Op(sg_initialize)
+
+        self.op_score = self.Op(sg_average_reward.average)
+        self.op_add_reward_to_model_score_routine = self.Ops(sg_average_reward.add,
+                                                             reward_sum=sg_average_reward.ph_sum,
+                                                             reward_weight=sg_average_reward.ph_count)
 
         self.call_wait_for_iteration = self.Call(self.wait_for_iteration)
         self.call_send_experience = self.Call(self.send_experience)
@@ -321,6 +310,7 @@ class SharedParameters(subgraph.Subgraph):
 
         self.policy = sg_policy_net
         self.value = sg_value_net
+        self.op_initialize = self.Op(sg_initialize)
 
 
 # Policy run by Agent(s)

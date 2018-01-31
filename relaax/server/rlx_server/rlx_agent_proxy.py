@@ -3,7 +3,6 @@ from builtins import str
 from builtins import object
 import logging
 import traceback
-import numpy as np
 
 from relaax.server.common.bridge import ps_bridge_connection
 from relaax.server.common.bridge import metrics_bridge_connection
@@ -18,7 +17,7 @@ class RLXAgentProxy(object):
     def __init__(self):
         ps = ps_bridge_connection.PsBridgeConnection(options.parameter_server)
         metrics_connection = metrics_bridge_connection.MetricsBridgeConnection(options)
-        metrics = x_metrics.XMetrics(ps.session.op_n_step, metrics_connection.metrics)
+        metrics = x_metrics.XMetrics(ps.n_step, metrics_connection.metrics)
         self.agent = options.Agent(ps, metrics)
         self.average = Average(100, lambda x: self.agent.metrics.scalar('average_reward', x))
 
@@ -34,8 +33,8 @@ class RLXAgentProxy(object):
         if reward is not None:
             self.average.append(reward)
         action = self.agent.update(reward=reward, state=data['state'], terminal=data['terminal'])
-        #if isinstance(action, np.ndarray):
-        #    action = np.asarray(action).tolist()
+        # if isinstance(action, np.ndarray):
+        #     action = np.asarray(action).tolist()
         return {'response': 'action', 'data': action}
 
     def reset(self, ignore=None):

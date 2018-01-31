@@ -22,5 +22,11 @@ class EnvironmentConfig(BaseConfig):
     def process_after_loaded(self):
         self.log_level = getattr(self, 'log_level', 'DEBUG')
 
+        assert self.exploit is not None
+        assert self.show_ui is not None
+
+        if self.rlx_server_address is None:
+            self.rlx_server_address = self.get_rlx_server()
+
 
 options = EnvironmentConfig().load()
