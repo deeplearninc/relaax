@@ -68,6 +68,7 @@ class Agent(object):
             self.queue = None
         if da3c_config.config.use_icm:
             self.icm_observation = observation.Observation(da3c_config.config.input.history)
+            self.episode_bonus = 0.
 
         if da3c_config.config.use_filter:
             self.filter = utils.ZFilter(da3c_config.config.input.shape)
@@ -100,7 +101,7 @@ class Agent(object):
         if reward is not None:
             if da3c_config.config.use_icm and not terminal:
                 int_reward = self.get_intrinsic_reward(state)
-                self.metrics.scalar('intrinsic_reward', int_reward)
+                self.episode_bonus += int_reward
                 reward += int_reward
             reward = np.tanh(reward)
             self.push_experience(reward, terminal)
@@ -111,6 +112,8 @@ class Agent(object):
 
         if terminal:
             self.observation.add_state(None)
+            self.metrics.scalar('episode_bonus', self.episode_bonus)
+            self.episode_bonus = 0.
         else:
             assert state is not None
             self.metrics.histogram('state', state)
