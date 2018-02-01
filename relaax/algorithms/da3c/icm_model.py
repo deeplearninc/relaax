@@ -29,11 +29,13 @@ class ICM(subgraph.Subgraph):
         forward_inp = graph.Concat([get_first, self.ph_probs], axis=1)
 
         fc_size = cfg.config.hidden_sizes[-1]
-        inv_fc1 = layer.Dense(inverse_inp, fc_size, layer.Activation.Relu)
-        inv_fc2 = layer.Dense(inv_fc1, shape[-1])   # layer.Activation.Softmax
+        std_init = 1e-2
 
-        fwd_fc1 = layer.Dense(forward_inp, fc_size, layer.Activation.Relu)
-        fwd_fc2 = layer.Dense(fwd_fc1, last_size)
+        inv_fc1 = layer.Dense(inverse_inp, fc_size, layer.Activation.Relu, init_var=std_init)
+        inv_fc2 = layer.Dense(inv_fc1, shape[-1], init_var=std_init)   # layer.Activation.Softmax
+
+        fwd_fc1 = layer.Dense(forward_inp, fc_size, layer.Activation.Relu, init_var=std_init)
+        fwd_fc2 = layer.Dense(fwd_fc1, last_size, init_var=std_init)
 
         inv_loss = graph.SparseSoftmaxCrossEntropyWithLogits(inv_fc2, self.ph_taken).op
         fwd_loss = graph.L2loss(fwd_fc2.node - get_second.node).op
