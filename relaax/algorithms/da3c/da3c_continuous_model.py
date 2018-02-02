@@ -52,6 +52,7 @@ class Head(subgraph.Subgraph):
             layers.append(head)
 
         self.ph_state = input.ph_state
+        self.input = input
         self.weight = layer.Weights(*layers)
         return head.node
 
@@ -128,7 +129,7 @@ class SharedParameters(subgraph.Subgraph):
 
         if da3c_config.config.use_icm:
             sg_icm_optimizer = optimizer.AdamOptimizer(da3c_config.config.icm.lr)
-            sg_icm_weights = icm_model.ICM().weights
+            sg_icm_weights = icm_model.ICM(sg_network.actor.head.input).weights
             sg_icm_gradients = optimizer.Gradients(sg_icm_weights, optimizer=sg_icm_optimizer)
 
             # Expose ICM public API
@@ -183,7 +184,7 @@ class AgentModel(subgraph.Subgraph):
                                                   norm=da3c_config.config.gradients_norm_clipping)
 
         if da3c_config.config.use_icm:
-            sg_icm_network = icm_model.ICM()
+            sg_icm_network = icm_model.ICM(sg_network.actor.head.input)
             sg_icm_gradients = optimizer.Gradients(sg_icm_network.weights, loss=sg_icm_network.loss)
 
             # Expose ICM public API

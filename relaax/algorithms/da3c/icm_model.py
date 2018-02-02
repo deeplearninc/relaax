@@ -8,12 +8,7 @@ from . import da3c_config as cfg
 
 
 class ICM(subgraph.Subgraph):
-    def build_graph(self):
-        conv_layer = dict(type=layer.Convolution, activation=layer.Activation.Elu,
-                          n_filters=32, filter_size=[3, 3], stride=[2, 2],
-                          border=layer.Border.Same)
-        input = layer.Input(cfg.config.input, descs=[dict(conv_layer)] * 4)
-
+    def build_graph(self, input):
         shape = [None] + [cfg.config.output.action_size]
         self.ph_probs = graph.Placeholder(np.float32, shape=shape, name='act_probs')
         self.ph_taken = graph.Placeholder(np.int32, shape=(None,), name='act_taken')
