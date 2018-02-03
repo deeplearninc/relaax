@@ -64,7 +64,9 @@ if not hasattr(config, 'icm'):
     config.icm = options.get('algorithm/icm', Namespace())
 config.icm.nu = options.get('algorithm/icm/nu', 1e-2)    # 0.8 -> for cosine
 config.icm.beta = options.get('algorithm/icm/beta', 0.2)
-config.icm.lr = options.get('algorithm/icm/lr', 1e-3)
+config.icm.lr_scale = options.get('algorithm/icm/lr_scale', 10)
+config.icm.nn_share = options.get('algorithm/icm/nn_share', True)
+config.icm.backprop_input = options.get('algorithm/icm/backprop_input', True)
 
 # KAF default parameters
 if not hasattr(config, 'KAF'):
