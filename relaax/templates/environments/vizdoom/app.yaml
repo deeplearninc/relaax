@@ -64,7 +64,7 @@ algorithm:
   combine_gradient: dc            # gradient's combining method: dc | fifo | average
   dc_lambda: 0.05                 # delay compensation regularization constant
 
-  ICM:
+  icm:
     nu: 1e-2
     beta: 0.2
     lr_scale: 10

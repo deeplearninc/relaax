@@ -60,7 +60,7 @@ config.dc_lambda = options.get('algorithm/dc_lambda', 0.05)
 config.dc_history = options.get('algorithm/dc_history', 20)
 
 # ICM default parameters
-if not hasattr(config, 'ICM'):
+if not hasattr(config, 'icm'):
     config.icm = options.get('algorithm/icm', Namespace())
 config.icm.nu = options.get('algorithm/icm/nu', 1e-2)    # 0.8 -> for cosine
 config.icm.beta = options.get('algorithm/icm/beta', 0.2)
