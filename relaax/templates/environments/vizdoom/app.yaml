@@ -38,7 +38,7 @@ algorithm:
 
   input:
     shape: [42, 42]               # state: [height, width] or [height, width, channels]
-    history: 1                    # number of consecutive states to stuck to represent an input
+    history: 4                    # number of consecutive states to stuck to represent an input
     use_convolutions: true        # set to True to use convolutions to process the input,
                                   # it uses the set of convolutions from universe architecture by default
   output:
