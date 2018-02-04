@@ -112,8 +112,9 @@ class Agent(object):
 
         if terminal:
             self.observation.add_state(None)
-            self.metrics.scalar('episode_bonus', self.episode_bonus)
-            self.episode_bonus = 0.
+            if da3c_config.config.use_icm:
+                self.metrics.scalar('episode_bonus', self.episode_bonus)
+                self.episode_bonus = 0.
         else:
             assert state is not None
             self.metrics.histogram('state', state)
