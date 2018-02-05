@@ -50,7 +50,7 @@ class Agent(object):
     # waiting for agent to initialize
     def init(self, exploit=False):
         self.exploit = exploit
-        self.greedily = exploit or da3c_config.config.greedily
+        self.greedily = exploit or da3c_config.config.output.greedily
         model = da3c_model.AgentModel()
         self.session = session.Session(model)
         if da3c_config.config.use_lstm:
