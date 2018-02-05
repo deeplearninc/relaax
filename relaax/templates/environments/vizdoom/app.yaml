@@ -69,5 +69,5 @@ algorithm:
     nu: 1e-2
     beta: 0.2
     lr_scale: 10
-    nn_share: false
-    backprop_input: true
+    nn_share: true
+    backprop_input: false
