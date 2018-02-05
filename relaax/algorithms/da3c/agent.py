@@ -30,6 +30,7 @@ class Agent(object):
         self.ps = parameter_server
         self.metrics = metrics
         self.exploit = False
+        self.greedily = False
         self.session = None
         self.lstm_zero_state = None
         self.lstm_state = self.initial_lstm_state = None
@@ -49,6 +50,7 @@ class Agent(object):
     # waiting for agent to initialize
     def init(self, exploit=False):
         self.exploit = exploit
+        self.greedily = exploit or da3c_config.config.greedily
         model = da3c_model.AgentModel()
         self.session = session.Session(model)
         if da3c_config.config.use_lstm:
@@ -231,7 +233,7 @@ class Agent(object):
             if M:
                 self.metrics.histogram('action', action)
             self.last_probs, = action
-            return utils.choose_action_descrete(self.last_probs), value
+            return utils.choose_action_descrete(self.last_probs, self.greedily), value
         mu, sigma2 = action
         self.last_probs = mu
         if M:

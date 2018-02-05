@@ -38,12 +38,13 @@ algorithm:
 
   input:
     shape: [42, 42]               # state: [height, width] or [height, width, channels]
-    history: 4                    # number of consecutive states to stuck to represent an input
+    history: 1                    # number of consecutive states to stuck to represent an input
     use_convolutions: true        # set to True to use convolutions to process the input,
                                   # it uses the set of convolutions from universe architecture by default
   output:
     continuous: false             # set to True to handle with continuous action type
     action_size: 4                # action size for the given environment
+    greedily: true                # set to True to perform actions greedily -> argmax(probs)
 
   hidden_sizes: [288]             # list of num_units for hidden layers
   batch_size: 20                  # experience size for one update

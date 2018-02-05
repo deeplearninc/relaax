@@ -51,6 +51,7 @@ config.use_icm = options.get('algorithm/use_icm', False)
 config.output.scale = options.get('algorithm/output/scale', 1.0)
 config.critic_scale = options.get('algorithm/critic_scale', 1.0)
 
+config.output.greedily = options.get('algorithm/output/greedily', False)
 config.output.action_high = options.get('algorithm/output/action_high', [])
 config.output.action_low = options.get('algorithm/output/action_low', [])
 
