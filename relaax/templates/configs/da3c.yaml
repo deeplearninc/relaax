@@ -1,7 +1,7 @@
 ---
 # generic DA3C configuration, which is fitted to default Bandit environment from templates
 
-version: 1.1.0
+version: 1.2.0
 algorithm:
   name: da3c                      # short name for algorithm to load
   seed: 12345                     # seed value to use within the training process
@@ -51,5 +51,5 @@ algorithm:
     decay: 0.99
     epsilon: 0.1
 
-  combine_gradient: dc            # gradient's combining method: dc | fifo | average
+  combine_gradients: dc           # gradient's combining method: dc | fifo | average
   dc_lambda: 0.05                 # delay compensation regularization constant

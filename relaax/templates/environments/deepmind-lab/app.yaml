@@ -61,5 +61,5 @@ algorithm:
   gradients_norm_clipping: 40.    # value to clip the gradients by its global norm
   critic_scale: 0.25              # coefficient to scale the critic loss or its learning rate wrt policy
 
-  combine_gradient: dc            # gradient's combining method: dc | fifo | average
+  combine_gradients: dc           # gradient's combining method: dc | fifo | average
   dc_lambda: 0.05                 # delay compensation regularization constant
