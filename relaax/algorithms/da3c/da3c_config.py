@@ -61,13 +61,13 @@ config.dc_lambda = options.get('algorithm/dc_lambda', 0.05)
 config.dc_history = options.get('algorithm/dc_history', 20)
 
 # ICM default parameters
-if not hasattr(config, 'icm'):
-    config.icm = options.get('algorithm/icm', Namespace())
-config.icm.nu = options.get('algorithm/icm/nu', 1e-2)    # 0.8 -> for cosine
-config.icm.beta = options.get('algorithm/icm/beta', 0.2)
-config.icm.lr_scale = options.get('algorithm/icm/lr_scale', 10)
-config.icm.nn_share = options.get('algorithm/icm/nn_share', True)
-config.icm.backprop_input = options.get('algorithm/icm/backprop_input', True)
+if not hasattr(config, 'ICM'):
+    config.ICM = options.get('algorithm/ICM', Namespace())
+config.ICM.nu = options.get('algorithm/ICM/nu', 1e-2)    # 0.8 -> for cosine
+config.ICM.beta = options.get('algorithm/ICM/beta', 0.2)
+config.ICM.lr_scale = options.get('algorithm/ICM/lr_scale', 10)
+config.ICM.nn_share = options.get('algorithm/ICM/nn_share', True)
+config.ICM.backprop_input = options.get('algorithm/ICM/backprop_input', True)
 
 # KAF default parameters
 if not hasattr(config, 'KAF'):

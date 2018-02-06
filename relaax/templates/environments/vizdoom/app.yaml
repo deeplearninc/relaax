@@ -32,7 +32,7 @@ relaax-rlx-server:
   bind: localhost:7001
   log-level: INFO
 
-version: 1.1.0
+version: 1.2.0
 algorithm:
   name: da3c
 
@@ -44,12 +44,12 @@ algorithm:
   output:
     continuous: false             # set to True to handle with continuous action type
     action_size: 4                # action size for the given environment
-    greedily: true                # set to True to perform actions greedily -> argmax(probs)
+    greedily: false               # set to True to perform actions greedily -> argmax(probs)
 
   hidden_sizes: [288]             # list of num_units for hidden layers
   batch_size: 20                  # experience size for one update
 
-  use_icm: true                   # set to true to use Intrinsic Curiosity Module (ICM) module
+  use_icm: true                   # set to True to use Intrinsic Curiosity Module (ICM) module
   use_lstm: true                  # to use LSTM instead of FF, set to the True
   max_global_step: 1e8            # amount of maximum global steps to pass through the training
 
@@ -65,9 +65,9 @@ algorithm:
   combine_gradient: dc            # gradient's combining method: dc | fifo | average
   dc_lambda: 0.05                 # delay compensation regularization constant
 
-  icm:
-    nu: 1e-2
-    beta: 0.2
-    lr_scale: 10
-    nn_share: false
-    backprop_input: true
+  ICM:
+    nu: 1e-2                      # prediction bonus multiplier for intrinsic reward
+    beta: 0.2                     # forward loss importance against inverse model
+    lr_scale: 10                  # ICM learning rate scale wrt policy learning rate
+    nn_share: true                # set to True to share network with the policy
+    backprop_input: true          # set to True to backpropogate policy if share

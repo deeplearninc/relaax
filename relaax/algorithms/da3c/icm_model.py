@@ -9,7 +9,7 @@ from . import da3c_config as cfg
 
 class ICM(subgraph.Subgraph):
     def build_graph(self, input):
-        if not cfg.config.icm.nn_share:
+        if not cfg.config.ICM.nn_share:
             input = layer.ConfiguredInput(cfg.config.input)
 
         shape = [None] + [cfg.config.output.action_size]
@@ -39,14 +39,14 @@ class ICM(subgraph.Subgraph):
         fwd_loss = graph.L2loss(fwd_fc2.node - get_second.node).op
 
         self.ph_state = input.ph_state  # should be even wrt to batch_size for now
-        self.rew_out = graph.TfNode(cfg.config.icm.nu * fwd_loss)
+        self.rew_out = graph.TfNode(cfg.config.ICM.nu * fwd_loss)
 
         self.loss = graph.TfNode(
-            cfg.config.icm.lr_scale * (cfg.config.icm.beta * fwd_loss + (1 - cfg.config.icm.beta) * inv_loss)
+            cfg.config.ICM.lr_scale * (cfg.config.ICM.beta * fwd_loss + (1 - cfg.config.ICM.beta) * inv_loss)
         )
 
         layers = [input, inv_fc1, inv_fc2, fwd_fc1, fwd_fc2]
-        if cfg.config.icm.nn_share and not cfg.config.icm.backprop_input:
+        if cfg.config.ICM.nn_share and not cfg.config.ICM.backprop_input:
             # it make sense if we share NN with the Policy, but don't want to backprop its input
             layers = layers[1:]
 

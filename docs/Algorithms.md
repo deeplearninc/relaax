@@ -6,6 +6,7 @@
     - [Intrinsic Curiosity Model for DA3C](#intrinsic-curiosity-model-for-da3c)
     - [Distributed A3C Config](#distributed-a3c-config)
     - [Performance on some of the Atari Environments](#performance-on-some-of-the-atari-environments)
+    - [Performance on Doom](#performance-on-doom)
     - [Performance on some Continuous Control Tasks](#performance-on-some-continuous-control-tasks)
 - [Distributed TRPO with GAE](#distributed-trpo-with-gae)
     - [Performance on gym's BipedalWalker](#performance-on-gyms-bipedalwalker)
@@ -184,7 +185,7 @@ also with another `Actor` type, `Policy Loss`, `Choose Action` procedure  and ad
 #### [Intrinsic Curiosity Model for DA3C](#algorithms)
 
 `DA3C` algorithm can also be extended with additional models.  
-By default it can use a [ICM](https://arxiv.org/abs/1705.05363) by setting `use_icm` parameter to `True`.
+It can use a [ICM](https://arxiv.org/abs/1705.05363) by setting `use_icm` parameter to `True`.
 
 `ICM` helps Agent to discover an environment out of curiosity when extrinsic rewards are spare
 or not present at all. This model proposed an intrinsic reward which is learned jointly with Agent's policy
@@ -234,10 +235,12 @@ You must specify the parameters for the algorithm in the corresponding `app.yaml
     policy_clip: false              # false or value (ex.: 5.0) to clip policy loss within range [-value, +value]
     critic_clip: 2.0                # false or value (ex.: 2.0) to clip value loss within range [-value, +value]
 
-    icm:                            # ICM relevant parameters
-        nu: 0.01                    # prediction bonus multiplier for intrinsic reward
-        beta: 0.2                   # forward loss importance against inverse model
-        lr: 1e-3                    # ICM learning rate
+    ICM:
+        nu: 1e-2                      # prediction bonus multiplier for intrinsic reward
+        beta: 0.2                     # forward loss importance against inverse model
+        lr_scale: 10                  # ICM learning rate scale wrt policy learning rate
+        nn_share: true                # set to True to share network with the policy
+        backprop_input: true          # set to True to backpropogate policy if share
 
 It allows to omit parameters that don't have sense for current setup
 (it retrieves some from [default](https://github.com/deeplearninc/relaax/blob/641668e3b1b4a3c152b2c9fde83557a6c2f4e60a/relaax/algorithms/da3c/da3c_config.py)).  
@@ -260,8 +263,16 @@ Performance of `Vanilla A3C` on classic `Atari` environments from [original pape
 `DA3C-FF-8` with [Vanilla A3C architecture](https://arxiv.org/pdf/1602.01783v2.pdf#page.12) on Gym's Atari Boxing:
 ![img](resources/DA3C-FF-8_Vanilla.png "DA3C on Atari Boxing")  
 
+#### [Performance on Doom](#algorithms)
+`DA3C-LSTM-4` with [Universe A3C architecture](https://github.com/openai/universe-starter-agent/blob/master/model.py) on ppaquette Gym's Doom:  
+(see config [there](https://github.com/deeplearninc/relaax_sample_apps/blob/master/vizdoom/da3c.yaml))  
+![img](resources/DA3C-LSTM-4_Universe.png "DA3C on Doom")  
+`DA3C-LSTM-ICM-4` with [Universe A3C architecture](https://github.com/openai/universe-starter-agent/blob/master/model.py) on ppaquette Gym's Doom:  
+(see config [there](https://github.com/deeplearninc/relaax_sample_apps/blob/master/vizdoom/da3c.icm.yaml))  
+![img](resources/DA3C-LSTM-ICM-4_Universe.png "DA3C with ICM on Doom")
+
 #### [Performance on some Continuous Control Tasks](#algorithms)
-`Continuous DA3C-LSTM` on BipedalWalker:
+`Continuous DA3C-LSTM` on BipedalWalker:  
 ![img](resources/DA3C-LSTM_Walker.png "DA3C BipedalWalker")
 
 ##### [Compute Performance with different amount of clients and node types (AWS)](#algorithms)
