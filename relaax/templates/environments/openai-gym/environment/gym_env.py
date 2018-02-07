@@ -6,6 +6,7 @@ from builtins import range
 from builtins import object
 
 import os
+import re
 import sys
 import gym
 import random
@@ -13,8 +14,9 @@ import logging
 import numpy as np
 from PIL import Image
 
+import atari_py as ap
 from gym.spaces import Box
-from gym.wrappers.frame_skipping import SkipWrapper
+from gym.wrappers.frame_skipping import SkipWrapper     # valid for gym 0.9.2 | not valid for 0.9.6
 
 from relaax.environment.config import options
 from relaax.common.rlx_message import RLXMessageImage
@@ -24,19 +26,7 @@ log = logging.getLogger(__name__)
 
 
 class GymEnv(object):
-    AtariGameList = [
-        'AirRaid', 'Alien', 'Amidar', 'Assault', 'Asterix',
-        'Asteroids', 'Atlantis', 'BankHeist', 'BattleZone', 'BeamRider',
-        'Berzerk', 'Bowling', 'Boxing', 'Breakout', 'Carnival',
-        'Centipede', 'ChopperCommand', 'CrazyClimber', 'DemonAttack', 'DoubleDunk',
-        'ElevatorAction', 'Enduro', 'FishingDerby', 'Freeway', 'Frostbite',
-        'Gopher', 'Gravitar', 'IceHockey', 'Jamesbond', 'JourneyEscape',
-        'Kangaroo', 'Krull', 'KungFuMaster', 'MontezumaRevenge', 'MsPacman',
-        'NameThisGame', 'Phoenix', 'Pitfall', 'Pong', 'Pooyan',
-        'PrivateEye', 'Qbert', 'Riverraid', 'RoadRunner', 'Robotank',
-        'Seaquest', 'Skiing', 'Solaris', 'SpaceInvaders', 'StarGunner',
-        'Tennis', 'TimePilot', 'Tutankham', 'UpNDown', 'Venture',
-        'VideoPinball', 'WizardOfWor', 'YarsRevenge', 'Zaxxon']
+    AtariGameList = ap.list_games()
 
     def __init__(self, env='CartPole-v0'):
         self.gym = gym.make(env)
@@ -73,8 +63,8 @@ class GymEnv(object):
         self._crop = options.get('environment/crop', True)
         self._process_state = self._process_all
 
-        atari = [name + 'Deterministic' for name in GymEnv.AtariGameList] + GymEnv.AtariGameList
-        if any(item.startswith(env.split('-')[0]) for item in atari):
+        env_name = self.__camel_to_underscore(env)
+        if any(env_name.startswith(item) for item in GymEnv.AtariGameList):
             self._process_state = self._process_img
 
         self.action_size = self._get_action_size()
@@ -141,3 +131,8 @@ class GymEnv(object):
         if state.shape != self._shape:
             state = np.reshape(state, self._shape)
         return state
+
+    @staticmethod
+    def __camel_to_underscore(name):
+        name = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
+        return re.sub('([a-z0-9])([A-Z])', r'\1_\2', name).lower()
