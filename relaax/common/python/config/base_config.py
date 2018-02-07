@@ -113,7 +113,7 @@ class BaseConfig(ConfigYaml):
         self.setup_logger()
         # check version of YAML only when YAML was loaded
         if getattr(self, 'config', None) is not None:
-            assert relaax.__version__ == self.get('version'),\
+            assert relaax.__version__ >= self.get('version'),\
                 'You have to provide appropriate RELAAX version X.X.X in yaml'
         return self
 

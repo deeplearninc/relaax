@@ -29,8 +29,8 @@ The components of RELAAX include:
     - [Running on Windows](#running-on-windows)
 - [System Architecture](#system-architecture)
 - [Release Notes](#release-notes)
-    - [1.2.0](#120)
     - [1.1.0](#110)
+        - [1.1.1](#111)
 - [RELAAX Agent Proxy](#relaax-agent-proxy)
     - [Reinforcement Learning eXchange protocol](#reinforcement-learning-exchange-protocol)
     - [Reinforcement Learning eXchange protocol definition](#reinforcement-learning-exchange-protocol-definition)
@@ -186,28 +186,6 @@ This will run a CartPole-v0 environment.
 * Metrics - Evironment, Agent, and Parameter Server send various metrics to the Metrics node; developer may see these metrics in Web Browser by connecting to the Metrics node.
 
 ## [Release Notes](#contents)
-
-### [1.2.0](#contents)
-
-* Enhance `DA3C` configuration wrt [ICM](https://pathak22.github.io/noreward-rl/) & choose action:
-```yaml
-version: 1.2.0
-algorithm:
-  name: da3c
-  
-  output:
-    action_size: 4                # action size for the given environment
-    greedily: false               # set to True to perform actions greedily -> argmax(probs)
-  
-  use_icm: true                   # set to True to use Intrinsic Curiosity Module (ICM) module
-
-  ICM:
-    nu: 1e-2                      # prediction bonus multiplier for intrinsic reward
-    beta: 0.2                     # forward loss importance against inverse model
-    lr_scale: 10                  # ICM learning rate scale wrt policy learning rate
-    nn_share: true                # set to True to share network with the policy
-    backprop_input: true          # set to True to backpropogate policy if share
-```
 
 ### [1.1.0](#contents)
 
@@ -383,6 +361,28 @@ within number of batches specified by `avg_in_num_batches` parameter.
           TRPO:
             linesearch_type: Adaptive
         ```
+
+#### [1.1.1](#contents)
+
+* Enhance `DA3C` configuration wrt [ICM](https://pathak22.github.io/noreward-rl/) & choose action:
+```yaml
+version: 1.1.1
+algorithm:
+  name: da3c
+  
+  output:
+    action_size: 4                # action size for the given environment
+    greedily: false               # set to True to perform actions greedily -> argmax(probs)
+  
+  use_icm: true                   # set to True to use Intrinsic Curiosity Module (ICM) module
+
+  ICM:
+    nu: 1e-2                      # prediction bonus multiplier for intrinsic reward
+    beta: 0.2                     # forward loss importance against inverse model
+    lr_scale: 10                  # ICM learning rate scale wrt policy learning rate
+    nn_share: true                # set to True to share network with the policy
+    backprop_input: true          # set to True to backpropogate policy if share
+```
 
 ## [RELAAX Agent Proxy](#contents)
 Agent Proxy run with your Environments training and is used to communicate with RL Agents. At the moment client implemented in Python, later on we are planning to implement client code in C/C++, Ruby, GO, etc. to simplify integration of other environments.

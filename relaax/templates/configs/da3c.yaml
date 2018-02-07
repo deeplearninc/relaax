@@ -1,7 +1,7 @@
 ---
 # generic DA3C configuration, which is fitted to default Bandit environment from templates
 
-version: 1.2.0
+version: 1.1.1
 algorithm:
   name: da3c                      # short name for algorithm to load
   seed: 12345                     # seed value to use within the training process
@@ -32,10 +32,13 @@ algorithm:
 
   rewards_gamma: 0.99             # rewards discount factor
   gae_lambda: 1.00                # lambda for GAE (generalized advantage estimation)
+  normalize_advantage: True       # set to True to normalize advantage
 
   use_lstm: false                 # to use LSTM instead of FF, set to the True
   lstm_type: Dilated              # there are two types of LSTM to use: Basic | Dilated
   lstm_num_cores: 8               # level of granularity for Dilated LSTM to set within amount of cores
+
+  use_icm: false                  # set to True to use Intrinsic Curiosity Module (ICM) module
 
   entropy_beta: 1e-2              # entropy regularization constant
   entropy_type: Origin            # switch between relevant entropy types for continuous: Origin | Gauss
@@ -53,3 +56,10 @@ algorithm:
 
   combine_gradients: dc           # gradient's combining method: dc | fifo | average
   dc_lambda: 0.05                 # delay compensation regularization constant
+
+  ICM:
+    nu: 1e-2                      # prediction bonus multiplier for intrinsic reward
+    beta: 0.2                     # forward loss importance against inverse model
+    lr_scale: 10                  # ICM learning rate scale wrt policy learning rate
+    nn_share: true                # set to True to share network with the policy
+    backprop_input: true          # set to True to backpropogate policy if share
