@@ -57,7 +57,11 @@ config.output.action_low = options.get('algorithm/output/action_low', [])
 
 config.combine_gradients = options.get('algorithm/combine_gradients', 'fifo')
 config.num_gradients = options.get('algorithm/num_gradients', 4)
-config.dc_lambda = options.get('algorithm/dc_lambda', 0.05)
+
+config.dc_lambda = options.get('algorithm/dc_lambda', 0.05)     # 2.0 for adaptive
+config.dc_adaptive = options.get('algorithm/dc_adaptive', False)
+config.dc_m = options.get('algorithm/dc_m', 0.0)    # 0.0 0.95 -> [0, 1] wrt history
+config.dc_epsilon = options.get('algorithm/dc_epsilon', 1e-7)
 config.dc_history = options.get('algorithm/dc_history', 20)
 
 # ICM default parameters

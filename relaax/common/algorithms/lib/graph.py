@@ -379,6 +379,7 @@ class GradientDC(subgraph.Subgraph):
     def build_graph(self, cfg):
         self.weights_history = {}  # {id: weights}
         self.cfg = cfg
+        self.meanSq = .0
 
         def func_dc_gradient(session, gradients, step_inc, agent_step):
             global_weights_f = session.op_get_weights_flatten()
@@ -388,8 +389,15 @@ class GradientDC(subgraph.Subgraph):
             new_gradient_f = utils.Shaper.get_flat(gradients)
 
             # Compute compensated Gradient
-            delta = self.cfg.dc_lambda * \
-                (new_gradient_f * new_gradient_f * (global_weights_f - old_weights_f))
+            new_gradient_sq = new_gradient_f * new_gradient_f
+
+            if self.cfg.dc_adaptive:
+                self.meanSq = self.cfg.dc_m * self.meanSq + (1 - self.cfg.dc_m) * new_gradient_sq
+                dc_lambda = self.cfg.dc_lambda / np.sqrt(self.meanSq + self.cfg.dc_epsilon)
+            else:
+                dc_lambda = self.cfg.dc_lambda
+
+            delta = dc_lambda * (new_gradient_sq * (global_weights_f - old_weights_f))
 
             compensated_gradient_f = new_gradient_f + delta
             compensated_gradient = utils.Shaper.reverse(compensated_gradient_f, gradients)
