@@ -328,6 +328,8 @@ def get_gradients_apply_routine(cfg):
         return GradientAVG(cfg).func
     elif cfg.combine_gradients == 'dc':
         return GradientDC(cfg).func
+    elif cfg.combine_gradients == 'all':
+        return GradientALL(cfg).func
     else:
         logger.error("Unknown gradient combination mode: {}".format(cfg.combine_gradients))
 
@@ -417,6 +419,66 @@ class GradientDC(subgraph.Subgraph):
                         pass
 
         self.func = func_dc_gradient
+
+
+class GradientALL(subgraph.Subgraph):
+    # Accumulate gradients from many agents and average them
+    def build_graph(self, cfg):
+        self.gradients = []
+        self.weights_history = {}  # {id: weights}
+        self.cfg = cfg
+        self.avg_step_inc = 0
+        self.meanSq = .0
+
+        def func_combine_gradients(session, gradients, step_inc, agent_step):
+            logger.debug("Gradient is received, number of gradients collected so far: {}".
+                         format(len(self.gradients)))
+            gradients_f = utils.Shaper.get_flat(gradients)
+
+            if agent_step >= session.op_n_step():
+                logger.debug("Gradient is FRESH -> Accepted")
+                self.gradients.append(gradients_f)
+                self.avg_step_inc += step_inc
+            else:
+                global_weights_f = session.op_get_weights_flatten()
+                agent_weights_f = self.weights_history.get(agent_step, global_weights_f)
+                # Compute compensated Gradient
+                gradients_f_sq = gradients_f * gradients_f
+
+                if self.cfg.dc_adaptive:
+                    self.meanSq = self.cfg.dc_m * self.meanSq + (1 - self.cfg.dc_m) * gradients_f_sq
+                    dc_lambda = self.cfg.dc_lambda / np.sqrt(self.meanSq + self.cfg.dc_epsilon)
+                else:
+                    dc_lambda = self.cfg.dc_lambda
+
+                delta = dc_lambda * (gradients_f_sq * (global_weights_f - agent_weights_f))
+                compensated_gradient_f = gradients_f + delta
+
+                self.gradients.append(compensated_gradient_f)
+                logger.debug("Gradient is OLD -> Compensated")
+
+            if len(self.gradients) >= self.cfg.num_gradients:
+                # We've collected enough gradients -> we can average them now and make an update step
+                logger.debug("Computing Mean of accumulated Gradients")
+                mean_flat_grad = np.mean(np.stack(self.gradients), axis=0)
+
+                mean_grad = utils.Shaper.reverse(mean_flat_grad, gradients)
+                session.op_apply_gradients(gradients=mean_grad, increment=self.avg_step_inc)
+                self.gradients, self.avg_step_inc = [], 0
+
+            updated_weights_f = session.op_get_weights_flatten()
+            updated_step = session.op_n_step()
+            self.weights_history[updated_step] = updated_weights_f
+
+            # Cleanup history
+            for k in list(self.weights_history.keys()):
+                if k < updated_step - self.cfg.dc_history:
+                    try:
+                        del self.weights_history[k]
+                    except KeyError:
+                        pass
+
+        self.func = func_combine_gradients
 
 
 class GetVariablesFlatten(subgraph.Subgraph):
