@@ -338,9 +338,8 @@ class GradientFIFO(subgraph.Subgraph):
     # First come, first served gradient update
     def build_graph(self):
         def func_fifo_gradient(session, gradients, step_inc, agent_step):
-            global_step = session.op_n_step()
-            logger.debug("Gradient with step {} received from agent. Current step: {}".format(agent_step,
-                                                                                              global_step))
+            logger.debug("Gradient with step {} received from agent. Current step: {}"
+                         .format(agent_step, session.op_n_step()))
             session.op_apply_gradients(gradients=gradients, increment=step_inc)
 
         self.func = func_fifo_gradient
