@@ -437,7 +437,6 @@ class GradientALL(subgraph.Subgraph):
             if agent_step >= session.op_n_step():
                 logger.debug("Gradient is FRESH -> Accepted")
                 self.gradients.append(gradients_f)
-                self.avg_step_inc += step_inc
             else:
                 global_weights_f = session.op_get_weights_flatten()
                 agent_weights_f = self.weights_history.get(agent_step, global_weights_f)
@@ -455,6 +454,8 @@ class GradientALL(subgraph.Subgraph):
 
                 self.gradients.append(compensated_gradient_f)
                 logger.debug("Gradient is OLD -> Compensated")
+
+            self.avg_step_inc += step_inc
 
             if len(self.gradients) >= self.cfg.num_gradients:
                 # We've collected enough gradients -> we can average them now and make an update step
