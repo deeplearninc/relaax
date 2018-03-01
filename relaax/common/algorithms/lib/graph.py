@@ -362,6 +362,8 @@ class GradientAVG(subgraph.Subgraph):
                     self.avg_step_inc += step_inc
                 else:
                     logger.debug("Gradient is OLD -> Rejected")
+            else:
+                self.avg_step_inc += step_inc
 
             if len(self.gradients) >= self.cfg.num_gradients:
                 # We've collected enough gradients -> we can average them now and make an update step
