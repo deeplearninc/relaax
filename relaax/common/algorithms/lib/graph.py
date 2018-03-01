@@ -355,12 +355,13 @@ class GradientAVG(subgraph.Subgraph):
         def func_average_gradient(session, gradients, step_inc, agent_step):
             logger.debug("Gradient is received, number of gradients collected so far: {}".
                          format(len(self.gradients)))
-            if agent_step >= session.op_n_step():
-                logger.debug("Gradient is FRESH -> Accepted")
-                self.gradients.append(gradients)
-                self.avg_step_inc += step_inc
-            else:
-                logger.debug("Gradient is OLD -> Rejected")
+            if self.cfg.reject_old:
+                if agent_step >= session.op_n_step():
+                    logger.debug("Gradient is FRESH -> Accepted")
+                    self.gradients.append(gradients)
+                    self.avg_step_inc += step_inc
+                else:
+                    logger.debug("Gradient is OLD -> Rejected")
 
             if len(self.gradients) >= self.cfg.num_gradients:
                 # We've collected enough gradients -> we can average them now and make an update step

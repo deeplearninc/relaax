@@ -57,6 +57,7 @@ config.output.action_low = options.get('algorithm/output/action_low', [])
 
 config.combine_gradients = options.get('algorithm/combine_gradients', 'fifo')
 config.num_gradients = options.get('algorithm/num_gradients', 4)
+config.reject_old = options.get('algorithm/reject_old', False)
 
 config.dc_lambda = options.get('algorithm/dc_lambda', 0.05)     # 2.0 for adaptive
 config.dc_adaptive = options.get('algorithm/dc_adaptive', False)
