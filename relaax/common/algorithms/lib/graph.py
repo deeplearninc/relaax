@@ -363,6 +363,7 @@ class GradientAVG(subgraph.Subgraph):
                 else:
                     logger.debug("Gradient is OLD -> Rejected")
             else:
+                self.gradients.append(gradients)
                 self.avg_step_inc += step_inc
 
             if len(self.gradients) >= self.cfg.num_gradients:
