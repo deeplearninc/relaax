@@ -330,6 +330,8 @@ def get_gradients_apply_routine(cfg):
         return GradientDC(cfg).func
     elif cfg.combine_gradients == 'all':
         return GradientALL(cfg).func
+    elif cfg.combine_gradients == 'adv':
+        return GradientADV().func
     else:
         logger.error("Unknown gradient combination mode: {}".format(cfg.combine_gradients))
 
@@ -343,6 +345,19 @@ class GradientFIFO(subgraph.Subgraph):
             session.op_apply_gradients(gradients=gradients, increment=step_inc)
 
         self.func = func_fifo_gradient
+
+
+class GradientADV(subgraph.Subgraph):
+    # FIFO with advantage coefficient to force the magnitude
+    def build_graph(self):
+        def func_adv_gradient(session, gradients, step_inc, agent_step, adv=1.0):
+            logger.debug("Gradient with step {} received from agent. Current step: {}"
+                         .format(agent_step, session.op_n_step()))
+            gradients_f = adv * utils.Shaper.get_flat(gradients)
+            gradients = utils.Shaper.reverse(gradients_f, gradients)
+            session.op_apply_gradients(gradients=gradients, increment=step_inc)
+
+        self.func = func_adv_gradient
 
 
 class GradientAVG(subgraph.Subgraph):
