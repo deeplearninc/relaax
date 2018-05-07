@@ -30,6 +30,7 @@ class Agent(object):
         self.ps = parameter_server
         self.metrics = metrics
         self.exploit = False
+        self.greedily = False
         self.session = None
         self.lstm_zero_state = None
         self.lstm_state = self.initial_lstm_state = None
@@ -44,11 +45,13 @@ class Agent(object):
         self.discounted_reward = None
         self.filter = None
         self.agent_weights_id = 0
+        self._adv = 1.0
 
     # environment is ready and
     # waiting for agent to initialize
     def init(self, exploit=False):
         self.exploit = exploit
+        self.greedily = exploit or da3c_config.config.output.greedily
         model = da3c_model.AgentModel()
         self.session = session.Session(model)
         if da3c_config.config.use_lstm:
@@ -68,6 +71,7 @@ class Agent(object):
             self.queue = None
         if da3c_config.config.use_icm:
             self.icm_observation = observation.Observation(da3c_config.config.input.history)
+            self.episode_bonus = 0.
 
         if da3c_config.config.use_filter:
             self.filter = utils.ZFilter(da3c_config.config.input.shape)
@@ -100,7 +104,7 @@ class Agent(object):
         if reward is not None:
             if da3c_config.config.use_icm and not terminal:
                 int_reward = self.get_intrinsic_reward(state)
-                self.metrics.scalar('intrinsic_reward', int_reward)
+                self.episode_bonus += int_reward
                 reward += int_reward
             reward = np.tanh(reward)
             self.push_experience(reward, terminal)
@@ -111,6 +115,9 @@ class Agent(object):
 
         if terminal:
             self.observation.add_state(None)
+            if da3c_config.config.use_icm:
+                self.metrics.scalar('episode_bonus', self.episode_bonus)
+                self.episode_bonus = 0.
         else:
             assert state is not None
             self.metrics.histogram('state', state)
@@ -227,7 +234,7 @@ class Agent(object):
             if M:
                 self.metrics.histogram('action', action)
             self.last_probs, = action
-            return utils.choose_action_descrete(self.last_probs), value
+            return utils.choose_action_descrete(self.last_probs, self.greedily), value
         mu, sigma2 = action
         self.last_probs = mu
         if M:
@@ -261,7 +268,7 @@ class Agent(object):
 
         advantage = utils.discount(rewards, gamma * da3c_config.config.gae_lambda,
                                    normalize=da3c_config.config.norm_adv)
-
+        self._adv = np.copy(advantage)
         feeds = dict(state=experience['state'], action=experience['action'],
                      advantage=advantage, discounted_reward=self.discounted_reward)
 
@@ -286,10 +293,17 @@ class Agent(object):
         if M:
             for i, g in enumerate(utils.Utils.flatten(gradients)):
                 self.metrics.histogram('gradients_%d' % i, g)
-        # self.ps.session.op_apply_gradients(gradients=gradients, increment=experience_size)
-        self.ps.session.op_submit_gradients(gradients=gradients, step_inc=experience_size,
-                                            agent_step=self.agent_weights_id)
+
+        feeds = dict(gradients=gradients, step_inc=experience_size, agent_step=self.agent_weights_id)
+        if da3c_config.config.combine_gradients == 'adv':
+            feeds.update(dict(adv=self.__process_adv()))
+
+        self.ps.session.op_submit_gradients(**feeds)
         self.ps.session.op_check_weights()
 
         self.ps.session.op_add_rewards_to_model_score_routine(reward_sum=sum(rewards),
                                                               reward_weight=experience_size)
+
+    def __process_adv(self):
+        adv = np.sum(np.sqrt(self._adv * self._adv))
+        return np.clip(adv, 1., adv)

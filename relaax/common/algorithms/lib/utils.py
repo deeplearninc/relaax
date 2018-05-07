@@ -30,9 +30,9 @@ def discounted_reward(rewards, gamma, normalize=False):
     return discounted_reward
 
 
-def choose_action_descrete(probabilities, exploit=False):
-    if exploit:
-        return np.argmax(probabilities)   # need to set greedily param
+def choose_action_descrete(probabilities, greedily=False):
+    if greedily:
+        return np.argmax(probabilities)
     return np.random.choice(len(probabilities), p=probabilities)
 
 

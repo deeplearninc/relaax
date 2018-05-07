@@ -55,6 +55,7 @@ class Network(subgraph.Subgraph):
         layers.extend((actor, critic))
 
         self.ph_state = input.ph_state
+        self.input = input
         self.actor = actor
         self.critic = graph.Flatten(critic)
         self.weights = layer.Weights(*layers)
@@ -84,9 +85,8 @@ class SharedParameters(subgraph.Subgraph):
         sg_gradients = optimizer.Gradients(sg_weights, optimizer=sg_optimizer)
 
         if da3c_config.config.use_icm:
-            sg_icm_optimizer = optimizer.AdamOptimizer(da3c_config.config.icm.lr)
-            sg_icm_weights = icm_model.ICM().weights
-            sg_icm_gradients = optimizer.Gradients(sg_icm_weights, optimizer=sg_icm_optimizer)
+            sg_icm_weights = icm_model.ICM(sg_network.input).weights
+            sg_icm_gradients = optimizer.Gradients(sg_icm_weights, optimizer=sg_optimizer)
 
             # Expose ICM public API
             self.op_icm_get_weights = self.Op(sg_icm_weights)
@@ -132,9 +132,9 @@ class AgentModel(subgraph.Subgraph):
                                            norm=da3c_config.config.gradients_norm_clipping)
 
         if da3c_config.config.use_icm:
-            sg_icm_network = icm_model.ICM()
-            sg_icm_gradients = optimizer.Gradients(sg_icm_network.weights, loss=sg_icm_network.loss)
-
+            sg_icm_network = icm_model.ICM(sg_network.input)
+            sg_icm_gradients = optimizer.Gradients(sg_icm_network.weights, loss=sg_icm_network.loss,
+                                                   norm=da3c_config.config.gradients_norm_clipping)
             # Expose ICM public API
             self.op_icm_assign_weights = self.Op(sg_icm_network.weights.assign,
                                                  weights=sg_icm_network.weights.ph_weights)

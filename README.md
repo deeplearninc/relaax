@@ -30,6 +30,7 @@ The components of RELAAX include:
 - [System Architecture](#system-architecture)
 - [Release Notes](#release-notes)
     - [1.1.0](#110)
+        - [1.1.1](#111)
 - [RELAAX Agent Proxy](#relaax-agent-proxy)
     - [Reinforcement Learning eXchange protocol](#reinforcement-learning-exchange-protocol)
     - [Reinforcement Learning eXchange protocol definition](#reinforcement-learning-exchange-protocol-definition)
@@ -208,6 +209,11 @@ algorithm:
     even if its weights is already changed by the other agent.  
     It computes the difference between parameter server & agents weights to recalculate  
     agents' gradients wrt delay. And it applies compensated variant to the parameter server.
+    ```yaml
+    algorithm:
+      combine_gradients: dc           # gradient's combining method: dc | fifo | average
+      dc_lambda: 0.05                 # delay compensation regularization constant
+    ```
 
 * TRPO-based algorithms is split into `3` variants:
     ```yaml
@@ -355,6 +361,28 @@ within number of batches specified by `avg_in_num_batches` parameter.
           TRPO:
             linesearch_type: Adaptive
         ```
+
+#### [1.1.1](#contents)
+
+* Enhance `DA3C` configuration wrt [ICM](https://pathak22.github.io/noreward-rl/) & choose action:
+```yaml
+version: 1.1.1
+algorithm:
+  name: da3c
+  
+  output:
+    action_size: 4                # action size for the given environment
+    greedily: false               # set to True to perform actions greedily -> argmax(probs)
+  
+  use_icm: true                   # set to True to use Intrinsic Curiosity Module (ICM) module
+
+  ICM:
+    nu: 1e-2                      # prediction bonus multiplier for intrinsic reward
+    beta: 0.2                     # forward loss importance against inverse model
+    lr_scale: 10                  # ICM learning rate scale wrt policy learning rate
+    nn_share: true                # set to True to share network with the policy
+    backprop_input: true          # set to True to backpropogate policy if share
+```
 
 ## [RELAAX Agent Proxy](#contents)
 Agent Proxy run with your Environments training and is used to communicate with RL Agents. At the moment client implemented in Python, later on we are planning to implement client code in C/C++, Ruby, GO, etc. to simplify integration of other environments.

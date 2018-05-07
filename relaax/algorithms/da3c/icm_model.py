@@ -8,11 +8,9 @@ from . import da3c_config as cfg
 
 
 class ICM(subgraph.Subgraph):
-    def build_graph(self):
-        conv_layer = dict(type=layer.Convolution, activation=layer.Activation.Elu,
-                          n_filters=32, filter_size=[3, 3], stride=[2, 2],
-                          border=layer.Border.Same)
-        input = layer.Input(cfg.config.input, descs=[dict(conv_layer)] * 4)
+    def build_graph(self, input):
+        if not cfg.config.ICM.nn_share:
+            input = layer.ConfiguredInput(cfg.config.input)
 
         shape = [None] + [cfg.config.output.action_size]
         self.ph_probs = graph.Placeholder(np.float32, shape=shape, name='act_probs')
@@ -21,7 +19,7 @@ class ICM(subgraph.Subgraph):
         flattened_input = layer.Flatten(input)
         last_size = flattened_input.node.shape.as_list()[-1]
 
-        inverse_inp = graph.Reshape(input, [-1, last_size*2])
+        inverse_inp = graph.Reshape(input, [-1, last_size * 2])
 
         get_first = graph.TfNode(inverse_inp.node[:, :last_size])
         get_second = graph.TfNode(inverse_inp.node[:, last_size:])
@@ -29,19 +27,27 @@ class ICM(subgraph.Subgraph):
         forward_inp = graph.Concat([get_first, self.ph_probs], axis=1)
 
         fc_size = cfg.config.hidden_sizes[-1]
-        inv_fc1 = layer.Dense(inverse_inp, fc_size, layer.Activation.Relu)
-        inv_fc2 = layer.Dense(inv_fc1, shape[-1])   # layer.Activation.Softmax
+        std_init = 1e-2
 
-        fwd_fc1 = layer.Dense(forward_inp, fc_size, layer.Activation.Relu)
-        fwd_fc2 = layer.Dense(fwd_fc1, last_size)
+        inv_fc1 = layer.Dense(inverse_inp, fc_size, layer.Activation.Relu, init_var=std_init)
+        inv_fc2 = layer.Dense(inv_fc1, shape[-1], init_var=std_init)  # layer.Activation.Softmax
+
+        fwd_fc1 = layer.Dense(forward_inp, fc_size, layer.Activation.Relu, init_var=std_init)
+        fwd_fc2 = layer.Dense(fwd_fc1, last_size, init_var=std_init)
 
         inv_loss = graph.SparseSoftmaxCrossEntropyWithLogits(inv_fc2, self.ph_taken).op
         fwd_loss = graph.L2loss(fwd_fc2.node - get_second.node).op
 
         self.ph_state = input.ph_state  # should be even wrt to batch_size for now
-        self.rew_out = graph.TfNode(cfg.config.icm.nu * fwd_loss)
+        self.rew_out = graph.TfNode(cfg.config.ICM.nu * fwd_loss)
 
-        self.loss = graph.TfNode(cfg.config.icm.beta * fwd_loss + (1 - cfg.config.icm.beta) * inv_loss)
+        self.loss = graph.TfNode(
+            cfg.config.ICM.lr_scale * (cfg.config.ICM.beta * fwd_loss + (1 - cfg.config.ICM.beta) * inv_loss)
+        )
 
         layers = [input, inv_fc1, inv_fc2, fwd_fc1, fwd_fc2]
+        if cfg.config.ICM.nn_share and not cfg.config.ICM.backprop_input:
+            # it make sense if we share NN with the Policy, but don't want to backprop its input
+            layers = layers[1:]
+
         self.weights = layer.Weights(*layers)

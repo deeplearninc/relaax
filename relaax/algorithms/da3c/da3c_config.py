@@ -51,20 +51,28 @@ config.use_icm = options.get('algorithm/use_icm', False)
 config.output.scale = options.get('algorithm/output/scale', 1.0)
 config.critic_scale = options.get('algorithm/critic_scale', 1.0)
 
+config.output.greedily = options.get('algorithm/output/greedily', False)
 config.output.action_high = options.get('algorithm/output/action_high', [])
 config.output.action_low = options.get('algorithm/output/action_low', [])
 
 config.combine_gradients = options.get('algorithm/combine_gradients', 'fifo')
 config.num_gradients = options.get('algorithm/num_gradients', 4)
-config.dc_lambda = options.get('algorithm/dc_lambda', 0.05)
+config.reject_old = options.get('algorithm/reject_old', False)
+
+config.dc_lambda = options.get('algorithm/dc_lambda', 0.05)     # 2.0 for adaptive
+config.dc_adaptive = options.get('algorithm/dc_adaptive', False)
+config.dc_m = options.get('algorithm/dc_m', 0.0)    # 0.0 0.95 -> [0, 1] wrt history
+config.dc_epsilon = options.get('algorithm/dc_epsilon', 1e-7)
 config.dc_history = options.get('algorithm/dc_history', 20)
 
 # ICM default parameters
-if not hasattr(config, 'icm'):
-    config.icm = options.get('algorithm/icm', Namespace())
-config.icm.nu = options.get('algorithm/icm/nu', 0.8)
-config.icm.beta = options.get('algorithm/icm/beta', 0.2)
-config.icm.lr = options.get('algorithm/icm/lr', 1e-3)
+if not hasattr(config, 'ICM'):
+    config.ICM = options.get('algorithm/ICM', Namespace())
+config.ICM.nu = options.get('algorithm/ICM/nu', 1e-2)    # 0.8 -> for cosine
+config.ICM.beta = options.get('algorithm/ICM/beta', 0.2)
+config.ICM.lr_scale = options.get('algorithm/ICM/lr_scale', 10)
+config.ICM.nn_share = options.get('algorithm/ICM/nn_share', True)
+config.ICM.backprop_input = options.get('algorithm/ICM/backprop_input', True)
 
 # KAF default parameters
 if not hasattr(config, 'KAF'):

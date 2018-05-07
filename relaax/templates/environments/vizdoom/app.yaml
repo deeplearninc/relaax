@@ -11,9 +11,10 @@ relaax-metrics-server:
   enable_unknown_metrics: true
   metrics:
     episode_reward: true
-    server_latency: true
+    server_latency: false
     action: true
     critic: true
+    state: false
 
   bind: localhost:7002
   metrics_dir: logs/metrics
@@ -31,33 +32,42 @@ relaax-rlx-server:
   bind: localhost:7001
   log-level: INFO
 
-version: 1.1.0
+version: 1.1.1
 algorithm:
   name: da3c
 
   input:
     shape: [42, 42]               # state: [height, width] or [height, width, channels]
-    history: 1                    # number of consecutive states to stuck to represent an input
+    history: 4                    # number of consecutive states to stuck to represent an input
     use_convolutions: true        # set to True to use convolutions to process the input,
                                   # it uses the set of convolutions from universe architecture by default
   output:
     continuous: false             # set to True to handle with continuous action type
     action_size: 4                # action size for the given environment
+    greedily: false               # set to True to perform actions greedily -> argmax(probs)
 
   hidden_sizes: [288]             # list of num_units for hidden layers
-  batch_size: 8                   # experience size for one update
+  batch_size: 20                  # experience size for one update
 
+  use_icm: true                   # set to True to use Intrinsic Curiosity Module (ICM) module
   use_lstm: true                  # to use LSTM instead of FF, set to the True
   max_global_step: 1e8            # amount of maximum global steps to pass through the training
 
   rewards_gamma: 0.99             # rewards discount factor
 
   initial_learning_rate: 1e-4     # initial learning rate to start the training
-  use_linear_schedule: False      # set to True to use linear learning rate annealing wrt max_global_step
+  use_linear_schedule: false      # set to True to use linear learning rate annealing wrt max_global_step
 
   optimizer: Adam                 # type of optimizer to use: Adam | RMSProp
   gradients_norm_clipping: 40.    # value to clip the gradients by its global norm
   critic_scale: 0.25              # coefficient to scale the critic loss or its learning rate wrt policy
 
-  combine_gradient: dc            # gradient's combining method: dc | fifo | average
+  combine_gradients: dc           # gradient's combining method: dc | fifo | average
   dc_lambda: 0.05                 # delay compensation regularization constant
+
+  ICM:
+    nu: 1e-2                      # prediction bonus multiplier for intrinsic reward
+    beta: 0.2                     # forward loss importance against inverse model
+    lr_scale: 10                  # ICM learning rate scale wrt policy learning rate
+    nn_share: true                # set to True to share network with the policy
+    backprop_input: true          # set to True to backpropogate policy if share
